@@ -7,10 +7,4 @@ ShellRoot {
 
         StatusBar {}
     }
-
-    // Future components to add in later phases:
-    // NotificationDaemon {}
-    // Launcher {}
-    // PowerMenu {}
-    // ScreenLock {}
 }

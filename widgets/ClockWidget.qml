@@ -1,95 +1,66 @@
 import QtQuick
+import qs.components.base
+import qs.config
 
-Item {
+BarElement {
     id: clockWidget
 
     property string currentTime: ""
     property string currentDate: ""
-    property bool expanded: false
 
-    width: timeContainer.width
-    height: timeContainer.height
+    // BarElement configuration
+    expandOnHover: true
+    expandedWidth: 160
+    minWidth: 70
 
-    Timer {
-        id: timeTimer
-        interval: 1000
-        running: true
-        repeat: true
-        triggeredOnStart: true
+    nonVisualChildren: [
+        Timer {
+            interval: 1000
+            running: true
+            repeat: true
+            triggeredOnStart: true
 
-        onTriggered: {
-            const now = new Date()
-            clockWidget.currentTime = Qt.formatTime(now, "hh:mm")
-            clockWidget.currentDate = Qt.formatDate(now, "dd MMM")
-        }
-    }
-
-    // Time display
-    Rectangle {
-        id: timeContainer
-        width: expanded ? 160 : 70
-        height: 32
-        color: expanded ? "#4f378b" : "#49454f"
-        radius: 16
-
-        Row {
-            anchors.centerIn: parent
-            spacing: 6
-
-            Text {
-                id: timeText
-                text: clockWidget.currentTime
-                font.pixelSize: 14
-                font.weight: Font.Medium
-                color: expanded ? "#eaddff" : "#e6e1e5"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Text {
-                id: separator
-                text: "•"
-                font.pixelSize: 14
-                color: expanded ? "#eaddff" : "#cab6cf"
-                anchors.verticalCenter: parent.verticalCenter
-                visible: expanded
-            }
-
-            Text {
-                id: dateText
-                text: clockWidget.currentDate
-                font.pixelSize: 14
-                color: expanded ? "#eaddff" : "#cab6cf"
-                anchors.verticalCenter: parent.verticalCenter
-                visible: expanded
+            onTriggered: {
+                const now = new Date()
+                clockWidget.currentTime = Qt.formatTime(now, "hh:mm")
+                clockWidget.currentDate = Qt.formatDate(now, "dd MMM")
             }
         }
+    ]
 
-        Behavior on width {
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.OutQuad
-            }
+    // Time display content
+    Row {
+        spacing: 6
+
+        Text {
+            text: clockWidget.currentTime
+            font.family: Config.typography.fontFamily
+            font.pixelSize: Config.typography.titleMedium.size
+            font.weight: Config.typography.titleMedium.weight
+            font.letterSpacing: Config.typography.titleMedium.letterSpacing
+            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceText
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        Behavior on color {
-            ColorAnimation {
-                duration: 250
-                easing.type: Easing.OutQuad
-            }
+        Text {
+            text: "•"
+            font.family: Config.typography.fontFamily
+            font.pixelSize: Config.typography.bodyMedium.size
+            font.weight: Config.typography.titleMedium.weight
+            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceVariantText
+            anchors.verticalCenter: parent.verticalCenter
+            visible: clockWidget.expanded
         }
-    }
 
-    // Mouse area for hover interaction
-    MouseArea {
-        anchors.fill: timeContainer
-        anchors.margins: -8  // Expand hover area
-        hoverEnabled: true
-
-        onEntered: {
-            clockWidget.expanded = true
-        }
-        onExited: {
-            clockWidget.expanded = false
+        Text {
+            text: clockWidget.currentDate
+            font.family: Config.typography.fontFamily
+            font.pixelSize: Config.typography.titleMedium.size
+            font.weight: Config.typography.titleMedium.weight
+            font.letterSpacing: Config.typography.bodyMedium.letterSpacing
+            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceVariantText
+            anchors.verticalCenter: parent.verticalCenter
+            visible: clockWidget.expanded
         }
     }
 }

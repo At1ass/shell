@@ -1,50 +1,47 @@
 import QtQuick
+import qs.components.base
+import qs.config
 
-Column {
+BarElement {
     id: systemWidget
 
-    spacing: 2
+    // BarElement configuration
+    clickable: true
+    minWidth: 80
 
-    Rectangle {
-        width: 80
-        height: 32
-        color: "#49454f"
-        radius: 16
+    onClicked: {
+        console.log("System widget clicked")
+    }
 
-        Row {
-            anchors.centerIn: parent
-            spacing: 4
+    // System indicators content
+    Row {
+        spacing: 4
 
-            // Network indicator (placeholder)
-            Rectangle {
-                width: 4
-                height: 4
-                radius: 2
-                color: "#ccc2dc"
-            }
-
-            // Battery indicator (placeholder)
-            Rectangle {
-                width: 4
-                height: 4
-                radius: 2
-                color: "#efb8c8"
-            }
-
-            // Audio indicator (placeholder)
-            Rectangle {
-                width: 4
-                height: 4
-                radius: 2
-                color: "#d0bcff"
-            }
+        // Network indicator (placeholder)
+        Rectangle {
+            width: 4
+            height: 4
+            radius: 2
+            color: Config.colors.secondary
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                console.log("System widget clicked")
-            }
+        // Battery indicator (placeholder)
+        Rectangle {
+            width: 4
+            height: 4
+            radius: 2
+            color: Config.colors.tertiary
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Audio indicator (placeholder)
+        Rectangle {
+            width: 4
+            height: 4
+            radius: 2
+            color: Config.colors.primary
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 }

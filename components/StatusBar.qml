@@ -2,7 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import "../widgets"
+import qs.widgets
+import qs.components.sections
+import qs.config
 
 PanelWindow {
     id: statusBar
@@ -18,61 +20,58 @@ PanelWindow {
     }
 
     margins {
-        left: 16
-        top: 8
-        right: 16
+        left: Config.spacing.medium
+        top: Config.spacing.small
+        right: Config.spacing.medium
     }
 
-    implicitHeight: 48
+    implicitHeight: Config.bar.height
     color: "transparent"
-    // exclusionMode: ExclusionMode.Exclusive
 
     Rectangle {
         id: barBackground
         anchors.fill: parent
-        color: "#1c1b1f"
-        radius: 16
-        opacity: 0.96
+        color: Config.colors.surfaceContainer
+        radius: Config.shape.extraLarge
+        opacity: Config.bar.backgroundOpacity
 
         // Primary surface tint
         Rectangle {
             anchors.fill: parent
-            color: "#d0bcff"
+            color: Config.colors.primary
             opacity: 0.05
             radius: parent.radius
         }
 
-        RowLayout {
-            id: barLayout
-            anchors.fill: parent
-            anchors.margins: 8
-            spacing: 16
-
-            // Left section - Workspaces
-            WorkspaceWidget {
-                Layout.alignment: Qt.AlignVCenter
+        // Left section - Workspaces
+        LeftBarSection {
+            anchors {
+                left: parent.left
+                verticalCenter: parent.verticalCenter
+                leftMargin: Config.spacing.medium
             }
 
-            // Middle section - Clock (centered)
-            Item {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
+            WorkspaceWidget {}
+        }
 
-                ClockWidget {
-                    anchors.centerIn: parent
-                }
+        // Center section - Clock (absolute positioning)
+        ClockWidget {
+            anchors.centerIn: parent
+        }
+
+        // Right section - System info
+        RightBarSection {
+            anchors {
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+                rightMargin: Config.spacing.medium
             }
 
-            // Right section - System info
             Row {
-                spacing: 12
-                Layout.alignment: Qt.AlignVCenter
-
+                spacing: Config.spacing.small
                 SystemWidget {}
                 TrayWidget {}
             }
         }
     }
-
-    // Remove hover overlay - not needed
 }
