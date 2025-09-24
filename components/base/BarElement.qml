@@ -84,8 +84,6 @@ Rectangle {
         id: contentContainer
         anchors.centerIn: parent
         anchors.margins: Config.spacing.small
-        width: childrenRect.width
-        height: childrenRect.height
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
     }

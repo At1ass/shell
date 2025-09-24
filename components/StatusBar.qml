@@ -44,7 +44,8 @@ PanelWindow {
         }
 
         // Left section - Workspaces
-        LeftBarSection {
+        BarSection {
+            alignment: "left"
             anchors {
                 left: parent.left
                 verticalCenter: parent.verticalCenter
@@ -60,18 +61,18 @@ PanelWindow {
         }
 
         // Right section - System info
-        RightBarSection {
+        BarSection {
+            alignment: "right"
+            spacingToken: "small"
             anchors {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
                 rightMargin: Config.spacing.medium
             }
 
-            Row {
-                spacing: Config.spacing.small
-                SystemWidget {}
-                TrayWidget {}
-            }
+            LayoutWidget {}
+            SystemWidget {}
+            TrayWidget {}
         }
     }
 }

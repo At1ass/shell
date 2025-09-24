@@ -14,10 +14,8 @@ BarElement {
     }
 
     // Placeholder tray icon
-    Rectangle {
-        width: 8
-        height: 8
-        radius: 4
-        color: Config.colors.outline
+    MaterialIndicator {
+        size: "small"
+        colorRole: "outline"
     }
 }

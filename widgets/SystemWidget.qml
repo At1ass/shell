@@ -15,32 +15,26 @@ BarElement {
 
     // System indicators content
     Row {
-        spacing: 4
+        spacing: Config.spacing.extraSmall
 
-        // Network indicator (placeholder)
-        Rectangle {
-            width: 4
-            height: 4
-            radius: 2
-            color: Config.colors.secondary
+        // Network indicator
+        MaterialIndicator {
+            size: "extraSmall"
+            colorRole: "secondary"
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        // Battery indicator (placeholder)
-        Rectangle {
-            width: 4
-            height: 4
-            radius: 2
-            color: Config.colors.tertiary
+        // Battery indicator
+        MaterialIndicator {
+            size: "extraSmall"
+            colorRole: "tertiary"
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        // Audio indicator (placeholder)
-        Rectangle {
-            width: 4
-            height: 4
-            radius: 2
-            color: Config.colors.primary
+        // Audio indicator
+        MaterialIndicator {
+            size: "extraSmall"
+            colorRole: "primary"
             anchors.verticalCenter: parent.verticalCenter
         }
     }

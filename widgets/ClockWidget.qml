@@ -30,35 +30,27 @@ BarElement {
 
     // Time display content
     Row {
-        spacing: 6
+        spacing: Config.spacing.extraSmall
 
-        Text {
+        MaterialText {
             text: clockWidget.currentTime
-            font.family: Config.typography.fontFamily
-            font.pixelSize: Config.typography.titleMedium.size
-            font.weight: Config.typography.titleMedium.weight
-            font.letterSpacing: Config.typography.titleMedium.letterSpacing
-            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceText
+            textStyle: "titleMedium"
+            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceText"
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        Text {
+        MaterialText {
             text: "•"
-            font.family: Config.typography.fontFamily
-            font.pixelSize: Config.typography.bodyMedium.size
-            font.weight: Config.typography.titleMedium.weight
-            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceVariantText
+            textStyle: "bodyMedium"
+            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceVariantText"
             anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded
         }
 
-        Text {
+        MaterialText {
             text: clockWidget.currentDate
-            font.family: Config.typography.fontFamily
-            font.pixelSize: Config.typography.titleMedium.size
-            font.weight: Config.typography.titleMedium.weight
-            font.letterSpacing: Config.typography.bodyMedium.letterSpacing
-            color: clockWidget.expanded ? Config.colors.primaryContainerText : Config.colors.surfaceVariantText
+            textStyle: "bodyMedium"
+            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceVariantText"
             anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded
         }
