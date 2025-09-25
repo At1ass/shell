@@ -79,6 +79,11 @@ PanelWindow {
                 rightMargin: Config.spacing.medium
             }
 
+            // MPRISWidget {}
+            VolumeWidget {
+                tooltipManager: statusBar.tooltip
+            }
+
             LayoutWidget {}
             SystemWidget {}
             TrayWidget {

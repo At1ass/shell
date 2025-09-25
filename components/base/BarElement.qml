@@ -104,6 +104,7 @@ Rectangle {
         hoverEnabled: clickable || hoverable || expandOnHover
         enabled: clickable || hoverable || expandOnHover
         propagateComposedEvents: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         onClicked: function(mouse) {
             if (root.clickHandler) {
