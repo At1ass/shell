@@ -1,12 +1,16 @@
 import QtQuick
 import qs.components.base
+import qs.components.tooltip
 import qs.config
 
 BarElement {
     id: clockWidget
 
+    property var tooltipManager: null
+
     property string currentTime: ""
     property string currentDate: ""
+    property string currentDateTime: ""
 
     // BarElement configuration
     expandOnHover: true
@@ -24,6 +28,29 @@ BarElement {
                 const now = new Date()
                 clockWidget.currentTime = Qt.formatTime(now, "hh:mm")
                 clockWidget.currentDate = Qt.formatDate(now, "dd MMM")
+                clockWidget.currentDateTime = Qt.formatDateTime(now, "hh:mm:ss\ndddd, d MMMM yyyy")
+            }
+        },
+
+        // Tooltip для детальной информации о времени
+        TooltipItem {
+            id: clockTooltip
+            tooltip: clockWidget.tooltipManager
+            owner: clockWidget
+            show: clockWidget.hovered
+
+            Column {
+                anchors.centerIn: parent
+                spacing: Config.spacing.extraSmall
+
+                MaterialText {
+                    text: clockWidget.currentDateTime
+                    textStyle: "bodyLarge"
+                    colorRole: "surfaceText"
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    wrapMode: Text.Wrap
+                }
             }
         }
     ]

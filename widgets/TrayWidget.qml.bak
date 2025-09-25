@@ -1,0 +1,169 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Quickshell
+import Quickshell.Services.SystemTray
+import qs.components.base
+import qs.config
+
+BarElement {
+    id: trayWidget
+    clickable: false
+
+    RowLayout {
+        spacing: Config.spacing.small
+
+        Repeater {
+            model: SystemTray.items
+
+Item {
+    id: item
+    required property var modelData
+    width: 24; height: 24
+
+    // флаг показа меню
+    property bool targetMenuOpen: false
+
+    // тянем меню из SNI
+    QsMenuOpener {
+        id: opener
+        menu: item.modelData.menu
+    }
+
+    // наше "тултип-меню"
+    Popup {
+        id: menuPopup
+        // показываем ТОЛЬКО если запрошено и есть хоть один пункт
+        visible: item.targetMenuOpen && ((opener.items ? opener.items.length : 0) > 0)
+        focus: true
+        modal: false
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        onVisibleChanged: if (!visible && item.targetMenuOpen) item.targetMenuOpen = false
+
+        // позиция под иконкой
+        x: item.mapToItem(null, 0, 0).x
+        y: item.mapToItem(null, 0, item.height).y + 4
+
+        padding: 6
+        background: Rectangle {
+            id: bg
+            radius: Config.radius.medium
+            color: Config.colors.surface
+            border.color: Config.colors.outlineVariant
+            opacity: 0.98
+        }
+
+        contentItem: Column {
+            spacing: 2
+
+            Repeater {
+                // ВСЕГДА массив, даже если меню ещё не приехало
+                model: opener.items || []
+
+                delegate: Item {
+                    width: Math.max(160, row.implicitWidth) + 12
+                    height: modelData.separator ? 8 : 28
+
+                    // разделитель
+                    Rectangle {
+                        visible: modelData.separator === true
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 6; anchors.rightMargin: 6
+                        height: 1
+                        color: Config.colors.outlineVariant
+                    }
+
+                    // строка
+                    Row {
+                        id: row
+                        visible: !(modelData.separator === true)
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 8
+
+                        Image {
+                            visible: !!modelData.icon
+                            source: modelData.icon
+                            sourceSize.width: 16; sourceSize.height: 16
+                            width: 16; height: 16
+                            fillMode: Image.PreserveAspectFit
+                            opacity: modelData.enabled === false ? 0.5 : 1
+                        }
+                        Rectangle {
+                            width: 14; height: 14; radius: 3
+                            visible: modelData.checkable === true
+                            color: modelData.checked ? Config.colors.primary : "transparent"
+                            border.width: 1
+                            border.color: Config.colors.outline
+                        }
+                        Text {
+                            text: modelData.text || ""
+                            font.family: Config.typography.fontFamily
+                            font.pixelSize: Config.typography.bodyMedium.size
+                            color: Config.colors.onSurface
+                            opacity: modelData.enabled === false ? 0.5 : 1
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: !!modelData.submenu
+                            text: "›"
+                            font.pixelSize: 16
+                            color: Config.colors.onSurfaceVariant
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: (modelData.enabled !== false) && (modelData.separator !== true)
+                        onClicked: {
+                            if (modelData.submenu) {
+                                // при желании — открыть второе Popup с подменю
+                            } else {
+                                modelData.trigger()
+                                menuPopup.close()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // иконка
+    Image {
+        anchors.fill: parent
+        source: item.modelData.icon
+        sourceSize.width: 20; sourceSize.height: 20
+        fillMode: Image.PreserveAspectFit
+    }
+
+    // клики
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: (ev) => {
+            if (ev.button === Qt.LeftButton) {
+                item.modelData.activate()
+            } else if (ev.button === Qt.RightButton) {
+                // переключаем флаг; видимость меню сама пересчитается
+                item.targetMenuOpen = !item.targetMenuOpen
+            }
+        }
+    }
+
+    // полезно: если пункты меню приехали позже, а флаг уже true — меню откроется
+    Connections {
+        target: opener
+        function onItemsChanged() {
+            if (item.targetMenuOpen && (!opener.items || opener.items.length === 0)) {
+                // нечего показывать — закроем
+                item.targetMenuOpen = false
+            }
+        }
+    }
+}
+        }
+    }
+}

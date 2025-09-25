@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.widgets
 import qs.components.sections
+import qs.components.tooltip
 import qs.config
 
 PanelWindow {
@@ -27,6 +28,13 @@ PanelWindow {
 
     implicitHeight: Config.bar.height
     color: "transparent"
+
+    // Tooltip Manager
+    readonly property TooltipManager tooltip: tooltipManager
+    TooltipManager {
+        id: tooltipManager
+        bar: statusBar
+    }
 
     Rectangle {
         id: barBackground
@@ -58,6 +66,7 @@ PanelWindow {
         // Center section - Clock (absolute positioning)
         ClockWidget {
             anchors.centerIn: parent
+            tooltipManager: statusBar.tooltip
         }
 
         // Right section - System info
@@ -72,7 +81,9 @@ PanelWindow {
 
             LayoutWidget {}
             SystemWidget {}
-            TrayWidget {}
+            TrayWidget {
+                tooltipManager: statusBar.tooltip
+            }
         }
     }
 }
