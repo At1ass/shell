@@ -63,7 +63,7 @@ PanelWindow {
             WorkspaceWidget {}
         }
 
-        // Center section - Clock (absolute positioning)
+        // Center section - Clock and MPRIS (absolute positioning)
         ClockWidget {
             anchors.centerIn: parent
             tooltipManager: statusBar.tooltip
@@ -77,6 +77,12 @@ PanelWindow {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
                 rightMargin: Config.spacing.medium
+            }
+
+            // MPRIS Widget (only on main monitor DP-2)
+            MPRISWidget {
+                visible: statusBar.screen.name === "DP-2"
+                tooltipManager: statusBar.tooltip
             }
 
             // MPRISWidget {}

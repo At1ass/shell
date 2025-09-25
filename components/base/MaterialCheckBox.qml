@@ -1,16 +1,20 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import qs.config
-import "." as Base
+import qs.components.base
+// import "." as Base
 
 CheckBox {
     id: control
 
     spacing: Config.spacing.small
+    leftPadding: 0
 
     indicator: Rectangle {
         width: 18
         height: 18
+        y: parent.height / 2 - height / 2
         radius: Config.shape.small
         color: control.checked
                ? (control.enabled ? Config.colors.primary : Config.colors.surfaceContainerHigh)
@@ -25,7 +29,7 @@ CheckBox {
             opacity: (!control.checked && control.hovered && control.enabled) ? 0.08 : 0
         }
 
-        Base.MaterialText {
+        MaterialText {
             anchors.centerIn: parent
             text: control.checked ? "✓" : ""
             textStyle: "labelLarge"
@@ -33,7 +37,9 @@ CheckBox {
         }
     }
 
-    contentItem: Base.MaterialText {
+    contentItem: MaterialText {
+        leftPadding: control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
+        rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
         text: control.text
         textStyle: "bodyMedium"
         colorRole: control.enabled ? "surfaceText" : "surfaceVariantText"

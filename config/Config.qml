@@ -50,6 +50,7 @@ Singleton {
         property color surfaceContainer: "#1D2027"
         property color surfaceContainerHigh: "#272A32"
         property color surfaceContainerHighest: "#32353D"
+        property color onSurfaceDisabled: "#61E6E0E9" // 38% opacity of surface text per Material 3 disabled state
 
         // Inverse colors
         property color inverseSurface: "#E6E0E9"
