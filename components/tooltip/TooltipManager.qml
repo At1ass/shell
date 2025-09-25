@@ -106,8 +106,8 @@ Scope {
                 }
             }
 
-            implicitWidth: Math.max(200, tooltipItem.targetWidth)
-            implicitHeight: Math.max(100, tooltipItem.targetHeight + Config.spacing.large)
+            implicitWidth: Math.max(tooltipItem.targetWidth, activeItem?.isMenu ? 150 : 100)
+            implicitHeight: Math.max(tooltipItem.targetHeight, 40)
             visible: true
             color: "transparent"
 
@@ -141,8 +141,8 @@ Scope {
                     yScale: xScale
                 }
 
-                readonly property real targetWidth: shownItem ? (shownItem.implicitWidth || 200) : 200
-                readonly property real targetHeight: shownItem ? (shownItem.implicitHeight || 100) : 100
+                readonly property real targetWidth: shownItem ? Math.max(shownItem.implicitWidth || 150, shownItem.isMenu ? 150 : 100) : 100
+                readonly property real targetHeight: shownItem ? Math.max(shownItem.implicitHeight || 40, 40) : 40
 
                 readonly property real targetX: {
                     if (shownItem == null || shownItem.owner == null) return 0
@@ -162,8 +162,8 @@ Scope {
 
                 x: 0
                 y: 0
-                width: Math.max(200, targetWidth)
-                height: Math.max(100, targetHeight + Config.spacing.large)
+                width: targetWidth
+                height: targetHeight
 
                 // Background
                 Rectangle {
@@ -192,37 +192,35 @@ Scope {
 
                 SmoothedAnimation on width {
                     id: widthAnim
-                    to: Math.max(200, tooltipItem.targetWidth || 200)
+                    to: tooltipItem.targetWidth
                     velocity: 800
                     duration: (shownItem?.animateSize ?? true) ? 200 : 0
                 }
 
                 SmoothedAnimation on height {
                     id: heightAnim
-                    to: Math.max(100, (tooltipItem.targetHeight || 100) + Config.spacing.large)
+                    to: tooltipItem.targetHeight
                     velocity: 800
                     duration: (shownItem?.animateSize ?? true) ? 200 : 0
                 }
 
                 onTargetWidthChanged: {
-                    const newWidth = Math.max(200, targetWidth)
                     if (shownItem?.animateSize ?? true) {
-                        widthAnim.to = newWidth
+                        widthAnim.to = targetWidth
                         if (!widthAnim.running) widthAnim.start()
                     } else {
                         widthAnim.stop()
-                        width = newWidth
+                        width = targetWidth
                     }
                 }
 
                 onTargetHeightChanged: {
-                    const newHeight = Math.max(100, targetHeight + Config.spacing.large)
                     if (shownItem?.animateSize ?? true) {
-                        heightAnim.to = newHeight
+                        heightAnim.to = targetHeight
                         if (!heightAnim.running) heightAnim.start()
                     } else {
                         heightAnim.stop()
-                        height = newHeight
+                        height = targetHeight
                     }
                 }
             }

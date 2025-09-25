@@ -68,10 +68,8 @@ Item {
 
     anchors.fill: parent
     visible: false
-    // implicitHeight: contentItem.implicitHeight + contentItem.anchors.topMargin + contentItem.anchors.bottomMargin
     implicitWidth: contentItem.implicitWidth + contentItem.anchors.leftMargin + contentItem.anchors.rightMargin
-    implicitHeight: contentItem.implicitHeight
-    // implicitWidth: contentItem.implicitWidth
+    implicitHeight: contentItem.implicitHeight + contentItem.anchors.topMargin + contentItem.anchors.bottomMargin
 
     readonly property Item item: contentItem
 

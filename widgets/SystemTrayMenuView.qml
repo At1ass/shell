@@ -6,7 +6,6 @@ import qs.config
 
 ColumnLayout {
     id: root
-
     property alias menu: menuView.menu
     property Item animatingItem: null
     property bool animating: animatingItem != null
@@ -16,7 +15,6 @@ ColumnLayout {
     QsMenuOpener { id: menuView }
 
     spacing: 0
-    implicitWidth: 200
 
     Repeater {
         model: menuView.children
@@ -25,19 +23,17 @@ ColumnLayout {
             required property var modelData
 
             Layout.fillWidth: true
-            Layout.preferredHeight: item ? item.height : 0
 
             sourceComponent: modelData.isSeparator ? separatorComponent : menuItemComponent
 
             Component {
                 id: separatorComponent
-                Rectangle {
-                    height: 9
-                    color: "transparent"
+                Item {
+                    implicitHeight: 7
 
                     Rectangle {
                         anchors.centerIn: parent
-                        width: parent.width - Config.spacing.medium
+                        width: parent.width - 8
                         height: 1
                         color: Config.colors.outline
                         opacity: 0.3
@@ -47,111 +43,127 @@ ColumnLayout {
 
             Component {
                 id: menuItemComponent
-                Rectangle {
-                    id: menuItem
-                    height: Math.max(32, contentColumn.implicitHeight + Config.spacing.small)
-                    color: mouseArea.containsMouse ? Config.colors.surfaceContainerHigh : "transparent"
-                    radius: Config.shape.extraSmall
+                MouseArea {
+                    id: menuItemRoot
+                    property var entry: modelData
 
-                    property bool hasSubmenu: modelData.hasSubmenu || false
-                    property bool isCheckable: modelData.checkable || false
-                    property bool isChecked: modelData.checked || false
-                    property bool isEnabled: modelData.enabled
+                    implicitWidth: contentRow.implicitWidth + 8
+                    implicitHeight: contentRow.implicitHeight + 8
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    enabled: entry.enabled
 
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
-
-                    MouseArea {
-                        id: mouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        enabled: menuItem.isEnabled
-
-                        onClicked: {
-                            if (modelData.hasSubmenu) {
-                                // Для подменю можно добавить логику позже
-                                return
-                            }
-
-                            modelData.triggered()
+                    onClicked: {
+                        if (entry.hasChildren) {
+                            // Обработка подменю если нужно
+                        } else {
+                            entry.triggered()
                             root.menuClosed()
                         }
                     }
 
-                    Row {
-                        id: contentColumn
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: Config.spacing.medium
-                        anchors.rightMargin: Config.spacing.medium
-                        spacing: Config.spacing.small
+                    ColumnLayout {
+                        id: contentRow
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        spacing: 0
 
-                        // Иконка чекбокса/радио
-                        Item {
-                            width: 16
-                            height: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: menuItem.isCheckable
+                        RowLayout {
+                            id: innerRow
 
+                            // Область для checkbox/radio или submenu индикатора
+                            Item {
+                                implicitWidth: 22
+                                implicitHeight: 22
+
+                            // Checkbox
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: 12
-                                height: 12
-                                radius: 2
-                                color: menuItem.isChecked ? Config.colors.primary : "transparent"
+                                width: 16
+                                height: 16
+                                radius: 3
+                                color: (entry.checkState == 2) ? Config.colors.primary : "transparent"
                                 border.color: Config.colors.outline
-                                border.width: 1
+                                border.width: (entry.buttonType == 1) ? 1 : 0  // CheckBox = 1
+                                visible: entry.buttonType == 1
 
                                 MaterialText {
                                     anchors.centerIn: parent
                                     text: "✓"
                                     textStyle: "labelSmall"
-                                    colorRole: "primaryText"
-                                    visible: menuItem.isChecked
+                                    color: Config.colors.primaryText
+                                    visible: entry.checkState == 2
                                 }
+                            }
+
+                            // Radio button
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 16
+                                height: 16
+                                radius: 8
+                                color: "transparent"
+                                border.color: Config.colors.outline
+                                border.width: (entry.buttonType == 2) ? 1 : 0  // RadioButton = 2
+                                visible: entry.buttonType == 2
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 8
+                                    height: 8
+                                    radius: 4
+                                    color: Config.colors.primary
+                                    visible: entry.checkState == 2
+                                }
+                            }
+
+                            // Submenu arrow
+                            MaterialText {
+                                anchors.centerIn: parent
+                                text: "▶"
+                                textStyle: "labelSmall"
+                                color: Config.colors.surfaceVariantText
+                                visible: entry.hasChildren
                             }
                         }
 
-                        // Иконка пункта меню
-                        Image {
-                            width: 16
-                            height: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                            source: modelData.icon
-                            visible: source.toString() !== ""
-                            sourceSize.width: width
-                            sourceSize.height: height
-                            fillMode: Image.PreserveAspectFit
-                        }
+                            // Текст пункта меню
+                            MaterialText {
+                                text: entry.text
+                                textStyle: "bodyMedium"
+                                color: entry.enabled ? Config.colors.surfaceText : Config.colors.surfaceVariantText
+                                Layout.fillWidth: true
+                            }
 
-                        // Текст пункта меню
-                        MaterialText {
-                            text: modelData.text || ""
-                            textStyle: "bodyMedium"
-                            colorRole: menuItem.isEnabled ? "surfaceText" : "surfaceVariantText"
-                            anchors.verticalCenter: parent.verticalCenter
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                        }
+                            // Иконка справа
+                            Item {
+                                implicitWidth: 22
+                                implicitHeight: 22
 
-                        // Индикатор подменю
-                        MaterialText {
-                            text: "▶"
-                            textStyle: "labelSmall"
-                            colorRole: "surfaceVariantText"
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: menuItem.hasSubmenu
+                                Image {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    source: entry.icon
+                                    visible: source != ""
+                                    width: parent.height
+                                    height: parent.height
+                                    fillMode: Image.PreserveAspectFit
+                                }
+                            }
                         }
                     }
 
-                    // Затемнение для неактивных пунктов
+                    // Фон для выделения
                     Rectangle {
                         anchors.fill: parent
-                        color: Config.colors.surface
-                        opacity: menuItem.isEnabled ? 0 : 0.5
-                        radius: parent.radius
+                        visible: menuItemRoot.containsMouse && menuItemRoot.enabled
+                        color: Config.colors.primaryContainer
+                        radius: Config.shape.extraSmall
+                        opacity: 0.12
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
                     }
                 }
             }

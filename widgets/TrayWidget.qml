@@ -48,8 +48,20 @@ BarElement {
                            Config.colors.surfaceContainerHighest : "transparent"
                     radius: Config.shape.small
 
+                    // Дополнительный эффект при hover
+                    scale: mouseArea.containsMouse ? 1.1 : 1.0
+                    opacity: mouseArea.containsMouse ? 0.8 : 1.0
+
                     Behavior on color {
                         ColorAnimation { duration: 150 }
+                    }
+
+                    Behavior on scale {
+                        SmoothedAnimation { velocity: 8; duration: 100 }
+                    }
+
+                    Behavior on opacity {
+                        SmoothedAnimation { velocity: 6; duration: 120 }
                     }
                 }
 
@@ -123,7 +135,7 @@ BarElement {
                     owner: trayItem
                     isMenu: true
                     show: trayItem.targetMenuOpen && trayItem.modelData.hasMenu
-                    animateSize: true
+                    animateSize: false
 
                     onClose: trayItem.targetMenuOpen = false
 
