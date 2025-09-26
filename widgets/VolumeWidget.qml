@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
 import Quickshell.Services.Pipewire
 import qs.components.base
 import qs.components.tooltip
@@ -499,12 +500,6 @@ BarElement {
 
         Image {
             source: {
-                // if (!root.sink || !root.sink.audio)
-                //     return "image://icon/audio-volume-muted-symbolic";
-                // if (root.sink.audio.muted || root.sink.audio.volume <= 0.001)
-                //     return "image://icon/audio-volume-muted-symbolic";
-                // const v = root.sink.audio.volume;
-                // return "image://icon/" + (v < 0.34 ? "audio-volume-low-symbolic" : v < 0.67 ? "audio-volume-medium-symbolic" : "audio-volume-high-symbolic");
                 if (!root.sink || !root.sink.audio)
                     return "root:icons/SVGs/regular/speaker-simple-x";
                 if (root.sink.audio.muted || root.sink.audio.volume <= 0.001)
@@ -513,13 +508,31 @@ BarElement {
                 return "root:icons/SVGs/regular/" + (v < 0.34 ? "speaker-simple-none" : v < 0.67 ? "speaker-simple-low" : "speaker-simple-high");
             }
             // color: "white"
-            sourceSize.width: 18
-            sourceSize.height: 18
+            width: 30
+            height: 30
+            sourceSize.width: 256
+            sourceSize.height: 256
+            mipmap: true
+            smooth: true
+            ColorOverlay {
+                anchors.fill: parent
+                source: parent
+                color: Qt.alpha(Config.colors.primary, root.enabled ? 1.0 : 0.38)
+                visible: parent.visible
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
+                }
+        }
         }
 
         MaterialText {
+            anchors.verticalCenter: parent.verticalCenter
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
-            textStyle: "bodyMedium"
+            textStyle: "titleMedium"
             colorRole: "surfaceText"
         }
     }

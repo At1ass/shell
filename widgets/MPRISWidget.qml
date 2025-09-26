@@ -22,7 +22,7 @@ BarElement {
     visible: true
     // visible: (typeof MprisController !== 'undefined') && MprisController.activePlayer !== null
 
-    implicitWidth: content.width + 12
+    implicitWidth: content.width + Config.spacing.small * 2
     // minWidth: content.implicitWidth
 
     nonVisualChildren: [
@@ -61,15 +61,13 @@ BarElement {
     // Main content - compact display on bar
     RowLayout {
         id: content
-        // anchors.centerIn: parent
-        spacing: Config.spacing.small
+        spacing: Config.spacing.none
 
         // Previous button
-        MaterialText {
-            text: "⏮"
-            font.pixelSize: 16
-            color: (typeof MprisController !== 'undefined' && MprisController.canGoPrevious) ? Config.colors.primary : Config.colors.onSurfaceDisabled
-            opacity: (typeof MprisController !== 'undefined' && MprisController.canGoPrevious) ? 1.0 : 0.5
+        ClickableIcon {
+            iconName: "skip-back"
+            iconStyle: "bold"
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
             MouseArea {
                 anchors.fill: parent
                 enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
@@ -84,18 +82,16 @@ BarElement {
             }
         }
 
-        // Play/pause button
-        MaterialText {
-            text: (typeof MprisController !== 'undefined' && MprisController.isPlaying) ? "⏸" : "▶"
-            font.pixelSize: 16
-            color: (typeof MprisController !== 'undefined' && MprisController.canTogglePlaying) ? Config.colors.primary : Config.colors.onSurfaceDisabled
-            opacity: (typeof MprisController !== 'undefined' && MprisController.canTogglePlaying) ? 1.0 : 0.5
+        ClickableIcon {
+            iconName: MprisController.isPlaying ? "play" : "pause"
+            iconStyle: "bold"
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
             MouseArea {
                 anchors.fill: parent
                 enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
                 hoverEnabled: true
                 acceptedButtons: Qt.RightButton | Qt.LeftButton
-                onClicked: function(mouse){
+                onClicked: function(mouse) {
                     if (mouse.button === Qt.LeftButton) {
                         if (typeof MprisController !== 'undefined')
                             MprisController.togglePlaying();
@@ -104,11 +100,10 @@ BarElement {
             }
         }
         // Next button
-        MaterialText {
-            text: "⏭"
-            font.pixelSize: 16
-            color: (typeof MprisController !== 'undefined' && MprisController.canGoNext) ? Config.colors.primary : Config.colors.onSurfaceDisabled
-            opacity: (typeof MprisController !== 'undefined' && MprisController.canGoNext) ? 1.0 : 0.5
+        ClickableIcon {
+            iconName: "skip-forward"
+            iconStyle: "bold"
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
             MouseArea {
                 anchors.fill: parent
                 enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext

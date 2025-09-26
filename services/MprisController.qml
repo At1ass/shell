@@ -102,6 +102,20 @@ Singleton {
         }
     }
 
+    // Position control - disabled until proper API is found
+    property bool canSeek: false
+    function setPosition(positionMs: real) {
+        // MPRIS setPosition API not available in current QuickShell version
+        console.log("Seek to position requested but not implemented:", positionMs)
+        if (this.activePlayer.positionSupported) {
+            console.log("-----Seek to position requested but not implemented:", positionMs)
+
+            this.activePlayer.seek(this.activePlayer.position + positionMs)
+        }
+
+        console.log("Seek to position requested but not implemented:", positionMs)
+    }
+
     function setActivePlayer(player: MprisPlayer) {
         this.trackedPlayer = player
     }
