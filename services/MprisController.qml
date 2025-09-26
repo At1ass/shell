@@ -53,15 +53,29 @@ Singleton {
             return
         }
 
-        this.activeTrack = {
+        // Keep previous values if new ones are empty or undefined, but prefer real new data
+        const prevTrack = this.activeTrack || {}
+        const newTrack = {
             uniqueId: this.activePlayer.uniqueId ?? 0,
-            artUrl: this.activePlayer.trackArtUrl ?? "",
-            title: this.activePlayer.trackTitle || "Unknown Title",
-            artist: this.activePlayer.trackArtist || "Unknown Artist",
-            album: this.activePlayer.trackAlbum || "Unknown Album"
+            artUrl: this.activePlayer.trackArtUrl || (prevTrack.artUrl || ""),
+            title: this.activePlayer.trackTitle ? this.activePlayer.trackTitle : (prevTrack.title || "Unknown Title"),
+            artist: this.activePlayer.trackArtist ? this.activePlayer.trackArtist : (prevTrack.artist || "Unknown Artist"),
+            album: this.activePlayer.trackAlbum ? this.activePlayer.trackAlbum : (prevTrack.album || "Unknown Album")
         }
 
-        this.trackChanged(__reverse)
+        // Only update if something actually changed
+        const hasChanges = !prevTrack ||
+                          prevTrack.uniqueId !== newTrack.uniqueId ||
+                          prevTrack.title !== newTrack.title ||
+                          prevTrack.artist !== newTrack.artist ||
+                          prevTrack.album !== newTrack.album ||
+                          prevTrack.artUrl !== newTrack.artUrl
+
+        if (hasChanges) {
+            this.activeTrack = newTrack
+            this.trackChanged(__reverse)
+        }
+
         this.__reverse = false
     }
 

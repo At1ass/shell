@@ -29,7 +29,7 @@ Rectangle {
     property int expandedWidth: 0
 
     // Mouse interaction signals
-    signal clicked()
+    signal clicked(MouseEvent mouse)
     signal entered()
     signal exited()
     signal wheeled(var wheel)
@@ -107,10 +107,11 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         onClicked: function(mouse) {
+            console.log("BarElement clicked, clickable:", clickable)
             if (root.clickHandler) {
                 root.clickHandler(mouse)
             } else {
-                root.clicked()
+                root.clicked(mouse)
             }
 
             // Пропускаем событие дальше, если есть дочерние MouseArea

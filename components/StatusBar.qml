@@ -91,6 +91,7 @@ PanelWindow {
             }
 
             LayoutWidget {}
+            ControlPanelWidget {}
             SystemWidget {}
             TrayWidget {
                 tooltipManager: statusBar.tooltip
