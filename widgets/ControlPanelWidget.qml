@@ -26,11 +26,12 @@ BarElement {
         spacing: Config.spacing.small
 
         // Иконка системной панели
-        MaterialText {
-            text: "⚙"  // Или можно использовать другую иконку
-            font.pixelSize: 22
-            color: panelOpen ? Config.colors.primary : Config.colors.surfaceText
-            opacity: panelOpen ? 1.0 : 0.7
+        MaterialIcon {
+            iconName: "gear"
+            iconStyle: "bold"
+            iconColor: Config.colors.surfaceText
+            color: "transparent"
+            enableRipple: false
         }
 
         // Индикатор состояния (опционально)

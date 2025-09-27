@@ -495,39 +495,24 @@ BarElement {
     }
 
     Row {
-        // anchors.centerIn: parent
         spacing: Config.spacing.small
 
-        Image {
-            source: {
+        MaterialIcon {
+            iconName: {
                 if (!root.sink || !root.sink.audio)
-                    return "root:icons/SVGs/regular/speaker-simple-x";
+                    return "speaker-simple-x";
                 if (root.sink.audio.muted || root.sink.audio.volume <= 0.001)
-                    return "root:icons/SVGs/regular/speaker-simple-x";
+                    return "speaker-simple-x";
                 const v = root.sink.audio.volume;
-                return "root:icons/SVGs/regular/" + (v < 0.34 ? "speaker-simple-none" : v < 0.67 ? "speaker-simple-low" : "speaker-simple-high");
+                return (v < 0.34 ? "speaker-simple-none" : v < 0.67 ? "speaker-simple-low" : "speaker-simple-high");
             }
-            // color: "white"
-            width: 30
-            height: 30
-            sourceSize.width: 256
-            sourceSize.height: 256
-            mipmap: true
-            smooth: true
-            ColorOverlay {
-                anchors.fill: parent
-                source: parent
-                color: Qt.alpha(Config.colors.primary, root.enabled ? 1.0 : 0.38)
-                visible: parent.visible
+            iconStyle: "bold"
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
+            iconColor: Config.colors.surfaceText
+            color: "transparent"
+            enableRipple: false
+        }
 
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                        easing.type: Easing.OutCubic
-                    }
-                }
-        }
-        }
 
         MaterialText {
             anchors.verticalCenter: parent.verticalCenter

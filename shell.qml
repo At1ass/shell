@@ -1,9 +1,11 @@
 import QtQuick
 import Quickshell
 import qs.services
-import qs.components.mediaControls
-import qs.components.controlPanel
-import "./components"
+// import qs.components.mediaControls
+// import qs.components.controlPanel
+import "components"
+import "components/mediaControls"
+import "components/controlPanel"
 
 ShellRoot {
     Variants {

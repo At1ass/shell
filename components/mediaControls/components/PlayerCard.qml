@@ -373,7 +373,6 @@ Rectangle {
             }
             RowLayout {
                 id: playerSelector
-                //ScrollView {
                 property Item selectedPlayerDisplay: null
                 onSelectedPlayerDisplayChanged: console.log(selectedPlayerDisplay)
                 Layout.alignment: Qt.AlignRight
@@ -414,7 +413,10 @@ Rectangle {
                                 source: {
                                     const entry = DesktopEntries.byId(modelData.desktopEntry);
                                     console.log(`ent ${entry} id ${modelData.desktopEntry}`);
-                                    return Quickshell.iconPath(entry?.icon);
+                                    if (entry?.icon)
+                                        return Quickshell.iconPath(entry?.icon);
+                                    else
+                                        return "root:icons/SVGs/bold/play-bold"
                                 }
 
                                 sourceSize.width: 50

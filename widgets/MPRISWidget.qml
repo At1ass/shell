@@ -17,7 +17,6 @@ BarElement {
     property var tooltipManager: null
     property bool menuOpen: GlobalStates.mediaControlsOpen
 
-
     // Always visible for testing - comment out to hide when no player
     visible: true
     // visible: (typeof MprisController !== 'undefined') && MprisController.activePlayer !== null
@@ -37,10 +36,11 @@ BarElement {
 
             MaterialText {
                 text: {
-                    if (typeof MprisController === 'undefined' || !MprisController.activeTrack) return "Нет воспроизведения"
-                    const title = MprisController.activeTrack.title || "Unknown Title"
-                    const artist = MprisController.activeTrack.artist || "Unknown Artist"
-                    return `${title} — ${artist}`
+                    if (typeof MprisController === 'undefined' || !MprisController.activeTrack)
+                        return "Нет воспроизведения";
+                    const title = MprisController.activeTrack.title || "Unknown Title";
+                    const artist = MprisController.activeTrack.artist || "Unknown Artist";
+                    return `${title} — ${artist}`;
                 }
                 textStyle: "bodyMedium"
                 colorRole: "surfaceText"
@@ -49,12 +49,13 @@ BarElement {
 
         // MediaControls теперь управляется через GlobalStates
         // Удален старый MPRISPopup
+
     ]
 
-    onClicked: function(mouse) {
+    onClicked: function (mouse) {
         if (mouse && mouse.button === Qt.RightButton) {
-            console.log("MPRISWidget clicked, current state:", GlobalStates.mediaControlsOpen)
-            GlobalStates.mediaControlsOpen = !GlobalStates.mediaControlsOpen
+            console.log("MPRISWidget clicked, current state:", GlobalStates.mediaControlsOpen);
+            GlobalStates.mediaControlsOpen = !GlobalStates.mediaControlsOpen;
         }
     }
 
@@ -68,16 +69,13 @@ BarElement {
             iconName: "skip-back"
             iconStyle: "bold"
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            MouseArea {
-                anchors.fill: parent
-                enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-                hoverEnabled: true
-                acceptedButtons: Qt.RightButton | Qt.LeftButton
-                onClicked: function(mouse) {
-                    if (mouse.button === Qt.LeftButton) {
-                        if (typeof MprisController !== 'undefined')
-                            MprisController.previous();
-                    }
+            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            color: "transparent"
+            enableRipple: false
+            onClicked: function (mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    if (typeof MprisController !== 'undefined')
+                        MprisController.previous();
                 }
             }
         }
@@ -85,17 +83,14 @@ BarElement {
         ClickableIcon {
             iconName: MprisController.isPlaying ? "play" : "pause"
             iconStyle: "bold"
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
-            MouseArea {
-                anchors.fill: parent
-                enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
-                hoverEnabled: true
-                acceptedButtons: Qt.RightButton | Qt.LeftButton
-                onClicked: function(mouse) {
-                    if (mouse.button === Qt.LeftButton) {
-                        if (typeof MprisController !== 'undefined')
-                            MprisController.togglePlaying();
-                    }
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
+            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            color: "transparent"
+            enableRipple: false
+            onClicked: function (mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    if (typeof MprisController !== 'undefined')
+                        MprisController.togglePlaying();
                 }
             }
         }
@@ -104,16 +99,13 @@ BarElement {
             iconName: "skip-forward"
             iconStyle: "bold"
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            MouseArea {
-                anchors.fill: parent
-                enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-                hoverEnabled: true
-                acceptedButtons: Qt.RightButton | Qt.LeftButton
-                onClicked: function(mouse) {
-                    if (mouse.button === Qt.LeftButton) {
-                        if (typeof MprisController !== 'undefined')
-                            MprisController.next();
-                    }
+            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            color: "transparent"
+            enableRipple: false
+            onClicked: function (mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    if (typeof MprisController !== 'undefined')
+                        MprisController.next();
                 }
             }
         }
