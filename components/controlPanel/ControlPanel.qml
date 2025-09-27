@@ -63,21 +63,10 @@ Scope {
                 margins: 10
                 rightMargin: 10
             }
-            // width: sidebarWidth - 5 - 10
-            // height: 500
             focus: GlobalStates.controlPanelOpen
-            sourceComponent: ControlPanelContent {}
+            active: GlobalStates.controlPanelOpen
+            sourceComponent: controlPanelComponent
 
-            Item {
-                anchors.fill: parent
-                focus: true
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Escape) {
-                        console.log("Escape pressed, closing ControlPanel");
-                        GlobalStates.controlPanelOpen = false;
-                    }
-                }
-            }
         }
         // Rectangle {
         //     id: controlBackground
@@ -100,5 +89,10 @@ Scope {
         //
         // }
         // }
+    }
+
+    Component {
+        id: controlPanelComponent
+        ControlPanelContent {}
     }
 }
