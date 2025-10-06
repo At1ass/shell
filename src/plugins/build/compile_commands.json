@@ -1,0 +1,194 @@
+[
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/blend/blend.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/blend/blend.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/blend/blend.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/blend/blend.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/cam.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/cam.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/cam.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/cam.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/hct.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/hct.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/hct.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/hct.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/hct_solver.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/hct_solver.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/hct_solver.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/hct_solver.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/viewing_conditions.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/viewing_conditions.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/cam/viewing_conditions.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/cam/viewing_conditions.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/contrast/contrast.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/contrast/contrast.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/contrast/contrast.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/contrast/contrast.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dislike/dislike.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dislike/dislike.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dislike/dislike.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dislike/dislike.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/dynamic_color.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/dynamic_color.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/dynamic_color.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/dynamic_color.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/dynamic_scheme.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/dynamic_scheme.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/dynamic_scheme.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/dynamic_scheme.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/material_dynamic_colors.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/material_dynamic_colors.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/dynamiccolor/material_dynamic_colors.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/dynamiccolor/material_dynamic_colors.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/palettes/tones.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/palettes/tones.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/palettes/tones.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/palettes/tones.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/celebi.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/celebi.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/celebi.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/celebi.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/lab.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/lab.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/lab.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/lab.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/wsmeans.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/wsmeans.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/wsmeans.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/wsmeans.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/wu.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/wu.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/quantize/wu.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/quantize/wu.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_content.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_content.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_content.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_content.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_expressive.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_expressive.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_expressive.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_expressive.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_fidelity.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_fidelity.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_fidelity.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_fidelity.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_fruit_salad.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_fruit_salad.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_fruit_salad.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_fruit_salad.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_monochrome.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_monochrome.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_monochrome.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_monochrome.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_neutral.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_neutral.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_neutral.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_neutral.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_rainbow.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_rainbow.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_rainbow.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_rainbow.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_tonal_spot.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_tonal_spot.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_tonal_spot.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_tonal_spot.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_vibrant.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_vibrant.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/scheme/scheme_vibrant.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/scheme/scheme_vibrant.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/score/score.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/score/score.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/score/score.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/score/score.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/temperature/temperature_cache.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/temperature/temperature_cache.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/temperature/temperature_cache.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/temperature/temperature_cache.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -O3 -DNDEBUG -std=gnu++17 -fPIC -include optional -w -o external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/utils/utils.cc.o -c /home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/utils/utils.cc",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities/cpp/utils/utils.cc",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/CMakeFiles/mcu-cpp.dir/__/material-color-utilities/cpp/utils/utils.cc.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_DEPRECATED_WARNINGS -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -Dmcuqml_EXPORTS -I/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include -I/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml -I/usr/include/qt6/QtQml/6.9.2 -I/usr/include/qt6/QtQml/6.9.2/QtQml -I/usr/include/qt6/QtCore/6.9.2 -I/usr/include/qt6/QtCore/6.9.2/QtCore -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -fPIC -mno-direct-extern-access -o src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_autogen/mocs_compilation.cpp.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/mocs_compilation.cpp",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/mocs_compilation.cpp",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_autogen/mocs_compilation.cpp.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_DEPRECATED_WARNINGS -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -Dmcuqml_EXPORTS -I/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include -I/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml -I/usr/include/qt6/QtQml/6.9.2 -I/usr/include/qt6/QtQml/6.9.2/QtQml -I/usr/include/qt6/QtCore/6.9.2 -I/usr/include/qt6/QtCore/6.9.2/QtCore -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -fPIC -mno-direct-extern-access -o src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_McuPlugin.cpp.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_McuPlugin.cpp",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_McuPlugin.cpp",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_McuPlugin.cpp.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_DEPRECATED_WARNINGS -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -Dmcuqml_EXPORTS -I/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include -I/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml -I/usr/include/qt6/QtQml/6.9.2 -I/usr/include/qt6/QtQml/6.9.2/QtQml -I/usr/include/qt6/QtCore/6.9.2 -I/usr/include/qt6/QtCore/6.9.2/QtCore -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -fPIC -mno-direct-extern-access -o src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_qmltyperegistrations.cpp.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_qmltyperegistrations.cpp",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_qmltyperegistrations.cpp",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml.dir/mcuqml_qmltyperegistrations.cpp.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_DEPRECATED_WARNINGS -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -Dmcuqml_EXPORTS -I/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include -I/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml -I/usr/include/qt6/QtQml/6.9.2 -I/usr/include/qt6/QtQml/6.9.2/QtQml -I/usr/include/qt6/QtCore/6.9.2 -I/usr/include/qt6/QtCore/6.9.2/QtCore -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -fPIC -mno-direct-extern-access -o src/mcu-qml/CMakeFiles/mcuqml.dir/.qt/rcc/qrc_qmake_Mcu.cpp.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/.qt/rcc/qrc_qmake_Mcu.cpp",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/.qt/rcc/qrc_qmake_Mcu.cpp",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml.dir/.qt/rcc/qrc_qmake_Mcu.cpp.o"
+},
+{
+  "directory": "/home/at1ass/.config/quickshell/shell/src/plugins/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_DEPRECATED_WARNINGS -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -Dmcuqml_EXPORTS -I/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include -I/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml -I/usr/include/qt6/QtQml/6.9.2 -I/usr/include/qt6/QtQml/6.9.2/QtQml -I/usr/include/qt6/QtCore/6.9.2 -I/usr/include/qt6/QtCore/6.9.2/QtCore -I/home/at1ass/.config/quickshell/shell/src/plugins/external/mcu-cpp/../material-color-utilities -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -fPIC -mno-direct-extern-access -o src/mcu-qml/CMakeFiles/mcuqml.dir/McuTheme.cpp.o -c /home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml/McuTheme.cpp",
+  "file": "/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml/McuTheme.cpp",
+  "output": "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml.dir/McuTheme.cpp.o"
+}
+]

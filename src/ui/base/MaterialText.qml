@@ -5,14 +5,16 @@ Text {
     id: root
 
     property string textStyle: "bodyMedium"
-    property string colorRole: "surfaceText"
+    property string colorRole: "onSurface"
 
     // Автоматическое применение Material Design 3 типографики
     font.family: Config.typography.fontFamily
-    font.pixelSize: getStyleProperty("size")
+    // font.pixelSize: getStyleProperty("size")
+    font.pointSize: getStyleProperty("size")
     font.weight: getStyleProperty("weight")
     font.letterSpacing: getStyleProperty("letterSpacing")
 
+    renderType: Text.NativeRendering // Улучшенное сглаживание шрифтов
     // Автоматическое применение цвета из токенов
     color: Config.colors[colorRole]
 

@@ -73,7 +73,8 @@ BarElement {
                     anchors.centerIn: parent
                     width: 20
                     height: 20
-                    source: trayItem.modelData.icon
+                    // source: trayItem.modelData.icon
+                    source: trayWidget.getTrayIcon(trayItem.modelData.id, trayItem.modelData.icon)
                     sourceSize.width: width
                     sourceSize.height: height
                     fillMode: Image.PreserveAspectFit
@@ -123,7 +124,7 @@ BarElement {
                         MaterialText {
                             text: trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id
                             textStyle: "bodyLarge"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                             horizontalAlignment: Text.AlignHCenter
                             anchors.horizontalCenter: parent.horizontalCenter
                             wrapMode: Text.Wrap
@@ -156,5 +157,13 @@ BarElement {
                 }
             }
         }
+    }
+
+    function getTrayIcon(id: string, icon: string): string {
+        if (icon.includes("?path=")) {
+            const [name, path] = icon.split("?path=");
+            icon = Qt.resolvedUrl(`${path}/${name.slice(name.lastIndexOf("/") + 1)}`);
+        }
+        return icon;
     }
 }

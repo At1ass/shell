@@ -5,14 +5,14 @@ import qs.src.core.config
 Rectangle {
     id: root
 
-    // property alias iconSource: iconImage.source
-    // property alias iconSource: null
-    property string iconStyle: "bold" // bold, fill, duotone, regular, thin, light
     property string iconName: ""
-    property string fallbackText: ""
+    readonly property string fontFamily: "Material Symbols Rounded"
+    property int fontSize: Config.typography.bodyLarge.size
     property bool enabled: true
     property alias ripple: ripple
     property alias rippleAnimation: rippleAnimation
+    property real fill: enabled ? 1 : 0
+    property int grade: 0
 
     // Color properties
     property color backgroundColor: "transparent"
@@ -33,19 +33,7 @@ Rectangle {
     height: 30
     radius: 24
 
-    // color: !enabled ? disabledColor :
-    // mouseArea.pressed ? pressColor :
-    // mouseArea.containsMouse ? hoverColor :
-    // backgroundColor
-
-    // Auto-resolve icon path if iconName is provided
-    readonly property string resolvedIconSource: {
-        // if (iconSource)  return iconSource
-        if (iconName)
-            return `root:icons/SVGs/${iconStyle}/${iconName}-${iconStyle}`;
-        // if (iconName) return "root:icons/SVGs/regular/speaker-simple-x"
-        return "";
-    }
+    color: !enabled ? disabledColor : backgroundColor
 
     // Color transitions
     Behavior on color {
@@ -98,46 +86,23 @@ Rectangle {
         }
     }
 
-    // Icon
-    Image {
-        id: iconImage
-        anchors.centerIn: parent
-        width: root.iconSize
-        height: root.iconSize
-        source: root.resolvedIconSource
-        sourceSize: Qt.size(256, 256)
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        mipmap: true
-        cache: true
-        asynchronous: true
-        visible: status === Image.Ready
-
-        // Color overlay for SVG icons
-        ColorOverlay {
-            anchors.fill: parent
-            source: parent
-            color: root.iconColor
-            visible: parent.visible
-
-            Behavior on color {
-                ColorAnimation {
-                    duration: 200
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-    }
-
     // Fallback text when icon fails to load
-    Text {
+    MaterialText {
         id: fallbackIcon
         anchors.centerIn: parent
-        text: root.fallbackText
+        text: root.iconName
         color: root.iconColor
-        font.pixelSize: 20
-        font.weight: Font.Medium
-        visible: !iconImage.visible && fallbackText
+        font.family: root.fontFamily
+        font.pointSize: root.fontSize
+        renderType: Text.NativeRendering
+        textFormat: Text.PlainText
+
+        font.variableAxes: ({
+            FILL: root.fill.toFixed(1),
+            GRAD: root.grade,
+            opsz: fontInfo.pixelSize,
+            wght: fontInfo.weight
+        })
 
         Behavior on color {
             ColorAnimation {

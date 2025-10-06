@@ -23,7 +23,7 @@ Rectangle {
         MaterialText {
             text: "Notifications"
             textStyle: "titleSmall"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
 
         ScrollView {
@@ -39,8 +39,8 @@ Rectangle {
                     model: [
                         {title: "Firefox", text: "Download completed", time: "2m ago", iconName: "globe"},
                         {title: "Discord", text: "New message from @user", time: "5m ago", iconName: "chat"},
-                        {title: "System", text: "Updates available", time: "1h ago", iconName: "gear"},
-                        {title: "Spotify", text: "Now playing: Song Title", time: "2h ago", iconName: "music-note"}
+                        {title: "System", text: "Updates available", time: "1h ago", iconName: "settings"},
+                        {title: "Spotify", text: "Now playing: Song Title", time: "2h ago", iconName: "music_note"}
                     ]
 
                     Rectangle {
@@ -56,10 +56,10 @@ Rectangle {
 
                             MaterialIcon {
                                 iconName: modelData.iconName
-                                iconStyle: "bold"
-                                iconSize: 20
+                                // iconStyle: "bold"
+                                fontSize: Config.typography.bodyLarge.size
                                 color: "transparent"
-                                iconColor: Config.colors.surfaceText
+                                iconColor: Config.colors.onSurface
                                 radius: 0
                                 enableRipple: false
                                 Layout.preferredWidth: 24
@@ -75,7 +75,7 @@ Rectangle {
                                     MaterialText {
                                         text: modelData.title
                                         textStyle: "labelMedium"
-                                        colorRole: "surfaceText"
+                                        colorRole: "onSurface"
                                         font.weight: Font.Medium
                                         Layout.fillWidth: true
                                     }
@@ -83,14 +83,14 @@ Rectangle {
                                     MaterialText {
                                         text: modelData.time
                                         textStyle: "labelSmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
 
                                 MaterialText {
                                     text: modelData.text
                                     textStyle: "bodySmall"
-                                    colorRole: "surfaceVariantText"
+                                    colorRole: "onSurfaceVariant"
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }

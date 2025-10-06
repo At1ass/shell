@@ -1,0 +1,107 @@
+import QtQuick
+import QtQuick.Layouts
+import qs.src.ui.containers
+import qs.src.ui.inputs
+import qs.src.ui.feedback
+import qs.src.core.config
+import qs.src.ui.base
+import qs.src.core.services
+import ".." as Panel
+
+Rectangle {
+    id: root
+
+    Layout.fillWidth: true
+    // ❌ лучше без фикс. высоты: Layout.preferredHeight: 144
+    color:  Config.colors.surfaceContainerHigh
+    border.width: 1
+    border.color: Config.colors.outlineVariant
+    radius: Config.shape.large
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Config.spacing.medium
+        spacing:        Config.spacing.small
+
+        // Row 1 — карточки
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop         // ✨
+            spacing: Config.spacing.medium
+
+            // Uptime
+            MaterialCard {
+                Layout.preferredWidth: 240
+                // ❗ убрали fillHeight
+                Layout.alignment: Qt.AlignTop     // ✨
+                outlined: true
+                color: Config.colors.surfaceContainer
+                radius: Config.shape.large
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Config.spacing.medium
+                    spacing:        Config.spacing.extraSmall
+                    MaterialText {
+                        text: "Uptime"
+                        textStyle: "labelLarge"
+                        colorRole: "onSurfaceVariant"
+                    }
+                    MaterialText {
+                        text: DateTime.uptime
+                        textStyle: "titleMedium"
+                        colorRole: "onSurface"
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            // Time + Date
+            MaterialCard {
+                Layout.preferredWidth: 320
+                Layout.alignment: Qt.AlignTop     // ✨
+                outlined: true
+                color:  Config.colors.surfaceContainer
+                radius: Config.shape.large
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Config.spacing.medium
+                    spacing:        Config.spacing.extraSmall
+                    MaterialText {
+                        text: DateTime.time
+                        textStyle: "headlineSmall"
+                        colorRole: "onSurface"
+                        font.weight: Font.Medium
+                        horizontalAlignment: Text.AlignRight
+                        Layout.alignment: Qt.AlignRight
+                    }
+                    MaterialText {
+                        text: DateTime.date
+                        textStyle: "bodySmall"
+                        colorRole: "onSurfaceVariant"
+                        horizontalAlignment: Text.AlignRight
+                        Layout.alignment: Qt.AlignRight
+                    }
+                }
+            }
+        }
+
+        // Row 2 — тумблеры
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Config.spacing.medium
+
+            Panel.QuickToggle { toggleIcon: "wifi-high"; toggled: true;  onClicked: toggled = !toggled }
+            Panel.QuickToggle { toggleIcon: "bluetooth";  toggled: false; onClicked: toggled = !toggled }
+            Panel.QuickToggle { toggleIcon: "bell-simple"; toggled: false; onClicked: toggled = !toggled }
+            Panel.QuickToggle {
+                toggleIcon: toggled ? "moon" : "sun-dim"
+                toggled: GlobalStates.darkMode
+                onClicked: GlobalStates.darkMode = !GlobalStates.darkMode
+            }
+        }
+    }
+}

@@ -18,7 +18,6 @@ Rectangle {
     property int currentYear: currentDate.getFullYear()
     readonly property int actualYear: currentDate.getFullYear()
     property var calendarData: generateCalendarData(currentMonth, currentYear)
-    property bool showDateSelector: false
 
     function generateCalendarData(month, year) {
         let firstDay = new Date(year, month, 1);
@@ -86,17 +85,6 @@ Rectangle {
         calendarData = generateCalendarData(currentMonth, currentYear);
     }
 
-    // Global overlay to close date selector when clicking anywhere
-    MouseArea {
-        anchors.fill: parent
-        visible: root.showDateSelector
-        onClicked: function (mouse) {
-            console.log("Global overlay clicked - closing date selector");
-            root.showDateSelector = false;
-        }
-        propagateComposedEvents: true
-    }
-
     Layout.fillWidth: true
     Layout.preferredHeight: 340
     color: Config.colors.surfaceContainer
@@ -126,7 +114,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: modelData
                         textStyle: "labelSmall"
-                        colorRole: index === root.bottomTab ? "primaryContainerText" : "surfaceText"
+                        colorRole: index === root.bottomTab ? "onPrimaryContainer" : "onSurface"
                     }
 
                     MouseArea {
@@ -197,7 +185,7 @@ Rectangle {
                 MaterialText {
                     text: "<"
                     textStyle: "bodyMedium"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     Layout.alignment: Qt.AlignVCenter
 
                     MouseArea {
@@ -217,19 +205,21 @@ Rectangle {
                         anchors.centerIn: parent
                         text: new Date(root.currentYear, root.currentMonth).toLocaleString(Qt.locale(), "MMMM yyyy")
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            root.showDateSelector = !root.showDateSelector;
+                            console.log("showDateSelector toggled", !GlobalStates.showDateSelector);
+                            GlobalStates.showDateSelector = !GlobalStates.showDateSelector;
                         }
                     }
 
                     // Combined date selector overlay
                     Rectangle {
+                        id: dateSelector
                         anchors.centerIn: parent
                         width: 200
                         height: 240
@@ -237,7 +227,7 @@ Rectangle {
                         radius: Config.shape.medium
                         border.width: 1
                         border.color: Config.colors.outlineVariant
-                        visible: root.showDateSelector
+                        visible: GlobalStates.showDateSelector
 
                         MouseArea {
                             anchors.fill: parent
@@ -261,7 +251,7 @@ Rectangle {
                                 MaterialText {
                                     text: "Year"
                                     textStyle: "labelSmall"
-                                    colorRole: "surfaceVariantText"
+                                    colorRole: "onSurfaceVariant"
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -284,7 +274,7 @@ Rectangle {
                                             anchors.centerIn: parent
                                             text: yearValue
                                             textStyle: "labelSmall"
-                                            colorRole: PathView.isCurrentItem ? "primaryContainerText" : "surfaceText"
+                                            colorRole: PathView.isCurrentItem ? "onPrimaryContainer" : "onSurface"
                                         }
                                     }
 
@@ -303,6 +293,7 @@ Rectangle {
                                     maximumFlickVelocity: 1000
 
                                     Component.onCompleted: currentIndex = 50
+                                    onVisibleChanged: currentIndex = root.currentYear - root.actualYear + 50
 
                                     onCurrentIndexChanged: {
                                         const yearValue = root.actualYear - 50 + currentIndex
@@ -340,7 +331,7 @@ Rectangle {
                                 MaterialText {
                                     text: "Month"
                                     textStyle: "labelSmall"
-                                    colorRole: "surfaceVariantText"
+                                    colorRole: "onSurfaceVariant"
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -362,7 +353,7 @@ Rectangle {
                                             anchors.centerIn: parent
                                             text: modelData
                                             textStyle: "labelSmall"
-                                            colorRole: PathView.isCurrentItem ? "primaryContainerText" : "surfaceText"
+                                            colorRole: PathView.isCurrentItem ? "onPrimaryContainer" : "onSurface"
                                         }
                                     }
 
@@ -406,7 +397,7 @@ Rectangle {
                 MaterialText {
                     text: ">"
                     textStyle: "bodyMedium"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     Layout.alignment: Qt.AlignVCenter
 
                     MouseArea {
@@ -430,7 +421,7 @@ Rectangle {
                     MaterialText {
                         text: modelData
                         textStyle: "labelSmall"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 14
                         horizontalAlignment: Text.AlignHCenter
@@ -457,10 +448,10 @@ Rectangle {
                             textStyle: "labelLarge"
                             colorRole: {
                                 if (isToday)
-                                    return "primaryText";
+                                    return "onPrimary";
                                 if (!modelData.isCurrentMonth)
-                                    return "surfaceVariantText";
-                                return "surfaceText";
+                                    return "onSurfaceVariant";
+                                return "onSurface";
                             }
                             opacity: modelData.isCurrentMonth ? 1.0 : 0.5
                         }
@@ -468,7 +459,7 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            enabled: root.showDateSelector === false
+                            enabled: GlobalStates.showDateSelector === false
                             onClicked: {
                                 console.log("Day clicked:", modelData.day, modelData.isCurrentMonth ? "current" : modelData.isPrevMonth ? "prev" : "next");
                             }
@@ -489,7 +480,7 @@ Rectangle {
                 anchors.centerIn: parent
                 text: "Quick notes\n& reminders\n\nClick to add..."
                 textStyle: "bodySmall"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
                 horizontalAlignment: Text.AlignHCenter
                 opacity: 0.7
             }

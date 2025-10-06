@@ -42,7 +42,7 @@ ColumnLayout {
                         anchors.centerIn: parent
                         text: modelData
                         textStyle: "labelMedium"
-                        colorRole: index === root.currentTab ? "primaryContainerText" : "surfaceText"
+                        colorRole: index === root.currentTab ? "onPrimaryContainer" : "onSurface"
                     }
 
                     MouseArea {

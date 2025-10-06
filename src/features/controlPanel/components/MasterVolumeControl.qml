@@ -20,11 +20,9 @@ Rectangle {
         spacing: Config.spacing.medium
 
         MaterialIcon {
-            iconName: "speaker-simple-high"
-            iconStyle: "bold"
-            iconSize: 24
-            color: "transparent"
-            iconColor: Config.colors.surfaceText
+            iconName: "volume_up"
+            iconSize: Config.typography.titleMedium.size
+            iconColor: Config.colors.onSurface
             radius: 0
             enableRipple: false
             Layout.alignment: Qt.AlignVCenter
@@ -37,7 +35,7 @@ Rectangle {
             MaterialText {
                 text: "Master Volume"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             Rectangle {
@@ -58,7 +56,7 @@ Rectangle {
         MaterialText {
             text: "65%"
             textStyle: "labelMedium"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
             Layout.alignment: Qt.AlignVCenter
         }
     }

@@ -28,7 +28,7 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: Config.colors.surfaceText
+            color: Config.colors.onSurface
             opacity: control.down ? 0.16 : control.hovered ? 0.08 : 0.0
         }
 
@@ -49,7 +49,7 @@ Button {
     contentItem: Base.MaterialText {
         text: control.text
         textStyle: "labelLarge"
-        colorRole: control.enabled ? textColorRole() : "surfaceVariantText"
+        colorRole: control.enabled ? textColorRole() : "onSurfaceVariant"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
@@ -57,12 +57,12 @@ Button {
     function textColorRole() {
         switch (control.variant) {
         case "filled":
-            return "primaryText"
+            return "onPrimary"
         case "outlined":
         case "text":
             return "primary"
         default:
-            return "primaryContainerText"
+            return "onPrimaryContainer"
         }
     }
 }

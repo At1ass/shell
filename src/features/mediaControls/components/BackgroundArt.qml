@@ -28,6 +28,8 @@ Rectangle {
 	function setArt(art: string, reverse: bool, immediate: bool) {
 		this.reverse = reverse;
 
+        console.log("BackgroundArt setArt", art, "reverse:", reverse, "immediate:", immediate);
+
 		if (art.length == 0) {
 			stack.replace(null);
 		} else {

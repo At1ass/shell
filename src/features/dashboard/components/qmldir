@@ -1,0 +1,9 @@
+module qs.src.features.dashboard.components
+
+TabButton 1.0 TabButton.qml
+MainTab 1.0 MainTab.qml
+MediaTab 1.0 MediaTab.qml
+CalendarTab 1.0 CalendarTab.qml
+AudioTab 1.0 AudioTab.qml
+EventDialog 1.0 EventDialog.qml
+DeviceSelectionDialog 1.0 DeviceSelectionDialog.qml

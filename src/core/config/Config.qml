@@ -2,68 +2,111 @@ pragma Singleton
 
 import Quickshell
 import QtQuick
+import Mcu 1.0
+import qs.src.core.services
 
 Singleton {
     id: config
 
-    // Material Design 3 Colors (следует официальной спецификации)
-    property QtObject colors: QtObject {
-        // Primary colors
-        property color primary: "#D0BCFF"
-        property color primaryText: "#371E73"
-        property color primaryContainer: "#4F378B"
-        property color primaryContainerText: "#EADDFF"
+    McuTheme {
+        id: theme
+        // source: Qt.alpha("#00FF00", 0) // Material Design purple
+        source: Qt.resolvedUrl("/home/at1ass/Downloads/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg")
+        // source: Qt.resolvedUrl("/home/at1ass/Downloads/taro-sakamoto-3840x2160-23909.png")
+        darkMode: GlobalStates.darkMode
+        variant: "content" // "content" // "vibrant" // "content" // "tonal-spot"
+        contrast: 0.0
 
-        // Secondary colors
-        property color secondary: "#CCC2DC"
-        property color secondaryText: "#332D41"
-        property color secondaryContainer: "#4A4458"
-        property color secondaryContainerText: "#E8DEF8"
-
-        // Tertiary colors
-        property color tertiary: "#EFB8C8"
-        property color tertiaryText: "#492532"
-        property color tertiaryContainer: "#633B48"
-        property color tertiaryContainerText: "#FFD8E4"
-
-        // Error colors
-        property color error: "#F2B8B5"
-        property color errorText: "#601410"
-        property color errorContainer: "#8C1D18"
-        property color errorContainerText: "#F9DEDC"
-
-        // Neutral colors
-        property color background: "#10131A"
-        property color backgroundText: "#E6E0E9"
-        property color surface: "#10131A"
-        property color surfaceText: "#E6E0E9"
-        property color surfaceVariant: "#49454F"
-        property color surfaceVariantText: "#CAC4D0"
-        property color outline: "#938F99"
-        property color outlineVariant: "#49454F"
-
-        // Surface container variants (новые в Material Design 3)
-        property color surfaceDim: "#10131A"
-        property color surfaceBright: "#36394A"
-        property color surfaceContainerLowest: "#0B0E17"
-        property color surfaceContainerLow: "#191C24"
-        property color surfaceContainer: "#1D2027"
-        property color surfaceContainerHigh: "#272A32"
-        property color surfaceContainerHighest: "#32353D"
-        property color onSurfaceDisabled: "#61E6E0E9" // 38% opacity of surface text per Material 3 disabled state
-
-        // Inverse colors
-        property color inverseSurface: "#E6E0E9"
-        property color inverseSurfaceText: "#322F37"
-        property color inversePrimary: "#6750A4"
-
-        // Legacy compatibility aliases
-        property color textPrimary: surfaceText
-        property color textSecondary: surfaceVariantText
-        property color textOnPrimary: primaryText
-        property color textOnPrimaryContainer: primaryContainerText
+        onColorsChanged: {
+            console.log("Theme colors updated:", colors);
+            console.log("Primary color:", colors.primary);
+        }
     }
 
+    property QtObject weather: QtObject {
+        property int refreshMinutes: 15
+        property string location: "Penza"
+    }
+
+    property QtObject colors: QtObject {
+        id: c
+        // Типизированные токены (добавь нужные тебе роли)
+        property color primary
+        property color onPrimary
+        property color primaryContainer
+        property color onPrimaryContainer
+
+        property color secondary
+        property color onSecondary
+        property color secondaryContainer
+        property color onSecondaryContainer
+
+        property color tertiary
+        property color onTertiary
+        property color tertiaryContainer
+        property color onTertiaryContainer
+
+        property color error
+        property color onError
+        property color errorContainer
+        property color onErrorContainer
+
+        property color surface
+        property color onSurface
+        property color surfaceVariant
+        property color onSurfaceVariant
+        property color outline
+        property color outlineVariant
+
+        property color background
+        property color onBackground
+
+        property color inverseSurface
+        property color inverseOnSurface
+        property color inversePrimary
+
+        property color surfaceDim
+        property color surfaceBright
+        property color surfaceContainerLowest
+        property color surfaceContainerLow
+        property color surfaceContainer
+        property color surfaceContainerHigh
+        property color surfaceContainerHighest
+
+        property color primaryPaletteKeyColor
+        property color secondaryPaletteKeyColor
+        property color tertiaryPaletteKeyColor
+        property color neutralPaletteKeyColor
+        property color neutralVariantPaletteKeyColor
+        property color shadow
+        property color scrim
+        property color surfaceTint
+        property color primaryFixed
+        property color primaryFixedDim
+        property color onPrimaryFixed
+        property color onPrimaryFixedVariant
+        property color secondaryFixed
+        property color secondaryFixedDim
+        property color onSecondaryFixed
+        property color onSecondaryFixedVariant
+        property color tertiaryFixed
+        property color tertiaryFixedDim
+        property color onTertiaryFixed
+        property color onTertiaryFixedVariant
+
+        // Универсальное применение карты из плагина
+        function apply(map, fallback) {
+            fallback = fallback || {}
+            for (var k in map) {
+                if (c.hasOwnProperty(k)) {
+                    // QML сам сконвертирует "#RRGGBB" -> color один раз
+                    c[k] = map[k]
+                }
+            }
+            // фолбэки на случай отсутствующих ключей (по желанию)
+            if (!map.primary && fallback.primary) c.primary = fallback.primary
+        }
+    }
     // Material Design 3 spacing (8px grid system)
     property QtObject spacing: QtObject {
         property int none: 0
@@ -87,6 +130,43 @@ Singleton {
         property int full: 999
     }
 
+    property QtObject elevation: QtObject {
+        property real level0Opacity: 0.0
+        property real level1Opacity: 0.05
+        property real level2Opacity: 0.08
+        property real level3Opacity: 0.11
+        property real level4Opacity: 0.12
+        property real level5Opacity: 0.14
+    }
+
+    // Material Design 3 state layer opacity tokens
+    property QtObject stateLayer: QtObject {
+        property real hoverOpacity: 0.08
+        property real pressedOpacity: 0.12
+        property real focusOpacity: 0.12
+        property real draggedOpacity: 0.16
+    }
+
+    // Material Design 3 icon size tokens
+    property QtObject iconSize: QtObject {
+        property int small: 16
+        property int medium: 20
+        property int large: 24
+        property int extraLarge: 32
+    }
+
+    // Material Design 3 touch target tokens
+    property QtObject touchTarget: QtObject {
+        property int minimum: 48
+    }
+
+    // Material Design 3 ripple effect tokens
+    property QtObject ripple: QtObject {
+        property color defaultColor: config.colors.onSurface
+        property real hoverOpacity: 0.08
+        property real pressedOpacity: 0.12
+    }
+
     // Legacy radius alias for compatibility
     property QtObject radius: shape
 
@@ -94,7 +174,8 @@ Singleton {
     property QtObject bar: QtObject {
         property string position: "top"
         property int width: 56
-        property int height: 44  // Более компактный размер
+        // property int height: 44  // Более компактный размер
+        property int height: 48  // Более компактный размер
         property color background: config.colors.surfaceContainer
         property real backgroundOpacity: 0.95
         property int cornerRadius: config.shape.extraLarge
@@ -257,4 +338,17 @@ Singleton {
 
     // Legacy animations alias
     property QtObject animations: motion
+
+    property string vpnName: "nikuznetsov\(2\)"
+
+    Component.onCompleted: {
+        c.apply(theme.colors)
+    }
+
+    Connections {
+        target: theme
+        function onColorsChanged() {
+            c.apply(theme.colors)
+        }
+    }
 }

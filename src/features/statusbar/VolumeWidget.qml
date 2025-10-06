@@ -72,13 +72,13 @@ BarElement {
                     MaterialText {
                         text: qsTr("Аудио")
                         textStyle: "titleLarge"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                     }
 
                     MaterialText {
                         text: qsTr("Управляйте громкостью системы, устройств и приложений")
                         textStyle: "bodyMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
                     }
@@ -109,7 +109,7 @@ BarElement {
                                         MaterialText {
                                             text: qsTr("Громкость системы")
                                             textStyle: "titleMedium"
-                                            colorRole: "surfaceText"
+                                            colorRole: "onSurface"
                                         }
 
                                         Item {
@@ -146,7 +146,7 @@ BarElement {
                                         MaterialText {
                                             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
                                             textStyle: "bodySmall"
-                                            colorRole: "surfaceVariantText"
+                                            colorRole: "onSurfaceVariant"
                                         }
                                     }
                                 }
@@ -163,13 +163,13 @@ BarElement {
                                     MaterialText {
                                         text: qsTr("Выходы")
                                         textStyle: "titleMedium"
-                                        colorRole: "surfaceText"
+                                        colorRole: "onSurface"
                                     }
 
                                     MaterialText {
                                         text: qsTr("Громкость и выключение устройств воспроизведения")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                         Layout.fillWidth: true
                                         wrapMode: Text.WordWrap
                                     }
@@ -191,7 +191,7 @@ BarElement {
                                                 Layout.fillWidth: true
                                                 text: node.description || node.name || qsTr("Выход")
                                                 textStyle: "bodyMedium"
-                                                colorRole: "surfaceText"
+                                                colorRole: "onSurface"
                                                 wrapMode: Text.WordWrap
                                             }
 
@@ -242,7 +242,7 @@ BarElement {
                                                 MaterialText {
                                                     text: formatVolume(node.audio ? node.audio.volume : null)
                                                     textStyle: "bodySmall"
-                                                    colorRole: "surfaceVariantText"
+                                                    colorRole: "onSurfaceVariant"
                                                 }
                                             }
                                         }
@@ -252,7 +252,7 @@ BarElement {
                                         visible: root.sinkNodes.length === 0
                                         text: qsTr("Нет выходных устройств")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
                             }
@@ -267,13 +267,13 @@ BarElement {
                                     MaterialText {
                                         text: qsTr("Входы")
                                         textStyle: "titleMedium"
-                                        colorRole: "surfaceText"
+                                        colorRole: "onSurface"
                                     }
 
                                     MaterialText {
                                         text: qsTr("Настройка микрофонов и других источников")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                         Layout.fillWidth: true
                                         wrapMode: Text.WordWrap
                                     }
@@ -295,7 +295,7 @@ BarElement {
                                                 Layout.fillWidth: true
                                                 text: node.description || node.name || qsTr("Вход")
                                                 textStyle: "bodyMedium"
-                                                colorRole: "surfaceText"
+                                                colorRole: "onSurface"
                                                 wrapMode: Text.WordWrap
                                             }
 
@@ -346,7 +346,7 @@ BarElement {
                                                 MaterialText {
                                                     text: formatVolume(node.audio ? node.audio.volume : null)
                                                     textStyle: "bodySmall"
-                                                    colorRole: "surfaceVariantText"
+                                                    colorRole: "onSurfaceVariant"
                                                 }
                                             }
                                         }
@@ -356,7 +356,7 @@ BarElement {
                                         visible: root.sourceNodes.length === 0
                                         text: qsTr("Нет входных устройств")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
                             }
@@ -371,13 +371,13 @@ BarElement {
                                     MaterialText {
                                         text: qsTr("Приложения")
                                         textStyle: "titleMedium"
-                                        colorRole: "surfaceText"
+                                        colorRole: "onSurface"
                                     }
 
                                     MaterialText {
                                         text: qsTr("Контролируйте активные аудиопотоки и их громкость")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                         Layout.fillWidth: true
                                         wrapMode: Text.WordWrap
                                     }
@@ -400,7 +400,7 @@ BarElement {
                                                 Layout.fillWidth: true
                                                 text: stream && stream.properties && stream.properties["application.name"] ? stream.properties["application.name"] : (stream.appName || stream.name || stream.clientName || qsTr("Приложение"))
                                                 textStyle: "bodyMedium"
-                                                colorRole: "surfaceText"
+                                                colorRole: "onSurface"
                                                 wrapMode: Text.WordWrap
                                             }
 
@@ -442,7 +442,7 @@ BarElement {
                                                 MaterialText {
                                                     text: formatVolume(stream.audio ? stream.audio.volume : null)
                                                     textStyle: "bodySmall"
-                                                    colorRole: "surfaceVariantText"
+                                                    colorRole: "onSurfaceVariant"
                                                 }
                                             }
                                         }
@@ -452,7 +452,7 @@ BarElement {
                                         visible: root.streamNodes.length === 0
                                         text: qsTr("Нет активных аудиопотоков")
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
                             }
@@ -503,15 +503,15 @@ BarElement {
         MaterialIcon {
             iconName: {
                 if (!root.sink || !root.sink.audio)
-                    return "speaker-simple-x";
+                    return "volume_up";
                 if (root.sink.audio.muted || root.sink.audio.volume <= 0.001)
-                    return "speaker-simple-x";
+                    return "no_sound";
                 const v = root.sink.audio.volume;
-                return (v < 0.34 ? "speaker-simple-none" : v < 0.67 ? "speaker-simple-low" : "speaker-simple-high");
+                return (v < 0.34 ? "volume_mute" : v < 0.67 ? "volume_down" : "volume_up");
             }
-            iconStyle: "bold"
+            fontSize: Config.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: Config.colors.surfaceText
+            iconColor: Config.colors.onSurface
             color: "transparent"
             enableRipple: false
         }
@@ -521,7 +521,7 @@ BarElement {
             anchors.verticalCenter: parent.verticalCenter
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
     }
 }

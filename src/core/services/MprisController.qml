@@ -60,7 +60,8 @@ Singleton {
             artUrl: this.activePlayer.trackArtUrl || (prevTrack.artUrl || ""),
             title: this.activePlayer.trackTitle ? this.activePlayer.trackTitle : (prevTrack.title || "Unknown Title"),
             artist: this.activePlayer.trackArtist ? this.activePlayer.trackArtist : (prevTrack.artist || "Unknown Artist"),
-            album: this.activePlayer.trackAlbum ? this.activePlayer.trackAlbum : (prevTrack.album || "Unknown Album")
+            // album: this.activePlayer.trackAlbum ? this.activePlayer.trackAlbum : (prevTrack.album || "Unknown Album")
+            album: this.activePlayer.trackAlbum ? this.activePlayer.trackAlbum : "Unknown Album"
         }
 
         // Only update if something actually changed
@@ -99,6 +100,26 @@ Singleton {
         if (this.canGoNext) {
             this.__reverse = false
             this.activePlayer.next()
+        }
+    }
+
+    property bool canQuit: this.activePlayer?.canQuit ?? false
+    function quit() {
+        console.log("MprisController: quit() called")
+        console.log("MprisController: canQuit =", this.canRaise)
+        if (this.canQuit) {
+            this.__reverse = false
+            this.activePlayer.quit()
+        }
+    }
+
+    property bool canRaise: this.activePlayer?.canRaise ?? false
+    function raise() {
+        console.log("MprisController: raise() called")
+        console.log("MprisController: canRaise =", this.canRaise)
+        if (this.canRaise) {
+            this.__reverse = false
+            this.activePlayer?.raise()
         }
     }
 

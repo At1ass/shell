@@ -8,10 +8,9 @@ import qs.src.ui.base
 MaterialIcon {
     // Mouse interaction
     id: root
-    color: !enabled ? disabledColor :
-    mouseArea.pressed ? pressColor :
-    mouseArea.containsMouse ? hoverColor :
-    backgroundColor
+    color: !enabled ? disabledColor : backgroundColor
+    // mouseArea.pressed ? pressColor :
+    // mouseArea.containsMouse ? hoverColor :
 
     signal clicked(MouseEvent mouse)
     signal pressed()

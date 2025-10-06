@@ -22,7 +22,7 @@ Rectangle {
         MaterialText {
             text: "System Monitor"
             textStyle: "titleSmall"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
 
         // First row: CPU, RAM, CPU Temp
@@ -43,13 +43,13 @@ Rectangle {
                     MaterialText {
                         text: "CPU"
                         textStyle: "labelSmall"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "45%"
                         textStyle: "labelLarge"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -68,13 +68,13 @@ Rectangle {
                     MaterialText {
                         text: "RAM"
                         textStyle: "labelSmall"
-                        colorRole: "secondaryContainerText"
+                        colorRole: "onSecondaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "8.2GB"
                         textStyle: "labelLarge"
-                        colorRole: "secondaryContainerText"
+                        colorRole: "onSecondaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -93,13 +93,13 @@ Rectangle {
                     MaterialText {
                         text: "CPU °C"
                         textStyle: "labelSmall"
-                        colorRole: "tertiaryContainerText"
+                        colorRole: "onTertiaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "62°"
                         textStyle: "labelLarge"
-                        colorRole: "tertiaryContainerText"
+                        colorRole: "onTertiaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -124,13 +124,13 @@ Rectangle {
                     MaterialText {
                         text: "GPU"
                         textStyle: "labelSmall"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "78%"
                         textStyle: "labelLarge"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -149,13 +149,13 @@ Rectangle {
                     MaterialText {
                         text: "DISK"
                         textStyle: "labelSmall"
-                        colorRole: "secondaryContainerText"
+                        colorRole: "onSecondaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "156GB"
                         textStyle: "labelLarge"
-                        colorRole: "secondaryContainerText"
+                        colorRole: "onSecondaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -174,13 +174,13 @@ Rectangle {
                     MaterialText {
                         text: "GPU °C"
                         textStyle: "labelSmall"
-                        colorRole: "tertiaryContainerText"
+                        colorRole: "onTertiaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                     MaterialText {
                         text: "71°"
                         textStyle: "labelLarge"
-                        colorRole: "tertiaryContainerText"
+                        colorRole: "onTertiaryContainer"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }

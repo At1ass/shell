@@ -25,7 +25,7 @@ LazyPopup {
             MaterialText {
                 text: qsTr("Выбор источника")
                 textStyle: "titleSmall"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
                 anchors.top: parent.top
                 anchors.horizontalCenter: parent.horizontalCenter
             }
@@ -52,7 +52,7 @@ LazyPopup {
                             text: (modelData.identity || "?").charAt(0).toUpperCase()
                             textStyle: "titleMedium"
                             colorRole: (typeof MprisController !== 'undefined' && modelData === MprisController.activePlayer) ?
-                                      "primaryText" : "surfaceText"
+                                      "onPrimary" : "onSurface"
                         }
 
                         MouseArea {
@@ -77,7 +77,7 @@ LazyPopup {
                 visible: Mpris.players.count === 0
                 text: "Нет доступных плееров"
                 textStyle: "bodyMedium"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
                 anchors.centerIn: parent
             }
         }
@@ -149,7 +149,7 @@ LazyPopup {
                     anchors.centerIn: parent
                     text: albumImage.status === Image.Loading ? "⏳" : "♪"
                     font.pixelSize: 64
-                    colorRole: "surfaceVariantText"
+                    colorRole: "onSurfaceVariant"
                     opacity: albumImage.visible ? 0 : 0.6
                     visible: !albumImage.visible
 
@@ -169,7 +169,7 @@ LazyPopup {
             MaterialText {
                 text: (typeof MprisController !== 'undefined') ? (MprisController.activeTrack?.title || "Нет названия") : "Нет названия"
                 textStyle: "headlineSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: 350
                 elide: Text.ElideRight
@@ -186,7 +186,7 @@ LazyPopup {
                     return album && album !== "Unknown Album" ? `${artist} — ${album}` : artist
                 }
                 textStyle: "bodyLarge"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: 350
                 elide: Text.ElideRight
@@ -195,7 +195,7 @@ LazyPopup {
             MaterialText {
                 text: (typeof MprisController !== 'undefined') ? (MprisController.activePlayer?.identity || "Media Player") : "Media Player"
                 textStyle: "bodyMedium"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
                 Layout.alignment: Qt.AlignHCenter
                 opacity: 0.7
             }

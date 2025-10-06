@@ -62,7 +62,7 @@ Rectangle {
         id: stateLayer
         anchors.fill: parent
         radius: parent.radius
-        color: Config.colors.surfaceText
+        color: Config.colors.onSurface
         opacity: {
             if (!clickable && !hoverable) return 0.0
             if (pressed) return 0.12

@@ -23,7 +23,7 @@ Rectangle {
         MaterialText {
             text: "App Volume Mixer"
             textStyle: "titleSmall"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
 
         ScrollView {
@@ -59,7 +59,7 @@ Rectangle {
                                     anchors.centerIn: parent
                                     text: modelData.charAt(0)
                                     textStyle: "labelSmall"
-                                    colorRole: "primaryText"
+                                    colorRole: "onPrimary"
                                 }
                             }
 
@@ -70,7 +70,7 @@ Rectangle {
                                 MaterialText {
                                     text: modelData
                                     textStyle: "labelMedium"
-                                    colorRole: "surfaceText"
+                                    colorRole: "onSurface"
                                 }
 
                                 Rectangle {
@@ -91,7 +91,7 @@ Rectangle {
                             MaterialText {
                                 text: Math.round((30 + index * 20)) + "%"
                                 textStyle: "labelSmall"
-                                colorRole: "surfaceVariantText"
+                                colorRole: "onSurfaceVariant"
                             }
                         }
                     }

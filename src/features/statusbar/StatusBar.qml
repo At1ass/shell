@@ -1,20 +1,29 @@
 import QtQuick
 import QtQuick.Layouts
-import qs.src.ui.containers
-import qs.src.ui.inputs
-import qs.src.ui.feedback
 import Quickshell
 import Quickshell.Wayland
+import qs.src.core.config
 import qs.src.features.statusbar
+import qs.src.features.dashboard
+import qs.src.ui.containers
 import qs.src.ui.containers
 import qs.src.ui.feedback
-import qs.src.core.config
+import qs.src.ui.feedback
+import qs.src.ui.inputs
 
 PanelWindow {
     id: statusBar
 
     property var modelData: parent.modelData
+    // Tooltip Manager
+    readonly property TooltipManager tooltip: tooltipManager
+
     screen: modelData
+    implicitHeight: Config.bar.height
+    color: "transparent"
+
+    exclusiveZone: implicitHeight
+	WlrLayershell.namespace: "shell:bar"
 
     // Position on top edge
     anchors {
@@ -23,47 +32,48 @@ PanelWindow {
         right: true
     }
 
-    margins {
-        left: Config.spacing.medium
-        top: Config.spacing.small
-        right: Config.spacing.medium
-    }
+    // margins {
+    //     left: Config.spacing.medium
+    //     top: Config.spacing.small
+    //     right: Config.spacing.medium
+    // }
 
-    implicitHeight: Config.bar.height
-    color: "transparent"
-
-    // Tooltip Manager
-    readonly property TooltipManager tooltip: tooltipManager
     TooltipManager {
         id: tooltipManager
+
         bar: statusBar
     }
 
     Rectangle {
         id: barBackground
+
         anchors.fill: parent
         color: Config.colors.surfaceContainer
-        radius: Config.shape.extraLarge
+        // radius: Config.shape.extraLarge
         opacity: Config.bar.backgroundOpacity
 
         // Primary surface tint
         Rectangle {
             anchors.fill: parent
             color: Config.colors.primary
-            opacity: 0.05
+            // opacity: 0.05
+            opacity: Config.elevation.level2Opacity
             radius: parent.radius
         }
 
         // Left section - Workspaces
         BarSection {
             alignment: "left"
+
             anchors {
                 left: parent.left
                 verticalCenter: parent.verticalCenter
                 leftMargin: Config.spacing.medium
             }
 
-            WorkspaceWidget {}
+            WorkspaceWidget {
+            }
+
         }
 
         // Center section - Clock and MPRIS (absolute positioning)
@@ -76,6 +86,7 @@ PanelWindow {
         BarSection {
             alignment: "right"
             spacingToken: "small"
+
             anchors {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
@@ -93,12 +104,17 @@ PanelWindow {
                 tooltipManager: statusBar.tooltip
             }
 
-            LayoutWidget {}
+            LayoutWidget {
+            }
+
             TrayWidget {
                 tooltipManager: statusBar.tooltip
             }
-            ControlPanelWidget {}
-            // SystemWidget {}
+
+            ControlPanelWidget {
+            }
         }
+
     }
+
 }

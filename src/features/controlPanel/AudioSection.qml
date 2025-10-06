@@ -43,7 +43,7 @@ MaterialCard {
         MaterialText {
             text: qsTr("Аудио")
             textStyle: "titleLarge"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             wrapMode: Text.WordWrap
@@ -53,7 +53,7 @@ MaterialCard {
         MaterialText {
             text: qsTr("Управляйте громкостью системы, устройств и приложений")
             textStyle: "bodyMedium"
-            colorRole: "surfaceVariantText"
+            colorRole: "onSurfaceVariant"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             wrapMode: Text.WordWrap
@@ -93,7 +93,7 @@ MaterialCard {
                             MaterialText {
                                 text: qsTr("Громкость системы")
                                 textStyle: "titleMedium"
-                                colorRole: "surfaceText"
+                                colorRole: "onSurface"
                                 wrapMode: Text.WordWrap
                                 elide: Text.ElideRight
                             }
@@ -132,7 +132,7 @@ MaterialCard {
                             MaterialText {
                                 text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
                                 textStyle: "bodySmall"
-                                colorRole: "surfaceVariantText"
+                                colorRole: "onSurfaceVariant"
                             }
                         }
                     }
@@ -150,13 +150,13 @@ MaterialCard {
                         MaterialText {
                             text: qsTr("Выходы")
                             textStyle: "titleMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
 
                         MaterialText {
                             text: qsTr("Громкость и выключение устройств воспроизведения")
                             textStyle: "bodySmall"
-                            colorRole: "surfaceVariantText"
+                            colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                         }
@@ -178,7 +178,7 @@ MaterialCard {
                                     Layout.fillWidth: true
                                     text: node.description || node.name || qsTr("Выход")
                                     textStyle: "bodyMedium"
-                                    colorRole: "surfaceText"
+                                    colorRole: "onSurface"
                                     wrapMode: Text.WordWrap
                                 }
 
@@ -229,7 +229,7 @@ MaterialCard {
                                     MaterialText {
                                         text: formatVolume(node.audio ? node.audio.volume : null)
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
                             }
@@ -239,7 +239,7 @@ MaterialCard {
                             visible: root.sinkNodes.length === 0
                             text: qsTr("Нет выходных устройств")
                             textStyle: "bodySmall"
-                            colorRole: "surfaceVariantText"
+                            colorRole: "onSurfaceVariant"
                         }
                     }
                 }
@@ -256,13 +256,13 @@ MaterialCard {
                         MaterialText {
                             text: qsTr("Приложения")
                             textStyle: "titleMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
 
                         MaterialText {
                             text: qsTr("Контролируйте активные аудиопотоки и их громкость")
                             textStyle: "bodySmall"
-                            colorRole: "surfaceVariantText"
+                            colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                         }
@@ -285,7 +285,7 @@ MaterialCard {
                                     Layout.fillWidth: true
                                     text: stream && stream.properties && stream.properties["application.name"] ? stream.properties["application.name"] : (stream.appName || stream.name || stream.clientName || qsTr("Приложение"))
                                     textStyle: "bodyMedium"
-                                    colorRole: "surfaceText"
+                                    colorRole: "onSurface"
                                     wrapMode: Text.WordWrap
                                 }
 
@@ -327,7 +327,7 @@ MaterialCard {
                                     MaterialText {
                                         text: formatVolume(stream.audio ? stream.audio.volume : null)
                                         textStyle: "bodySmall"
-                                        colorRole: "surfaceVariantText"
+                                        colorRole: "onSurfaceVariant"
                                     }
                                 }
                             }
@@ -337,7 +337,7 @@ MaterialCard {
                             visible: root.streamNodes.length === 0
                             text: qsTr("Нет активных аудиопотоков")
                             textStyle: "bodySmall"
-                            colorRole: "surfaceVariantText"
+                            colorRole: "onSurfaceVariant"
                         }
                     }
                 }

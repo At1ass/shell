@@ -11,7 +11,11 @@ Singleton {
 
     // Главные панели
     property bool controlPanelOpen: false
+    property bool dashboardOpen: false
     property bool mediaControlsOpen: false
+    property bool showDateSelector: false
+    property bool darkMode: true
+    property bool inhibit: false
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
@@ -20,6 +24,7 @@ Singleton {
     // Утилиты для закрытия всех панелей
     function closeAllPanels() {
         controlPanelOpen = false
+        dashboardOpen = false
         mediaControlsOpen = false
     }
 
@@ -31,6 +36,14 @@ Singleton {
     // Автозакрытие панелей при открытии другой
     onControlPanelOpenChanged: {
         if (controlPanelOpen) {
+            dashboardOpen = false
+            mediaControlsOpen = false
+        }
+    }
+
+    onDashboardOpenChanged: {
+        if (dashboardOpen) {
+            controlPanelOpen = false
             mediaControlsOpen = false
         }
     }
@@ -38,6 +51,7 @@ Singleton {
     onMediaControlsOpenChanged: {
         if (mediaControlsOpen) {
             controlPanelOpen = false
+            dashboardOpen = false
         }
     }
 
@@ -83,6 +97,18 @@ Singleton {
 
         function closeControlPanel(): void {
             root.controlPanelOpen = false
+        }
+
+        function toggleDashboard(): void {
+            root.dashboardOpen = !root.dashboardOpen
+        }
+
+        function openControlPanelLeft(): void {
+            root.controlPanelLeftOpen = true
+        }
+
+        function closeControlPanelLeft(): void {
+            root.controlPanelLeftOpen = false
         }
 
         function toggleMediaControls(): void {

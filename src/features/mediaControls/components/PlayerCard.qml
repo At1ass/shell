@@ -21,16 +21,16 @@ Rectangle {
     property bool isPlaying: player?.playbackState == MprisPlaybackState.Playing || false
 
     // Position tracking timer (как в end_4)
-    Timer {
-        running: root.isPlaying
-        interval: 1000 // Обновляем каждую секунду
-        repeat: true
-        onTriggered: {
-            if (root.player) {
-                root.player.positionChanged();
-            }
-        }
-    }
+    // Timer {
+    //     running: root.isPlaying
+    //     interval: 1000 // Обновляем каждую секунду
+    //     repeat: true
+    //     onTriggered: {
+    //         if (root.player) {
+    //             root.player.positionChanged();
+    //         }
+    //     }
+    // }
 
     // Прямые алиасы для position и length
     property real position: player?.position || 0
@@ -43,10 +43,10 @@ Rectangle {
     border.width: 1
     border.color: Config.colors.outlineVariant
 
-    Component.onCompleted: {
-        console.log("PlayerCard initialized with player:", player ? player.identity : "none");
-        bkg.updateArt(false);
-    }
+    // Component.onCompleted: {
+    //     console.log("PlayerCard initialized with player:", player ? player.identity : "none");
+    //     bkg.updateArt(false);
+    // }
 
     BackgroundArt {
         id: bkg
@@ -55,12 +55,12 @@ Rectangle {
         blurRadius: 100
         blurSamples: 201
 
-        function updateArt(reverse: bool) {
-            console.log("update art", MprisController.activePlayer.trackArtUrl);
-            // console.log("update art", MprisController.activePlayer.artUrl);
-            this.setArt(MprisController.activePlayer.trackArtUrl, reverse, false);
-            // this.setArt(MprisController.activePlayer.artUrl, reverse, false);
-        }
+        // function updateArt(reverse: bool) {
+        //     console.log("update art", MprisController.activePlayer.trackArtUrl);
+        //     // console.log("update art", MprisController.activePlayer.artUrl);
+        //     this.setArt(MprisController.activePlayer.trackArtUrl, reverse, false);
+        //     // this.setArt(MprisController.activePlayer.artUrl, reverse, false);
+        // }
 
         Component.onCompleted: {
             setArt(MprisController.activeTrack.artUrl, false, true);
@@ -71,9 +71,11 @@ Rectangle {
             target: MprisController
 
             function onTrackChanged(reverse: bool) {
-                bkg.updateArt(reverse);
+                // bkg.updateArt(reverse);
+                bkg.setArt(MprisController.activeTrack.artUrl, reverse, false);
             }
         }
+
     }
 
     RowLayout {
@@ -158,7 +160,7 @@ Rectangle {
                     Layout.fillWidth: true
                     text: (typeof MprisController !== 'undefined' && MprisController.activeTrack) ? MprisController.activeTrack.title || "Unknown Title" : "No track"
                     textStyle: "titleLarge"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     elide: Text.ElideRight
                     maximumLineCount: 2
 
@@ -191,7 +193,7 @@ Rectangle {
                     Layout.fillWidth: true
                     text: (typeof MprisController !== 'undefined' && MprisController.activeTrack) ? MprisController.activeTrack.artist || "Unknown Artist" : "No artist"
                     textStyle: "bodyMedium"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     elide: Text.ElideRight
 
                     Behavior on text {
@@ -224,7 +226,7 @@ Rectangle {
                 MaterialText {
                     text: formatTime(root.position) + " / " + formatTime(root.length)
                     textStyle: "labelMedium"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                 }
 
                 Item {
@@ -234,9 +236,8 @@ Rectangle {
                 // Play/Pause button (сверху справа, как в end_4)
                 RippleButton {
                     id: playPauseButton
-                    iconName: root.isPlaying ? "pause" : "play"
-                    iconStyle: "fill"
-                    fallbackText: root.isPlaying ? "⏸" : "▶"
+                    iconName: root.isPlaying ? "pause" : "play_arrow"
+                    fontSize: Config.typography.headlineLarge.size
                     buttonType: "filled"
                     playing: root.isPlaying
                     enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
@@ -261,9 +262,10 @@ Rectangle {
 
                 // Previous
                 RippleButton {
-                    iconName: "skip-back"
-                    iconStyle: "bold"
-                    // fallbackText: "⏮"
+                    iconName: "skip_previous"
+                    fontSize: Config.typography.headlineLarge.size
+                    color: "transparent"
+                    // color: "red"
                     width: 40
                     height: 40
                     enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
@@ -323,7 +325,7 @@ Rectangle {
                             id: quant
                             rescaleSize: 200
                             depth: 0
-                            source: MprisController.activeTrack.trackArtUrl
+                            source: MprisController.activePlayer.trackArtUrl
                             onColorsChanged: console.log(colors)
                         }
 
@@ -361,9 +363,11 @@ Rectangle {
 
                 // Next
                 RippleButton {
-                    iconName: "skip-forward"
-                    iconStyle: "bold"
-                    fallbackText: "⏭"
+                    iconName: "skip_next"
+                    fontSize: Config.typography.headlineLarge.size
+                    color: "transparent"
+                    // iconStyle: "bold"
+                    // fallbackText: "⏭"
                     width: 40
                     height: 40
                     enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
@@ -382,11 +386,68 @@ Rectangle {
                 MaterialText {
                     text: MprisController.activePlayer ? MprisController.activePlayer.identity : "No player"
                     textStyle: "bodyMedium"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     Layout.alignment: Qt.AlignLeft
                     Layout.margins: 5
 
                 }
+
+                Item {
+                    implicitWidth: 28
+                    implicitHeight: 28
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        source: {
+                            return "root:icons/SVGs/bold/play-bold"
+                        }
+
+                        sourceSize.width: 50
+                        sourceSize.height: 50
+                        cache: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: {
+                                console.log("Quit clicked");
+                                MprisController.quit();
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    implicitWidth: 28
+                    implicitHeight: 28
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        source: {
+                            return "root:icons/SVGs/bold/play-bold"
+                        }
+
+                        sourceSize.width: 50
+                        sourceSize.height: 50
+                        cache: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: {
+                                console.log("Raise clicked");
+                                MprisController.raise();
+                            }
+                        }
+                    }
+                }
+
 
                 Item {
                     Layout.fillWidth: true
@@ -407,14 +468,15 @@ Rectangle {
                         onClicked: MprisController.setActivePlayer(modelData)
 
                         Item {
-                            implicitWidth: 25
-                            implicitHeight: 25
+                            implicitWidth: 28
+                            implicitHeight: 28
 
                             Image {
                                 anchors.fill: parent
                                 anchors.margins: 5
                                 source: {
-                                    const entry = DesktopEntries.byId(modelData.desktopEntry);
+                                    const entry = DesktopEntries.heuristicLookup(modelData.identity) ??
+                                                  DesktopEntries.heuristicLookup(modelData.desktopEntry);
                                     console.log(`ent ${entry} id ${modelData.desktopEntry}`);
                                     if (entry?.icon)
                                         return Quickshell.iconPath(entry?.icon);

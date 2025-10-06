@@ -22,7 +22,7 @@ Rectangle {
         MaterialText {
             text: "Display Settings"
             textStyle: "titleSmall"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
 
         RowLayout {
@@ -38,11 +38,9 @@ Rectangle {
                     spacing: Config.spacing.small
 
                     MaterialIcon {
-                        iconName: "sun"
-                        iconStyle: "bold"
-                        iconSize: 16
+                        iconName: "light_mode"
                         color: "transparent"
-                        iconColor: Config.colors.surfaceText
+                        iconColor: Config.colors.onSurface
                         radius: 0
                         enableRipple: false
                     }
@@ -50,7 +48,7 @@ Rectangle {
                     MaterialText {
                         text: "Brightness"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                     }
                 }
 
@@ -71,7 +69,7 @@ Rectangle {
                 MaterialText {
                     text: "75%"
                     textStyle: "labelSmall"
-                    colorRole: "surfaceVariantText"
+                    colorRole: "onSurfaceVariant"
                     Layout.alignment: Qt.AlignHCenter
                 }
             }
@@ -92,10 +90,8 @@ Rectangle {
 
                     MaterialIcon {
                         iconName: "monitor"
-                        iconStyle: "bold"
-                        iconSize: 16
                         color: "transparent"
-                        iconColor: Config.colors.surfaceText
+                        iconColor: Config.colors.onSurface
                         radius: 0
                         enableRipple: false
                     }
@@ -103,7 +99,7 @@ Rectangle {
                     MaterialText {
                         text: "Monitor"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                     }
                 }
 
@@ -117,7 +113,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "1920×1080 @ 60Hz"
                         textStyle: "labelSmall"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                     }
                 }
 
@@ -133,7 +129,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "2560×1440 @ 144Hz"
                         textStyle: "labelSmall"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                     }
                 }
             }

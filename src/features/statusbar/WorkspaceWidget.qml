@@ -76,7 +76,11 @@ BarElement {
 
                 // Анимации состояний как у outfoxxed
                 property real animActive: active ? 1 : 0
-                Behavior on animActive { NumberAnimation { duration: Config.animations.durationShort } }
+                Behavior on animActive {
+                    NumberAnimation {
+                        duration: Config.animations.durationShort
+                    }
+                }
 
                 property real animExists: exists ? 1 : 0
                 Behavior on animExists { NumberAnimation { duration: Config.animations.durationShort } }
@@ -101,9 +105,9 @@ BarElement {
                 Rectangle {
                     id: wsIndicator
                     anchors.centerIn: parent
-                    width: 18
-                    height: 18
-                    radius: 9
+                    width: Config.typography.titleMedium.size
+                    height: Config.typography.titleMedium.size
+                    radius: Config.shape.small
 
                     // Масштабирование на основе состояния
                     scale: {
@@ -123,8 +127,9 @@ BarElement {
                     Rectangle {
                         anchors.fill: parent
                         anchors.topMargin: active ? 1 : 0
-                        color: "#000000"
-                        opacity: active ? 0.1 : 0
+                        // color: "#000000"
+                        color: Config.colors.onSurface
+                        opacity: active ? 0.10 : 0
                         radius: parent.radius
                         z: -1
                     }
@@ -159,7 +164,8 @@ BarElement {
                         width: parent.containsMouse ? 24 : 20
                         height: width
                         radius: width / 2
-                        color: Config.colors.textPrimary
+                        // color: Config.colors.textPrimary
+                        color: Config.colors.onPrimary
                         opacity: parent.containsMouse ? 0.04 : 0.0
 
                         Behavior on width {

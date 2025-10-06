@@ -46,7 +46,7 @@ BarElement {
                     return `${title} — ${artist}`;
                 }
                 textStyle: "bodyMedium"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
         }
 
@@ -69,10 +69,10 @@ BarElement {
 
         // Previous button
         ClickableIcon {
-            iconName: "skip-back"
-            iconStyle: "bold"
+            iconName: "skip_previous"
+            fontSize: Config.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
             color: "transparent"
             enableRipple: false
             onClicked: function (mouse) {
@@ -84,10 +84,10 @@ BarElement {
         }
 
         ClickableIcon {
-            iconName: MprisController.isPlaying ? "play" : "pause"
-            iconStyle: "bold"
+            iconName: MprisController.isPlaying ? "pause" : "play_arrow"
+            fontSize: Config.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
             color: "transparent"
             enableRipple: false
             onClicked: function (mouse) {
@@ -99,10 +99,10 @@ BarElement {
         }
         // Next button
         ClickableIcon {
-            iconName: "skip-forward"
-            iconStyle: "bold"
+            iconName: "skip_next"
+            fontSize: Config.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            iconColor: !enabled ? Config.colors.surfaceVariantText : Config.colors.surfaceText
+            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
             color: "transparent"
             enableRipple: false
             onClicked: function (mouse) {

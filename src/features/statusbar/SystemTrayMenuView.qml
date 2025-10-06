@@ -84,7 +84,7 @@ ColumnLayout {
                                 anchors.centerIn: parent
                                 width: 16
                                 height: 16
-                                radius: 3
+                                radius: 12
                                 color: (entry.checkState == 2) ? Config.colors.primary : "transparent"
                                 border.color: Config.colors.outline
                                 border.width: (entry.buttonType == 1) ? 1 : 0  // CheckBox = 1
@@ -94,7 +94,8 @@ ColumnLayout {
                                     anchors.centerIn: parent
                                     text: "✓"
                                     textStyle: "labelSmall"
-                                    color: Config.colors.primaryText
+                                    // color: Config.colors.primaryText
+                                    color: Config.colors.onPrimary
                                     visible: entry.checkState == 2
                                 }
                             }
@@ -125,7 +126,7 @@ ColumnLayout {
                                 anchors.centerIn: parent
                                 text: "▶"
                                 textStyle: "labelSmall"
-                                color: Config.colors.surfaceVariantText
+                                color: Config.colors.onSurfaceVariant
                                 visible: entry.hasChildren
                             }
                         }
@@ -134,7 +135,7 @@ ColumnLayout {
                             MaterialText {
                                 text: entry.text
                                 textStyle: "bodyMedium"
-                                color: entry.enabled ? Config.colors.surfaceText : Config.colors.surfaceVariantText
+                                color: entry.enabled ? Config.colors.onSurface : Config.colors.onSurfaceVariant
                                 Layout.fillWidth: true
                             }
 
@@ -160,12 +161,14 @@ ColumnLayout {
                     Rectangle {
                         anchors.fill: parent
                         visible: menuItemRoot.containsMouse && menuItemRoot.enabled
-                        color: Config.colors.primaryContainer
-                        radius: Config.shape.extraSmall
-                        opacity: 0.12
+                        // color: Config.colors.primaryContainer
+                        color: Config.colors.onSurface
+                        // radius: Config.shape.extraSmall
+                        radius: Config.shape.medium
+                        opacity: menuItemRoot.containsMouse && menuItemRoot.enabled ? 0.12 : 0.0
 
                         Behavior on opacity {
-                            NumberAnimation { duration: 150 }
+                            NumberAnimation { duration: 100 }
                         }
                     }
                 }

@@ -26,10 +26,9 @@ ColumnLayout {
             spacing: Config.spacing.medium
 
             MaterialIcon {
-                iconName: "speaker-simple-high"
-                iconStyle: "bold"
-                color: "transparent"
-                iconColor: Config.colors.surfaceText
+                iconName: "volume_up"
+                iconColor: Config.colors.onSurface
+                fontSize: Config.typography.titleLarge.size
                 radius: 0
                 enableRipple: false
                 Layout.alignment: Qt.AlignVCenter
@@ -42,7 +41,7 @@ ColumnLayout {
                 MaterialText {
                     text: "Master Volume"
                     textStyle: "titleSmall"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                 }
 
                 Rectangle {
@@ -63,7 +62,7 @@ ColumnLayout {
             MaterialText {
                 text: "65%"
                 textStyle: "labelMedium"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -89,17 +88,14 @@ ColumnLayout {
                 MaterialText {
                     text: "Audio Devices"
                     textStyle: "titleSmall"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                 }
 
                 Item { Layout.fillWidth: true }
 
                 MaterialIcon {
-                    iconName: "gear"
-                    iconStyle: "bold"
-                    iconSize: 16
-                    color: "transparent"
-                    iconColor: Config.colors.surfaceText
+                    iconName: "settings"
+                    iconColor: Config.colors.onSurface
                     radius: 0
                     enableRipple: false
                 }
@@ -129,17 +125,14 @@ ColumnLayout {
 
                         MaterialIcon {
                             iconName: "headphones"
-                            iconStyle: "bold"
-                            iconSize: 18
-                            color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "Headphones (Active)"
                             textStyle: "labelMedium"
-                            colorRole: "primaryContainerText"
+                            colorRole: "onPrimaryContainer"
                             Layout.fillWidth: true
                         }
                     }
@@ -163,18 +156,15 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "microphone"
-                            iconStyle: "bold"
-                            iconSize: 18
-                            color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconName: "mic"
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "Built-in Microphone"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                             Layout.fillWidth: true
                         }
                     }
@@ -198,7 +188,7 @@ ColumnLayout {
             MaterialText {
                 text: "App Volume Mixer"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             ScrollView {
@@ -234,7 +224,7 @@ ColumnLayout {
                                         anchors.centerIn: parent
                                         text: modelData.charAt(0)
                                         textStyle: "labelSmall"
-                                        colorRole: "primaryText"
+                                        colorRole: "onPrimary"
                                     }
                                 }
 
@@ -245,7 +235,7 @@ ColumnLayout {
                                     MaterialText {
                                         text: modelData
                                         textStyle: "labelMedium"
-                                        colorRole: "surfaceText"
+                                        colorRole: "onSurface"
                                     }
 
                                     Rectangle {
@@ -266,7 +256,7 @@ ColumnLayout {
                                 MaterialText {
                                     text: Math.round((30 + index * 20)) + "%"
                                     textStyle: "labelSmall"
-                                    colorRole: "surfaceVariantText"
+                                    colorRole: "onSurfaceVariant"
                                 }
                             }
                         }

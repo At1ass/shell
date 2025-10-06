@@ -14,6 +14,20 @@ MaterialCard {
     id: root
 
     property int currentTab: 0
+    // property bool showDateSelector: false
+
+    color: Config.colors.surface
+
+    // Global overlay to close date selector when clicking anywhere
+    MouseArea {
+        anchors.fill: parent
+        visible: GlobalStates.showDateSelector
+        onClicked: function (mouse) {
+            console.log("Global overlay clicked - closing date selector");
+            GlobalStates.showDateSelector = false;
+        }
+        propagateComposedEvents: true
+    }
 
     ColumnLayout {
         anchors.fill: parent

@@ -12,14 +12,20 @@ ClickableIcon {
     property string toggleIcon: "wifi"
 
     iconName: toggleIcon
-    iconStyle: toggled ? "fill" : "bold"
-    iconSize: 18
-    width: 36
-    height: 36
-    radius: 18
+    // iconStyle: toggled ? "fill" : "bold"
+    // iconSize: 18
+    // width: 36
+    // height: 36
+    width: 48
+    height: 48
+    iconSize: 24
+    // radius: 18
+    radius: 12
 
-    backgroundColor: toggled ? Config.colors.primary : Config.colors.surfaceContainerHigh
-    iconColor: toggled ? Config.colors.primaryText : Config.colors.surfaceText
+    // backgroundColor: toggled ? Config.colors.primary : Config.colors.surfaceContainerHigh
+    // iconColor: toggled ? Config.colors.onPrimary : Config.colors.onSurface
+    backgroundColor: toggled ? Config.colors.secondaryContainer : Config.colors.surfaceContainerLow
+    iconColor: toggled ? Config.colors.onSecondaryContainer : Config.colors.onSurfaceVariant
 
     Behavior on backgroundColor {
         ColorAnimation {

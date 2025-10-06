@@ -159,7 +159,7 @@ BarElement {
         MaterialText {
             text: layoutWidget.currentLayoutCode.toUpperCase() || "EN"
             textStyle: "titleMedium"
-            colorRole: layoutWidget.hovered ? "primary" : "surfaceText"
+            colorRole: layoutWidget.hovered ? "primary" : "onSurface"
             anchors.horizontalCenter: parent.horizontalCenter
 
             Behavior on color {

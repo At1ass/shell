@@ -33,7 +33,7 @@ CheckBox {
             anchors.centerIn: parent
             text: control.checked ? "✓" : ""
             textStyle: "labelLarge"
-            colorRole: control.checked ? "primaryText" : "surfaceText"
+            colorRole: control.checked ? "onPrimary" : "onSurface"
         }
     }
 
@@ -42,7 +42,7 @@ CheckBox {
         rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
         text: control.text
         textStyle: "bodyMedium"
-        colorRole: control.enabled ? "surfaceText" : "surfaceVariantText"
+        colorRole: control.enabled ? "onSurface" : "onSurfaceVariant"
         verticalAlignment: Text.AlignVCenter
     }
 }

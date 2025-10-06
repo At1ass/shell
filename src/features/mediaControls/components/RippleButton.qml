@@ -8,13 +8,13 @@ import qs.src.ui.base
 ClickableIcon {
     id: root
 
-    property alias text: root.fallbackText
+    property alias text: root.iconName
     property string buttonType: "icon" // "icon", "text", "filled"
     property bool playing: false
 
     // Override ClickableIcon properties for media controls
     backgroundColor: buttonType === "filled" ? Config.colors.primary : "transparent"
-    iconColor: enabled ? (buttonType === "filled" ? Config.colors.primaryText : Config.colors.primary) : Config.colors.surfaceText
+    iconColor: enabled ? (buttonType === "filled" ? Config.colors.onPrimary : Config.colors.primary) : Config.colors.onSurface
 
     // Morphing radius for play button
     radius: playing ? 12 : 24
@@ -27,7 +27,6 @@ ClickableIcon {
             easing.bezierCurve: Config.motion.easing.emphasizedPoints
         }
     }
-
 
     // Elevation shadow for filled buttons
     Rectangle {

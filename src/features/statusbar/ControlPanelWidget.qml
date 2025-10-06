@@ -30,9 +30,10 @@ BarElement {
 
         // Иконка системной панели
         MaterialIcon {
-            iconName: "gear"
-            iconStyle: "bold"
-            iconColor: Config.colors.surfaceText
+            iconName: "settings"
+            // iconStyle: "bold"
+            fontSize: Config.typography.titleLarge.size
+            iconColor: Config.colors.onSurface
             color: "transparent"
             enableRipple: false
         }

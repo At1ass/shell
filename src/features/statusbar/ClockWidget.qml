@@ -1,4 +1,5 @@
 import QtQuick
+import qs.src.core.services
 import qs.src.ui.base
 import qs.src.ui.containers
 import qs.src.ui.inputs
@@ -18,6 +19,7 @@ BarElement {
     // BarElement configuration
     expandOnHover: true
     expandedWidth: 160
+    clickable: true
     minWidth: 70
 
     nonVisualChildren: [
@@ -49,7 +51,7 @@ BarElement {
                 MaterialText {
                     text: clockWidget.currentDateTime
                     textStyle: "bodyLarge"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     horizontalAlignment: Text.AlignHCenter
                     anchors.horizontalCenter: parent.horizontalCenter
                     wrapMode: Text.Wrap
@@ -58,6 +60,12 @@ BarElement {
         }
     ]
 
+    clickHandler: function(mouse) {
+        if (mouse.button === Qt.LeftButton) {
+            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
+        }
+    }
+
     // Time display content
     Row {
         spacing: Config.spacing.extraSmall
@@ -65,14 +73,14 @@ BarElement {
         MaterialText {
             text: clockWidget.currentTime
             textStyle: "titleMedium"
-            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceText"
+            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurface"
             anchors.verticalCenter: parent.verticalCenter
         }
 
         MaterialText {
             text: "•"
             textStyle: "bodyMedium"
-            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceVariantText"
+            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
             anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded
         }
@@ -80,7 +88,7 @@ BarElement {
         MaterialText {
             text: clockWidget.currentDate
             textStyle: "bodyMedium"
-            colorRole: clockWidget.expanded ? "primaryContainerText" : "surfaceVariantText"
+            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
             anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded
         }

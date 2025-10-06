@@ -22,7 +22,7 @@ Rectangle {
         MaterialText {
             text: "System Tray"
             textStyle: "titleSmall"
-            colorRole: "surfaceText"
+            colorRole: "onSurface"
         }
 
         // Tray apps row
@@ -43,11 +43,11 @@ Rectangle {
 
                     MaterialIcon {
                         anchors.centerIn: parent
-                        iconName: ["app-window", "folder", "speaker-simple-high", "globe", "chat", "gear"][index]
-                        iconStyle: "bold"
-                        iconSize: 18
+                        iconName: ["network_cell", "folder", "volume_up", "globe", "chat", "settings"][index]
+                        // iconStyle: "bold"
+                        fontSize: Config.typography.bodyLarge.size
                         color: "transparent"
-                        iconColor: Config.colors.surfaceText
+                        iconColor: Config.colors.onSurface
                         radius: 0
                         enableRipple: false
                     }
@@ -61,7 +61,7 @@ Rectangle {
             MaterialText {
                 text: "+3"
                 textStyle: "labelSmall"
-                colorRole: "surfaceVariantText"
+                colorRole: "onSurfaceVariant"
             }
         }
     }

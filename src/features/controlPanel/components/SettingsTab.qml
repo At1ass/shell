@@ -27,7 +27,7 @@ ColumnLayout {
             MaterialText {
                 text: "Display Settings"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             RowLayout {
@@ -43,11 +43,9 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "sun"
-                            iconStyle: "bold"
-                            iconSize: 16
+                            iconName: "light_mode"
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
@@ -55,7 +53,7 @@ ColumnLayout {
                         MaterialText {
                             text: "Brightness"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
                     }
 
@@ -76,7 +74,7 @@ ColumnLayout {
                     MaterialText {
                         text: "75%"
                         textStyle: "labelSmall"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
@@ -97,10 +95,8 @@ ColumnLayout {
 
                         MaterialIcon {
                             iconName: "monitor"
-                            iconStyle: "bold"
-                            iconSize: 16
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
@@ -108,7 +104,7 @@ ColumnLayout {
                         MaterialText {
                             text: "Monitor"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
                     }
 
@@ -122,7 +118,7 @@ ColumnLayout {
                             anchors.centerIn: parent
                             text: "1920×1080 @ 60Hz"
                             textStyle: "labelSmall"
-                            colorRole: "primaryContainerText"
+                            colorRole: "onPrimaryContainer"
                         }
                     }
 
@@ -138,7 +134,7 @@ ColumnLayout {
                             anchors.centerIn: parent
                             text: "2560×1440 @ 144Hz"
                             textStyle: "labelSmall"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
                     }
                 }
@@ -161,7 +157,7 @@ ColumnLayout {
             MaterialText {
                 text: "System Settings"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             GridLayout {
@@ -183,24 +179,22 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "moon"
-                            iconStyle: "bold"
-                            iconSize: 16
+                            iconName: "dark_mode"
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "Night Light"
                             textStyle: "labelMedium"
-                            colorRole: "secondaryContainerText"
+                            colorRole: "onSecondaryContainer"
                             Layout.fillWidth: true
                         }
                         MaterialText {
                             text: "ON"
                             textStyle: "labelSmall"
-                            colorRole: "secondaryContainerText"
+                            colorRole: "onSecondaryContainer"
                         }
                     }
                 }
@@ -220,24 +214,22 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "device-rotate"
-                            iconStyle: "bold"
-                            iconSize: 16
+                            iconName: "rotate_right"
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "Auto Rotate"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                             Layout.fillWidth: true
                         }
                         MaterialText {
                             text: "OFF"
                             textStyle: "labelSmall"
-                            colorRole: "surfaceVariantText"
+                            colorRole: "onSurfaceVariant"
                         }
                     }
                 }
@@ -258,17 +250,15 @@ ColumnLayout {
 
                         MaterialIcon {
                             iconName: "palette"
-                            iconStyle: "bold"
-                            iconSize: 16
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "sRGB"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                             Layout.fillWidth: true
                         }
                     }
@@ -289,18 +279,16 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "magnifying-glass"
-                            iconStyle: "bold"
-                            iconSize: 16
+                            iconName: "magnification_large"
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
                         MaterialText {
                             text: "100% Scale"
                             textStyle: "labelMedium"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                             Layout.fillWidth: true
                         }
                     }
@@ -324,7 +312,7 @@ ColumnLayout {
             MaterialText {
                 text: "Power Management"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             RowLayout {
@@ -344,11 +332,10 @@ ColumnLayout {
                         spacing: Config.spacing.small
 
                         MaterialIcon {
-                            iconName: "battery-full"
-                            iconStyle: "bold"
-                            iconSize: 24
+                            iconName: "battery_full"
+                            fontSize: Config.typography.titleLarge.size
                             color: "transparent"
-                            iconColor: Config.colors.surfaceText
+                            iconColor: Config.colors.onSurface
                             radius: 0
                             enableRipple: false
                         }
@@ -360,12 +347,12 @@ ColumnLayout {
                             MaterialText {
                                 text: "AC Power"
                                 textStyle: "labelMedium"
-                                colorRole: "tertiaryContainerText"
+                                colorRole: "onTertiaryContainer"
                             }
                             MaterialText {
                                 text: "Plugged In"
                                 textStyle: "labelSmall"
-                                colorRole: "tertiaryContainerText"
+                                colorRole: "onTertiaryContainer"
                             }
                         }
                     }
@@ -388,7 +375,7 @@ ColumnLayout {
                             anchors.centerIn: parent
                             text: "Suspend"
                             textStyle: "labelSmall"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
                     }
 
@@ -404,7 +391,7 @@ ColumnLayout {
                             anchors.centerIn: parent
                             text: "Restart"
                             textStyle: "labelSmall"
-                            colorRole: "surfaceText"
+                            colorRole: "onSurface"
                         }
                     }
                 }
@@ -427,7 +414,7 @@ ColumnLayout {
             MaterialText {
                 text: "System Information"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             RowLayout {
@@ -461,7 +448,7 @@ ColumnLayout {
                 MaterialText {
                     text: "at1ass@at1ass"
                     textStyle: "titleSmall"
-                    colorRole: "surfaceText"
+                    colorRole: "onSurface"
                     font.weight: Font.Medium
                 }
 
@@ -481,13 +468,13 @@ ColumnLayout {
                     MaterialText {
                         text: "OS"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "Arch Linux x86_64"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
@@ -500,13 +487,13 @@ ColumnLayout {
                     MaterialText {
                         text: "Kernel"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "Linux 6.16.8-arch3-1"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
@@ -519,13 +506,13 @@ ColumnLayout {
                     MaterialText {
                         text: "WM"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "Hyprland (Wayland)"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
@@ -538,13 +525,13 @@ ColumnLayout {
                     MaterialText {
                         text: "CPU"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "AMD Ryzen 7 7700X (16) @ 5.58 GHz"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
@@ -557,13 +544,13 @@ ColumnLayout {
                     MaterialText {
                         text: "Memory"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "11.29 GiB / 30.94 GiB (36%)"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
@@ -576,13 +563,13 @@ ColumnLayout {
                     MaterialText {
                         text: "Disk (/)"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceVariantText"
+                        colorRole: "onSurfaceVariant"
                         Layout.preferredWidth: 80
                     }
                     MaterialText {
                         text: "38.64 GiB / 931.01 GiB (4%)"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }

@@ -25,17 +25,14 @@ Rectangle {
             MaterialText {
                 text: "Audio Devices"
                 textStyle: "titleSmall"
-                colorRole: "surfaceText"
+                colorRole: "onSurface"
             }
 
             Item { Layout.fillWidth: true }
 
             MaterialIcon {
-                iconName: "gear"
-                iconStyle: "bold"
-                iconSize: 16
-                color: "transparent"
-                iconColor: Config.colors.surfaceText
+                iconName: "settings"
+                iconColor: Config.colors.onSurface
                 radius: 0
                 enableRipple: false
             }
@@ -59,17 +56,14 @@ Rectangle {
 
                     MaterialIcon {
                         iconName: "headphones"
-                        iconStyle: "bold"
-                        iconSize: 18
-                        color: "transparent"
-                        iconColor: Config.colors.surfaceText
+                        iconColor: Config.colors.onSurface
                         radius: 0
                         enableRipple: false
                     }
                     MaterialText {
                         text: "Headphones (Active)"
                         textStyle: "labelMedium"
-                        colorRole: "primaryContainerText"
+                        colorRole: "onPrimaryContainer"
                         Layout.fillWidth: true
                     }
                 }
@@ -90,18 +84,18 @@ Rectangle {
                     spacing: Config.spacing.small
 
                     MaterialIcon {
-                        iconName: "microphone"
+                        iconName: "mic"
                         iconStyle: "bold"
                         iconSize: 18
                         color: "transparent"
-                        iconColor: Config.colors.surfaceText
+                        iconColor: Config.colors.onSurface
                         radius: 0
                         enableRipple: false
                     }
                     MaterialText {
                         text: "Built-in Microphone"
                         textStyle: "labelMedium"
-                        colorRole: "surfaceText"
+                        colorRole: "onSurface"
                         Layout.fillWidth: true
                     }
                 }
