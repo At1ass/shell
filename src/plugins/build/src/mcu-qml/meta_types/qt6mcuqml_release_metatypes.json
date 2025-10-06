@@ -1,0 +1,242 @@
+[
+    {
+        "classes": [
+            {
+                "classInfos": [
+                    {
+                        "name": "QML.Element",
+                        "value": "auto"
+                    }
+                ],
+                "className": "McuTheme",
+                "lineNumber": 10,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "v",
+                                "type": "QVariant"
+                            }
+                        ],
+                        "index": 7,
+                        "name": "setSource",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "dark",
+                                "type": "bool"
+                            }
+                        ],
+                        "index": 8,
+                        "name": "setDarkMode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "variant",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 9,
+                        "name": "setVariant",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "contrast",
+                                "type": "double"
+                            }
+                        ],
+                        "index": 10,
+                        "name": "setContrast",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "source",
+                        "notify": "sourceChanged",
+                        "read": "source",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QVariant",
+                        "user": false,
+                        "write": "setSource"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "darkMode",
+                        "notify": "darkModeChanged",
+                        "read": "darkMode",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setDarkMode"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "variant",
+                        "notify": "variantChanged",
+                        "read": "variant",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setVariant"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "contrast",
+                        "notify": "contrastChanged",
+                        "read": "contrast",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "double",
+                        "user": false,
+                        "write": "setContrast"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "colors",
+                        "notify": "colorsChanged",
+                        "read": "colors",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QVariantMap",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "valid",
+                        "notify": "validChanged",
+                        "read": "valid",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 6,
+                        "name": "loading",
+                        "notify": "loadingChanged",
+                        "read": "loading",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "McuTheme",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "sourceChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "darkModeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "variantChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "contrastChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 4,
+                        "name": "colorsChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "name": "validChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 6,
+                        "name": "loadingChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "McuTheme.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "McuPlugin",
+                "lineNumber": 11,
+                "object": true,
+                "qualifiedClassName": "McuPlugin",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QQmlEngineExtensionPlugin"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "mcuqml_McuPlugin.cpp",
+        "outputRevision": 69
+    }
+]

@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/at1ass/.config/quickshell/shell/src/plugins/build/cmake_install.cmake",
+		"/home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/cmake_install.cmake",
+		"/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,645 @@
+import QtQuick
+import QtQuick.Layouts
+import qs.src.ui.containers
+import qs.src.ui.base
+import qs.src.core.config
+
+Item {
+    GridLayout {
+        anchors.fill: parent
+        anchors.margins: Config.spacing.large
+        columns: 10
+        rows: 5
+        rowSpacing: Config.spacing.medium
+        columnSpacing: Config.spacing.medium
+
+        // ===== USER INFO (3x1) - верх слева =====
+        MaterialCard {
+            Layout.row: 1
+            Layout.column: 1
+            Layout.rowSpan: 1
+            Layout.columnSpan: 4
+            // Layout.fillWidth: true
+            // Layout.fillHeight: true
+            Layout.preferredHeight: 104
+            Layout.preferredWidth: 300
+
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+                spacing: Config.spacing.medium
+
+                Rectangle {
+                    width: 48
+                    height: 48
+                    radius: 24
+                    color: Config.colors.primaryContainer
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        iconName: "person"
+                        fontSize: Config.typography.headlineLarge.size
+                        iconColor: Config.colors.onPrimaryContainer
+                        backgroundColor: "transparent"
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 0
+                    Layout.fillWidth: true
+
+                    MaterialText {
+                        text: "at1ass"
+                        textStyle: "titleLarge"
+                        colorRole: "onSurface"
+                        font.weight: Font.Bold
+                    }
+
+                    MaterialText {
+                        text: "Arch • Hyprland"
+                        textStyle: "bodySmall"
+                        colorRole: "onSurfaceVariant"
+                    }
+                    RowLayout {
+                        MaterialText {
+                            text: "1h 23m"
+                            textStyle: "bodyLarge"
+                            colorRole: "onSurface"
+                            font.weight: Font.Medium
+                        }
+
+                        // Item { Layout.fillWidth: true }
+
+                        // ColumnLayout{
+                        //     MaterialText {
+                        //         text: "Kernel: 6.16.8-arch3-1"
+                        //         textStyle: "bodyMedium"
+                        //         colorRole: "onSurfaceVariant"
+                        //     }
+                        //
+                        //     MaterialText {
+                        //         text: "Packages: 1247"
+                        //         textStyle: "bodyMedium"
+                        //         colorRole: "onSurfaceVariant"
+                        //     }
+                        // }
+                    }
+                }
+            }
+        }
+
+        // ===== ВРЕМЯ (2x1) =====
+        MaterialCard {
+            Layout.row: 1
+            Layout.column: 0
+            Layout.rowSpan: 2
+            Layout.columnSpan: 1
+            // Layout.fillWidth: true
+            // Layout.fillHeight: true
+            Layout.preferredHeight: 220
+            Layout.preferredWidth: 114
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 0
+
+                MaterialText {
+                    text: "21"
+                    textStyle: "displayMedium"
+                    colorRole: "onSurface"
+                    font.weight: Font.Bold
+                    Layout.alignment: Qt.AlignHCenter
+                }
+                MaterialText {
+                    text: "06"
+                    textStyle: "displayMedium"
+                    colorRole: "onSurface"
+                    font.weight: Font.Bold
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                MaterialText {
+                    text: "Sat, 7 June"
+                    textStyle: "labelMedium"
+                    colorRole: "onSurfaceVariant"
+                    Layout.alignment: Qt.AlignHCenter
+                }
+            }
+        }
+
+        // ===== ПОГОДА (3x1) =====
+        MaterialCard {
+            Layout.row: 2
+            Layout.column: 1
+            Layout.rowSpan: 1
+            Layout.columnSpan: 3
+            // Layout.fillWidth: true
+            // Layout.fillHeight: true
+            Layout.preferredHeight: 104
+            Layout.preferredWidth: 240
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+                spacing: Config.spacing.medium
+
+                MaterialIcon {
+                    iconName: "cloud"
+                    iconColor: Config.colors.primary
+                    fontSize: Config.typography.displaySmall.size
+                    backgroundColor: "transparent"
+                }
+
+                ColumnLayout {
+                    spacing: 0
+                    Layout.fillWidth: true
+
+                    MaterialText {
+                        text: "15°C"
+                        textStyle: "headlineLarge"
+                        colorRole: "onSurface"
+                        font.weight: Font.Bold
+                    }
+
+                    MaterialText {
+                        text: "Clear Sky"
+                        textStyle: "bodySmall"
+                        colorRole: "onSurfaceVariant"
+                    }
+                }
+            }
+        }
+
+        // ===== МЕТРИКИ (4x2) - вертикальный блок =====
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 0
+            Layout.rowSpan: 1
+            Layout.columnSpan: 10
+            Layout.fillWidth: true
+            // Layout.preferredWidth: 160
+            // Layout.fillHeight: true
+            Layout.preferredHeight: 72
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            // GridLayout {
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+                Layout.alignment: Qt.AlignVCenter
+                // columns: 1
+                // rows: 5
+                // rowSpacing: Config.spacing.medium
+                // columnSpacing: Config.spacing.medium
+
+                Repeater {
+                    model: [
+                        {iconName: "memory", valueText: "41°C", value2Text: "4%"},
+                        {iconName: "videocam", valueText: "52°C", value2Text: "12%"},
+                        {iconName: "storage", valueText: "8.2GB", value2Text: "16GB"},
+                        {iconName: "hard_drive", valueText: "245 GB", value2Text: "512 GB"},
+                        {iconName: "public", valueText: "↓ 2.1 MB/s", value2Text: "↑ 1.3 MB/s"}
+                    ]
+
+                    delegate: RowLayout {
+                        property var metricRoot: modelData
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignCenter
+
+                        MaterialIcon {
+                            iconName: metricRoot.iconName
+                            fontSize: Config.typography.titleMedium.size
+                            iconColor: Config.colors.primary
+                            backgroundColor: "transparent"
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+                        ColumnLayout {
+
+                            MaterialText {
+                                text: metricRoot.valueText
+                                textStyle: "bodyMedium"
+                                colorRole: "onSurface"
+                                font.weight: Font.Bold
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                            MaterialText {
+                                text: metricRoot.value2Text
+                                textStyle: "bodySmall"
+                                colorRole: "onSurfaceVariant"
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===== QUICK TOGGLES (8x1) =====
+        MaterialCard {
+            Layout.row: 3
+            Layout.column: 0
+            Layout.rowSpan: 2
+            Layout.columnSpan: 4
+            Layout.fillWidth: true
+            Layout.preferredHeight: 144
+            // Layout.preferredWidth: 60
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            GridLayout {
+                rows: 2
+                columns: 4
+                anchors.fill: parent
+                anchors.margins: Config.spacing.small
+
+                Repeater {
+                    model: [
+                        {icon: "wifi", label: "Wi-Fi", active: true},
+                        {icon: "bluetooth", label: "Bluetooth", active: false},
+                        {icon: "do_not_disturb_on", label: "DND", active: false},
+                        {icon: "nightlight", label: "Night", active: true},
+                        {icon: "flight", label: "Airplane", active: false},
+                        {icon: "nightlight", label: "Night", active: true},
+                        {icon: "flight", label: "Airplane", active: false},
+                        {icon: "flight", label: "Airplane", active: false}
+                    ]
+
+                    delegate: Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: Config.shape.medium
+                        color: modelData.active ? Config.colors.primaryContainer : Config.colors.surfaceContainerHighest
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            MaterialIcon {
+                                iconName: modelData.icon
+                                iconColor: modelData.active ? Config.colors.onPrimaryContainer : Config.colors.onSurfaceVariant
+                                fontSize: Config.typography.headlineMedium.size
+                                backgroundColor: "transparent"
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            MaterialText {
+                                text: modelData.label
+                                textStyle: "labelSmall"
+                                colorRole: modelData.active ? "onPrimaryContainer" : "onSurfaceVariant"
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                        }
+
+                        // MD3 State Layer
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: modelData.active ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                            opacity: mouseArea.containsMouse ? (mouseArea.pressed ? 0.12 : 0.08) : 0
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: Config.motion.duration.short4
+                                    easing.type: Config.motion.easing.emphasizedDecelerate
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===== VOLUME (3x1) - вертикальный =====
+        MaterialCard {
+            Layout.row: 1
+            Layout.column: 8
+            Layout.rowSpan: 3
+            Layout.columnSpan: 2
+            Layout.preferredWidth: 114
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.small
+
+                Repeater {
+                    model: [{ iconName: "brightness_6" }, { iconName: "volume_up" }]
+
+                    delegate:
+                    ColumnLayout {
+                        property real sliderValue: 80
+                        Layout.fillWidth: true
+
+                        MaterialIcon {
+                            iconName: modelData.iconName
+                            iconColor: Config.colors.primary
+                            fontSize: Config.typography.titleLarge.size
+                            backgroundColor: "transparent"
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        ColumnLayout {
+                            spacing: Config.spacing.small
+                            Layout.alignment: Qt.AlignHCenter
+
+                            MaterialText {
+                                text: Math.round(parent.parent.sliderValue).toString()
+                                textStyle: "titleMedium"
+                                colorRole: "onSurface"
+                                font.weight: Font.Bold
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            ColumnLayout {
+                                // width: 48
+                                // height: 144
+                                // radius: Config.shape.medium
+                                // color: Config.colors.surfaceContainerHighest
+                                Layout.alignment: Qt.AlignHCenter
+
+                                // Simple Vertical Slider
+                                Rectangle {
+                                    anchors.margins: 12
+                                    width: 4
+                                    Layout.fillHeight: true
+                                    radius: 2
+                                    color: Config.colors.onSurfaceVariant
+
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 4
+                                        height: parent.height * (parent.parent.parent.sliderValue / 100)
+                                        radius: 2
+                                        color: Config.colors.primary
+
+                                        Behavior on height {
+                                            NumberAnimation {
+                                                duration: Config.motion.duration.short4
+                                                easing.type: Config.motion.easing.emphasizedDecelerate
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        z: -1
+                                        onClicked: {
+                                            var clickPos = parent.height - mouse.y
+                                            var newValue = (clickPos / parent.height) * 100
+                                            parent.parent.parent.sliderValue = Math.max(0, Math.min(100, newValue))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // ===== SYSTEM TRAY (6x1) =====
+        MaterialCard {
+            Layout.row: 4
+            Layout.column: 4
+            Layout.rowSpan: 1
+            Layout.columnSpan: 6
+            Layout.fillWidth: true
+            Layout.preferredHeight: 72
+
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+
+                Repeater {
+                    model: [
+                        {icon: "notifications"},
+                        {icon: "mail"},
+                        {icon: "chat"},
+                        {icon: "battery_full"},
+                        {icon: "public"},
+                        {icon: "lock"},
+                        {icon: "cloud"},
+                        {icon: "update"}
+                    ]
+
+                    delegate: Rectangle {
+                        width: 44
+                        height: 44
+                        radius: 22
+                        color: Config.colors.surfaceContainerHighest
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            iconName: modelData.icon
+                            fontSize: Config.typography.headlineMedium.size
+                            iconColor: Config.colors.onSurfaceVariant
+                            backgroundColor: "transparent"
+                        }
+
+                        // MD3 State Layer
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: Config.colors.onSurface
+                            opacity: trayMouseArea.containsMouse ? (trayMouseArea.pressed ? 0.12 : 0.08) : 0
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: Config.motion.duration.short4
+                                    easing.type: Config.motion.easing.emphasizedDecelerate
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: trayMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                        }
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+            }
+        }
+
+        // ===== MEDIA CONTROLS =====
+        MaterialCard {
+            Layout.row: 2
+            Layout.column: 4
+            Layout.rowSpan: 2
+            Layout.columnSpan: 4
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+                spacing: Config.spacing.medium
+                Layout.alignment: Qt.AlignVCenter
+
+                MaterialText {
+                    text: "Title"
+                    textStyle: "bodyMedium"
+                    colorRole: "onSurface"
+                    font.weight: Font.Medium
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                MaterialText {
+                    text: "Artist Name"
+                    textStyle: "bodyMedium"
+                    colorRole: "onSurfaceVariant"
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                RowLayout {
+                    // anchors.fill: parent
+                    // anchors.margins: Config.spacing.medium
+                    // spacing: Config.spacing.small
+
+                    Repeater {
+                        model: [
+                            {icon: "skip_previous"},
+                            {icon: "play_arrow"},
+                            {icon: "skip_next"}
+                        ]
+
+                        delegate: Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.minimumWidth: 48
+                            Layout.minimumHeight: 48
+                            radius: 24
+                            color: "transparent"
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                iconName: modelData.icon
+                                fontSize: Config.typography.headlineMedium.size
+                                iconColor: Config.colors.primary
+                                backgroundColor: "transparent"
+                            }
+
+                            // MD3 State Layer
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: parent.radius
+                                color: Config.colors.primary
+                                opacity: mediaMouseArea.containsMouse ? (mediaMouseArea.pressed ? 0.12 : 0.08) : 0
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Config.motion.duration.short4
+                                        easing.type: Config.motion.easing.emphasizedDecelerate
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: mediaMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        MaterialCard {
+            Layout.row: 1
+            Layout.column: 5
+            Layout.rowSpan: 1
+            Layout.columnSpan: 3
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: Config.spacing.medium
+                spacing: Config.spacing.medium
+                Layout.alignment: Qt.AlignVCenter
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 64
+                            radius: Config.shape.medium
+                            color: Config.colors.surfaceContainerHighest
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: Config.spacing.small
+                                spacing: Config.spacing.small
+
+                                Rectangle {
+                                    width: 4
+                                    Layout.fillHeight: true
+                                    radius: 2
+                                    color: Config.colors.primary
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    MaterialText {
+                                        text: "Meeting with Team"
+                                        textStyle: "bodyMedium"
+                                        colorRole: "onSurface"
+                                        clip: true
+                                        font.weight: Font.Medium
+                                    }
+
+                                    MaterialText {
+                                        text: "Today, 14:30 - 15:30"
+                                        textStyle: "labelSmall"
+                                        colorRole: "onSurfaceVariant"
+                                    }
+                                }
+                            }
+                        }
+                // MaterialText {
+                //     text: "100%"
+                //     textStyle: "titleMedium"
+                //     colorRole: "onSurface"
+                //     font.weight: Font.Bold
+                //     Layout.alignment: Qt.AlignHCenter
+                // }
+                //
+                // MaterialText {
+                //     text: "Battery"
+                //     textStyle: "bodyMedium"
+                //     colorRole: "onSurfaceVariant"
+                //     Layout.alignment: Qt.AlignHCenter
+                // }
+            }
+        }
+    }
+
+}

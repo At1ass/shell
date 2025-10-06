@@ -1,0 +1,4 @@
+/usr/lib/qt6/qml/Mcu/libmcuqml.so
+/usr/lib/qt6/qml/Mcu/libmcuqml.so
+/usr/lib/qt6/qml/Mcu/qmldir
+/usr/lib/qt6/qml/Mcu/mcuqml.qmltypes
