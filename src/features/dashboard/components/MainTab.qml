@@ -4,6 +4,7 @@ import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.base
 import qs.src.core.config
+import qs.src.core.services
 import qs.src.features.dashboard.components.maintab_elements
 
 Item {
@@ -45,53 +46,87 @@ Item {
         }
 
         // ===== ROW 0-1, COL 6-8: СЛАЙДЕРЫ (вертикальные) =====
-        Repeater {
-            model: [
-                {
-                    iconName: "brightness_6",
-                    value: 100,
-                    suffix: "",
-                    col: 8
-                },
-                {
-                    iconName: "volume_up",
-                    value: 80,
-                    suffix: "",
-                    col: 9
+        // Brightness slider
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 8
+            Layout.rowSpan: 3
+            Layout.columnSpan: 1
+            Layout.preferredWidth: 70
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            ColumnLayout {
+                anchors.fill: parent
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
-            ]
+                MaterialIcon {
+                    iconName:  "brightness_6"
+                    iconColor: Config.colors.primary
+                    fontSize: Config.typography.titleLarge.size
+                    backgroundColor: "transparent"
+                    Layout.alignment: Qt.AlignHCenter
+                }
 
-            delegate: MaterialCard {
-                Layout.row: 0
-                Layout.column: modelData.col
-                Layout.rowSpan: 3
-                Layout.columnSpan: 1
-                Layout.preferredWidth: 70
-                Layout.fillHeight: true
-                color: Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                MaterialSlider {
+                    Layout.alignment: Qt.AlignHCenter
+                    orientation: Qt.Vertical
+                    enabled: true
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: 0.8
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+            }
+        }
 
-                ColumnLayout {
-                    anchors.fill: parent
+        // Volume slider
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 9
+            Layout.rowSpan: 3
+            Layout.columnSpan: 1
+            Layout.preferredWidth: 70
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
 
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                    }
+            ColumnLayout {
+                anchors.fill: parent
 
-                    MaterialSlider {
-                        Layout.alignment: Qt.AlignHCenter
-                        orientation: Qt.Vertical
-                        enabled: true
-                        from: 0
-                        to: 1
-                        stepSize: 0.01
-                        value: 0.8
-                    }
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                    }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+                MaterialIcon {
+                    iconName:  "volume_up"
+                    iconColor: Config.colors.primary
+                    fontSize: Config.typography.titleLarge.size
+                    backgroundColor: "transparent"
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                MaterialSlider {
+                    Layout.alignment: Qt.AlignHCenter
+                    orientation: Qt.Vertical
+                    enabled: AudioService.defaultSink !== null
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: AudioService.masterVolume
+                    onMoved: AudioService.setMasterVolume(value)
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
             }
         }

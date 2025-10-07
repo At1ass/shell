@@ -3,6 +3,7 @@ import Quickshell
 import qs.src.features.controlPanel
 import qs.src.features.dashboard
 import qs.src.features.mediaControls
+import qs.src.features.osd
 import qs.src.features.statusbar as Bar
 
 ShellRoot {
@@ -31,4 +32,7 @@ ShellRoot {
 
         component: Dashboard {}
     }
+
+    // Volume OSD
+    VolumeOSD {}
 }
