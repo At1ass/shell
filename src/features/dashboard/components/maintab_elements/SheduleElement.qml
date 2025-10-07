@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
 
@@ -18,12 +19,19 @@ MaterialCard {
         Repeater {
             model: CalendarService.upcomingEvents
 
-            delegate: RowLayout {
-                spacing: Config.spacing.small
+            delegate: ListItem {
+                Layout.fillWidth: true
+                margin: Config.spacing.none
+                clickable: false
+                showStateLayer: false
+                implicitHeight: 48
 
-                Rectangle {
+                headline: modelData.title + " (" + Qt.formatDate(modelData.date, "dd MMM") + ")"
+                supportingText: modelData.time
+
+                leadingContent: Rectangle {
                     width: 3
-                    height: eventColumn.height
+                    height: 32
                     radius: 1.5
                     color: {
                         if (modelData.color === 'primary') return Config.colors.primary
@@ -32,51 +40,19 @@ MaterialCard {
                         return Config.colors.primary
                     }
                 }
-
-                ColumnLayout {
-                    id: eventColumn
-                    MaterialText {
-                        text: modelData.title
-                        textStyle: "bodySmall"
-                        colorRole: "onSurface"
-                        font.weight: Font.Medium
-                    }
-                    MaterialText {
-                        text: modelData.time + " (" + Qt.formatDate(modelData.date, "dd MMM") + ")"
-                        textStyle: "labelSmall"
-                        colorRole: "onSurfaceVariant"
-                        Layout.preferredWidth: 70
-                    }
-                }
             }
         }
 
         // Empty state
-        Item {
+        EmptyState {
             visible: CalendarService.upcomingEvents.length === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: Config.spacing.small
-
-                MaterialIcon {
-                    iconName: "event_available"
-                    fontSize: Config.typography.displaySmall.size
-                    iconColor: Config.colors.onSurfaceVariant
-                    backgroundColor: "transparent"
-                    Layout.alignment: Qt.AlignHCenter
-                    opacity: 0.5
-                }
-
-                MaterialText {
-                    text: "No events today"
-                    textStyle: "bodyMedium"
-                    colorRole: "onSurfaceVariant"
-                    Layout.alignment: Qt.AlignHCenter
-                }
-            }
+            iconName: "event_available"
+            title: "No events today"
+            iconContainerSize: 64
+            iconSize: 40
         }
     }
 }

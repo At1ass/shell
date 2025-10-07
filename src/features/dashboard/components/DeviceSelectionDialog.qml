@@ -3,14 +3,12 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 
-Rectangle {
+Dialog {
     id: root
-    anchors.fill: parent
-    color: Qt.rgba(0, 0, 0, 0.5)
-    visible: false
-    opacity: 0
+    dialogWidth: Math.min(500, parent.width - Config.spacing.large * 2)
 
     property var devices: []  // Array of device nodes
     property var selectedDevice: null
@@ -20,58 +18,21 @@ Rectangle {
     signal deviceSelected(var device)
     signal cancelled()
 
-    Behavior on opacity {
-        NumberAnimation {
-            duration: Config.motion.duration.medium2
-            easing.type: Config.motion.easing.emphasizedDecelerate
-        }
-    }
+    onClosed: cancelled()
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.close()
-    }
-
-    function open(devices, currentDevice, title, type) {
+    function openDialog(devices, currentDevice, title, type) {
         root.devices = devices
         root.selectedDevice = currentDevice
         root.dialogTitle = title || "Select Device"
         root.deviceType = type || "output"
-        root.visible = true
-        root.opacity = 1
+        root.open()
     }
 
-    function close() {
-        root.opacity = 0
-        closeTimer.start()
-    }
-
-    Timer {
-        id: closeTimer
-        interval: Config.motion.duration.medium2
-        onTriggered: {
-            root.visible = false
-            cancelled()
-        }
-    }
-
-    MaterialCard {
-        anchors.centerIn: parent
-        width: Math.min(500, parent.width - Config.spacing.large * 2)
-        height: Math.min(contentLayout.implicitHeight + Config.spacing.large * 2, parent.height - Config.spacing.large * 2)
-        color: Config.colors.surfaceContainerHigh
-        radius: Config.shape.extraLarge
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {} // Block clicks
-        }
-
-        ColumnLayout {
-            id: contentLayout
-            anchors.fill: parent
-            anchors.margins: Config.spacing.large
-            spacing: Config.spacing.medium
+    ColumnLayout {
+        id: contentLayout
+        anchors.fill: parent
+        anchors.margins: Config.spacing.large
+        spacing: Config.spacing.medium
 
             // Header
             RowLayout {
@@ -94,19 +55,12 @@ Rectangle {
             }
 
             // Device list
-            ScrollView {
+            ScrollableList {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                clip: true
+                spacing: Config.spacing.small
 
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-                ColumnLayout {
-                    width: parent.width
-                    spacing: Config.spacing.small
-
-                    Repeater {
+                Repeater {
                         model: root.devices
 
                         delegate: Rectangle {
@@ -194,63 +148,25 @@ Rectangle {
                         }
                     }
 
-                    // Empty state
-                    Item {
-                        visible: root.devices.length === 0
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 120
+                // Empty state
+                EmptyState {
+                    visible: root.devices.length === 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 120
 
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: Config.spacing.small
-
-                            MaterialIcon {
-                                iconName: root.deviceType === "output" ? "speaker_notes_off" : "mic_off"
-                                fontSize: Config.typography.displaySmall.size
-                                iconColor: Config.colors.onSurfaceVariant
-                                backgroundColor: "transparent"
-                                Layout.alignment: Qt.AlignHCenter
-                                opacity: 0.5
-                            }
-
-                            MaterialText {
-                                text: "No devices available"
-                                textStyle: "bodyMedium"
-                                colorRole: "onSurfaceVariant"
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-                        }
-                    }
+                    iconName: root.deviceType === "output" ? "speaker_notes_off" : "mic_off"
+                    title: "No devices available"
+                    iconContainerSize: 64
+                    iconSize: 40
                 }
             }
 
             // Cancel button
-            Rectangle {
+            MaterialButton {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                radius: 24
-                color: cancelMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent"
-
-                Behavior on color {
-                    ColorAnimation { duration: Config.motion.duration.short4 }
-                }
-
-                MaterialText {
-                    anchors.centerIn: parent
-                    text: "Cancel"
-                    textStyle: "labelLarge"
-                    colorRole: "primary"
-                    font.weight: Font.Medium
-                }
-
-                MouseArea {
-                    id: cancelMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
+                text: "Cancel"
+                variant: "text"
+                onClicked: root.close()
             }
         }
-    }
 }

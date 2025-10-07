@@ -54,11 +54,8 @@ Item {
             }
 
             // Разделитель
-            Rectangle {
+            Divider {
                 Layout.fillWidth: true
-                height: 1
-                color: Config.colors.outlineVariant
-                opacity: 0.4
             }
 
             // ===== TAB CONTENT =====

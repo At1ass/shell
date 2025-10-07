@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
+import qs.src.ui.inputs
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.features.dashboard.components.maintab_elements
@@ -71,58 +72,25 @@ Item {
                 radius: Config.shape.large
 
                 ColumnLayout {
-                    property real sliderValue: modelData.value
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.small
-                    spacing: 4
 
-                    MaterialIcon {
-                        iconName: modelData.iconName
-                        iconColor: Config.colors.primary
-                        fontSize: Config.typography.titleLarge.size
-                        backgroundColor: "transparent"
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    MaterialText {
-                        text: Math.round(parent.sliderValue).toString()
-                        textStyle: "titleMedium"
-                        colorRole: "onSurface"
-                        font.weight: Font.Bold
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    // Vertical slider
-                    Rectangle {
-                        width: 6
+                    Item {
+                        Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.alignment: Qt.AlignHCenter
-                        radius: 3
-                        color: Config.colors.surfaceContainerHighest
-
-                        Rectangle {
-                            anchors.bottom: parent.bottom
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: 6
-                            height: parent.height * (parent.parent.sliderValue / 100)
-                            radius: 3
-                            color: Config.colors.primary
-
-                            Behavior on height {
-                                NumberAnimation {
-                                    duration: Config.motion.duration.short4
-                                    easing.type: Config.motion.easing.emphasizedDecelerate
-                                }
-                            }
-                        }
                     }
 
-                    MaterialText {
-                        text: modelData.suffix
-                        textStyle: "labelSmall"
-                        colorRole: "onSurfaceVariant"
+                    MaterialSlider {
                         Layout.alignment: Qt.AlignHCenter
-                        visible: modelData.suffix !== ""
+                        orientation: Qt.Vertical
+                        enabled: true
+                        from: 0
+                        to: 1
+                        stepSize: 0.01
+                        value: 0.8
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                 }
             }

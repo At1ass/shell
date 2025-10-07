@@ -68,13 +68,14 @@ BarElement {
         spacing: Config.spacing.none
 
         // Previous button
-        ClickableIcon {
+        IconButton {
+            variant: "standard"
             iconName: "skip_previous"
-            fontSize: Config.typography.titleLarge.size
+            iconSize: Config.iconSize.large
+            containerSize: 32
+            touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
-            color: "transparent"
-            enableRipple: false
+            iconColor: Config.colors.onSurface
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')
@@ -83,13 +84,14 @@ BarElement {
             }
         }
 
-        ClickableIcon {
+        IconButton {
+            variant: "standard"
             iconName: MprisController.isPlaying ? "pause" : "play_arrow"
-            fontSize: Config.typography.titleLarge.size
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
-            color: "transparent"
-            enableRipple: false
+            iconSize: Config.iconSize.large
+            containerSize: 32
+            touchTargetSize: 40
+            enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
+            iconColor: Config.colors.onSurface
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')
@@ -97,14 +99,16 @@ BarElement {
                 }
             }
         }
+
         // Next button
-        ClickableIcon {
+        IconButton {
+            variant: "standard"
             iconName: "skip_next"
-            fontSize: Config.typography.titleLarge.size
+            iconSize: Config.iconSize.large
+            containerSize: 32
+            touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            iconColor: !enabled ? Config.colors.onSurfaceVariant : Config.colors.onSurface
-            color: "transparent"
-            enableRipple: false
+            iconColor: Config.colors.onSurface
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')

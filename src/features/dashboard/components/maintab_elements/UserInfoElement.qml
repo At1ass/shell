@@ -20,48 +20,12 @@ MaterialCard {
             spacing: Config.spacing.small
             Layout.alignment: Qt.AlignTop
 
-            Item {
-                width: 100
-                height: 100
-
-                Image {
-                    id: avatarImage
-                    anchors.fill: parent
-                    source: "file:///home/at1ass/.face"
-                    fillMode: Image.PreserveAspectCrop
-                    mipmap: true
-                    visible: false
-                }
-
-                Rectangle {
-                    id: avatarMask
-                    anchors.fill: parent
-                    radius: Config.shape.large
-                    visible: false
-                }
-
-                OpacityMask {
-                    anchors.fill: parent
-                    source: avatarImage
-                    maskSource: avatarMask
-                    visible: avatarImage.status === Image.Ready
-                }
-
-                // Fallback if image doesn't exist
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Config.shape.large
-                    color: Config.colors.primaryContainer
-                    visible: avatarImage.status === Image.Error
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "person"
-                        fontSize: Config.typography.displayLarge.size
-                        iconColor: Config.colors.onPrimaryContainer
-                        backgroundColor: "transparent"
-                    }
-                }
+            CircleAvatar {
+                customSize: 100
+                imageSource: "file:///home/at1ass/.face"
+                fallbackIcon: "person"
+                fallbackText: SystemMonitorService.userName || "User"
+                Layout.alignment: Qt.AlignHCenter
             }
 
             MaterialText {

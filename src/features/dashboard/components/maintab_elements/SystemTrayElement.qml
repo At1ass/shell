@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 
 MaterialCard {
@@ -51,18 +52,9 @@ MaterialCard {
                     backgroundColor: "transparent"
                 }
 
-                Rectangle {
-                    anchors.fill: parent
-                    radius: parent.radius
-                    color: Config.colors.onSurface
-                    opacity: trayMouseArea.containsMouse ? (trayMouseArea.pressed ? 0.12 : 0.08) : 0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Config.motion.duration.short4
-                            easing.type: Config.motion.easing.standard
-                        }
-                    }
+                StateLayer {
+                    hovered: trayMouseArea.containsMouse
+                    pressed: trayMouseArea.pressed
                 }
 
                 MouseArea {

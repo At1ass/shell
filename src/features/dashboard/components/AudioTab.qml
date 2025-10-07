@@ -130,7 +130,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        sinkDialog.open(root.sinkNodes, root.defaultSink, "Select Output Device", "output")
+                        sinkDialog.openDialog(root.sinkNodes, root.defaultSink, "Select Output Device", "output")
                     }
                 }
             }
@@ -209,7 +209,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        sourceDialog.open(root.sourceNodes, root.defaultSource, "Select Input Device", "input")
+                        sourceDialog.openDialog(root.sourceNodes, root.defaultSource, "Select Input Device", "input")
                     }
                 }
             }
@@ -228,58 +228,18 @@ Item {
                 spacing: Config.spacing.medium
 
                 // Header (MD3)
-                RowLayout {
+                SectionHeader {
                     Layout.fillWidth: true
-                    spacing: Config.spacing.small
-
-                    MaterialIcon {
-                        iconName: "graphic_eq"
-                        fontSize: Config.typography.titleLarge.size
-                        iconColor: Config.colors.primary
-                        backgroundColor: "transparent"
-                    }
-
-                    MaterialText {
-                        text: "Application Volume Mixer"
-                        textStyle: "titleLarge"
-                        colorRole: "onSurface"
-                        font.weight: Font.Medium
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    // Stream count badge
-                    Rectangle {
-                        visible: root.streamNodes.length > 0
-                        width: badgeText.width + 16
-                        height: 24
-                        radius: 12
-                        color: Config.colors.primaryContainer
-
-                        MaterialText {
-                            id: badgeText
-                            anchors.centerIn: parent
-                            text: root.streamNodes.length.toString()
-                            textStyle: "labelMedium"
-                            colorRole: "onPrimaryContainer"
-                            font.weight: Font.Bold
-                        }
-                    }
+                    title: "Application Volume Mixer"
+                    icon: "graphic_eq"
+                    badgeText: root.streamNodes.length > 0 ? root.streamNodes.length.toString() : ""
                 }
 
                 // ScrollView для списка приложений
-                ScrollView {
-                    id: scrollView
+                ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    clip: true
-
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-                    ColumnLayout {
-                        width: scrollView.availableWidth
-                        spacing: Config.spacing.medium
+                    spacing: Config.spacing.medium
 
                         Repeater {
                             model: root.streamNodes
@@ -290,7 +250,7 @@ Item {
                                 property string appIcon: root.getAppIcon(stream)
 
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 110
+                                Layout.preferredHeight: 120
                                 color: Config.colors.surfaceContainer
                                 radius: Config.shape.medium
 
@@ -306,56 +266,19 @@ Item {
                                     spacing: Config.spacing.medium
 
                                     // App icon (real or fallback)
-                                    Item {
-                                        width: 48
-                                        height: 48
-
-                                        // Real icon
-                                        Image {
-                                            id: appIconImage
-                                            anchors.fill: parent
-                                            source: appIcon
-                                            sourceSize.width: 48
-                                            sourceSize.height: 48
-                                            fillMode: Image.PreserveAspectFit
-                                            visible: appIcon !== ""
-                                            smooth: true
-                                            cache: true
-
-                                            layer.enabled: true
-                                            layer.effect: OpacityMask {
-                                                maskSource: Rectangle {
-                                                    width: 48
-                                                    height: 48
-                                                    radius: 24
-                                                }
-                                            }
-                                        }
-
-                                        // Fallback with initials
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: 24
-                                            visible: appIcon === ""
-                                            color: Config.colors.primaryContainer
-
-                                            MaterialText {
-                                                anchors.centerIn: parent
-                                                text: stream && stream.properties && stream.properties["application.name"] ?
-                                                      stream.properties["application.name"].substring(0, 2).toUpperCase() :
-                                                      "AP"
-                                                textStyle: "titleMedium"
-                                                colorRole: "onPrimaryContainer"
-                                                font.weight: Font.Bold
-                                            }
-                                        }
+                                    CircleAvatar {
+                                        size: "large"
+                                        imageSource: appIcon
+                                        fallbackText: stream && stream.properties && stream.properties["application.name"] ?
+                                                     stream.properties["application.name"] : "AP"
                                     }
 
                                     // Name and slider
                                     ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: Config.spacing.small
+                                        spacing: 2
 
+                                        // Application name
                                         MaterialText {
                                             text: stream && stream.properties && stream.properties["application.name"] ?
                                                   stream.properties["application.name"] :
@@ -367,8 +290,20 @@ Item {
                                             Layout.fillWidth: true
                                         }
 
+                                        // Media name (tab title, etc.)
+                                        MaterialText {
+                                            property string mediaName: stream && stream.properties && stream.properties["media.name"] ? stream.properties["media.name"] : ""
+                                            visible: mediaName !== ""
+                                            text: mediaName
+                                            textStyle: "bodySmall"
+                                            colorRole: "onSurfaceVariant"
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+
                                         MaterialSlider {
                                             Layout.fillWidth: true
+                                            Layout.topMargin: Config.spacing.extraSmall
                                             enabled: !!(stream && stream.audio)
                                             from: 0
                                             to: 1
@@ -430,55 +365,15 @@ Item {
                             }
                         }
 
-                        // Empty state (MD3)
-                        Item {
-                            visible: root.streamNodes.length === 0
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 240
+                    // Empty state (MD3)
+                    EmptyState {
+                        visible: root.streamNodes.length === 0
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 240
 
-                            ColumnLayout {
-                                anchors.centerIn: parent
-                                spacing: Config.spacing.medium
-
-                                // Icon container
-                                Rectangle {
-                                    width: 80
-                                    height: 80
-                                    radius: 40
-                                    color: Config.colors.surfaceContainerHighest
-                                    Layout.alignment: Qt.AlignHCenter
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        iconName: "music_off"
-                                        fontSize: Config.typography.displaySmall.size
-                                        iconColor: Config.colors.onSurfaceVariant
-                                        backgroundColor: "transparent"
-                                        opacity: 0.6
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    spacing: Config.spacing.extraSmall
-                                    Layout.alignment: Qt.AlignHCenter
-
-                                    MaterialText {
-                                        text: "No active audio streams"
-                                        textStyle: "titleMedium"
-                                        colorRole: "onSurface"
-                                        font.weight: Font.Medium
-                                        Layout.alignment: Qt.AlignHCenter
-                                    }
-
-                                    MaterialText {
-                                        text: "Play something to see it here"
-                                        textStyle: "bodyMedium"
-                                        colorRole: "onSurfaceVariant"
-                                        Layout.alignment: Qt.AlignHCenter
-                                    }
-                                }
-                            }
-                        }
+                        iconName: "music_off"
+                        title: "No active audio streams"
+                        subtitle: "Play something to see it here"
                     }
                 }
 

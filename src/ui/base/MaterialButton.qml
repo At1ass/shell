@@ -13,7 +13,7 @@ Button {
     topPadding: Config.spacing.small
     bottomPadding: Config.spacing.small
 
-    implicitHeight: Math.max(contentItem.implicitHeight + topPadding + bottomPadding, 36)
+    implicitHeight: Math.max(contentItem.implicitHeight + topPadding + bottomPadding, 40)
     implicitWidth: Math.max(contentItem.implicitWidth + leftPadding + rightPadding, 88)
 
     background: Rectangle {
@@ -25,11 +25,34 @@ Button {
                 : "transparent"
         color: backgroundColor()
 
+        Behavior on color {
+            ColorAnimation {
+                duration: Config.motion.duration.short4
+                easing.type: Config.motion.easing.standard
+            }
+        }
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: Config.motion.duration.short4
+                easing.type: Config.motion.easing.standard
+            }
+        }
+
+        // MD3 State Layer
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
             color: Config.colors.onSurface
-            opacity: control.down ? 0.16 : control.hovered ? 0.08 : 0.0
+            opacity: control.down ? Config.stateLayer.pressedOpacity :
+                     control.hovered ? Config.stateLayer.hoverOpacity : 0.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Config.motion.duration.short4
+                    easing.type: Config.motion.easing.standard
+                }
+            }
         }
 
         function backgroundColor() {

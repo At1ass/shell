@@ -9,8 +9,6 @@ MaterialIcon {
     // Mouse interaction
     id: root
     color: !enabled ? disabledColor : backgroundColor
-    // mouseArea.pressed ? pressColor :
-    // mouseArea.containsMouse ? hoverColor :
 
     signal clicked(MouseEvent mouse)
     signal pressed()
@@ -24,13 +22,6 @@ MaterialIcon {
         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
 
         onClicked: function(mouse) {
-            // Trigger ripple effect
-            if (root.enableRipple) {
-                ripple.width = Math.max(root.width, root.height) * 2
-                ripple.height = ripple.width
-                rippleAnimation.start()
-            }
-
             root.clicked(mouse)
         }
 

@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Services.Mpris
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
 
@@ -29,8 +30,23 @@ MaterialCard {
         }
     }
 
+    // Empty state when no player is active
+    EmptyState {
+        visible: !root.player
+        anchors.fill: parent
+        anchors.margins: Config.spacing.medium
+
+        iconName: "music_note"
+        title: "No media playing"
+        subtitle: "Start playing music to see controls"
+        iconContainerSize: 64
+        iconSize: 40
+    }
+
+    // Media player content (visible when player is active)
     RowLayout {
         id: mediaPlayerLayout
+        visible: root.player
         anchors.fill: parent
         anchors.margins: Config.spacing.medium
         spacing: Config.spacing.medium
@@ -42,7 +58,7 @@ MaterialCard {
             spacing: 6
 
             MaterialText {
-                text: MprisController.activeTrack.title
+                text: MprisController.activeTrack.title?? ""
                 textStyle: "titleMedium"
                 colorRole: "onSurface"
                 font.weight: Font.Bold
@@ -51,7 +67,7 @@ MaterialCard {
             }
 
             MaterialText {
-                text: MprisController.activeTrack.artist + (MprisController.activeTrack.album !== "Unknown Album" ? " — " + MprisController.activeTrack.album : "")
+                text: ( MprisController.activeTrack.artist?? "" ) + (MprisController.activeTrack.album !== "Unknown Album" ? " — " + MprisController.activeTrack.album : "")
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
                 Layout.preferredWidth: 360
@@ -151,18 +167,10 @@ MaterialCard {
                             backgroundColor: "transparent"
                         }
 
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            color: modelData.primary ? Config.colors.onPrimary : Config.colors.onSurface
-                            opacity: mouseArea.containsMouse ? (mouseArea.pressed ? 0.12 : 0.08) : 0
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: Config.motion.duration.short4
-                                    easing.type: Config.motion.easing.standard
-                                }
-                            }
+                        StateLayer {
+                            layerColor: modelData.primary ? Config.colors.onPrimary : Config.colors.onSurface
+                            hovered: mouseArea.containsMouse
+                            pressed: mouseArea.pressed
                         }
 
                         MouseArea {
