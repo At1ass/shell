@@ -148,7 +148,6 @@ Item {
             Layout.rowSpan: 2
             Layout.columnSpan: 3
             Layout.fillHeight: true
-            // Layout.fillWidth: true
             Layout.preferredWidth: 400
         }
 
@@ -156,6 +155,7 @@ Item {
         SheduleElement {
             Layout.row: 3
             Layout.column: 3
+            // Layout.column: 6
             Layout.rowSpan: 3
             Layout.columnSpan: 3
             Layout.preferredWidth: 200
@@ -183,6 +183,14 @@ Item {
             Layout.preferredHeight: 100
             Layout.fillWidth: true
         }
+        // QuickActionsElement {
+        //     Layout.row: 5
+        //     Layout.column: 3
+        //     Layout.columnSpan: 7
+        //     Layout.rowSpan: 1
+        //     Layout.preferredHeight: 50
+        //     Layout.fillWidth: true
+        // }
 
         // ===== ROW 4, COL 0-8: SYSTEM TRAY =====
         SystemTrayElement {

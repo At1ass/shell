@@ -1,0 +1,3 @@
+module qs.src.features.dashboard.components.audiotab_elements
+
+MediaPlayer 1.0 MediaPlayer.qml

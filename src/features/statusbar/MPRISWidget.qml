@@ -58,7 +58,8 @@ BarElement {
     onClicked: function (mouse) {
         if (mouse && mouse.button === Qt.RightButton) {
             console.log("MPRISWidget clicked, current state:", GlobalStates.mediaControlsOpen);
-            GlobalStates.mediaControlsOpen = !GlobalStates.mediaControlsOpen;
+            GlobalStates.dashboardOpenIndex = 1
+            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
         }
     }
 

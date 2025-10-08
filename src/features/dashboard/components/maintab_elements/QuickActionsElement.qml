@@ -18,6 +18,7 @@ MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
             columns: 5
+            // columns: 7
             rows: 2
             columnSpacing: 4
             rowSpacing: 4

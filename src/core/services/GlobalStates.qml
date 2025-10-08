@@ -12,6 +12,7 @@ Singleton {
     // Главные панели
     property bool controlPanelOpen: false
     property bool dashboardOpen: false
+    property int  dashboardOpenIndex: 0
     property bool mediaControlsOpen: false
     property bool showDateSelector: false
     property bool darkMode: true

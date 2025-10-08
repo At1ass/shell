@@ -4,6 +4,7 @@ import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
+import qs.src.core.services
 import qs.src.features.dashboard.components
 
 Item {
@@ -37,6 +38,7 @@ Item {
                     Repeater {
                         model: [
                             {icon: "dashboard", label: "Main"},
+                            {icon: "music_note", label: "Media"},
                             {icon: "calendar_month", label: "Calendar"},
                             {icon: "volume_up", label: "Audio"}
                         ]
@@ -63,7 +65,7 @@ Item {
                 id: tabView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: 0
+                currentIndex: GlobalStates.dashboardOpenIndex
 
                 onCurrentIndexChanged: {
                     // Изменяем высоту окна в зависимости от вкладки
@@ -72,11 +74,14 @@ Item {
                     } else if (currentIndex === 1) {
                         root.requestHeightChange(600)
                     } else if (currentIndex === 2) {
+                        root.requestHeightChange(600)
+                    } else if (currentIndex === 3) {
                         root.requestHeightChange(700)
                     }
                 }
 
                 MainTab {}
+                MediaTab {}
                 CalendarTab {}
                 AudioTab {}
             }
