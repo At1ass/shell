@@ -106,7 +106,9 @@ Scope {
                 }
             }
 
+            // implicitWidth: Math.max(tooltipItem.targetWidth, activeItem?.isMenu ? 150 : 100)
             implicitWidth: Math.max(tooltipItem.targetWidth, activeItem?.isMenu ? 150 : 100)
+			// width: Math.max(700, tooltipItem.largestAnimWidth) // max due to qtwayland glitches
             implicitHeight: Math.max(tooltipItem.targetHeight, 40)
             visible: true
             color: "transparent"

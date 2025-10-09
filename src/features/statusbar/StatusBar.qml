@@ -96,10 +96,6 @@ PanelWindow {
 
             LayoutWidget {
             }
-
-            TrayWidget {
-                tooltipManager: statusBar.tooltip
-            }
         }
 
     }

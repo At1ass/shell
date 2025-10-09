@@ -68,9 +68,6 @@ Slider {
                 visible: control.orientation === Qt.Horizontal ? control.visualPosition < 0.99
                                                                : 1.0 - control.visualPosition < 0.99
 
-                onVisibleChanged: {
-                    console.log("Stop indicator visible: " + visible)
-                }
             }
         }
 

@@ -11,10 +11,11 @@ Singleton {
     McuTheme {
         id: theme
         // source: Qt.alpha("#00FF00", 0) // Material Design purple
-        source: Qt.resolvedUrl("/home/at1ass/Downloads/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg")
+        // source: Qt.resolvedUrl("/home/at1ass/Downloads/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg")
+        source: WallpaperService.currentWallpaper
         // source: Qt.resolvedUrl("/home/at1ass/Downloads/taro-sakamoto-3840x2160-23909.png")
         darkMode: GlobalStates.darkMode
-        variant: "content" // "content" // "vibrant" // "content" // "tonal-spot"
+        variant: "content" // "expressive" // "vibrant" // "content" // "tonal-spot"
         contrast: 0.0
 
         onColorsChanged: {

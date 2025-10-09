@@ -40,6 +40,7 @@ Scope {
         PanelWindow {
             id: osdWindow
             visible: root.osdVisible
+            required property var modelData
 
             color: "transparent"
             anchors {
@@ -53,8 +54,8 @@ Scope {
                 top: 80
             }
 
-            width: 320
-            height: 120
+            implicitWidth: 320
+            implicitHeight: 120
 
             WlrLayershell.namespace: "quickshell:volumeosd"
             WlrLayershell.layer: WlrLayer.Overlay
