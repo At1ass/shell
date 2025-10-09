@@ -13,11 +13,11 @@ import qs.src.ui.inputs
 PanelWindow {
     id: statusBar
 
-    property var modelData: parent.modelData
+    // property var modelData: parent.modelData
     // Tooltip Manager
     readonly property TooltipManager tooltip: tooltipManager
 
-    screen: modelData
+    // screen: modelData
     implicitHeight: Config.bar.height
     color: "transparent"
 

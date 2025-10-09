@@ -1,0 +1,25 @@
+{
+  "primaryMonitor": "DP-2",
+  "defaultWallpaper": "/home/at1ass/wallpapers/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg",
+  "postSetScript": "",
+  "global": {
+    "directory": "",
+    "randomOrder": true,
+    "autoChange": {
+      "enabled": true,
+      "intervalMs": 900000
+    }
+  },
+  "monitors": {
+    "DP-2": {
+      "wallpaper": "/home/at1ass/wallpapers/3440x1440/DOpXgkq.jpeg",
+      "directory": "/home/at1ass/wallpapers/3440x1440",
+      "fillMode": 2
+    },
+    "DP-1": {
+      "wallpaper": "/home/at1ass/wallpapers/1080x1920/u20o02oc47ff1.jpeg",
+      "directory": "/home/at1ass/wallpapers/1080x1920",
+      "fillMode": 2
+    }
+  }
+}

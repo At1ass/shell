@@ -12,7 +12,7 @@ Singleton {
         id: theme
         // source: Qt.alpha("#00FF00", 0) // Material Design purple
         // source: Qt.resolvedUrl("/home/at1ass/Downloads/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg")
-        source: WallpaperService.currentWallpaper
+        source: WallpaperService.currentWallpaper !== "" ? WallpaperService.currentWallpaper : Qt.alpha("#6200EE", 0)
         // source: Qt.resolvedUrl("/home/at1ass/Downloads/taro-sakamoto-3840x2160-23909.png")
         darkMode: GlobalStates.darkMode
         variant: "content" // "expressive" // "vibrant" // "content" // "tonal-spot"
@@ -97,15 +97,16 @@ Singleton {
 
         // Универсальное применение карты из плагина
         function apply(map, fallback) {
-            fallback = fallback || {}
+            fallback = fallback || {};
             for (var k in map) {
                 if (c.hasOwnProperty(k)) {
                     // QML сам сконвертирует "#RRGGBB" -> color один раз
-                    c[k] = map[k]
+                    c[k] = map[k];
                 }
             }
             // фолбэки на случай отсутствующих ключей (по желанию)
-            if (!map.primary && fallback.primary) c.primary = fallback.primary
+            if (!map.primary && fallback.primary)
+                c.primary = fallback.primary;
         }
     }
     // Material Design 3 spacing (8px grid system)
@@ -183,11 +184,26 @@ Singleton {
         property int margin: config.spacing.medium
 
         property var entries: [
-            {"id": "workspaces", "enabled": true},
-            {"id": "spacer", "enabled": true},
-            {"id": "tray", "enabled": true},
-            {"id": "system", "enabled": true},
-            {"id": "clock", "enabled": true}
+            {
+                "id": "workspaces",
+                "enabled": true
+            },
+            {
+                "id": "spacer",
+                "enabled": true
+            },
+            {
+                "id": "tray",
+                "enabled": true
+            },
+            {
+                "id": "system",
+                "enabled": true
+            },
+            {
+                "id": "clock",
+                "enabled": true
+            }
         ]
     }
 
@@ -343,13 +359,13 @@ Singleton {
     property string vpnName: "nikuznetsov\(2\)"
 
     Component.onCompleted: {
-        c.apply(theme.colors)
+        c.apply(theme.colors);
     }
 
     Connections {
         target: theme
         function onColorsChanged() {
-            c.apply(theme.colors)
+            c.apply(theme.colors);
         }
     }
 }
