@@ -18,7 +18,6 @@ BarElement {
     hoverable: true
 
     property var tooltipManager: null
-    property bool menuOpen: GlobalStates.mediaControlsOpen
 
     // Always visible for testing - comment out to hide when no player
     visible: true
@@ -35,7 +34,7 @@ BarElement {
             owner: root
             isMenu: false
             hoverable: true
-            show: root.hovered && (typeof MprisController !== 'undefined') && !!MprisController.activePlayer && !root.menuOpen
+            show: root.hovered && (typeof MprisController !== 'undefined') && !!MprisController.activePlayer
 
             MaterialText {
                 text: {
@@ -57,7 +56,6 @@ BarElement {
 
     onClicked: function (mouse) {
         if (mouse && mouse.button === Qt.RightButton) {
-            console.log("MPRISWidget clicked, current state:", GlobalStates.mediaControlsOpen);
             GlobalStates.dashboardOpenIndex = 1
             GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
         }
@@ -127,7 +125,7 @@ BarElement {
 
             FrameAnimation {
                 id: posTracker
-                running: MprisController.isPlaying && (hoverTooltip.visible || GlobalStates.mediaControlsOpen)
+                running: MprisController.isPlaying && hoverTooltip.visible
                 onTriggered: positionInfo.player.positionChanged()
             }
 

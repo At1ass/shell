@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Wayland
 import qs.src.features.background
 import qs.src.features.dashboard
-import qs.src.features.mediaControls
 import qs.src.features.osd
 import qs.src.features.statusbar as Bar
 
@@ -41,19 +40,15 @@ ShellRoot {
 
     }
 
-    // Медиа контроллер (загружается только при необходимости)
+    // Dashboard
     LazyLoader {
-        active: true // Всегда активен для быстрого отклика
-
-        component: MediaControls {}
-    }
-
-    LazyLoader {
-        active: true // Всегда активен для быстрого отклика
-
-        component: Dashboard {}
+        loading: true
+        Dashboard {}
     }
 
     // Volume OSD
-    VolumeOSD {}
+    LazyLoader {
+        loading: true
+        VolumeOSD {}
+    }
 }

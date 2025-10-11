@@ -58,6 +58,23 @@ Item {
 				console.log(`Wallpaper loaded for ${screen.name}: ${source}`)
 			}
 		}
+        // Behavior on source {
+        //     SequentialAnimation {
+        //         NumberAnimation {
+        //             target: image
+        //             property: "opacity"
+        //             to: 0
+        //             duration: 200
+        //         }
+        //         PropertyAction { property: "source" }
+        //         NumberAnimation {
+        //             target: image
+        //             property: "opacity"
+        //             to: 1
+        //             duration: 200
+        //         }
+        //     }
+        // }
 	}
 
 	// ═══════════════════════════════════════════════════════════════

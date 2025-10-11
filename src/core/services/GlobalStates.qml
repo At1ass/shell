@@ -13,7 +13,6 @@ Singleton {
     property bool controlPanelOpen: false
     property bool dashboardOpen: false
     property int  dashboardOpenIndex: 0
-    property bool mediaControlsOpen: false
     property bool showDateSelector: false
     property bool darkMode: true
     property bool inhibit: false
@@ -26,7 +25,6 @@ Singleton {
     function closeAllPanels() {
         controlPanelOpen = false
         dashboardOpen = false
-        mediaControlsOpen = false
     }
 
     function closeAllOSD() {
@@ -38,21 +36,12 @@ Singleton {
     onControlPanelOpenChanged: {
         if (controlPanelOpen) {
             dashboardOpen = false
-            mediaControlsOpen = false
         }
     }
 
     onDashboardOpenChanged: {
         if (dashboardOpen) {
             controlPanelOpen = false
-            mediaControlsOpen = false
-        }
-    }
-
-    onMediaControlsOpenChanged: {
-        if (mediaControlsOpen) {
-            controlPanelOpen = false
-            dashboardOpen = false
         }
     }
 
@@ -63,15 +52,6 @@ Singleton {
 
         onPressed: {
             root.controlPanelOpen = !root.controlPanelOpen
-        }
-    }
-
-    GlobalShortcut {
-        name: "mediaControlsToggle"
-        description: "Toggle media controls"
-
-        onPressed: {
-            root.mediaControlsOpen = !root.mediaControlsOpen
         }
     }
 
@@ -110,18 +90,6 @@ Singleton {
 
         function closeControlPanelLeft(): void {
             root.controlPanelLeftOpen = false
-        }
-
-        function toggleMediaControls(): void {
-            root.mediaControlsOpen = !root.mediaControlsOpen
-        }
-
-        function openMediaControls(): void {
-            root.mediaControlsOpen = true
-        }
-
-        function closeMediaControls(): void {
-            root.mediaControlsOpen = false
         }
 
         function closeAll(): void {

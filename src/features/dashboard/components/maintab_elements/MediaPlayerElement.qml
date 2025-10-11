@@ -42,13 +42,15 @@ MaterialCard {
             id: albumArtBackground
             anchors.fill: parent
             source: MprisController.activeTrack?.artUrl ?? ""
+            sourceSize.width: 300
+            sourceSize.height: 300
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true
 
             layer.enabled: true
             layer.effect: FastBlur {
-                radius: 64
+                radius: 40
             }
 
             // Overlay to dim background
