@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 
 Item {
@@ -12,24 +13,22 @@ Item {
 
     signal clicked()
 
-    MouseArea {
+    Rectangle {
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: tabBtn.clicked()
+        radius: Config.shape.small
+        color: "transparent"
 
-        Rectangle {
+        StateLayer {
+            hovered: mouseArea.containsMouse
+            pressed: mouseArea.pressed
+        }
+
+        MouseArea {
+            id: mouseArea
             anchors.fill: parent
-            radius: Config.shape.small
-            color: Config.colors.onSurface
-            opacity: parent.pressed ? 0.12 : parent.containsMouse ? 0.08 : 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
-                }
-            }
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: tabBtn.clicked()
         }
     }
 

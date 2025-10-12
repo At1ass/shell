@@ -1,0 +1,10 @@
+module qs.src.ui.feedback
+
+StateLayer 1.0 StateLayer.qml
+Dialog 1.0 Dialog.qml
+EmptyState 1.0 EmptyState.qml
+LazyPopup 1.0 LazyPopup.qml
+TooltipManager 1.0 TooltipManager.qml
+TooltipItem 1.0 TooltipItem.qml
+MaterialMenu 1.0 MaterialMenu.qml
+Badge 1.0 Badge.qml

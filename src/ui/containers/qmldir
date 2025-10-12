@@ -1,0 +1,11 @@
+module qs.src.ui.containers
+
+MaterialCard 1.0 MaterialCard.qml
+BarElement 1.0 BarElement.qml
+BarSection 1.0 BarSection.qml
+CenterBarSection 1.0 CenterBarSection.qml
+Divider 1.0 Divider.qml
+ListItem 1.0 ListItem.qml
+ScrollableList 1.0 ScrollableList.qml
+PopupLayer 1.0 PopupLayer.qml
+ContextMenu 1.0 ContextMenu.qml

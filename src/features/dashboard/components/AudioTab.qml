@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Services.Pipewire
 import qs.src.ui.containers
@@ -9,42 +8,17 @@ import qs.src.ui.base
 import qs.src.ui.inputs
 import qs.src.ui.feedback
 import qs.src.core.config
+import qs.src.core.services
 
 Item {
     id: root
 
-    readonly property var pipewireNodes: (Pipewire.nodes && Pipewire.nodes.values) ? Pipewire.nodes.values : []
-    readonly property var sinkNodes: pipewireNodes.filter(node => node && node.audio && node.isSink && !node.isStream)
-    readonly property var sourceNodes: pipewireNodes.filter(node => node && node.audio && !node.isSink && !node.isStream)
-    readonly property var streamNodes: pipewireNodes.filter(node => node && node.audio && node.isStream)
+    readonly property var sinkNodes: AudioService.sinkNodes
+    readonly property var sourceNodes: AudioService.sourceNodes
+    readonly property var streamNodes: AudioService.streamNodes
 
-    readonly property var defaultSink: Pipewire.defaultAudioSink
-    readonly property var defaultSource: Pipewire.defaultAudioSource
-
-    function formatVolume(value) {
-        const numeric = Number(value)
-        if (!isFinite(numeric) || numeric < 0) return "--"
-        return Math.round(Math.min(1, numeric) * 100)
-    }
-
-    function getAppIcon(stream) {
-        if (!stream || !stream.properties) return ""
-
-        // Try different property keys for application name
-        const appName = stream.properties["application.name"] ||
-                       stream.properties["application.process.binary"] ||
-                       stream.properties["pipewire.access.portal.app_id"]
-
-        if (!appName) return ""
-
-        // Try to find desktop entry
-        const entry = DesktopEntries.heuristicLookup(appName)
-        if (entry && entry.icon) {
-            return Quickshell.iconPath(entry.icon)
-        }
-
-        return ""
-    }
+    readonly property var defaultSink: AudioService.defaultSink
+    readonly property var defaultSource: AudioService.defaultSource
 
     ColumnLayout {
         anchors.fill: parent
@@ -108,7 +82,7 @@ Item {
                         }
 
                         MaterialText {
-                            text: root.defaultSink ? (root.defaultSink.description || root.defaultSink.name || "Unknown") : "No device"
+                            text: AudioService.defaultSink ? (AudioService.defaultSink.description || AudioService.defaultSink.name || "Unknown") : "No device"
                             textStyle: "bodyMedium"
                             colorRole: "onSurface"
                             elide: Text.ElideRight
@@ -130,7 +104,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        sinkDialog.open(root.sinkNodes, root.defaultSink, "Select Output Device", "output")
+                        sinkDialog.openDialog(AudioService.sinkNodes, AudioService.defaultSink, "Select Output Device", "output")
                     }
                 }
             }
@@ -187,7 +161,7 @@ Item {
                         }
 
                         MaterialText {
-                            text: root.defaultSource ? (root.defaultSource.description || root.defaultSource.name || "Unknown") : "No device"
+                            text: AudioService.defaultSource ? (AudioService.defaultSource.description || AudioService.defaultSource.name || "Unknown") : "No device"
                             textStyle: "bodyMedium"
                             colorRole: "onSurface"
                             elide: Text.ElideRight
@@ -209,7 +183,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        sourceDialog.open(root.sourceNodes, root.defaultSource, "Select Input Device", "input")
+                        sourceDialog.openDialog(AudioService.sourceNodes, AudioService.defaultSource, "Select Input Device", "input")
                     }
                 }
             }
@@ -228,69 +202,29 @@ Item {
                 spacing: Config.spacing.medium
 
                 // Header (MD3)
-                RowLayout {
+                SectionHeader {
                     Layout.fillWidth: true
-                    spacing: Config.spacing.small
-
-                    MaterialIcon {
-                        iconName: "graphic_eq"
-                        fontSize: Config.typography.titleLarge.size
-                        iconColor: Config.colors.primary
-                        backgroundColor: "transparent"
-                    }
-
-                    MaterialText {
-                        text: "Application Volume Mixer"
-                        textStyle: "titleLarge"
-                        colorRole: "onSurface"
-                        font.weight: Font.Medium
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    // Stream count badge
-                    Rectangle {
-                        visible: root.streamNodes.length > 0
-                        width: badgeText.width + 16
-                        height: 24
-                        radius: 12
-                        color: Config.colors.primaryContainer
-
-                        MaterialText {
-                            id: badgeText
-                            anchors.centerIn: parent
-                            text: root.streamNodes.length.toString()
-                            textStyle: "labelMedium"
-                            colorRole: "onPrimaryContainer"
-                            font.weight: Font.Bold
-                        }
-                    }
+                    title: "Application Volume Mixer"
+                    icon: "graphic_eq"
+                    badgeText: AudioService.streamNodes.length > 0 ? AudioService.streamNodes.length.toString() : ""
                 }
 
                 // ScrollView для списка приложений
-                ScrollView {
-                    id: scrollView
+                ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    clip: true
-
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-                    ColumnLayout {
-                        width: scrollView.availableWidth
-                        spacing: Config.spacing.medium
+                    spacing: Config.spacing.medium
 
                         Repeater {
-                            model: root.streamNodes
+                            model: AudioService.streamNodes
 
                             delegate: MaterialCard {
                                 required property var modelData
                                 property var stream: modelData
-                                property string appIcon: root.getAppIcon(stream)
+                                property string appIcon: AudioService.getAppIcon(stream)
 
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 110
+                                Layout.preferredHeight: 120
                                 color: Config.colors.surfaceContainer
                                 radius: Config.shape.medium
 
@@ -306,56 +240,20 @@ Item {
                                     spacing: Config.spacing.medium
 
                                     // App icon (real or fallback)
-                                    Item {
-                                        width: 48
-                                        height: 48
-
-                                        // Real icon
-                                        Image {
-                                            id: appIconImage
-                                            anchors.fill: parent
-                                            source: appIcon
-                                            sourceSize.width: 48
-                                            sourceSize.height: 48
-                                            fillMode: Image.PreserveAspectFit
-                                            visible: appIcon !== ""
-                                            smooth: true
-                                            cache: true
-
-                                            layer.enabled: true
-                                            layer.effect: OpacityMask {
-                                                maskSource: Rectangle {
-                                                    width: 48
-                                                    height: 48
-                                                    radius: 24
-                                                }
-                                            }
-                                        }
-
-                                        // Fallback with initials
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: 24
-                                            visible: appIcon === ""
-                                            color: Config.colors.primaryContainer
-
-                                            MaterialText {
-                                                anchors.centerIn: parent
-                                                text: stream && stream.properties && stream.properties["application.name"] ?
-                                                      stream.properties["application.name"].substring(0, 2).toUpperCase() :
-                                                      "AP"
-                                                textStyle: "titleMedium"
-                                                colorRole: "onPrimaryContainer"
-                                                font.weight: Font.Bold
-                                            }
-                                        }
+                                    CircleAvatar {
+                                        size: "large"
+                                        imageSource: appIcon
+                                        fallbackText: stream && stream.properties && stream.properties["application.name"] ?
+                                                     stream.properties["application.name"] : "AP"
+                                        customRadius: 8
                                     }
 
                                     // Name and slider
                                     ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: Config.spacing.small
+                                        spacing: 2
 
+                                        // Application name
                                         MaterialText {
                                             text: stream && stream.properties && stream.properties["application.name"] ?
                                                   stream.properties["application.name"] :
@@ -367,8 +265,20 @@ Item {
                                             Layout.fillWidth: true
                                         }
 
+                                        // Media name (tab title, etc.)
+                                        MaterialText {
+                                            property string mediaName: stream && stream.properties && stream.properties["media.name"] ? stream.properties["media.name"] : ""
+                                            visible: mediaName !== ""
+                                            text: mediaName
+                                            textStyle: "bodySmall"
+                                            colorRole: "onSurfaceVariant"
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+
                                         MaterialSlider {
                                             Layout.fillWidth: true
+                                            Layout.topMargin: Config.spacing.extraSmall
                                             enabled: !!(stream && stream.audio)
                                             from: 0
                                             to: 1
@@ -381,7 +291,7 @@ Item {
 
                                     // Volume percentage
                                     MaterialText {
-                                        text: root.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
+                                        text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
                                         textStyle: "labelLarge"
                                         colorRole: "onSurfaceVariant"
                                         font.weight: Font.Medium
@@ -430,55 +340,15 @@ Item {
                             }
                         }
 
-                        // Empty state (MD3)
-                        Item {
-                            visible: root.streamNodes.length === 0
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 240
+                    // Empty state (MD3)
+                    EmptyState {
+                        visible: AudioService.streamNodes.length === 0
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 240
 
-                            ColumnLayout {
-                                anchors.centerIn: parent
-                                spacing: Config.spacing.medium
-
-                                // Icon container
-                                Rectangle {
-                                    width: 80
-                                    height: 80
-                                    radius: 40
-                                    color: Config.colors.surfaceContainerHighest
-                                    Layout.alignment: Qt.AlignHCenter
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        iconName: "music_off"
-                                        fontSize: Config.typography.displaySmall.size
-                                        iconColor: Config.colors.onSurfaceVariant
-                                        backgroundColor: "transparent"
-                                        opacity: 0.6
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    spacing: Config.spacing.extraSmall
-                                    Layout.alignment: Qt.AlignHCenter
-
-                                    MaterialText {
-                                        text: "No active audio streams"
-                                        textStyle: "titleMedium"
-                                        colorRole: "onSurface"
-                                        font.weight: Font.Medium
-                                        Layout.alignment: Qt.AlignHCenter
-                                    }
-
-                                    MaterialText {
-                                        text: "Play something to see it here"
-                                        textStyle: "bodyMedium"
-                                        colorRole: "onSurfaceVariant"
-                                        Layout.alignment: Qt.AlignHCenter
-                                    }
-                                }
-                            }
-                        }
+                        iconName: "music_off"
+                        title: "No active audio streams"
+                        subtitle: "Play something to see it here"
                     }
                 }
 
@@ -491,14 +361,22 @@ Item {
                            pavuMouseArea.containsMouse ? Qt.lighter(Config.colors.primaryContainer, 1.1) :
                            Config.colors.primaryContainer
 
-                    // Elevation
-                    layer.enabled: pavuMouseArea.containsMouse
-                    layer.effect: DropShadow {
-                        horizontalOffset: 0
-                        verticalOffset: 2
-                        radius: 4
-                        samples: 9
-                        color: Qt.rgba(0, 0, 0, 0.15)
+                    // M3 Filled Button - без outline
+                    outlined: false
+
+                    // M3 elevation через surface tint (вместо DropShadow)
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: parent.radius - 1
+                        color: Config.colors.primary
+                        opacity: pavuMouseArea.containsMouse ? 0.08 : 0.03
+                        z: -1
+                        visible: !pavuMouseArea.pressed
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: Config.motion.duration.short4 }
+                        }
                     }
 
                     Behavior on color {
@@ -562,7 +440,7 @@ Item {
         anchors.fill: parent
 
         onDeviceSelected: (device) => {
-            Pipewire.preferredDefaultAudioSink = device
+            AudioService.setDefaultSink(device)
         }
     }
 
@@ -571,7 +449,7 @@ Item {
         anchors.fill: parent
 
         onDeviceSelected: (device) => {
-            Pipewire.preferredDefaultAudioSource = device
+            AudioService.setDefaultSource(device)
         }
     }
 }

@@ -27,9 +27,9 @@ MaterialCard {
                 {
                     label: "GPU",
                     icon: "videogame_asset",
-                    temp: SystemMonitorService.gpuTemp > 0 ? SystemMonitorService.gpuTemp + "°" : "N/A",
+                    temp: SystemMonitorService.gpuTemp + "°",
                     percent: SystemMonitorService.gpuUsage,
-                    value: SystemMonitorService.gpuUsage > 0 ? Math.round(SystemMonitorService.gpuUsage) + "%" : "N/A"
+                    value: Math.round(SystemMonitorService.gpuUsage) + "%"
                 },
                 {
                     label: "RAM",

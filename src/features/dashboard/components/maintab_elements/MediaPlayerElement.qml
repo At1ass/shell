@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.src.ui.containers
@@ -11,6 +12,7 @@ MaterialCard {
     id: root
     color: Config.colors.surfaceContainerHigh
     radius: Config.shape.large
+    clip: true
 
     property var player: (typeof MprisController !== 'undefined') ? MprisController.activePlayer : null
     property real position: player?.position || 0
@@ -29,20 +31,54 @@ MaterialCard {
         }
     }
 
+    // ===== BACKGROUND: ALBUM ART WITH BLUR =====
+    Item {
+        id: backgroundLayer
+        anchors.fill: parent
+        visible: MprisController.activeTrack?.artUrl !== ""
+
+        // Album art image
+        Image {
+            id: albumArtBackground
+            anchors.fill: parent
+            source: MprisController.activeTrack?.artUrl ?? ""
+            sourceSize.width: 300
+            sourceSize.height: 300
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: true
+            visible: false
+        }
+
+        // MultiEffect применяет размытие
+        MultiEffect {
+            anchors.fill: parent
+            source: albumArtBackground
+            blurEnabled: true
+            blur: 1.0  // максимальное размытие (было radius: 40)
+            blurMax: 64
+        }
+
+        // Overlay to dim background
+        Rectangle {
+            anchors.fill: parent
+            color: Config.colors.surfaceContainerHigh
+            opacity: 0.85
+        }
+    }
+
     RowLayout {
         id: mediaPlayerLayout
         anchors.fill: parent
         anchors.margins: Config.spacing.medium
         spacing: Config.spacing.medium
 
-        // Album Art be on background
-
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
 
             MaterialText {
-                text: MprisController.activeTrack.title
+                text: MprisController.activeTrack?.title ?? "Unknown Title"
                 textStyle: "titleMedium"
                 colorRole: "onSurface"
                 font.weight: Font.Bold
@@ -51,7 +87,7 @@ MaterialCard {
             }
 
             MaterialText {
-                text: MprisController.activeTrack.artist + (MprisController.activeTrack.album !== "Unknown Album" ? " — " + MprisController.activeTrack.album : "")
+                text: (MprisController.activeTrack?.artist ?? "Unknown Artist") + (MprisController.activeTrack?.album !== "Unknown Album" ? " — " + MprisController.activeTrack?.album : "")
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
                 Layout.preferredWidth: 360
@@ -95,16 +131,13 @@ MaterialCard {
                     colorRole: "onSurfaceVariant"
                 }
             }
+
             RowLayout {
                 spacing: 4
                 Layout.alignment: Qt.AlignHCenter
 
                 Repeater {
                     model: [
-                        {
-                            icon: "shuffle",
-                            action: "shuffle"
-                        },
                         {
                             icon: "skip_previous",
                             action: "previous"
@@ -117,14 +150,6 @@ MaterialCard {
                         {
                             icon: "skip_next",
                             action: "next"
-                        },
-                        {
-                            icon: "repeat",
-                            action: "repeat"
-                        },
-                        {
-                            icon: "favorite_border",
-                            action: "favorite"
                         }
                     ]
 
@@ -187,6 +212,7 @@ MaterialCard {
             }
         }
     }
+
     Connections {
         target: root.player
 
@@ -205,10 +231,10 @@ MaterialCard {
 
     function formatTime(seconds) {
         if (!isFinite(seconds) || seconds < 0)
-            return "0:00";
+            return "0:00"
 
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return mins + ":" + (secs < 10 ? "0" : "") + secs;
+        const mins = Math.floor(seconds / 60)
+        const secs = Math.floor(seconds % 60)
+        return mins + ":" + (secs < 10 ? "0" : "") + secs
     }
 }

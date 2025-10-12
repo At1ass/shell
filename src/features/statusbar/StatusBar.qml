@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
-import qs.src.features.statusbar
 import qs.src.features.dashboard
 import qs.src.ui.containers
 import qs.src.ui.containers
@@ -14,11 +13,11 @@ import qs.src.ui.inputs
 PanelWindow {
     id: statusBar
 
-    property var modelData: parent.modelData
+    // property var modelData: parent.modelData
     // Tooltip Manager
     readonly property TooltipManager tooltip: tooltipManager
 
-    screen: modelData
+    // screen: modelData
     implicitHeight: Config.bar.height
     color: "transparent"
 
@@ -32,12 +31,6 @@ PanelWindow {
         right: true
     }
 
-    // margins {
-    //     left: Config.spacing.medium
-    //     top: Config.spacing.small
-    //     right: Config.spacing.medium
-    // }
-
     TooltipManager {
         id: tooltipManager
 
@@ -49,14 +42,12 @@ PanelWindow {
 
         anchors.fill: parent
         color: Config.colors.surfaceContainer
-        // radius: Config.shape.extraLarge
         opacity: Config.bar.backgroundOpacity
 
         // Primary surface tint
         Rectangle {
             anchors.fill: parent
             color: Config.colors.primary
-            // opacity: 0.05
             opacity: Config.elevation.level2Opacity
             radius: parent.radius
         }
@@ -99,22 +90,13 @@ PanelWindow {
                 tooltipManager: statusBar.tooltip
             }
 
-            // MPRISWidget {}
             VolumeWidget {
                 tooltipManager: statusBar.tooltip
             }
 
             LayoutWidget {
             }
-
-            TrayWidget {
-                tooltipManager: statusBar.tooltip
-            }
-
-            ControlPanelWidget {
-            }
         }
 
     }
-
 }

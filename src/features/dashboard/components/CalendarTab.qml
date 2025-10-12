@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
 
@@ -107,34 +108,18 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
 
-                    Rectangle {
-                        width: 40
-                        height: 40
-                        radius: 20
-                        color: prevMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent"
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            iconName: "chevron_left"
-                            fontSize: Config.typography.headlineMedium.size
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                        }
-
-                        MouseArea {
-                            id: prevMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.currentMonth === 0) {
-                                    root.currentMonth = 11
-                                    root.currentYear--
-                                } else {
-                                    root.currentMonth--
-                                }
-                                root.updateCalendar()
+                    IconButton {
+                        variant: "standard"
+                        iconName: "chevron_left"
+                        iconSize: Config.iconSize.large
+                        onClicked: {
+                            if (root.currentMonth === 0) {
+                                root.currentMonth = 11
+                                root.currentYear--
+                            } else {
+                                root.currentMonth--
                             }
+                            root.updateCalendar()
                         }
                     }
 
@@ -150,34 +135,18 @@ Item {
 
                     Item { Layout.fillWidth: true }
 
-                    Rectangle {
-                        width: 40
-                        height: 40
-                        radius: 20
-                        color: nextMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent"
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            iconName: "chevron_right"
-                            fontSize: Config.typography.headlineMedium.size
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                        }
-
-                        MouseArea {
-                            id: nextMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.currentMonth === 11) {
-                                    root.currentMonth = 0
-                                    root.currentYear++
-                                } else {
-                                    root.currentMonth++
-                                }
-                                root.updateCalendar()
+                    IconButton {
+                        variant: "standard"
+                        iconName: "chevron_right"
+                        iconSize: Config.iconSize.large
+                        onClicked: {
+                            if (root.currentMonth === 11) {
+                                root.currentMonth = 0
+                                root.currentYear++
+                            } else {
+                                root.currentMonth++
                             }
+                            root.updateCalendar()
                         }
                     }
                 }
@@ -277,94 +246,49 @@ Item {
                 }
 
                 // Список событий с прокруткой
-                ScrollView {
+                ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    clip: true
+                    spacing: Config.spacing.small
 
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-                    ColumnLayout {
-                        width: parent.width
-                        spacing: Config.spacing.small
-
-                        Repeater {
+                    Repeater {
                             model: root.selectedDayEvents
 
-                            delegate: Rectangle {
+                            delegate: ListItem {
                                 Layout.fillWidth: true
-                                height: 64
                                 radius: Config.shape.medium
-                                color: eventMouseArea.containsMouse ?
-                                       Config.colors.surfaceContainerHigh :
-                                       Config.colors.surfaceContainerHighest
+                                color: Config.colors.surfaceContainerHighest
 
-                                Behavior on color {
-                                    ColorAnimation { duration: Config.motion.duration.short4 }
-                                }
+                                headline: modelData.title
+                                supportingText: modelData.time
 
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: Config.spacing.small
-                                    spacing: Config.spacing.small
-
-                                    Rectangle {
-                                        width: 4
-                                        Layout.fillHeight: true
-                                        radius: 2
-                                        color: {
-                                            if (modelData.color === 'primary') return Config.colors.primary
-                                            if (modelData.color === 'secondary') return Config.colors.secondary
-                                            if (modelData.color === 'tertiary') return Config.colors.tertiary
-                                            return Config.colors.primary
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 2
-
-                                        MaterialText {
-                                            text: modelData.title
-                                            textStyle: "bodyMedium"
-                                            colorRole: "onSurface"
-                                            font.weight: Font.Medium
-                                        }
-
-                                        MaterialText {
-                                            text: modelData.time
-                                            textStyle: "labelSmall"
-                                            colorRole: "onSurfaceVariant"
-                                        }
+                                leadingContent: Rectangle {
+                                    width: 4
+                                    height: 48
+                                    radius: 2
+                                    color: {
+                                        if (modelData.color === 'primary') return Config.colors.primary
+                                        if (modelData.color === 'secondary') return Config.colors.secondary
+                                        if (modelData.color === 'tertiary') return Config.colors.tertiary
+                                        return Config.colors.primary
                                     }
                                 }
 
-                                MouseArea {
-                                    id: eventMouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        eventDialog.open(true, modelData, root.selectedDate)
-                                    }
+                                onClicked: {
+                                    eventDialog.openDialog(true, modelData, root.selectedDate)
                                 }
                             }
                         }
 
-                        // Empty state
-                        Item {
-                            visible: root.selectedDayEvents.length === 0
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 200
+                    // Empty state
+                    EmptyState {
+                        visible: root.selectedDayEvents.length === 0
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 200
 
-                            MaterialText {
-                                anchors.centerIn: parent
-                                text: "No events on this day"
-                                textStyle: "bodyMedium"
-                                colorRole: "onSurfaceVariant"
-                            }
-                        }
+                        iconName: "event_busy"
+                        title: "No events on this day"
+                        subtitle: "Add an event to get started"
                     }
                 }
 
@@ -404,7 +328,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
 
                         onClicked: {
-                            eventDialog.open(false, null, root.selectedDate)
+                            eventDialog.openDialog(false, null, root.selectedDate)
                         }
                     }
                 }

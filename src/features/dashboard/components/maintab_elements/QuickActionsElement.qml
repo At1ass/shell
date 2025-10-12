@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 
 MaterialCard {
@@ -17,6 +18,7 @@ MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
             columns: 5
+            // columns: 7
             rows: 2
             columnSpacing: 4
             rowSpacing: 4
@@ -81,18 +83,10 @@ MaterialCard {
                         backgroundColor: "transparent"
                     }
 
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        color: modelData.active ? Config.colors.onPrimaryContainer : Config.colors.onSurface
-                        opacity: actionMouseArea.containsMouse ? (actionMouseArea.pressed ? 0.12 : 0.08) : 0
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: Config.motion.duration.short4
-                                easing.type: Config.motion.easing.standard
-                            }
-                        }
+                    StateLayer {
+                        layerColor: modelData.active ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        hovered: actionMouseArea.containsMouse
+                        pressed: actionMouseArea.pressed
                     }
 
                     MouseArea {

@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
 import qs.src.core.config
 import qs.src.ui.base
 import qs.src.ui.containers
@@ -82,13 +81,13 @@ Item {
         border.width: 1
         border.color: Config.colors.outlineVariant
 
-        layer.enabled: true
-        layer.effect: DropShadow {
-            horizontalOffset: 0
-            verticalOffset: 4
-            radius: 8
-            samples: 17
-            color: Qt.rgba(0, 0, 0, 0.15)
+        // M3 elevation через surface tint (вместо DropShadow)
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: parent.radius - 1
+            color: Config.colors.primary
+            opacity: 0.05
         }
 
         Behavior on opacity {

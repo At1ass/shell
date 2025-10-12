@@ -11,7 +11,7 @@ Singleton {
     property string location: Config.weather.location
     property int refreshMinutes: 15
     property int minIntervalSeconds: 60
-    property string userAgent: "quickshell-weather/1.1 (+Qt/QML)"
+    property string userAgent: "quickshell-weather/1.2 (+Qt/QML)"
 
     // --- Состояние ---
     property var data: null

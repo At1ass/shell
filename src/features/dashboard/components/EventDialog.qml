@@ -3,14 +3,13 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.config
 
-Rectangle {
+Dialog {
     id: root
-    anchors.fill: parent
-    color: Qt.rgba(0, 0, 0, 0.5)
-    visible: false
-    opacity: 0
+
+    dialogWidth: 400
 
     property bool isEditMode: false
     property var eventData: null
@@ -18,21 +17,8 @@ Rectangle {
 
     signal eventSaved(string title, string startTime, string endTime, string color)
     signal eventDeleted(int eventId)
-    signal cancelled()
 
-    Behavior on opacity {
-        NumberAnimation {
-            duration: Config.motion.duration.medium2
-            easing.type: Config.motion.easing.emphasizedDecelerate
-        }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.close()
-    }
-
-    function open(editMode, data, date) {
+    function openDialog(editMode, data, date) {
         isEditMode = editMode
         eventData = data
         selectedDate = date || new Date()
@@ -51,308 +37,216 @@ Rectangle {
             colorSegmented.selectedColor = "primary"
         }
 
-        root.visible = true
-        root.opacity = 1
+        root.open()
         titleField.forceActiveFocus()
     }
 
-    function close() {
-        root.opacity = 0
-        closeTimer.start()
-    }
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Config.spacing.large
+        spacing: Config.spacing.medium
 
-    Timer {
-        id: closeTimer
-        interval: Config.motion.duration.medium2
-        onTriggered: {
-            root.visible = false
-            cancelled()
-        }
-    }
-
-    MaterialCard {
-        anchors.centerIn: parent
-        width: 400
-        height: contentLayout.implicitHeight + Config.spacing.large * 2
-        color: Config.colors.surfaceContainerHigh
-        radius: Config.shape.extraLarge
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {} // Block clicks
+        // Header
+        MaterialText {
+            text: root.isEditMode ? "Edit Event" : "New Event"
+            textStyle: "headlineSmall"
+            colorRole: "onSurface"
+            font.weight: Font.Bold
         }
 
+        // Title field
         ColumnLayout {
-            id: contentLayout
-            anchors.fill: parent
-            anchors.margins: Config.spacing.large
-            spacing: Config.spacing.medium
+            Layout.fillWidth: true
+            spacing: Config.spacing.extraSmall
 
-            // Header
             MaterialText {
-                text: root.isEditMode ? "Edit Event" : "New Event"
-                textStyle: "headlineSmall"
-                colorRole: "onSurface"
-                font.weight: Font.Bold
+                text: "Title"
+                textStyle: "labelMedium"
+                colorRole: "onSurfaceVariant"
             }
 
-            // Title field
+            TextField {
+                id: titleField
+                Layout.fillWidth: true
+                placeholderText: "Event title"
+                color: Config.colors.onSurface
+                font.pixelSize: Config.typography.bodyLarge.size
+                background: Rectangle {
+                    radius: Config.shape.small
+                    color: Config.colors.surfaceContainerHighest
+                    border.width: titleField.activeFocus ? 2 : 1
+                    border.color: titleField.activeFocus ? Config.colors.primary : Config.colors.outline
+                }
+                padding: Config.spacing.small
+            }
+        }
+
+        // Time fields
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Config.spacing.medium
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Config.spacing.extraSmall
 
                 MaterialText {
-                    text: "Title"
+                    text: "Start time"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
                 }
 
                 TextField {
-                    id: titleField
+                    id: startTimeField
                     Layout.fillWidth: true
-                    placeholderText: "Event title"
+                    placeholderText: "HH:MM"
                     color: Config.colors.onSurface
                     font.pixelSize: Config.typography.bodyLarge.size
+                    inputMask: "99:99"
                     background: Rectangle {
                         radius: Config.shape.small
                         color: Config.colors.surfaceContainerHighest
-                        border.width: titleField.activeFocus ? 2 : 1
-                        border.color: titleField.activeFocus ? Config.colors.primary : Config.colors.outline
+                        border.width: startTimeField.activeFocus ? 2 : 1
+                        border.color: startTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
                     }
                     padding: Config.spacing.small
                 }
             }
 
-            // Time fields
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Config.spacing.medium
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Config.spacing.extraSmall
-
-                    MaterialText {
-                        text: "Start time"
-                        textStyle: "labelMedium"
-                        colorRole: "onSurfaceVariant"
-                    }
-
-                    TextField {
-                        id: startTimeField
-                        Layout.fillWidth: true
-                        placeholderText: "HH:MM"
-                        color: Config.colors.onSurface
-                        font.pixelSize: Config.typography.bodyLarge.size
-                        inputMask: "99:99"
-                        background: Rectangle {
-                            radius: Config.shape.small
-                            color: Config.colors.surfaceContainerHighest
-                            border.width: startTimeField.activeFocus ? 2 : 1
-                            border.color: startTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
-                        }
-                        padding: Config.spacing.small
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Config.spacing.extraSmall
-
-                    MaterialText {
-                        text: "End time"
-                        textStyle: "labelMedium"
-                        colorRole: "onSurfaceVariant"
-                    }
-
-                    TextField {
-                        id: endTimeField
-                        Layout.fillWidth: true
-                        placeholderText: "HH:MM"
-                        color: Config.colors.onSurface
-                        font.pixelSize: Config.typography.bodyLarge.size
-                        inputMask: "99:99"
-                        background: Rectangle {
-                            radius: Config.shape.small
-                            color: Config.colors.surfaceContainerHighest
-                            border.width: endTimeField.activeFocus ? 2 : 1
-                            border.color: endTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
-                        }
-                        padding: Config.spacing.small
-                    }
-                }
-            }
-
-            // Priority/Color selector
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Config.spacing.extraSmall
 
                 MaterialText {
-                    text: "Priority"
+                    text: "End time"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
                 }
 
-                Item {
-                    id: colorSegmented
+                TextField {
+                    id: endTimeField
                     Layout.fillWidth: true
-                    height: 48
+                    placeholderText: "HH:MM"
+                    color: Config.colors.onSurface
+                    font.pixelSize: Config.typography.bodyLarge.size
+                    inputMask: "99:99"
+                    background: Rectangle {
+                        radius: Config.shape.small
+                        color: Config.colors.surfaceContainerHighest
+                        border.width: endTimeField.activeFocus ? 2 : 1
+                        border.color: endTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
+                    }
+                    padding: Config.spacing.small
+                }
+            }
+        }
 
-                    property string selectedColor: "primary"
+        // Priority/Color selector
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Config.spacing.extraSmall
 
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 2
+            MaterialText {
+                text: "Priority"
+                textStyle: "labelMedium"
+                colorRole: "onSurfaceVariant"
+            }
 
-                        Repeater {
-                            model: [
-                                { color: "primary", label: "High", displayColor: Config.colors.primary },
-                                { color: "secondary", label: "Medium", displayColor: Config.colors.secondary },
-                                { color: "tertiary", label: "Low", displayColor: Config.colors.tertiary }
-                            ]
+            Item {
+                id: colorSegmented
+                Layout.fillWidth: true
+                height: 48
 
-                            delegate: Rectangle {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                radius: Config.shape.small
-                                color: colorSegmented.selectedColor === modelData.color ?
-                                       modelData.displayColor : Config.colors.surfaceContainerHighest
-                                border.width: 1
-                                border.color: modelData.displayColor
+                property string selectedColor: "primary"
 
-                                Behavior on color {
-                                    ColorAnimation { duration: Config.motion.duration.short4 }
-                                }
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: 2
 
-                                MaterialText {
-                                    anchors.centerIn: parent
-                                    text: modelData.label
-                                    textStyle: "labelLarge"
-                                    colorRole: colorSegmented.selectedColor === modelData.color ?
-                                               "onPrimary" : "onSurface"
-                                    font.weight: Font.Medium
-                                }
+                    Repeater {
+                        model: [
+                            { color: "primary", label: "High", displayColor: Config.colors.primary },
+                            { color: "secondary", label: "Medium", displayColor: Config.colors.secondary },
+                            { color: "tertiary", label: "Low", displayColor: Config.colors.tertiary }
+                        ]
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: colorSegmented.selectedColor = modelData.color
-                                }
+                        delegate: Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: Config.shape.small
+                            color: colorSegmented.selectedColor === modelData.color ?
+                                   modelData.displayColor : Config.colors.surfaceContainerHighest
+                            border.width: 1
+                            border.color: modelData.displayColor
+
+                            Behavior on color {
+                                ColorAnimation { duration: Config.motion.duration.short4 }
+                            }
+
+                            MaterialText {
+                                anchors.centerIn: parent
+                                text: modelData.label
+                                textStyle: "labelLarge"
+                                colorRole: colorSegmented.selectedColor === modelData.color ?
+                                           "onPrimary" : "onSurface"
+                                font.weight: Font.Medium
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: colorSegmented.selectedColor = modelData.color
                             }
                         }
                     }
                 }
             }
+        }
 
-            Item { Layout.fillHeight: true }
+        Item { Layout.fillHeight: true }
 
-            // Action buttons
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Config.spacing.small
+        // Action buttons
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Config.spacing.small
 
-                // Delete button (only in edit mode)
-                Rectangle {
-                    visible: root.isEditMode
-                    Layout.preferredWidth: 48
-                    Layout.preferredHeight: 48
-                    radius: 24
-                    color: deleteMouseArea.containsMouse ? Config.colors.errorContainer : "transparent"
-
-                    Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "delete"
-                        fontSize: Config.typography.titleLarge.size
-                        iconColor: deleteMouseArea.containsMouse ? Config.colors.onErrorContainer : Config.colors.error
-                        backgroundColor: "transparent"
-                    }
-
-                    MouseArea {
-                        id: deleteMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.eventData && root.eventData.id) {
-                                eventDeleted(root.eventData.id)
-                                root.close()
-                            }
-                        }
+            // Delete button (only in edit mode)
+            IconButton {
+                visible: root.isEditMode
+                variant: "standard"
+                iconName: "delete"
+                iconSize: Config.iconSize.large
+                iconColor: Config.colors.error
+                onClicked: {
+                    if (root.eventData && root.eventData.id) {
+                        eventDeleted(root.eventData.id)
+                        root.close()
                     }
                 }
+            }
 
-                Item { Layout.fillWidth: true }
+            Item { Layout.fillWidth: true }
 
-                // Cancel button
-                Rectangle {
-                    Layout.preferredWidth: cancelText.implicitWidth + Config.spacing.large * 2
-                    Layout.preferredHeight: 48
-                    radius: 24
-                    color: cancelMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent"
+            // Cancel button
+            MaterialButton {
+                text: "Cancel"
+                variant: "text"
+                onClicked: root.close()
+            }
 
-                    Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
-                    }
-
-                    MaterialText {
-                        id: cancelText
-                        anchors.centerIn: parent
-                        text: "Cancel"
-                        textStyle: "labelLarge"
-                        colorRole: "primary"
-                        font.weight: Font.Medium
-                    }
-
-                    MouseArea {
-                        id: cancelMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.close()
-                    }
-                }
-
-                // Save button
-                Rectangle {
-                    Layout.preferredWidth: saveText.implicitWidth + Config.spacing.large * 2
-                    Layout.preferredHeight: 48
-                    radius: 24
-                    color: saveMouseArea.containsMouse ? Config.colors.primaryContainer : Config.colors.primary
-
-                    Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
-                    }
-
-                    MaterialText {
-                        id: saveText
-                        anchors.centerIn: parent
-                        text: root.isEditMode ? "Save" : "Add"
-                        textStyle: "labelLarge"
-                        colorRole: "onPrimary"
-                        font.weight: Font.Medium
-                    }
-
-                    MouseArea {
-                        id: saveMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: titleField.text.trim() !== ""
-                        onClicked: {
-                            eventSaved(
-                                titleField.text,
-                                startTimeField.text,
-                                endTimeField.text,
-                                colorSegmented.selectedColor
-                            )
-                            root.close()
-                        }
-                    }
+            // Save button
+            MaterialButton {
+                text: root.isEditMode ? "Save" : "Add"
+                variant: "filled"
+                enabled: titleField.text.trim() !== ""
+                onClicked: {
+                    eventSaved(
+                        titleField.text,
+                        startTimeField.text,
+                        endTimeField.text,
+                        colorSegmented.selectedColor
+                    )
+                    root.close()
                 }
             }
         }

@@ -1,8 +1,11 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
+import qs.src.ui.inputs
 import qs.src.ui.base
+import qs.src.features.statusbar
 import qs.src.core.config
+import qs.src.core.services
 import qs.src.features.dashboard.components.maintab_elements
 
 Item {
@@ -44,86 +47,87 @@ Item {
         }
 
         // ===== ROW 0-1, COL 6-8: СЛАЙДЕРЫ (вертикальные) =====
-        Repeater {
-            model: [
-                {
-                    iconName: "brightness_6",
-                    value: 100,
-                    suffix: "",
-                    col: 8
-                },
-                {
-                    iconName: "volume_up",
-                    value: 80,
-                    suffix: "",
-                    col: 9
+        // Brightness slider
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 8
+            Layout.rowSpan: 3
+            Layout.columnSpan: 1
+            Layout.preferredWidth: 70
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
+
+            ColumnLayout {
+                anchors.fill: parent
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
-            ]
+                MaterialIcon {
+                    iconName:  "brightness_6"
+                    iconColor: Config.colors.primary
+                    fontSize: Config.typography.titleLarge.size
+                    backgroundColor: "transparent"
+                    Layout.alignment: Qt.AlignHCenter
+                }
 
-            delegate: MaterialCard {
-                Layout.row: 0
-                Layout.column: modelData.col
-                Layout.rowSpan: 3
-                Layout.columnSpan: 1
-                Layout.preferredWidth: 70
-                Layout.fillHeight: true
-                color: Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                MaterialSlider {
+                    Layout.alignment: Qt.AlignHCenter
+                    orientation: Qt.Vertical
+                    enabled: true
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: 0.8
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+            }
+        }
 
-                ColumnLayout {
-                    property real sliderValue: modelData.value
-                    anchors.fill: parent
-                    anchors.margins: Config.spacing.small
-                    spacing: 4
+        // Volume slider
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 9
+            Layout.rowSpan: 3
+            Layout.columnSpan: 1
+            Layout.preferredWidth: 70
+            Layout.fillHeight: true
+            color: Config.colors.surfaceContainerHigh
+            radius: Config.shape.large
 
-                    MaterialIcon {
-                        iconName: modelData.iconName
-                        iconColor: Config.colors.primary
-                        fontSize: Config.typography.titleLarge.size
-                        backgroundColor: "transparent"
-                        Layout.alignment: Qt.AlignHCenter
-                    }
+            ColumnLayout {
+                anchors.fill: parent
 
-                    MaterialText {
-                        text: Math.round(parent.sliderValue).toString()
-                        textStyle: "titleMedium"
-                        colorRole: "onSurface"
-                        font.weight: Font.Bold
-                        Layout.alignment: Qt.AlignHCenter
-                    }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+                MaterialIcon {
+                    iconName:  "volume_up"
+                    iconColor: Config.colors.primary
+                    fontSize: Config.typography.titleLarge.size
+                    backgroundColor: "transparent"
+                    Layout.alignment: Qt.AlignHCenter
+                }
 
-                    // Vertical slider
-                    Rectangle {
-                        width: 6
-                        Layout.fillHeight: true
-                        Layout.alignment: Qt.AlignHCenter
-                        radius: 3
-                        color: Config.colors.surfaceContainerHighest
-
-                        Rectangle {
-                            anchors.bottom: parent.bottom
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: 6
-                            height: parent.height * (parent.parent.sliderValue / 100)
-                            radius: 3
-                            color: Config.colors.primary
-
-                            Behavior on height {
-                                NumberAnimation {
-                                    duration: Config.motion.duration.short4
-                                    easing.type: Config.motion.easing.emphasizedDecelerate
-                                }
-                            }
-                        }
-                    }
-
-                    MaterialText {
-                        text: modelData.suffix
-                        textStyle: "labelSmall"
-                        colorRole: "onSurfaceVariant"
-                        Layout.alignment: Qt.AlignHCenter
-                        visible: modelData.suffix !== ""
-                    }
+                MaterialSlider {
+                    Layout.alignment: Qt.AlignHCenter
+                    orientation: Qt.Vertical
+                    enabled: AudioService.defaultSink !== null
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: AudioService.masterVolume
+                    onMoved: AudioService.setMasterVolume(value)
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
             }
         }
@@ -145,7 +149,6 @@ Item {
             Layout.rowSpan: 2
             Layout.columnSpan: 3
             Layout.fillHeight: true
-            // Layout.fillWidth: true
             Layout.preferredWidth: 400
         }
 
@@ -153,6 +156,7 @@ Item {
         SheduleElement {
             Layout.row: 3
             Layout.column: 3
+            // Layout.column: 6
             Layout.rowSpan: 3
             Layout.columnSpan: 3
             Layout.preferredWidth: 200
@@ -183,12 +187,23 @@ Item {
 
         // ===== ROW 4, COL 0-8: SYSTEM TRAY =====
         SystemTrayElement {
+            id: trayItem
             Layout.row: 5
             Layout.column: 0
             Layout.rowSpan: 1
             Layout.columnSpan: 3
             Layout.preferredHeight: 50
             Layout.preferredWidth: 400
+            trayTooltip: trayTooltip
+            trayMenu: trayMenu
         }
+    }
+
+    TrayMenuOverlay {
+        id: trayMenu
+    }
+
+    TrayTooltip {
+        id: trayTooltip
     }
 }

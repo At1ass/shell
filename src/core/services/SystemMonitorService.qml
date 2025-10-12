@@ -17,7 +17,7 @@ Singleton {
     property string ramTotal: "0.0"
 
     // GPU
-    property real gpuUsage: 0
+    property int gpuUsage: 0
     property int gpuTemp: 0
     property string gpuModel: ""
 
@@ -173,7 +173,7 @@ Singleton {
                 if (text.length > 0) {
                     const parts = text.split(',')
                     if (parts.length >= 2) {
-                        root.gpuUsage = parseFloat(parts[0].trim())
+                        root.gpuUsage = parseInt(parts[0].trim())
                         root.gpuTemp = parseInt(parts[1].trim())
                     }
                 }
