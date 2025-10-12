@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config

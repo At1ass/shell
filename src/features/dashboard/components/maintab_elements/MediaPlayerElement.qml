@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.src.ui.containers
@@ -47,18 +47,23 @@ MaterialCard {
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true
+            visible: false
+        }
 
-            layer.enabled: true
-            layer.effect: FastBlur {
-                radius: 40
-            }
+        // MultiEffect применяет размытие
+        MultiEffect {
+            anchors.fill: parent
+            source: albumArtBackground
+            blurEnabled: true
+            blur: 1.0  // максимальное размытие (было radius: 40)
+            blurMax: 64
+        }
 
-            // Overlay to dim background
-            Rectangle {
-                anchors.fill: parent
-                color: Config.colors.surfaceContainerHigh
-                opacity: 0.85
-            }
+        // Overlay to dim background
+        Rectangle {
+            anchors.fill: parent
+            color: Config.colors.surfaceContainerHigh
+            opacity: 0.85
         }
     }
 

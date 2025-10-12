@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Wayland
 import qs.src.ui.containers
@@ -95,17 +94,22 @@ Scope {
                     color: Config.colors.surfaceContainerHigh
                     radius: Config.shape.extraLarge
 
-                    // Elevation shadow
-                    layer.enabled: true
-                    // layer.effect: Qt5Compat.GraphicalEffects.DropShadow {
-                    layer.effect: DropShadow {
-                        horizontalOffset: 0
-                        verticalOffset: 4
-                        radius: 12
-                        samples: 25
-                        color: Qt.rgba(0, 0, 0, 0.3)
+                    // M3 elevation через surface tint (вместо DropShadow)
+                    // border уже есть в MaterialCard через outlined: true
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: osdCard.radius
+                        color: Config.colors.primary
+                        opacity: 0.08
                     }
-
+                    // Optional outline
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: osdCard.radius
+                        border.color: Config.colors.outlineVariant
+                        border.width: 1
+                        color: "transparent"
+                    }
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: Config.spacing.large

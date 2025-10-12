@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import Qt5Compat.GraphicalEffects
 import qs.src.core.config
 import qs.src.ui.base
 
@@ -21,6 +20,9 @@ Rectangle {
     property color backgroundColor: Config.colors.primaryContainer
     property color foregroundColor: Config.colors.onPrimaryContainer
 
+    // Radius control
+    property int customRadius: -1  // -1 = auto (circle), >= 0 = custom radius
+
     // Calculate size
     readonly property int avatarSize: {
         if (customSize > 0) return customSize
@@ -36,26 +38,44 @@ Rectangle {
     implicitHeight: avatarSize
     width: avatarSize
     height: avatarSize
-    radius: avatarSize / 2
+    radius: customRadius >= 0 ? customRadius : avatarSize / 2  // Auto circle or custom
     color: root.backgroundColor
 
     // Image (if provided)
-    Image {
-        id: avatarImage
-        visible: root.imageSource !== "" && status === Image.Ready
+    Item {
         anchors.fill: parent
-        source: root.imageSource
-        sourceSize.width: root.avatarSize
-        sourceSize.height: root.avatarSize
-        fillMode: Image.PreserveAspectCrop
-        smooth: true
+        visible: root.imageSource !== "" && avatarImage.status === Image.Ready
+        Image {
+            id: avatarImage
+            anchors.fill: parent
+            source: root.imageSource
+            sourceSize.width: root.avatarSize
+            sourceSize.height: root.avatarSize
+            fillMode: Image.PreserveAspectCrop
+            visible: false
+            smooth: true
+            asynchronous: true
+            cache: true
+        }
 
-        layer.enabled: true
-        layer.effect: OpacityMask {
-            maskSource: Rectangle {
-                width: avatarImage.width
-                height: avatarImage.height
-                radius: avatarImage.width / 2
+        MultiEffect {
+            anchors.fill: parent
+            source: avatarImage
+            maskEnabled: true
+            maskSource: maskItem
+        }
+
+        // Маска для скругления
+        Item {
+            id: maskItem
+            anchors.fill: parent
+            layer.enabled: true
+            visible: false
+
+            Rectangle {
+                anchors.fill: parent
+                radius: root.radius  // Использует тот же радиус (auto или custom)
+                color: "white"
             }
         }
     }
@@ -76,7 +96,13 @@ Rectangle {
         anchors.centerIn: parent
         text: root.fallbackText.substring(0, 2).toUpperCase()
         textStyle: "titleMedium"
-        color: root.foregroundColor
+        // color: root.foregroundColor
+        color: Qt.rgba (
+            root.foregroundColor.r,
+            root.foregroundColor.g,
+            root.foregroundColor.b,
+            0.87
+        )
         font.weight: Font.Bold
     }
 }

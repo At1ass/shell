@@ -4,7 +4,6 @@ import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.feedback
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
 import Quickshell.Services.Pipewire
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -98,7 +97,6 @@ BarElement {
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
             iconColor: Config.colors.onSurface
             color: "transparent"
-            enableRipple: false
         }
 
 

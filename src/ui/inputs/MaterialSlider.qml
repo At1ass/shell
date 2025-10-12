@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
 import qs.src.core.config
 
 // Material Design 3 Slider (2024 spec)
@@ -136,15 +135,9 @@ Slider {
             color: control.enabled ? Config.colors.primary : Config.colors.onSurface
             opacity: control.enabled ? 1.0 : 0.38
 
-            // Elevation
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: 1
-                radius: 2
-                samples: 5
-                color: Qt.rgba(0, 0, 0, 0.2)
-            }
+            // M3 elevation через subtle border (вместо DropShadow)
+            border.width: 0.5
+            border.color: Qt.rgba(0, 0, 0, 0.1)
 
             Behavior on color {
                 ColorAnimation {

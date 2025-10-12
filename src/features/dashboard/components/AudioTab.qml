@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Services.Pipewire
 import qs.src.ui.containers
@@ -246,6 +245,7 @@ Item {
                                         imageSource: appIcon
                                         fallbackText: stream && stream.properties && stream.properties["application.name"] ?
                                                      stream.properties["application.name"] : "AP"
+                                        customRadius: 8
                                     }
 
                                     // Name and slider
@@ -361,14 +361,22 @@ Item {
                            pavuMouseArea.containsMouse ? Qt.lighter(Config.colors.primaryContainer, 1.1) :
                            Config.colors.primaryContainer
 
-                    // Elevation
-                    layer.enabled: pavuMouseArea.containsMouse
-                    layer.effect: DropShadow {
-                        horizontalOffset: 0
-                        verticalOffset: 2
-                        radius: 4
-                        samples: 9
-                        color: Qt.rgba(0, 0, 0, 0.15)
+                    // M3 Filled Button - без outline
+                    outlined: false
+
+                    // M3 elevation через surface tint (вместо DropShadow)
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: parent.radius - 1
+                        color: Config.colors.primary
+                        opacity: pavuMouseArea.containsMouse ? 0.08 : 0.03
+                        z: -1
+                        visible: !pavuMouseArea.pressed
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: Config.motion.duration.short4 }
+                        }
                     }
 
                     Behavior on color {

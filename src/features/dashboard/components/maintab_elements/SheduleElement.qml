@@ -26,12 +26,12 @@ MaterialCard {
                 showStateLayer: false
                 implicitHeight: 48
 
-                headline: modelData.title + " (" + Qt.formatDate(modelData.date, "dd MMM") + ")"
-                supportingText: modelData.time
+                headline: modelData.title
+                supportingText: Qt.formatDate(modelData.date, "dd MMM") + "\n" +  modelData.time
 
                 leadingContent: Rectangle {
                     width: 3
-                    height: 32
+                    height: 48
                     radius: 1.5
                     color: {
                         if (modelData.color === 'primary') return Config.colors.primary

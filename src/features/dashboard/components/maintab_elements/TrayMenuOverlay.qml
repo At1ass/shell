@@ -1,5 +1,4 @@
 import QtQuick
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import qs.src.core.config
 import qs.src.ui.base
@@ -78,13 +77,15 @@ Item {
         x: root.computeX(width, horizontalMargin)
         y: root.computeY(height, verticalMargin)
 
-        layer.enabled: visible
-        layer.effect: DropShadow {
-            horizontalOffset: 0
-            verticalOffset: 6
-            radius: 18
-            samples: 28
-            color: Qt.rgba(0, 0, 0, 0.35)
+        // M3 elevation через surface tint (вместо DropShadow)
+        // border уже есть в MaterialCard через outlined: true
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: parent.radius - 1
+            color: Config.colors.primary
+            opacity: 0.08
+            z: -1
         }
 
         Behavior on opacity {

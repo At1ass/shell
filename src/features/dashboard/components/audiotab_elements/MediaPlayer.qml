@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.src.ui.containers
@@ -13,10 +13,10 @@ import qs.src.core.services
 MaterialCard {
     id: root
     color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    radius: 0  // без скругления
     // Layout.preferredHeight: 350
 
-    // Clip content for rounded corners
+    // Clip content
     clip: true
 
     // Empty state when no player is active
@@ -44,7 +44,7 @@ MaterialCard {
             anchors.fill: parent
             visible: MprisController.activeTrack?.artUrl !== ""
 
-            // Album art image
+            // Album art image (скрыто)
             Image {
                 id: albumArtBackground
                 anchors.fill: parent
@@ -54,18 +54,23 @@ MaterialCard {
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
+                visible: false
+            }
 
-                layer.enabled: true
-                layer.effect: FastBlur {
-                    radius: 40
-                }
+            // MultiEffect применяет размытие
+            MultiEffect {
+                anchors.fill: parent
+                source: albumArtBackground
+                blurEnabled: true
+                blur: 1.0  // максимальное размытие (было radius: 40)
+                blurMax: 64
+            }
 
-                // Overlay to dim background
-                Rectangle {
-                    anchors.fill: parent
-                    color: Config.colors.surfaceContainerHigh
-                    opacity: 0.85
-                }
+            // Overlay to dim background
+            Rectangle {
+                anchors.fill: parent
+                color: Config.colors.surfaceContainerHigh
+                opacity: 0.85
             }
         }
 
@@ -86,7 +91,9 @@ MaterialCard {
                     colorRole: "onSurfaceVariant"
                 }
 
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 // Source selector dropdown
                 MaterialCard {
@@ -96,7 +103,9 @@ MaterialCard {
                     radius: Config.shape.full
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation {
+                            duration: Config.motion.duration.short4
+                        }
                     }
 
                     RowLayout {
@@ -139,88 +148,108 @@ MaterialCard {
                 }
             }
 
-            Item { Layout.fillHeight: true }
+            Item {
+                Layout.fillHeight: true
+            }
             // ===== ALBUM ART (optional, smaller) =====
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
-            Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 200
-                Layout.preferredHeight: 200
-                radius: Config.shape.medium
-                color: Config.colors.surfaceContainerHighest
-                visible: MprisController.activeTrack?.artUrl !== ""
 
-                layer.enabled: true
-                layer.effect: DropShadow {
-                    horizontalOffset: 0
-                    verticalOffset: 2
-                    radius: 8
-                    samples: 17
-                    color: Qt.rgba(0, 0, 0, 0.3)
+                Item {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: 200
+                    Layout.preferredHeight: 200
+                    visible: MprisController.activeTrack?.artUrl !== ""
+
+                    // Исходное изображение (скрыто)
+                    Image {
+                        id: albumArtThumb
+                        anchors.fill: parent
+                        source: MprisController.activeTrack?.artUrl ?? ""
+                        sourceSize.width: 200
+                        sourceSize.height: 200
+                        fillMode: Image.PreserveAspectCrop
+                        smooth: true
+                        asynchronous: true
+                        cache: true
+                        visible: false
+                    }
+
+                    // MultiEffect применяет маску скругления
+                    MultiEffect {
+                        anchors.fill: parent
+                        source: albumArtThumb
+                        maskEnabled: true
+                        maskSource: maskItem
+                    }
+
+                    // Маска для скругления
+                    Item {
+                        id: maskItem
+                        width: 200
+                        height: 200
+                        layer.enabled: true
+                        visible: false
+
+                        Rectangle {
+                            width: 200
+                            height: 200
+                            radius: Config.shape.medium
+                            color: "white"
+                        }
+                    }
+
+                    // Border поверх
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: Config.shape.medium
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Config.colors.outlineVariant
+                    }
                 }
 
-                Image {
-                    anchors.fill: parent
-                    source: MprisController.activeTrack?.artUrl ?? ""
-                    sourceSize.width: 200
-                    sourceSize.height: 200
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    cache: true
-                    layer.enabled: true
-                    layer.effect: OpacityMask {
-                        maskSource: Rectangle {
-                            width: 80
-                            height: 80
-                            radius: Config.shape.medium
-                        }
+                // ===== TRACK INFO =====
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 4
+
+                    MaterialText {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        // Layout.maximumWidth: parent.width
+                        text: MprisController.activeTrack?.title ?? "Unknown Title"
+                        textStyle: "titleLarge"
+                        colorRole: "onSurface"
+                        font.weight: Font.Bold
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    MaterialText {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.maximumWidth: parent.width
+                        text: MprisController.activeTrack?.artist ?? "Unknown Artist"
+                        textStyle: "bodyMedium"
+                        colorRole: "onSurfaceVariant"
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    MaterialText {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.maximumWidth: parent.width
+                        text: MprisController.activeTrack?.album ?? ""
+                        textStyle: "bodySmall"
+                        colorRole: "onSurfaceVariant"
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: text !== "" && text !== "Unknown Album"
                     }
                 }
             }
-
-
-            // ===== TRACK INFO =====
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 4
-
-                MaterialText {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.fillWidth: true
-                    // Layout.maximumWidth: parent.width
-                    text: MprisController.activeTrack?.title ?? "Unknown Title"
-                    textStyle: "titleLarge"
-                    colorRole: "onSurface"
-                    font.weight: Font.Bold
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                MaterialText {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.maximumWidth: parent.width
-                    text: MprisController.activeTrack?.artist ?? "Unknown Artist"
-                    textStyle: "bodyMedium"
-                    colorRole: "onSurfaceVariant"
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                MaterialText {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.maximumWidth: parent.width
-                    text: MprisController.activeTrack?.album ?? ""
-                    textStyle: "bodySmall"
-                    colorRole: "onSurfaceVariant"
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: text !== "" && text !== "Unknown Album"
-                }
-            }
-        }
 
             // ===== POSITION SLIDER =====
             ColumnLayout {
@@ -237,7 +266,7 @@ MaterialCard {
                     enabled: MprisController.canSeek && MprisController.positionSupported
 
                     onMoved: {
-                        MprisController.setPosition(value)
+                        MprisController.setPosition(value);
                     }
                 }
 
@@ -252,7 +281,9 @@ MaterialCard {
                         colorRole: "onSurfaceVariant"
                     }
 
-                    Item { Layout.fillWidth: true }
+                    Item {
+                        Layout.fillWidth: true
+                    }
 
                     MaterialText {
                         text: formatTime(MprisController.length)
@@ -277,7 +308,9 @@ MaterialCard {
                     opacity: MprisController.shuffleSupported ? 1.0 : 0.38
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation {
+                            duration: Config.motion.duration.short4
+                        }
                     }
 
                     MaterialIcon {
@@ -288,7 +321,9 @@ MaterialCard {
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation {
+                                duration: Config.motion.duration.short4
+                            }
                         }
                     }
 
@@ -347,13 +382,12 @@ MaterialCard {
                     radius: 28
                     color: Config.colors.primaryContainer
 
-                    layer.enabled: true
-                    layer.effect: DropShadow {
-                        horizontalOffset: 0
-                        verticalOffset: 2
-                        radius: 6
-                        samples: 13
-                        color: Qt.rgba(0, 0, 0, 0.25)
+                    // M3 FAB elevation через surface tint (вместо DropShadow)
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Config.colors.primary
+                        opacity: 0.08  // elevation level 1
                     }
 
                     MaterialIcon {
@@ -421,22 +455,28 @@ MaterialCard {
                     opacity: MprisController.loopSupported ? 1.0 : 0.38
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation {
+                            duration: Config.motion.duration.short4
+                        }
                     }
 
                     MaterialIcon {
                         anchors.centerIn: parent
                         iconName: {
-                            if (MprisController.loopState === MprisLoopState.Track) return "repeat_one"
-                            if (MprisController.loopState === MprisLoopState.Playlist) return "repeat"
-                            return "repeat"
+                            if (MprisController.loopState === MprisLoopState.Track)
+                                return "repeat_one";
+                            if (MprisController.loopState === MprisLoopState.Playlist)
+                                return "repeat";
+                            return "repeat";
                         }
                         fontSize: 20
                         iconColor: MprisController.loopState !== MprisLoopState.None ? Config.colors.onPrimaryContainer : Config.colors.onSurface
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation {
+                                duration: Config.motion.duration.short4
+                            }
                         }
                     }
 
@@ -457,7 +497,9 @@ MaterialCard {
                 }
             }
 
-            Item { Layout.fillHeight: true }
+            Item {
+                Layout.fillHeight: true
+            }
         }
 
         // ===== SOURCE SELECTOR MENU =====
@@ -473,13 +515,16 @@ MaterialCard {
             radius: Config.shape.medium
             color: Config.colors.surfaceContainerHigh
 
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: 4
-                radius: 8
-                samples: 17
-                color: Qt.rgba(0, 0, 0, 0.25)
+            // M3 elevation через border + surface tint (вместо DropShadow)
+            border.width: 1
+            border.color: Config.colors.outlineVariant
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: parent.radius - 1
+                color: Config.colors.primary
+                opacity: 0.05
             }
 
             ColumnLayout {
@@ -500,11 +545,12 @@ MaterialCard {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 48
                         radius: Config.shape.extraSmall
-                        color: isActive ? Config.colors.secondaryContainer :
-                               (playerMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent")
+                        color: isActive ? Config.colors.secondaryContainer : (playerMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent")
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation {
+                                duration: Config.motion.duration.short4
+                            }
                         }
 
                         RowLayout {
@@ -542,8 +588,8 @@ MaterialCard {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                MprisController.switchToPlayer(index)
-                                sourceMenu.visible = false
+                                MprisController.switchToPlayer(index);
+                                sourceMenu.visible = false;
                             }
                         }
                     }
@@ -554,11 +600,11 @@ MaterialCard {
 
     function formatTime(seconds) {
         if (!isFinite(seconds) || seconds < 0)
-            return "0:00"
+            return "0:00";
 
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return mins + ":" + (secs < 10 ? "0" : "") + secs
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return mins + ":" + (secs < 10 ? "0" : "") + secs;
     }
 
     // Click outside to close menu
