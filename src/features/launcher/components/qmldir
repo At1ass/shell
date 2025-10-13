@@ -1,0 +1,3 @@
+module qs.src.features.launcher.components
+
+AppListItem 1.0 AppListItem.qml

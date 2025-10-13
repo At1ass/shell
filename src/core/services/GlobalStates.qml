@@ -16,6 +16,7 @@ Singleton {
     property bool showDateSelector: false
     property bool darkMode: true
     property bool inhibit: false
+    property bool launcherOpen: false
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
@@ -25,6 +26,7 @@ Singleton {
     function closeAllPanels() {
         controlPanelOpen = false
         dashboardOpen = false
+        launcherOpen = false
     }
 
     function closeAllOSD() {
@@ -36,12 +38,21 @@ Singleton {
     onControlPanelOpenChanged: {
         if (controlPanelOpen) {
             dashboardOpen = false
+            launcherOpen = false
         }
     }
 
     onDashboardOpenChanged: {
         if (dashboardOpen) {
             controlPanelOpen = false
+            launcherOpen = false
+        }
+    }
+
+    onLauncherOpenChanged: {
+        if (launcherOpen) {
+            controlPanelOpen = false
+            dashboardOpen = false
         }
     }
 
@@ -64,6 +75,15 @@ Singleton {
         }
     }
 
+    GlobalShortcut {
+        name: "launcherToggle"
+        description: "Toggle launcher"
+
+        onPressed: {
+            root.launcherOpen = !root.launcherOpen
+        }
+    }
+
     // IPC Commands для внешнего управления
     IpcHandler {
         target: "globalstates"
@@ -82,6 +102,18 @@ Singleton {
 
         function toggleDashboard(): void {
             root.dashboardOpen = !root.dashboardOpen
+        }
+
+        function toggleLauncher(): void {
+            root.launcherOpen = !root.launcherOpen
+        }
+
+        function openLauncher(): void {
+            root.launcherOpen = true
+        }
+
+        function closeLauncher(): void {
+            root.launcherOpen = false
         }
 
         function openControlPanelLeft(): void {

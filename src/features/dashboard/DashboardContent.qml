@@ -21,7 +21,7 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            Layout.fillWidth: true
+            // Layout.fillWidth: true
             spacing: 0
 
             // ===== TAB BAR =====
