@@ -79,6 +79,30 @@ Item {
                             appListView.currentIndex = 0
                         }
 
+                        // Tab navigation
+                        Keys.onTabPressed: (event) => {
+                            if (event.modifiers & Qt.ShiftModifier) {
+                                // Shift+Tab - вверх
+                                if (appListView.currentIndex > 0) {
+                                    appListView.currentIndex--
+                                }
+                            } else {
+                                // Tab - вниз
+                                if (appListView.currentIndex < appListView.count - 1) {
+                                    appListView.currentIndex++
+                                }
+                            }
+                            event.accepted = true
+                        }
+
+                        Keys.onBacktabPressed: (event) => {
+                            // Shift+Tab альтернативный обработчик
+                            if (appListView.currentIndex > 0) {
+                                appListView.currentIndex--
+                            }
+                            event.accepted = true
+                        }
+
                         // Keyboard navigation
                         Keys.onPressed: (event) => {
                             if (event.key === Qt.Key_Down) {
@@ -93,7 +117,7 @@ Item {
                                 event.accepted = true
                             } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                                 if (appListView.currentItem) {
-                                    LauncherService.launch(appListView.currentItem.entry)
+                                    LauncherService.launch(appListView.currentItem.modelData)
                                     GlobalStates.launcherOpen = false
                                 }
                                 event.accepted = true
@@ -163,15 +187,11 @@ Item {
                 }
 
                 delegate: LauncherComponents.AppListItem {
-                    required property var modelData
-                    required property int index
-
                     width: appListView.width
-                    entry: modelData
                     isCurrentItem: appListView.currentIndex === index
 
                     onClicked: {
-                        LauncherService.launch(entry)
+                        LauncherService.launch(modelData)
                         GlobalStates.launcherOpen = false
                     }
                 }

@@ -10,7 +10,8 @@ import qs.src.core.config
 Item {
     id: root
 
-    required property var entry
+    required property var modelData  // Result object from provider (from ScriptModel)
+    required property int index  // Index from ListView
     property bool isCurrentItem: false
 
     signal clicked()
@@ -65,13 +66,9 @@ Item {
             Layout.preferredHeight: 40
 
             source: {
-                let path = Quickshell.iconPath(entry?.icon, "image-missing")
+                let iconName = modelData?.icon || "application-x-executable"
+                let path = Quickshell.iconPath(iconName, "image-missing")
                 if (!path) return ""
-
-                // Quickshell.iconPath может вернуть:
-                // 1. Файловый путь: "/usr/share/icons/.../firefox.svg"
-                // 2. Image provider URI: "image://icon/firefox"
-                // Оба формата валидны для QML Image
 
                 // Убираем fallback часть (если есть)
                 let mainPath = path.split("?")[0]
@@ -92,21 +89,7 @@ Item {
                     }
                 }
 
-                // Ничего не нашли
                 return ""
-            }
-
-            onStatusChanged: {
-                if (status === Image.Loading) {
-                    // Иконка загружается
-                    console.log("Loading icon for", entry?.name, "from source:", source)
-                } else if (status === Image.Error) {
-                    console.warn("Failed to load icon for", entry?.name, "from source:", source)
-                    source = ""  // Сбросить источник, чтобы избежать повторных ошибок
-                } else if (status === Image.Ready) {
-                    // Иконка успешно загружена
-                    console.log("Icon loaded for", entry?.name, "from source:", source)
-                }
             }
 
             sourceSize.width: 40
@@ -123,19 +106,19 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             spacing: 2
 
-            // App Name
+            // Result Name
             MaterialText {
                 Layout.fillWidth: true
-                text: entry?.name || ""
+                text: modelData?.text || ""
                 textStyle: "titleMedium"
                 colorRole: "onSurface"
                 elide: Text.ElideRight
             }
 
-            // App Description
+            // Result Description
             MaterialText {
                 Layout.fillWidth: true
-                text: entry?.comment || entry?.genericName || ""
+                text: modelData?.description || ""
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
                 elide: Text.ElideRight

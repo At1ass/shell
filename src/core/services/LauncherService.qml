@@ -1,100 +1,70 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import qs.src.features.launcher.providers
 
+// ProviderManager - управляет провайдерами для поиска
 Singleton {
     id: root
 
-    // All available applications
-    readonly property var applications: DesktopEntries.applications.values
-
-    // Filtered applications based on search
-    property var filteredApps: applications
-
-    // Current search query
+    // Текущий поисковый запрос
     property string searchQuery: ""
 
-    // Launch an application
-    function launch(entry) {
-        if (!entry) return
+    // Отфильтрованные результаты
+    property var filteredApps: []
 
-        console.log("Launching:", entry.name)
-        entry.execute()
-    }
+    // Провайдеры (в порядке приоритета)
+    property list<QtObject> providers: [
+        CalculatorProvider { id: calculatorProvider },
+        ApplicationProvider { id: applicationProvider }
+    ]
 
-    // Simple fuzzy search function
-    function fuzzyMatch(text, query) {
-        if (!query) return true
-
-        text = text.toLowerCase()
-        query = query.toLowerCase()
-
-        // Exact substring match
-        if (text.includes(query)) return true
-
-        // Fuzzy match - all characters of query must appear in order
-        let queryIndex = 0
-        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
-            if (text[i] === query[queryIndex]) {
-                queryIndex++
-            }
-        }
-        return queryIndex === query.length
-    }
-
-    // Search applications
+    // Поиск через все провайдеры
     function search(query) {
         searchQuery = query
 
+        // Пустой запрос - очищаем результаты (чистое открытие)
         if (!query || query.trim() === "") {
-            // Return top 10 apps when no search
-            filteredApps = applications.slice(0, 10)
+            filteredApps = []
             return
         }
 
-        const queryLower = query.toLowerCase()
-        const results = []
+        let allResults = []
 
-        for (let i = 0; i < applications.length; i++) {
-            const app = applications[i]
+        // Собираем результаты от всех подходящих провайдеров
+        for (let i = 0; i < providers.length; i++) {
+            let provider = providers[i]
 
-            // Skip NoDisplay apps
-            if (app.noDisplay) continue
+            if (provider.canHandle(query)) {
+                let providerResults = provider.search(query)
 
-            // Search in name, genericName, comment, keywords
-            const searchText = [
-                app.name || "",
-                app.genericName || "",
-                app.comment || "",
-                (app.keywords || []).join(" ")
-            ].join(" ")
-
-            if (fuzzyMatch(searchText, queryLower)) {
-                // Calculate score based on match position
-                let score = 0
-                const nameLower = (app.name || "").toLowerCase()
-
-                if (nameLower.startsWith(queryLower)) {
-                    score = 100 // Exact prefix match
-                } else if (nameLower.includes(queryLower)) {
-                    score = 50 // Contains match
-                } else {
-                    score = 10 // Fuzzy match
+                // Добавляем приоритет провайдера к score результатов
+                for (let j = 0; j < providerResults.length; j++) {
+                    providerResults[j].score += provider.priority
                 }
 
-                results.push({ entry: app, score: score })
+                allResults = allResults.concat(providerResults)
             }
         }
 
-        // Sort by score (descending)
-        results.sort((a, b) => b.score - a.score)
+        // Сортировка по score (descending)
+        allResults.sort((a, b) => b.score - a.score)
 
-        // Take top 10 and extract entries
-        filteredApps = results.slice(0, 10).map(r => r.entry)
+        // Преобразуем результаты в формат для ListView
+        filteredApps = allResults.slice(0, 10)
     }
 
-    // Initialize with top apps
-    Component.onCompleted: {
-        search("")
+    // Выполнение action результата
+    function launch(result) {
+        if (!result || !result.action) {
+            console.warn("LauncherService: No action for result")
+            return
+        }
+
+        console.log("LauncherService: Executing action for", result.text)
+        result.action()
     }
+
+    // НЕ инициализируем при старте - только при первом поиске
+    // Component.onCompleted не нужен
 }

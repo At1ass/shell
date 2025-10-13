@@ -1,3 +1,4 @@
+/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/generate_qmlls_build_ini_file.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/all_aotstats.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/edit_cache.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/rebuild_cache.dir
@@ -22,6 +23,8 @@
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/all_qmllint.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/all_qmllint_json.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/all_qmllint_module.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml_copy_qml.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml_copy_res.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/edit_cache.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/rebuild_cache.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/list_install_components.dir
@@ -30,3 +33,18 @@
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/install/strip.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml_autogen_timestamp_deps.dir
 /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml_autogen.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_qmltyperegistration.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_qmllint.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_qmllint_json.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_qmllint_module.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_copy_qml.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_copy_res.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/edit_cache.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/rebuild_cache.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/list_install_components.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/install.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/install/local.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/install/strip.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_autogen_timestamp_deps.dir
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/CMakeFiles/qalculateqml_autogen.dir

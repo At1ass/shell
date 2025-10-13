@@ -2,3 +2,5 @@ set(__QT_DEPLOY_TARGET_mcu-cpp_FILE /home/at1ass/.config/quickshell/shell/src/pl
 set(__QT_DEPLOY_TARGET_mcu-cpp_TYPE STATIC_LIBRARY)
 set(__QT_DEPLOY_TARGET_mcuqml_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/Mcu/libmcuqml.so)
 set(__QT_DEPLOY_TARGET_mcuqml_TYPE MODULE_LIBRARY)
+set(__QT_DEPLOY_TARGET_qalculateqml_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/Qalculate/libqalculateqml.so)
+set(__QT_DEPLOY_TARGET_qalculateqml_TYPE MODULE_LIBRARY)

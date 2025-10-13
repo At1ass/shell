@@ -20,6 +20,7 @@ events:
     names:
       - "uname"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -30,6 +31,7 @@ events:
       - "/usr/bin/core_perl/"
       - "/bin/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/uname"
       - "/home/at1ass/.local/bin/uname"
       - "/home/at1ass/.zinit/polaris/bin/uname"
       - "/usr/local/sbin/uname"
@@ -37,6 +39,7 @@ events:
     found: "/usr/bin/uname"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -52,7 +55,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:212 (message)"
       - "CMakeLists.txt:2 (project)"
     message: |
-      The system is: Linux - 6.16.10-arch1-1 - x86_64
+      The system is: Linux - 6.17.1-arch1-1 - x86_64
   -
     kind: "find-v1"
     backtrace:
@@ -74,6 +77,7 @@ events:
       - "ninja"
       - "samu"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -83,6 +87,9 @@ events:
       - "/usr/bin/vendor_perl/"
       - "/usr/bin/core_perl/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/ninja-build"
+      - "/home/at1ass/perl5/bin/ninja"
+      - "/home/at1ass/perl5/bin/samu"
       - "/home/at1ass/.local/bin/ninja-build"
       - "/home/at1ass/.local/bin/ninja"
       - "/home/at1ass/.local/bin/samu"
@@ -99,6 +106,7 @@ events:
     found: "/usr/bin/ninja"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -137,6 +145,7 @@ events:
       - "icx"
       - "clang++"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -146,6 +155,7 @@ events:
       - "/usr/bin/vendor_perl/"
       - "/usr/bin/core_perl/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/c++"
       - "/home/at1ass/.local/bin/c++"
       - "/home/at1ass/.zinit/polaris/bin/c++"
       - "/usr/local/sbin/c++"
@@ -153,6 +163,7 @@ events:
     found: "/usr/bin/c++"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -189,6 +200,7 @@ events:
     found: "/usr/share/cmake/Modules/CMakeCXXCompilerId.cpp.in"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -241,6 +253,7 @@ events:
       - "ar"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -251,6 +264,7 @@ events:
     found: "/usr/bin/ar"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -281,6 +295,7 @@ events:
       - "ranlib"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -291,6 +306,7 @@ events:
     found: "/usr/bin/ranlib"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -321,6 +337,7 @@ events:
       - "strip"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -331,6 +348,7 @@ events:
     found: "/usr/bin/strip"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -361,6 +379,7 @@ events:
       - "ld"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -371,6 +390,7 @@ events:
     found: "/usr/bin/ld"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -401,6 +421,7 @@ events:
       - "nm"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -411,6 +432,7 @@ events:
     found: "/usr/bin/nm"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -441,6 +463,7 @@ events:
       - "objdump"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -451,6 +474,7 @@ events:
     found: "/usr/bin/objdump"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -481,6 +505,7 @@ events:
       - "objcopy"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -491,6 +516,7 @@ events:
     found: "/usr/bin/objcopy"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -521,6 +547,7 @@ events:
       - "readelf"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -531,6 +558,7 @@ events:
     found: "/usr/bin/readelf"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -561,6 +589,7 @@ events:
       - "dlltool"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -570,6 +599,7 @@ events:
       - "/usr/bin/core_perl/"
     searched_directories:
       - "/usr/bin/dlltool"
+      - "/home/at1ass/perl5/bin/dlltool"
       - "/home/at1ass/.local/bin/dlltool"
       - "/home/at1ass/.zinit/polaris/bin/dlltool"
       - "/usr/local/sbin/dlltool"
@@ -580,6 +610,7 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -610,6 +641,7 @@ events:
       - "addr2line"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -620,6 +652,7 @@ events:
     found: "/usr/bin/addr2line"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -650,6 +683,7 @@ events:
       - "tapi"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -659,6 +693,7 @@ events:
       - "/usr/bin/core_perl/"
     searched_directories:
       - "/usr/bin/tapi"
+      - "/home/at1ass/perl5/bin/tapi"
       - "/home/at1ass/.local/bin/tapi"
       - "/home/at1ass/.zinit/polaris/bin/tapi"
       - "/usr/local/sbin/tapi"
@@ -669,6 +704,7 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -702,6 +738,7 @@ events:
       - "gcc-ar"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -711,6 +748,7 @@ events:
       - "/usr/bin/core_perl/"
     searched_directories:
       - "/usr/bin/gcc-ar-15.2"
+      - "/home/at1ass/perl5/bin/gcc-ar-15.2"
       - "/home/at1ass/.local/bin/gcc-ar-15.2"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ar-15.2"
       - "/usr/local/sbin/gcc-ar-15.2"
@@ -719,6 +757,7 @@ events:
       - "/usr/bin/vendor_perl/gcc-ar-15.2"
       - "/usr/bin/core_perl/gcc-ar-15.2"
       - "/usr/bin/gcc-ar-15"
+      - "/home/at1ass/perl5/bin/gcc-ar-15"
       - "/home/at1ass/.local/bin/gcc-ar-15"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ar-15"
       - "/usr/local/sbin/gcc-ar-15"
@@ -727,6 +766,7 @@ events:
       - "/usr/bin/vendor_perl/gcc-ar-15"
       - "/usr/bin/core_perl/gcc-ar-15"
       - "/usr/bin/gcc-ar15"
+      - "/home/at1ass/perl5/bin/gcc-ar15"
       - "/home/at1ass/.local/bin/gcc-ar15"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ar15"
       - "/usr/local/sbin/gcc-ar15"
@@ -737,6 +777,7 @@ events:
     found: "/usr/bin/gcc-ar"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -770,6 +811,7 @@ events:
       - "gcc-ranlib"
     candidate_directories:
       - "/usr/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -779,6 +821,7 @@ events:
       - "/usr/bin/core_perl/"
     searched_directories:
       - "/usr/bin/gcc-ranlib-15.2"
+      - "/home/at1ass/perl5/bin/gcc-ranlib-15.2"
       - "/home/at1ass/.local/bin/gcc-ranlib-15.2"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ranlib-15.2"
       - "/usr/local/sbin/gcc-ranlib-15.2"
@@ -787,6 +830,7 @@ events:
       - "/usr/bin/vendor_perl/gcc-ranlib-15.2"
       - "/usr/bin/core_perl/gcc-ranlib-15.2"
       - "/usr/bin/gcc-ranlib-15"
+      - "/home/at1ass/perl5/bin/gcc-ranlib-15"
       - "/home/at1ass/.local/bin/gcc-ranlib-15"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ranlib-15"
       - "/usr/local/sbin/gcc-ranlib-15"
@@ -795,6 +839,7 @@ events:
       - "/usr/bin/vendor_perl/gcc-ranlib-15"
       - "/usr/bin/core_perl/gcc-ranlib-15"
       - "/usr/bin/gcc-ranlib15"
+      - "/home/at1ass/perl5/bin/gcc-ranlib15"
       - "/home/at1ass/.local/bin/gcc-ranlib15"
       - "/home/at1ass/.zinit/polaris/bin/gcc-ranlib15"
       - "/usr/local/sbin/gcc-ranlib15"
@@ -805,6 +850,7 @@ events:
     found: "/usr/bin/gcc-ranlib"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -823,8 +869,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-SXpZux"
-      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-SXpZux"
+      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-aPaJN9"
+      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-aPaJN9"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -834,10 +880,10 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-SXpZux'
+        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-aPaJN9'
         
-        Run Build Command(s): /usr/bin/ninja -v cmTC_53046
-        [1/2] /usr/bin/c++   -v -o CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        Run Build Command(s): /usr/bin/ninja -v cmTC_447b8
+        [1/2] /usr/bin/c++   -v -o CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp
         Using built-in specs.
         COLLECT_GCC=/usr/bin/c++
         Target: x86_64-pc-linux-gnu
@@ -845,8 +891,8 @@ events:
         Thread model: posix
         Supported LTO compression algorithms: zlib zstd
         gcc version 15.2.1 20250813 (GCC) 
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/'
-         /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/cc1plus -quiet -v -D_GNU_SOURCE /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_53046.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/ccWXfHVz.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/'
+         /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/cc1plus -quiet -v -D_GNU_SOURCE /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_447b8.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/cc9JA6lA.s
         GNU C++17 (GCC) version 15.2.1 20250813 (x86_64-pc-linux-gnu)
         	compiled by GNU C version 15.2.1 20250813, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.3.1, isl version isl-0.27-GMP
         
@@ -863,13 +909,13 @@ events:
          /usr/include
         End of search list.
         Compiler executable checksum: 452a313327dacf71986995db29f6855a
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/'
-         as -v --64 -o CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccWXfHVz.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/'
+         as -v --64 -o CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o /tmp/cc9JA6lA.s
         GNU assembler version 2.45.0 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.45.0
         COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/
         LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../:/lib/:/usr/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.'
-        [2/2] : && /usr/bin/c++  -v -Wl,-v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_53046   && :
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.'
+        [2/2] : && /usr/bin/c++  -v -Wl,-v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_447b8   && :
         Using built-in specs.
         COLLECT_GCC=/usr/bin/c++
         COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper
@@ -880,12 +926,12 @@ events:
         gcc version 15.2.1 20250813 (GCC) 
         COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/
         LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../:/lib/:/usr/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_53046' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_53046.'
-         /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYeQP0m.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_53046 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_447b8' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_447b8.'
+         /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDTuc8H.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_447b8 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o
         collect2 version 15.2.1 20250813
-        /usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYeQP0m.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_53046 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o
+        /usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDTuc8H.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_447b8 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o
         GNU ld (GNU Binutils) 2.45.0
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_53046' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_53046.'
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_447b8' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_447b8.'
         
       exitCode: 0
   -
@@ -926,10 +972,10 @@ events:
       Parsed CXX implicit link information:
         link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
         linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
-        ignore line: [Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-SXpZux']
+        ignore line: [Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-aPaJN9']
         ignore line: []
-        ignore line: [Run Build Command(s): /usr/bin/ninja -v cmTC_53046]
-        ignore line: [[1/2] /usr/bin/c++   -v -o CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Run Build Command(s): /usr/bin/ninja -v cmTC_447b8]
+        ignore line: [[1/2] /usr/bin/c++   -v -o CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/usr/bin/c++]
         ignore line: [Target: x86_64-pc-linux-gnu]
@@ -937,8 +983,8 @@ events:
         ignore line: [Thread model: posix]
         ignore line: [Supported LTO compression algorithms: zlib zstd]
         ignore line: [gcc version 15.2.1 20250813 (GCC) ]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/']
-        ignore line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/cc1plus -quiet -v -D_GNU_SOURCE /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_53046.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/ccWXfHVz.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/']
+        ignore line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/cc1plus -quiet -v -D_GNU_SOURCE /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_447b8.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/cc9JA6lA.s]
         ignore line: [GNU C++17 (GCC) version 15.2.1 20250813 (x86_64-pc-linux-gnu)]
         ignore line: [	compiled by GNU C version 15.2.1 20250813  GMP version 6.3.0  MPFR version 4.2.2  MPC version 1.3.1  isl version isl-0.27-GMP]
         ignore line: []
@@ -955,13 +1001,13 @@ events:
         ignore line: [ /usr/include]
         ignore line: [End of search list.]
         ignore line: [Compiler executable checksum: 452a313327dacf71986995db29f6855a]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/']
-        ignore line: [ as -v --64 -o CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccWXfHVz.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o /tmp/cc9JA6lA.s]
         ignore line: [GNU assembler version 2.45.0 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.45.0]
         ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/]
         ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../:/lib/:/usr/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.']
-        ignore line: [[2/2] : && /usr/bin/c++  -v -Wl -v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_53046   && :]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.']
+        ignore line: [[2/2] : && /usr/bin/c++  -v -Wl -v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_447b8   && :]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/usr/bin/c++]
         ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper]
@@ -972,13 +1018,13 @@ events:
         ignore line: [gcc version 15.2.1 20250813 (GCC) ]
         ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/]
         ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../:/lib/:/usr/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_53046' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_53046.']
-        link line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYeQP0m.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_53046 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_447b8' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_447b8.']
+        link line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDTuc8H.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_447b8 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o]
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/collect2] ==> ignore
           arg [-plugin] ==> ignore
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so] ==> ignore
           arg [-plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper] ==> ignore
-          arg [-plugin-opt=-fresolution=/tmp/ccYeQP0m.res] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccDTuc8H.res] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
           arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -993,7 +1039,7 @@ events:
           arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
           arg [-pie] ==> ignore
           arg [-o] ==> ignore
-          arg [cmTC_53046] ==> ignore
+          arg [cmTC_447b8] ==> ignore
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o]
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o]
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o]
@@ -1005,7 +1051,7 @@ events:
           arg [-L/lib] ==> dir [/lib]
           arg [-L/usr/lib] ==> dir [/usr/lib]
           arg [-v] ==> ignore
-          arg [CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
           arg [-lstdc++] ==> lib [stdc++]
           arg [-lm] ==> lib [m]
           arg [-lgcc_s] ==> lib [gcc_s]
@@ -1016,7 +1062,7 @@ events:
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o]
           arg [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o]
         ignore line: [collect2 version 15.2.1 20250813]
-        ignore line: [/usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYeQP0m.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_53046 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_53046.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o]
+        ignore line: [/usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDTuc8H.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_447b8 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_447b8.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o]
         linker tool for 'CXX': /usr/bin/ld
         collapse obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o] ==> [/usr/lib/Scrt1.o]
         collapse obj [/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o] ==> [/usr/lib/crti.o]
@@ -1053,14 +1099,14 @@ events:
       - "/usr/share/cmake/Modules/FindThreads.cmake:163 (_threads_check_libc)"
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
-      - "/usr/lib/cmake/Qt6/Qt6Dependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
+      - "/usr/lib/cmake/Qt6/Qt6Dependencies.cmake:37 (_qt_internal_find_third_party_dependencies)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:182 (include)"
       - "CMakeLists.txt:7 (find_package)"
     checks:
       - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
     directories:
-      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-3iS590"
-      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-3iS590"
+      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-0oTAFs"
+      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-0oTAFs"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -1070,11 +1116,11 @@ events:
       variable: "CMAKE_HAVE_LIBC_PTHREAD"
       cached: true
       stdout: |
-        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-3iS590'
+        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-0oTAFs'
         
-        Run Build Command(s): /usr/bin/ninja -v cmTC_f8e45
-        [1/2] /usr/bin/c++ -DCMAKE_HAVE_LIBC_PTHREAD  -std=gnu++17 -o CMakeFiles/cmTC_f8e45.dir/src.cxx.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-3iS590/src.cxx
-        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_f8e45.dir/src.cxx.o -o cmTC_f8e45   && :
+        Run Build Command(s): /usr/bin/ninja -v cmTC_9d8d4
+        [1/2] /usr/bin/c++ -DCMAKE_HAVE_LIBC_PTHREAD  -std=gnu++17 -o CMakeFiles/cmTC_9d8d4.dir/src.cxx.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-0oTAFs/src.cxx
+        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_9d8d4.dir/src.cxx.o -o cmTC_9d8d4   && :
         
       exitCode: 0
   -
@@ -1086,14 +1132,14 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:55 (include)"
+      - "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:52 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     checks:
       - "Performing Test HAVE_STDATOMIC"
     directories:
-      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-yjkXma"
-      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-yjkXma"
+      source: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-i9ivoT"
+      binary: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-i9ivoT"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -1103,11 +1149,11 @@ events:
       variable: "HAVE_STDATOMIC"
       cached: true
       stdout: |
-        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-yjkXma'
+        Change Dir: '/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-i9ivoT'
         
-        Run Build Command(s): /usr/bin/ninja -v cmTC_a411c
-        [1/2] /usr/bin/c++ -DHAVE_STDATOMIC  -std=gnu++17 -o CMakeFiles/cmTC_a411c.dir/src.cxx.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-yjkXma/src.cxx
-        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_a411c.dir/src.cxx.o -o cmTC_a411c   && :
+        Run Build Command(s): /usr/bin/ninja -v cmTC_40989
+        [1/2] /usr/bin/c++ -DHAVE_STDATOMIC  -std=gnu++17 -o CMakeFiles/cmTC_40989.dir/src.cxx.o -c /home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/CMakeScratch/TryCompile-i9ivoT/src.cxx
+        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_40989.dir/src.cxx.o -o cmTC_40989   && :
         
       exitCode: 0
   -
@@ -1115,7 +1161,7 @@ events:
     backtrace:
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:100 (find_package)"
       - "/usr/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake:40 (_qt_internal_find_tool_dependencies)"
-      - "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:55 (include)"
+      - "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:52 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6CoreTools"
@@ -1127,8 +1173,8 @@ events:
         filename: "qt6coretools-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -1160,6 +1206,14 @@ events:
         reason: "no_exist"
       -
         path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6coretools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/Qt6CoreToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6coretools-config.cmake"
         mode: "config"
         reason: "no_exist"
       -
@@ -1197,91 +1251,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6CoreTools/Qt6CoreToolsConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:97 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6CorePrivate"
-    configs:
-      -
-        filename: "Qt6CorePrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6coreprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6CorePrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6Core/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6CorePrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6coreprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6CorePrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6coreprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6CorePrivate/Qt6CorePrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1359,9 +1332,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6Core/Qt6CoreConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1388,7 +1362,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1405,6 +1379,7 @@ events:
     names:
       - "GL/gl.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1429,6 +1404,7 @@ events:
       - "/usr/openwin/share/include/"
       - "/opt/graphics/OpenGL/include/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GL/gl.h"
       - "/home/at1ass/.local/bin/GL/gl.h"
       - "/home/at1ass/.zinit/polaris/bin/GL/gl.h"
       - "/usr/local/sbin/GL/gl.h"
@@ -1442,6 +1418,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1470,7 +1447,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1487,6 +1464,7 @@ events:
     names:
       - "GL/glx.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1508,6 +1486,7 @@ events:
       - "/opt/"
       - "/usr/include/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GL/glx.h"
       - "/home/at1ass/.local/bin/GL/glx.h"
       - "/home/at1ass/.zinit/polaris/bin/GL/glx.h"
       - "/usr/local/sbin/GL/glx.h"
@@ -1521,6 +1500,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1549,7 +1529,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1566,6 +1546,7 @@ events:
     names:
       - "EGL/egl.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1587,6 +1568,7 @@ events:
       - "/opt/"
       - "/usr/include/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/EGL/egl.h"
       - "/home/at1ass/.local/bin/EGL/egl.h"
       - "/home/at1ass/.zinit/polaris/bin/EGL/egl.h"
       - "/usr/local/sbin/EGL/egl.h"
@@ -1600,6 +1582,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1628,7 +1611,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1645,6 +1628,7 @@ events:
     names:
       - "GLES2/gl2.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1666,6 +1650,7 @@ events:
       - "/opt/"
       - "/usr/include/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GLES2/gl2.h"
       - "/home/at1ass/.local/bin/GLES2/gl2.h"
       - "/home/at1ass/.zinit/polaris/bin/GLES2/gl2.h"
       - "/usr/local/sbin/GLES2/gl2.h"
@@ -1679,6 +1664,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1707,7 +1693,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1724,6 +1710,7 @@ events:
     names:
       - "GLES3/gl3.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1745,6 +1732,7 @@ events:
       - "/opt/"
       - "/usr/include/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GLES3/gl3.h"
       - "/home/at1ass/.local/bin/GLES3/gl3.h"
       - "/home/at1ass/.zinit/polaris/bin/GLES3/gl3.h"
       - "/usr/local/sbin/GLES3/gl3.h"
@@ -1758,6 +1746,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1786,7 +1775,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1803,6 +1792,7 @@ events:
     names:
       - "GL/xmesa.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1827,6 +1817,7 @@ events:
       - "/usr/openwin/share/include/"
       - "/opt/graphics/OpenGL/include/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GL/xmesa.h"
       - "/home/at1ass/.local/bin/GL/xmesa.h"
       - "/home/at1ass/.zinit/polaris/bin/GL/xmesa.h"
       - "/usr/local/sbin/GL/xmesa.h"
@@ -1853,6 +1844,7 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1881,7 +1873,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -1898,6 +1890,7 @@ events:
     names:
       - "GL/glu.h"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1919,6 +1912,7 @@ events:
       - "/opt/"
       - "/usr/include/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/GL/glu.h"
       - "/home/at1ass/.local/bin/GL/glu.h"
       - "/home/at1ass/.zinit/polaris/bin/GL/glu.h"
       - "/usr/local/sbin/GL/glu.h"
@@ -1932,6 +1926,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -1960,7 +1955,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -1977,6 +1972,7 @@ events:
     names:
       - "OpenGL"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -1998,6 +1994,7 @@ events:
       - "/opt/"
       - "/usr/lib/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2011,6 +2008,7 @@ events:
     found: "/usr/lib/libOpenGL.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2039,7 +2037,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2056,6 +2054,8 @@ events:
     names:
       - "GLX"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/libglvnd/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/libglvnd/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/libglvnd/"
@@ -2097,6 +2097,8 @@ events:
       - "/usr/lib/X11/libglvnd/"
       - "/usr/lib/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/libglvnd/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/libglvnd/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/libglvnd/"
@@ -2121,6 +2123,7 @@ events:
     found: "/usr/lib/libGLX.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2149,7 +2152,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2166,6 +2169,8 @@ events:
     names:
       - "EGL"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/libglvnd/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/libglvnd/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/libglvnd/"
@@ -2207,6 +2212,8 @@ events:
       - "/usr/lib/X11/libglvnd/"
       - "/usr/lib/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/libglvnd/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/libglvnd/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/libglvnd/"
@@ -2231,6 +2238,7 @@ events:
     found: "/usr/lib/libEGL.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2259,7 +2267,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2276,6 +2284,7 @@ events:
     names:
       - "GLESv2"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2297,6 +2306,7 @@ events:
       - "/opt/"
       - "/usr/lib/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2310,6 +2320,7 @@ events:
     found: "/usr/lib/libGLESv2.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2338,7 +2349,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2356,6 +2367,7 @@ events:
       - "GLESv3"
       - "GLESv2"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2377,6 +2389,7 @@ events:
       - "/opt/"
       - "/usr/lib/X11/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2397,6 +2410,7 @@ events:
       - "/opt/lib/"
       - "/opt/"
       - "/usr/lib/X11/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2410,6 +2424,7 @@ events:
     found: "/usr/lib/libGLESv2.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2438,7 +2453,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2456,6 +2471,7 @@ events:
       - "GLU"
       - "MesaGLU"
     candidate_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2480,6 +2496,7 @@ events:
       - "/usr/openwin/lib/"
       - "/usr/shlib/"
     searched_directories:
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2493,6 +2510,7 @@ events:
     found: "/usr/lib/libGLU.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2520,7 +2538,7 @@ events:
       - "/usr/lib/cmake/Qt6/FindWrapVulkanHeaders.cmake:13 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:34 (find_package)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "path"
@@ -2538,6 +2556,7 @@ events:
       - "vulkan/vulkan.h"
     candidate_directories:
       - "/include/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2560,6 +2579,7 @@ events:
       - "/usr/include/X11/"
     searched_directories:
       - "/include/vulkan/vulkan.h"
+      - "/home/at1ass/perl5/bin/vulkan/vulkan.h"
       - "/home/at1ass/.local/bin/vulkan/vulkan.h"
       - "/home/at1ass/.zinit/polaris/bin/vulkan/vulkan.h"
       - "/usr/local/sbin/vulkan/vulkan.h"
@@ -2573,6 +2593,7 @@ events:
     found: "/usr/include/"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2600,7 +2621,7 @@ events:
       - "/usr/lib/cmake/Qt6/FindWrapVulkanHeaders.cmake:13 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:34 (find_package)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "library"
@@ -2618,6 +2639,7 @@ events:
       - "vulkan"
     candidate_directories:
       - "/lib/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2641,6 +2663,7 @@ events:
     found: "/lib/libvulkan.so"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2668,7 +2691,7 @@ events:
       - "/usr/lib/cmake/Qt6/FindWrapVulkanHeaders.cmake:13 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:34 (find_package)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "program"
@@ -2686,6 +2709,7 @@ events:
       - "glslc"
     candidate_directories:
       - "/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2714,6 +2738,7 @@ events:
     found: "/bin/glslc"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2739,7 +2764,7 @@ events:
       - "/usr/lib/cmake/Qt6/FindWrapVulkanHeaders.cmake:13 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:34 (find_package)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:36 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     mode: "program"
@@ -2757,6 +2782,7 @@ events:
       - "glslangValidator"
     candidate_directories:
       - "/bin/"
+      - "/home/at1ass/perl5/bin/"
       - "/home/at1ass/.local/bin/"
       - "/home/at1ass/.zinit/polaris/bin/"
       - "/usr/local/sbin/"
@@ -2785,6 +2811,7 @@ events:
     found: "/bin/glslangValidator"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2808,7 +2835,7 @@ events:
     backtrace:
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:100 (find_package)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:41 (_qt_internal_find_tool_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6GuiTools"
@@ -2820,8 +2847,8 @@ events:
         filename: "qt6guitools-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -2853,6 +2880,14 @@ events:
         reason: "no_exist"
       -
         path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6guitools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/Qt6GuiToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6guitools-config.cmake"
         mode: "config"
         reason: "no_exist"
       -
@@ -2890,9 +2925,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6GuiTools/Qt6GuiToolsConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -2916,11 +2952,11 @@ events:
     backtrace:
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:100 (find_package)"
       - "/usr/lib/cmake/Qt6DBus/Qt6DBusDependencies.cmake:39 (_qt_internal_find_tool_dependencies)"
-      - "/usr/lib/cmake/Qt6DBus/Qt6DBusConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6DBus/Qt6DBusConfig.cmake:50 (include)"
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:47 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6DBusTools"
@@ -2932,8 +2968,8 @@ events:
         filename: "qt6dbustools-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -2965,6 +3001,14 @@ events:
         reason: "no_exist"
       -
         path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6dbustools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/Qt6DBusToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6dbustools-config.cmake"
         mode: "config"
         reason: "no_exist"
       -
@@ -3002,95 +3046,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6DBusTools/Qt6DBusToolsConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6DBus/Qt6DBusConfig.cmake:95 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:47 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6DBusPrivate"
-    configs:
-      -
-        filename: "Qt6DBusPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6dbusprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6DBusPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6DBus/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6DBusPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6dbusprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6DBusPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6dbusprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6DBusPrivate/Qt6DBusPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -3115,7 +3074,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Gui/Qt6GuiDependencies.cmake:47 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:50 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6DBus"
@@ -3127,8 +3086,8 @@ events:
         filename: "qt6dbus-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -3173,364 +3132,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6DBus/Qt6DBusConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find-v1"
-    backtrace:
-      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:69 (find_program)"
-      - "/usr/lib/cmake/Qt6/3rdparty/kwin/FindXKB.cmake:50 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateDependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake:46 (include)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:95 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    mode: "program"
-    variable: "PKG_CONFIG_EXECUTABLE"
-    description: "pkg-config executable"
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "pkg-config"
-      - "pkgconf"
-    candidate_directories:
-      - "/home/at1ass/.local/bin/"
-      - "/home/at1ass/.zinit/polaris/bin/"
-      - "/usr/local/sbin/"
-      - "/usr/local/bin/"
-      - "/usr/bin/"
-      - "/usr/bin/site_perl/"
-      - "/usr/bin/vendor_perl/"
-      - "/usr/bin/core_perl/"
-      - "/usr/local/bin/"
-      - "/usr/local/sbin/"
-      - "/usr/local/"
-      - "/usr/bin/"
-      - "/usr/sbin/"
-      - "/usr/"
-      - "/bin/"
-      - "/sbin/"
-      - "/usr/X11R6/bin/"
-      - "/usr/X11R6/sbin/"
-      - "/usr/X11R6/"
-      - "/usr/pkg/bin/"
-      - "/usr/pkg/sbin/"
-      - "/usr/pkg/"
-      - "/opt/bin/"
-      - "/opt/sbin/"
-      - "/opt/"
-    searched_directories:
-      - "/home/at1ass/.local/bin/pkg-config"
-      - "/home/at1ass/.local/bin/pkgconf"
-      - "/home/at1ass/.zinit/polaris/bin/pkg-config"
-      - "/home/at1ass/.zinit/polaris/bin/pkgconf"
-      - "/usr/local/sbin/pkg-config"
-      - "/usr/local/sbin/pkgconf"
-      - "/usr/local/bin/pkg-config"
-      - "/usr/local/bin/pkgconf"
-    found: "/usr/bin/pkg-config"
-    search_context:
-      ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find-v1"
-    backtrace:
-      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:307 (find_library)"
-      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:357 (_pkg_find_libs)"
-      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:695 (_pkg_recalculate)"
-      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:867 (_pkg_check_modules_internal)"
-      - "/usr/lib/cmake/Qt6/3rdparty/kwin/FindXKB.cmake:51 (pkg_check_modules)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateDependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake:46 (include)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:95 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    mode: "library"
-    variable: "pkgcfg_lib_PKG_XKB_xkbcommon"
-    description: "Path to a library."
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "xkbcommon"
-    candidate_directories:
-      - "/usr/lib/"
-    found: "/usr/lib/libxkbcommon.so"
-    search_context:
-      ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-      CMAKE_SYSTEM_LIBRARY_PATH:
-        - "/usr/lib/X11"
-  -
-    kind: "find-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6/3rdparty/kwin/FindXKB.cmake:55 (find_path)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateDependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake:46 (include)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:95 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    mode: "path"
-    variable: "XKB_INCLUDE_DIR"
-    description: "Path to a file."
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "xkbcommon/xkbcommon.h"
-    candidate_directories:
-      - "/usr/include/"
-      - "/home/at1ass/.local/bin/"
-      - "/home/at1ass/.zinit/polaris/bin/"
-      - "/usr/local/sbin/"
-      - "/usr/local/bin/"
-      - "/usr/bin/"
-      - "/usr/bin/site_perl/"
-      - "/usr/bin/vendor_perl/"
-      - "/usr/bin/core_perl/"
-      - "/usr/local/include/"
-      - "/usr/local/"
-      - "/usr/include/"
-      - "/usr/"
-      - "/include/"
-      - "/usr/X11R6/include/"
-      - "/usr/X11R6/"
-      - "/usr/pkg/include/"
-      - "/usr/pkg/"
-      - "/opt/include/"
-      - "/opt/"
-      - "/usr/include/X11/"
-    found: "/usr/include/"
-    search_context:
-      ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-      CMAKE_SYSTEM_INCLUDE_PATH:
-        - "/usr/include/X11"
-  -
-    kind: "find-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6/3rdparty/kwin/FindXKB.cmake:61 (find_library)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:36 (find_dependency)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateDependencies.cmake:35 (_qt_internal_find_third_party_dependencies)"
-      - "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake:46 (include)"
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:95 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    mode: "library"
-    variable: "XKB_LIBRARY"
-    description: "Path to a library."
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "xkbcommon"
-    candidate_directories:
-      - "/usr/lib/"
-      - "/home/at1ass/.local/bin/"
-      - "/home/at1ass/.zinit/polaris/bin/"
-      - "/usr/local/sbin/"
-      - "/usr/local/bin/"
-      - "/usr/bin/"
-      - "/usr/bin/site_perl/"
-      - "/usr/bin/vendor_perl/"
-      - "/usr/bin/core_perl/"
-      - "/usr/local/lib/"
-      - "/usr/local/"
-      - "/usr/lib/"
-      - "/usr/"
-      - "/lib/"
-      - "/usr/X11R6/lib/"
-      - "/usr/X11R6/"
-      - "/usr/pkg/lib/"
-      - "/usr/pkg/"
-      - "/opt/lib/"
-      - "/opt/"
-      - "/usr/lib/X11/"
-    found: "/usr/lib/libxkbcommon.so"
-    search_context:
-      ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-      CMAKE_SYSTEM_LIBRARY_PATH:
-        - "/usr/lib/X11"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake:95 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6GuiPrivate"
-    configs:
-      -
-        filename: "Qt6GuiPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6guiprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6GuiPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6Gui/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6GuiPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6guiprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6GuiPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6guiprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -3608,9 +3213,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -3634,7 +3240,7 @@ events:
     backtrace:
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:100 (find_package)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlDependencies.cmake:39 (_qt_internal_find_tool_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:56 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:53 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6QmlTools"
@@ -3646,8 +3252,8 @@ events:
         filename: "qt6qmltools-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -3679,6 +3285,14 @@ events:
         reason: "no_exist"
       -
         path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6qmltools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/Qt6QmlToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6qmltools-config.cmake"
         mode: "config"
         reason: "no_exist"
       -
@@ -3716,95 +3330,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6QmlTools/Qt6QmlToolsConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6QmlIntegration/Qt6QmlIntegrationConfig.cmake:95 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:56 (include)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6QmlIntegrationPrivate"
-    configs:
-      -
-        filename: "Qt6QmlIntegrationPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6qmlintegrationprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6QmlIntegrationPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6QmlIntegration/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6QmlIntegrationPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6qmlintegrationprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6QmlIntegrationPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6qmlintegrationprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6QmlIntegrationPrivate/Qt6QmlIntegrationPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -3829,7 +3358,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:56 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:53 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6QmlIntegration"
@@ -3841,8 +3370,8 @@ events:
         filename: "qt6qmlintegration-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -3887,95 +3416,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6QmlIntegration/Qt6QmlIntegrationConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6Network/Qt6NetworkConfig.cmake:95 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:56 (include)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6NetworkPrivate"
-    configs:
-      -
-        filename: "Qt6NetworkPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6networkprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6NetworkPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6Network/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6NetworkPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6networkprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6NetworkPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6networkprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6NetworkPrivate/Qt6NetworkPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4000,7 +3444,7 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:56 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:53 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6Network"
@@ -4012,8 +3456,8 @@ events:
         filename: "qt6network-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -4058,91 +3502,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6Network/Qt6NetworkConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:98 (find_package)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6QmlPrivate"
-    configs:
-      -
-        filename: "Qt6QmlPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6qmlprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6QmlPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6Qml/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6QmlPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6qmlprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6QmlPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6qmlprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6QmlPrivate/Qt6QmlPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4165,7 +3528,7 @@ events:
     kind: "find_package-v1"
     backtrace:
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlFindQmlscInternal.cmake:34 (find_package)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:210 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:201 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6QmlCompilerPlusPrivateTools"
@@ -4177,8 +3540,8 @@ events:
         filename: "qt6qmlcompilerplusprivatetools-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -4207,6 +3570,14 @@ events:
         reason: "no_exist"
       -
         path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6qmlcompilerplusprivatetools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/Qt6QmlCompilerPlusPrivateToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6qmlcompilerplusprivatetools-config.cmake"
         mode: "config"
         reason: "no_exist"
       -
@@ -4284,103 +3655,7 @@ events:
     found: null
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6Concurrent/Qt6ConcurrentConfig.cmake:95 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateConfig.cmake:53 (include)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:53 (include)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginDependencies.cmake:19 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:65 (include)"
-      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:680 (include)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake:6 (__qt_internal_include_qml_plugin_packages)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:214 (include)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6ConcurrentPrivate"
-    configs:
-      -
-        filename: "Qt6ConcurrentPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6concurrentprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6ConcurrentPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6Concurrent/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6ConcurrentPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6concurrentprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6ConcurrentPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6concurrentprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6ConcurrentPrivate/Qt6ConcurrentPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4405,18 +3680,18 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateConfig.cmake:50 (include)"
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:50 (include)"
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginDependencies.cmake:19 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:65 (include)"
-      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:680 (include)"
+      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:62 (include)"
+      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:638 (include)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake:6 (__qt_internal_include_qml_plugin_packages)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:214 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:205 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6Concurrent"
@@ -4428,8 +3703,8 @@ events:
         filename: "qt6concurrent-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -4474,9 +3749,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6Concurrent/Qt6ConcurrentConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4501,14 +3777,14 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderDependencies.cmake:45 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:53 (include)"
+      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:50 (include)"
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginDependencies.cmake:19 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:65 (include)"
-      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:680 (include)"
+      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:62 (include)"
+      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:638 (include)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake:6 (__qt_internal_include_qml_plugin_packages)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:214 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:205 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6ExamplesAssetDownloaderPrivate"
@@ -4520,8 +3796,8 @@ events:
         filename: "qt6examplesassetdownloaderprivate-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -4566,98 +3842,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
-        - "/home/at1ass/.local/bin"
-        - "/home/at1ass/.zinit/polaris/bin"
-        - "/usr/local/sbin"
-        - "/usr/local/bin"
-        - "/usr/bin"
-        - "/usr/bin/site_perl"
-        - "/usr/bin/vendor_perl"
-        - "/usr/bin/core_perl"
-      CMAKE_INSTALL_PREFIX: "/"
-      CMAKE_SYSTEM_PREFIX_PATH:
-        - "/usr/local"
-        - "/usr"
-        - "/"
-        - "/usr"
-        - "/"
-        - "/usr/X11R6"
-        - "/usr/pkg"
-        - "/opt"
-  -
-    kind: "find_package-v1"
-    backtrace:
-      - "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake:95 (find_package)"
-      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
-      - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginDependencies.cmake:19 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:65 (include)"
-      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:680 (include)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake:6 (__qt_internal_include_qml_plugin_packages)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:214 (include)"
-      - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
-      - "CMakeLists.txt:7 (find_package)"
-    name: "Qt6QmlAssetDownloaderPrivate"
-    configs:
-      -
-        filename: "Qt6QmlAssetDownloaderPrivateConfig.cmake"
-        kind: "cmake"
-      -
-        filename: "qt6qmlassetdownloaderprivate-config.cmake"
-        kind: "cmake"
-    version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
-      exact: true
-    settings:
-      required: "optional"
-      quiet: true
-      global: false
-      policy_scope: true
-      bypass_provider: false
-      names:
-        - "Qt6QmlAssetDownloaderPrivate"
-      search_paths:
-        - "/usr/lib/cmake/Qt6QmlAssetDownloader/.."
-        - "/usr/lib/cmake"
-      path_suffixes:
-        - ""
-      paths:
-        CMAKE_FIND_USE_CMAKE_PATH: false
-        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-        CMAKE_FIND_USE_INSTALL_PREFIX: true
-        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
-        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
-        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
-        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
-    candidates:
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/Qt6QmlAssetDownloaderPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/home/at1ass/.config/quickshell/shell/src/plugins/build/CMakeFiles/pkgRedirects/qt6qmlassetdownloaderprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/Qt6QmlAssetDownloaderPrivateConfig.cmake"
-        mode: "config"
-        reason: "no_exist"
-      -
-        path: "/usr/lib/cmake/qt6qmlassetdownloaderprivate-config.cmake"
-        mode: "config"
-        reason: "no_exist"
-    found:
-      path: "/usr/lib/cmake/Qt6QmlAssetDownloaderPrivate/Qt6QmlAssetDownloaderPrivateConfig.cmake"
-      mode: "config"
-      version: "6.9.2"
-    search_context:
-      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4682,10 +3870,10 @@ events:
       - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:78 (find_package)"
       - "/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:142 (find_dependency)"
       - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginDependencies.cmake:19 (_qt_internal_find_qt_dependencies)"
-      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:65 (include)"
-      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:680 (include)"
+      - "/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlAssetDownloaderpluginConfig.cmake:62 (include)"
+      - "/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake:638 (include)"
       - "/usr/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake:6 (__qt_internal_include_qml_plugin_packages)"
-      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:214 (include)"
+      - "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake:205 (include)"
       - "/usr/lib/cmake/Qt6/Qt6Config.cmake:243 (find_package)"
       - "CMakeLists.txt:7 (find_package)"
     name: "Qt6QmlAssetDownloader"
@@ -4697,8 +3885,8 @@ events:
         filename: "qt6qmlassetdownloader-config.cmake"
         kind: "cmake"
     version_request:
-      version: "6.9.2"
-      version_complete: "6.9.2"
+      version: "6.10.0"
+      version_complete: "6.10.0"
       exact: false
     settings:
       required: "optional"
@@ -4743,9 +3931,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6QmlAssetDownloader/Qt6QmlAssetDownloaderConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4823,9 +4012,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6Qml/Qt6QmlConfig.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -4903,6 +4093,14 @@ events:
         mode: "config"
         reason: "no_exist"
       -
+        path: "/home/at1ass/perl5/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
         path: "/home/at1ass/.local/Qt6Config.cmake"
         mode: "config"
         reason: "no_exist"
@@ -4937,9 +4135,10 @@ events:
     found:
       path: "/usr/lib/cmake/Qt6/Qt6Config.cmake"
       mode: "config"
-      version: "6.9.2"
+      version: "6.10.0"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -5006,6 +4205,14 @@ events:
         mode: "config"
         reason: "no_exist"
       -
+        path: "/home/at1ass/perl5/abslConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/at1ass/perl5/absl-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
         path: "/home/at1ass/.local/abslConfig.cmake"
         mode: "config"
         reason: "no_exist"
@@ -5043,6 +4250,7 @@ events:
       version: "20250814"
     search_context:
       ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
         - "/home/at1ass/.local/bin"
         - "/home/at1ass/.zinit/polaris/bin"
         - "/usr/local/sbin"
@@ -5065,4 +4273,130 @@ events:
         - "/usr/lib/cmake/Qt6"
         - "/usr/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules"
         - "/usr/lib/cmake/Qt6/3rdparty/kwin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:69 (find_program)"
+      - "src/qalculate-qml/CMakeLists.txt:5 (find_package)"
+    mode: "program"
+    variable: "PKG_CONFIG_EXECUTABLE"
+    description: "pkg-config executable"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "pkg-config"
+      - "pkgconf"
+    candidate_directories:
+      - "/home/at1ass/perl5/bin/"
+      - "/home/at1ass/.local/bin/"
+      - "/home/at1ass/.zinit/polaris/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+    searched_directories:
+      - "/home/at1ass/perl5/bin/pkg-config"
+      - "/home/at1ass/perl5/bin/pkgconf"
+      - "/home/at1ass/.local/bin/pkg-config"
+      - "/home/at1ass/.local/bin/pkgconf"
+      - "/home/at1ass/.zinit/polaris/bin/pkg-config"
+      - "/home/at1ass/.zinit/polaris/bin/pkgconf"
+      - "/usr/local/sbin/pkg-config"
+      - "/usr/local/sbin/pkgconf"
+      - "/usr/local/bin/pkg-config"
+      - "/usr/local/bin/pkgconf"
+    found: "/usr/bin/pkg-config"
+    search_context:
+      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
+        - "/home/at1ass/.local/bin"
+        - "/home/at1ass/.zinit/polaris/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+      CMAKE_INSTALL_PREFIX: "/"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:307 (find_library)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:357 (_pkg_find_libs)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:695 (_pkg_recalculate)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:867 (_pkg_check_modules_internal)"
+      - "src/qalculate-qml/CMakeLists.txt:6 (pkg_check_modules)"
+    mode: "library"
+    variable: "pkgcfg_lib_QALCULATE_qalculate"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "qalculate"
+    candidate_directories:
+      - "/usr/lib/"
+    found: "/usr/lib/libqalculate.so"
+    search_context:
+      ENV{PATH}:
+        - "/home/at1ass/perl5/bin"
+        - "/home/at1ass/.local/bin"
+        - "/home/at1ass/.zinit/polaris/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+      CMAKE_INSTALL_PREFIX: "/"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
 ...

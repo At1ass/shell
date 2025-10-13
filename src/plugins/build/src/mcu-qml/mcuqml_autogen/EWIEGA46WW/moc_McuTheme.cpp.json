@@ -19,6 +19,7 @@
                         }
                     ],
                     "index": 7,
+                    "lineNumber": 34,
                     "name": "setSource",
                     "returnType": "void"
                 },
@@ -31,6 +32,7 @@
                         }
                     ],
                     "index": 8,
+                    "lineNumber": 38,
                     "name": "setDarkMode",
                     "returnType": "void"
                 },
@@ -43,6 +45,7 @@
                         }
                     ],
                     "index": 9,
+                    "lineNumber": 41,
                     "name": "setVariant",
                     "returnType": "void"
                 },
@@ -55,6 +58,7 @@
                         }
                     ],
                     "index": 10,
+                    "lineNumber": 44,
                     "name": "setContrast",
                     "returnType": "void"
                 }
@@ -66,6 +70,7 @@
                     "designable": true,
                     "final": false,
                     "index": 0,
+                    "lineNumber": 15,
                     "name": "source",
                     "notify": "sourceChanged",
                     "read": "source",
@@ -81,6 +86,7 @@
                     "designable": true,
                     "final": false,
                     "index": 1,
+                    "lineNumber": 18,
                     "name": "darkMode",
                     "notify": "darkModeChanged",
                     "read": "darkMode",
@@ -96,6 +102,7 @@
                     "designable": true,
                     "final": false,
                     "index": 2,
+                    "lineNumber": 19,
                     "name": "variant",
                     "notify": "variantChanged",
                     "read": "variant",
@@ -111,6 +118,7 @@
                     "designable": true,
                     "final": false,
                     "index": 3,
+                    "lineNumber": 20,
                     "name": "contrast",
                     "notify": "contrastChanged",
                     "read": "contrast",
@@ -126,6 +134,7 @@
                     "designable": true,
                     "final": false,
                     "index": 4,
+                    "lineNumber": 23,
                     "name": "colors",
                     "notify": "colorsChanged",
                     "read": "colors",
@@ -140,6 +149,7 @@
                     "designable": true,
                     "final": false,
                     "index": 5,
+                    "lineNumber": 26,
                     "name": "valid",
                     "notify": "validChanged",
                     "read": "valid",
@@ -154,6 +164,7 @@
                     "designable": true,
                     "final": false,
                     "index": 6,
+                    "lineNumber": 27,
                     "name": "loading",
                     "notify": "loadingChanged",
                     "read": "loading",
@@ -169,42 +180,49 @@
                 {
                     "access": "public",
                     "index": 0,
+                    "lineNumber": 54,
                     "name": "sourceChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 1,
+                    "lineNumber": 55,
                     "name": "darkModeChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 2,
+                    "lineNumber": 56,
                     "name": "variantChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 3,
+                    "lineNumber": 57,
                     "name": "contrastChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 4,
+                    "lineNumber": 58,
                     "name": "colorsChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 5,
+                    "lineNumber": 59,
                     "name": "validChanged",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 6,
+                    "lineNumber": 60,
                     "name": "loadingChanged",
                     "returnType": "void"
                 }

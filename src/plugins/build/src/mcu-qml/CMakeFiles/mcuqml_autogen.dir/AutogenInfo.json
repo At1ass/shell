@@ -63,15 +63,11 @@
 	"MOC_INCLUDES" : 
 	[
 		"/home/at1ass/.config/quickshell/shell/src/plugins/src/mcu-qml",
-		"/usr/include/qt6/QtQml/6.9.2",
-		"/usr/include/qt6/QtQml/6.9.2/QtQml",
-		"/usr/include/qt6/QtCore/6.9.2",
-		"/usr/include/qt6/QtCore/6.9.2/QtCore",
 		"/home/at1ass/.config/quickshell/shell/src/plugins/external/material-color-utilities",
-		"/usr/include/qt6/QtCore",
-		"/usr/include/qt6",
-		"/usr/lib/qt6/mkspecs/linux-g++",
 		"/usr/include/qt6/QtQml",
+		"/usr/include/qt6",
+		"/usr/include/qt6/QtCore",
+		"/usr/lib/qt6/mkspecs/linux-g++",
 		"/usr/include/qt6/QtQmlIntegration",
 		"/usr/include/qt6/QtNetwork",
 		"/usr/include/qt6/QtGui",
@@ -116,7 +112,7 @@
 	"QT_MOC_EXECUTABLE" : "/usr/lib/qt6/moc",
 	"QT_UIC_EXECUTABLE" : "",
 	"QT_VERSION_MAJOR" : 6,
-	"QT_VERSION_MINOR" : 9,
+	"QT_VERSION_MINOR" : 10,
 	"SETTINGS_FILE" : "/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/CMakeFiles/mcuqml_autogen.dir/AutogenUsed.txt",
 	"SOURCES" : 
 	[
