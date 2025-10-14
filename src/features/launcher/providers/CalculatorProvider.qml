@@ -12,9 +12,10 @@ BaseProvider {
     function search(query) {
         // Убираем префикс если есть
         let expr = removePrefix(query)
+        let normalizedExpr = expr ? expr.trim() : ""
 
         // Если пустое выражение
-        if (!expr || expr.trim() === "") {
+        if (!normalizedExpr) {
             return []
         }
 
@@ -26,6 +27,7 @@ BaseProvider {
             // Показываем ошибку только если был явный префикс "="
             if (query.startsWith("=")) {
                 return [{
+                    id: "calculator:error:" + normalizedExpr,
                     text: "Error",
                     description: result || "Invalid expression",
                     icon: "dialog-error",
@@ -39,6 +41,7 @@ BaseProvider {
 
         // Успешное вычисление
         return [{
+            id: "calculator:" + normalizedExpr,
             text: result,
             description: expr + " = " + result,
             icon: "accessories-calculator",

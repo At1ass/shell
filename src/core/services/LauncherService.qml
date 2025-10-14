@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import QtQml
 import Quickshell
 import qs.src.features.launcher.providers
 
@@ -13,11 +14,51 @@ Singleton {
     // Отфильтрованные результаты
     property var filteredApps: []
 
+    // Кэш QML-объектов результатов поиска (ключ -> QtObject)
+    property var _wrapperCache: ({})
+
     // Провайдеры (в порядке приоритета)
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
-        ApplicationProvider { id: applicationProvider }
+        ApplicationProvider { id: applicationProvider },
+        FileProvider { id: fileProvider }
     ]
+
+    Component {
+        id: resultWrapperComponent
+
+        QtObject {
+            property string resultId: ""
+            property string type: ""
+            property string text: ""
+            property string description: ""
+            property string icon: ""
+            property int score: 0
+            property var data: null
+            property var action: null
+        }
+    }
+
+    function wrapperForResult(key) {
+        if (!key || typeof key !== "string") {
+            return null
+        }
+
+        let existing = _wrapperCache[key]
+        if (existing) {
+            return existing
+        }
+
+        let wrapper = resultWrapperComponent.createObject(root)
+        if (!wrapper) {
+            console.warn("LauncherService: Failed to create result wrapper for key", key)
+            return null
+        }
+
+        wrapper.resultId = key
+        _wrapperCache[key] = wrapper
+        return wrapper
+    }
 
     // Поиск через все провайдеры
     function search(query) {
@@ -29,7 +70,8 @@ Singleton {
             return
         }
 
-        let allResults = []
+        let collectedResults = []
+        let seenKeys = Object.create(null)
 
         // Собираем результаты от всех подходящих провайдеров
         for (let i = 0; i < providers.length; i++) {
@@ -37,21 +79,43 @@ Singleton {
 
             if (provider.canHandle(query)) {
                 let providerResults = provider.search(query)
-
-                // Добавляем приоритет провайдера к score результатов
-                for (let j = 0; j < providerResults.length; j++) {
-                    providerResults[j].score += provider.priority
+                if (!Array.isArray(providerResults)) {
+                    continue
                 }
 
-                allResults = allResults.concat(providerResults)
+                // Преобразуем результаты в QML-объекты, переиспользуя их между поисками
+                for (let j = 0; j < providerResults.length; j++) {
+                    let result = providerResults[j]
+                    if (!result || !result.id) continue
+
+                    let key = String(result.id)
+                    if (seenKeys[key]) {
+                        // Защита от дублей из разных провайдеров
+                        continue
+                    }
+                    seenKeys[key] = true
+
+                    let wrapper = wrapperForResult(key)
+                    if (!wrapper) continue
+
+                    wrapper.type = result.type || ""
+                    wrapper.text = result.text || ""
+                    wrapper.description = result.description || ""
+                    wrapper.icon = result.icon || ""
+                    wrapper.score = (typeof result.score === "number" ? result.score : 0) + provider.priority
+                    wrapper.data = result.hasOwnProperty("data") ? result.data : null
+                    wrapper.action = typeof result.action === "function" ? result.action : null
+
+                    collectedResults.push(wrapper)
+                }
             }
         }
 
         // Сортировка по score (descending)
-        allResults.sort((a, b) => b.score - a.score)
+        collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0))
 
-        // Преобразуем результаты в формат для ListView
-        filteredApps = allResults.slice(0, 10)
+        // Преобразуем результаты в формат для ListView (ограничиваем top-10)
+        filteredApps = collectedResults.slice(0, 10)
     }
 
     // Выполнение action результата

@@ -1,2 +1,0 @@
-Mcu(mcuqml)
-Qalculate(qalculateqml)

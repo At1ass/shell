@@ -9,3 +9,4 @@ find_package(Qt6 6.5 COMPONENTS Core Gui Qml REQUIRED)
 add_subdirectory(external/mcu-cpp)  # делает target mcu-cpp, см. их CMake
 add_subdirectory(src/mcu-qml)
 add_subdirectory(src/qalculate-qml)
+add_subdirectory(src/file-search-qml)

@@ -3,3 +3,4 @@ module qs.src.features.launcher.providers
 BaseProvider 1.0 BaseProvider.qml
 CalculatorProvider 1.0 CalculatorProvider.qml
 ApplicationProvider 1.0 ApplicationProvider.qml
+FileProvider 1.0 FileProvider.qml

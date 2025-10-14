@@ -87,7 +87,13 @@ BaseProvider {
 
     // Создание результата из DesktopEntry
     function createResult(app, score) {
+        const entryId = app.id
+            || app.filePath
+            || app.desktopFile
+            || ((app.name || "") + ":" + (app.execString || "") + ":" + (Array.isArray(app.command) ? app.command.join(" ") : ""))
+
         return {
+            id: "application:" + entryId,
             text: app.name || "",
             description: app.comment || app.genericName || "",
             icon: app.icon || "application-x-executable",

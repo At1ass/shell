@@ -158,26 +158,40 @@ Item {
                 // ScriptModel для отслеживания изменений элементов
                 model: ScriptModel {
                     id: scriptModel
+                    objectProp: "resultId"
                     values: LauncherService.filteredApps
+
+                    onValuesChanged: appListView.currentIndex = 0
                 }
 
                 spacing: Config.spacing.extraSmall
                 clip: true
 
                 currentIndex: 0
-                highlightFollowsCurrentItem: true
-                highlightMoveDuration: 200
+                highlightFollowsCurrentItem: false
 
                 // Transform origin для scale анимаций
                 transformOrigin: Item.Center
 
                 // Highlight
                 highlight: Rectangle {
+                    visible: !!appListView.currentItem
+                    width: appListView.width
+                    height: appListView.currentItem ? appListView.currentItem.height : 0
+                    y: appListView.currentItem ? appListView.currentItem.y : 0
                     radius: Config.shape.medium
                     color: Config.colors.secondaryContainer
                     opacity: 0.3
 
                     Behavior on y {
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard
+                        }
+                    }
+
+                    Behavior on height {
                         NumberAnimation {
                             duration: 200
                             easing.type: Easing.BezierSpline
