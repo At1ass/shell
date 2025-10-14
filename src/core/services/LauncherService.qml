@@ -16,7 +16,8 @@ Singleton {
     // Провайдеры (в порядке приоритета)
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
-        ApplicationProvider { id: applicationProvider }
+        ApplicationProvider { id: applicationProvider },
+        FileProvider { id: fileProvider }
     ]
 
     // Поиск через все провайдеры

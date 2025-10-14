@@ -1,9 +1,0 @@
---bare
--I
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml
--I
-/usr/lib/qt6/qml
---resource
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/.qt/rcc/qmake_Mcu.qrc
---json
-/home/at1ass/.config/quickshell/shell/src/plugins/build/mcuqml_qmllint.json
