@@ -90,6 +90,10 @@ PanelWindow {
                 tooltipManager: statusBar.tooltip
             }
 
+            NotificationWidget {
+                tooltipManager: statusBar.tooltip
+            }
+
             VolumeWidget {
                 tooltipManager: statusBar.tooltip
             }

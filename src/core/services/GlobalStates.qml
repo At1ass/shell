@@ -17,6 +17,7 @@ Singleton {
     property bool darkMode: true
     property bool inhibit: false
     property bool launcherOpen: false
+    property bool notificationSidebarOpen: false
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
@@ -27,6 +28,7 @@ Singleton {
         controlPanelOpen = false
         dashboardOpen = false
         launcherOpen = false
+        notificationSidebarOpen = false
     }
 
     function closeAllOSD() {
@@ -53,6 +55,15 @@ Singleton {
         if (launcherOpen) {
             controlPanelOpen = false
             dashboardOpen = false
+            notificationSidebarOpen = false
+        }
+    }
+
+    onNotificationSidebarOpenChanged: {
+        if (notificationSidebarOpen) {
+            controlPanelOpen = false
+            dashboardOpen = false
+            launcherOpen = false
         }
     }
 
@@ -124,8 +135,29 @@ Singleton {
             root.controlPanelLeftOpen = false
         }
 
+        function toggleNotificationSidebar(): void {
+            root.notificationSidebarOpen = !root.notificationSidebarOpen
+        }
+
+        function openNotificationSidebar(): void {
+            root.notificationSidebarOpen = true
+        }
+
+        function closeNotificationSidebar(): void {
+            root.notificationSidebarOpen = false
+        }
+
         function closeAll(): void {
             root.closeAllPanels()
+        }
+    }
+
+    GlobalShortcut {
+        name: "notificationSidebarToggle"
+        description: "Toggle notification sidebar"
+
+        onPressed: {
+            root.notificationSidebarOpen = !root.notificationSidebarOpen
         }
     }
 }
