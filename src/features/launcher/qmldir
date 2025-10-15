@@ -1,0 +1,4 @@
+module qs.src.features.launcher
+
+Launcher 1.0 Launcher.qml
+LauncherContent 1.0 LauncherContent.qml
