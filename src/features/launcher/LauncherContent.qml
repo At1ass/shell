@@ -126,6 +126,8 @@ Item {
                                 event.accepted = true
                             }
                         }
+
+                        Component.onCompleted: searchField.forceActiveFocus()
                     }
 
                     IconButton {
@@ -158,7 +160,7 @@ Item {
                 // ScriptModel для отслеживания изменений элементов
                 model: ScriptModel {
                     id: scriptModel
-                    objectProp: "resultId"
+                    objectProp: "id"  // Исправлено: все провайдеры используют "id"
                     values: LauncherService.filteredApps
 
                     onValuesChanged: appListView.currentIndex = 0
@@ -169,6 +171,11 @@ Item {
 
                 currentIndex: 0
                 highlightFollowsCurrentItem: false
+
+                // Автопрокрутка при изменении currentIndex
+                onCurrentIndexChanged: {
+                    positionViewAtIndex(currentIndex, ListView.Contain)
+                }
 
                 // Transform origin для scale анимаций
                 transformOrigin: Item.Center
@@ -210,8 +217,26 @@ Item {
                     }
                 }
 
+                // Флаг для отключения transitions при переоткрытии
+                property bool transitionsEnabled: true
+
                 // MD3 transitions для добавления/удаления элементов (как в Caelestia)
                 add: Transition {
+                    enabled: appListView.transitionsEnabled
+
+                    NumberAnimation {
+                        properties: "opacity,scale"
+                        from: 0
+                        to: 1
+                        duration: 400
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard
+                    }
+                }
+
+                populate: Transition {
+                    enabled: appListView.transitionsEnabled
+
                     NumberAnimation {
                         properties: "opacity,scale"
                         from: 0
@@ -308,18 +333,35 @@ Item {
         }
     }
 
-    // Reset search and focus when launcher opens
+    // Reset search and focus when launcher opens/closes
     onVisibleChanged: {
         if (visible) {
-            // Reset search field
+            // Отключаем transitions при открытии
+            appListView.transitionsEnabled = false
+
+            // Очищаем и сбрасываем
             searchField.text = ""
             LauncherService.search("")
             appListView.currentIndex = 0
 
-            // Focus search field (с задержкой чтобы избежать Wayland warning)
+            // Включаем transitions обратно после небольшой задержки
             Qt.callLater(function() {
+                appListView.transitionsEnabled = true
                 searchField.forceActiveFocus()
             })
+        } else {
+            // Отключаем transitions при закрытии
+            appListView.transitionsEnabled = false
+
+            // Очищаем при закрытии
+            searchField.text = ""
+            LauncherService.search("")
         }
+    }
+
+    // Инициализация при создании
+    Component.onCompleted: {
+        LauncherService.search("")
+        appListView.currentIndex = 0
     }
 }

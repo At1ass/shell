@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import qs.src.core.services
 
 // Провайдер для поиска и запуска приложений
 BaseProvider {
@@ -11,6 +12,27 @@ BaseProvider {
 
     // Все доступные приложения
     readonly property var applications: DesktopEntries.applications.values
+
+    // Кеш частот для производительности
+    property var frequencyCache: ({})
+
+    // Обработчик изменения частот
+    function handleFrequencyChanged() {
+        frequencyCache = AppFrequencyService.getAllFrequencies()
+    }
+
+    Component.onCompleted: {
+        // Загружаем частоты при старте
+        frequencyCache = AppFrequencyService.getAllFrequencies()
+
+        // Подключаем обработчик изменений
+        AppFrequencyService.frequencyChanged.connect(handleFrequencyChanged)
+    }
+
+    Component.onDestruction: {
+        // Отключаем при уничтожении
+        AppFrequencyService.frequencyChanged.disconnect(handleFrequencyChanged)
+    }
 
     // Fuzzy search function
     function fuzzyMatch(text, query) {
@@ -33,13 +55,29 @@ BaseProvider {
     }
 
     function search(query) {
-        // Пустой запрос - возвращаем топ 10 приложений
+        // Пустой запрос - возвращаем топ 10 приложений (по частоте + алфавиту)
         if (!query || query.trim() === "") {
-            let topApps = []
-            for (let i = 0; i < Math.min(10, applications.length); i++) {
-                if (!applications[i].noDisplay) {
-                    topApps.push(createResult(applications[i], 10 - i))
+            // Фильтруем и сортируем по частоте, затем по имени
+            let visibleApps = applications.filter(app => !app.noDisplay)
+            visibleApps.sort((a, b) => {
+                // Получаем частоты из кеша
+                let freqA = frequencyCache[a.id] || 0
+                let freqB = frequencyCache[b.id] || 0
+
+                // Сначала по частоте (descending)
+                if (freqA !== freqB) {
+                    return freqB - freqA
                 }
+
+                // Потом по алфавиту
+                let nameA = (a.name || "").toLowerCase()
+                let nameB = (b.name || "").toLowerCase()
+                return nameA.localeCompare(nameB)
+            })
+
+            let topApps = []
+            for (let i = 0; i < Math.min(10, visibleApps.length); i++) {
+                topApps.push(createResult(visibleApps[i], 10 - i))
             }
             return topApps
         }
@@ -85,6 +123,10 @@ BaseProvider {
         return results.slice(0, 10)
     }
 
+    function defaultResults() {
+        return search("")
+    }
+
     // Создание результата из DesktopEntry
     function createResult(app, score) {
         const entryId = app.id
@@ -102,6 +144,11 @@ BaseProvider {
             data: { entry: app },
             action: function() {
                 console.log("Launching:", app.name)
+
+                // Инкрементируем частоту запуска
+                AppFrequencyService.incrementFrequency(app.id)
+
+                // Запускаем приложение
                 app.execute()
             }
         }

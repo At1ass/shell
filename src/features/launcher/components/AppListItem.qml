@@ -19,10 +19,6 @@ Item {
     implicitHeight: 64
     implicitWidth: parent ? parent.width : 0
 
-    // Для анимаций add/remove
-    scale: 1
-    opacity: 1
-
     Rectangle {
         anchors.fill: parent
         radius: Config.shape.medium

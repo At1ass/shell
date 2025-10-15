@@ -20,6 +20,7 @@ Singleton {
     // Провайдеры (в порядке приоритета)
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
+        ClipboardProvider { id: clipboardProvider },
         ApplicationProvider { id: applicationProvider },
         FileProvider { id: fileProvider }
     ]
@@ -64,11 +65,8 @@ Singleton {
     function search(query) {
         searchQuery = query
 
-        // Пустой запрос - очищаем результаты (чистое открытие)
-        if (!query || query.trim() === "") {
-            filteredApps = []
-            return
-        }
+        let trimmed = query ? query.trim() : ""
+        let useDefaults = trimmed.length === 0
 
         let collectedResults = []
         let seenKeys = Object.create(null)
@@ -76,38 +74,44 @@ Singleton {
         // Собираем результаты от всех подходящих провайдеров
         for (let i = 0; i < providers.length; i++) {
             let provider = providers[i]
+            let providerResults = []
 
-            if (provider.canHandle(query)) {
-                let providerResults = provider.search(query)
-                if (!Array.isArray(providerResults)) {
+            if (useDefaults) {
+                if (typeof provider.defaultResults === "function") {
+                    providerResults = provider.defaultResults()
+                }
+            } else if (provider.canHandle(query)) {
+                providerResults = provider.search(query)
+            }
+
+            if (!Array.isArray(providerResults) || providerResults.length === 0) {
+                continue
+            }
+
+            // Преобразуем результаты в QML-объекты, переиспользуя их между поисками
+            for (let j = 0; j < providerResults.length; j++) {
+                let result = providerResults[j]
+                if (!result || !result.id) continue
+
+                let key = String(result.id)
+                if (seenKeys[key]) {
+                    // Защита от дублей из разных провайдеров
                     continue
                 }
+                seenKeys[key] = true
 
-                // Преобразуем результаты в QML-объекты, переиспользуя их между поисками
-                for (let j = 0; j < providerResults.length; j++) {
-                    let result = providerResults[j]
-                    if (!result || !result.id) continue
+                let wrapper = wrapperForResult(key)
+                if (!wrapper) continue
 
-                    let key = String(result.id)
-                    if (seenKeys[key]) {
-                        // Защита от дублей из разных провайдеров
-                        continue
-                    }
-                    seenKeys[key] = true
+                wrapper.type = result.type || ""
+                wrapper.text = result.text || ""
+                wrapper.description = result.description || ""
+                wrapper.icon = result.icon || ""
+                wrapper.score = (typeof result.score === "number" ? result.score : 0) + provider.priority
+                wrapper.data = result.hasOwnProperty("data") ? result.data : null
+                wrapper.action = typeof result.action === "function" ? result.action : null
 
-                    let wrapper = wrapperForResult(key)
-                    if (!wrapper) continue
-
-                    wrapper.type = result.type || ""
-                    wrapper.text = result.text || ""
-                    wrapper.description = result.description || ""
-                    wrapper.icon = result.icon || ""
-                    wrapper.score = (typeof result.score === "number" ? result.score : 0) + provider.priority
-                    wrapper.data = result.hasOwnProperty("data") ? result.data : null
-                    wrapper.action = typeof result.action === "function" ? result.action : null
-
-                    collectedResults.push(wrapper)
-                }
+                collectedResults.push(wrapper)
             }
         }
 

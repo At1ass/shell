@@ -47,6 +47,11 @@ QtObject {
         return []
     }
 
+    // Результаты по умолчанию (когда запрос пустой)
+    function defaultResults() {
+        return []
+    }
+
     // Хелпер для удаления префикса из запроса
     function removePrefix(query) {
         for (let i = 0; i < prefixes.length; i++) {
