@@ -1,4 +1,0 @@
-module qs.src.features.notifications.components
-
-NotificationItem 1.0 NotificationItem.qml
-NotificationGroup 1.0 NotificationGroup.qml

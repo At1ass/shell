@@ -1,24 +1,23 @@
 import QtQuick
-import QtQuick.Layouts
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Widgets
 import qs.src.core.services
-import "components" as NotifComponents
+import QtQuick.Layouts
 
-// Floating popup notifications (top-right corner)
-Scope {
-    id: root
+// Простая popup структура как в ii
+Variants {
+    model: Quickshell.screens
 
-    // Создаем popup window для каждого экрана
-    Variants {
-        model: Quickshell.screens
+    Scope {
+        required property ShellScreen modelData
 
         PanelWindow {
             id: popupWindow
-            required property var modelData
-
             screen: modelData
             color: "transparent"
+            visible: NotificationService.popupList.length > 0
 
             anchors {
                 top: true
@@ -26,39 +25,40 @@ Scope {
             }
 
             margins {
-                top: 48  // Под statusbar
-                right: 8
+                top: 48
+                right: 16
             }
 
-            implicitWidth: 400
-            implicitHeight: Math.min(600, popupColumn.implicitHeight)
-
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.namespace: "shell:notification-popups"
             exclusiveZone: 0
 
-            mask: Region { item: popupColumn }
+            implicitWidth: 360
+            implicitHeight: notificationListView.contentHeight
 
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.namespace: "quickshell:notification-popups"
 
             ColumnLayout {
-                id: popupColumn
+                id: listColumn
                 anchors.fill: parent
                 spacing: 8
-                readonly property int popupCount: Math.min(NotificationService.popupNotifications.length,
-                                                            NotificationService.maxPopupCount)
 
-                // Показываем только popup notifications
-                Repeater {
-                    model: popupColumn.popupCount
-                    delegate: NotifComponents.NotificationItem {
+                ListView {
+                    id: notificationListView
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    interactive: false
+                    model: ScriptModel {
+                        values: NotificationService.popupList
+                    }
+
+                    delegate: NotificationItem {
+                        required property var modelData
                         required property int index
+
+                        notificationObject: modelData
                         Layout.fillWidth: true
-                        property QtObject currentNotification: NotificationService.popupNotifications[index]
-                        notification: currentNotification
-                        visible: !!currentNotification
-                        enabled: !!currentNotification
-                        isPopup: true
-                        showAppName: true
+                        Layout.preferredWidth: 360
+                        // Layout.preferredHeight: 100
                     }
                 }
             }

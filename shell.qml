@@ -60,13 +60,8 @@ ShellRoot {
         Launcher {}
     }
 
-    // Notification Sidebar
-    LazyLoader {
-        loading: true
-        NotificationSidebar {}
-    }
 
-    // Notification Popups
+    // Notification popups
     LazyLoader {
         loading: true
         NotificationPopup {}
