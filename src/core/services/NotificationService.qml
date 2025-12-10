@@ -11,7 +11,7 @@ Singleton {
     // Основной список уведомлений (как в ii)
     property list<Notif> list: []
     // Список popup уведомлений (property var, не list<>!)
-    property var popupList: list.filter((notif) => notif.popup)
+    property var popupList: []
 
     property bool silent: false
     property bool popupInhibited: silent
@@ -112,6 +112,7 @@ Singleton {
                 }
             }
 
+            root.updatePopupList();
             console.log("[NotificationService] New notification:", notification.summary, "popup:", newNotifObject.popup)
         }
     }
@@ -121,6 +122,12 @@ Singleton {
         const index = root.list.findIndex((notif) => notif.notificationId === id);
         const notifServerIndex = notifServer.trackedNotifications.values.findIndex((notif) => notif.id === id);
         if (index !== -1) {
+            // Уничтожаем таймер перед удалением уведомления
+            const notif = root.list[index];
+            if (notif.timer) {
+                notif.timer.destroy();
+                notif.timer = null;
+            }
             root.list.splice(index, 1);
             triggerListChange()
         }
@@ -130,6 +137,13 @@ Singleton {
     }
 
     function discardAllNotifications() {
+        // Уничтожаем все таймеры
+        root.list.forEach((notif) => {
+            if (notif.timer) {
+                notif.timer.destroy();
+                notif.timer = null;
+            }
+        });
         root.list = []
         triggerListChange()
         notifServer.trackedNotifications.values.forEach((notif) => {
@@ -145,14 +159,19 @@ Singleton {
 
     function timeoutNotification(id) {
         const index = root.list.findIndex((notif) => notif.notificationId === id);
-        if (root.list[index] != null)
+        if (root.list[index] != null) {
             root.list[index].popup = false;
+            root.updatePopupList();
+        }
     }
 
     function timeoutAll() {
-        root.popupList.forEach((notif) => {
-            notif.popup = false;
+        root.list.forEach((notif) => {
+            if (notif.popup) {
+                notif.popup = false;
+            }
         });
+        root.updatePopupList();
     }
 
     function attemptInvokeAction(id, notifIdentifier) {
@@ -170,5 +189,10 @@ Singleton {
 
     function triggerListChange() {
         root.list = root.list.slice(0)
+        updatePopupList()
+    }
+
+    function updatePopupList() {
+        root.popupList = root.list.filter((notif) => notif.popup)
     }
 }

@@ -16,13 +16,14 @@ Singleton {
 
     // Кэш QML-объектов результатов поиска (ключ -> QtObject)
     property var _wrapperCache: ({})
+    property var _cacheAccessTime: ({})
+    property int _maxCacheSize: 1000
 
     // Провайдеры (в порядке приоритета)
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
         ClipboardProvider { id: clipboardProvider },
-        ApplicationProvider { id: applicationProvider },
-        FileProvider { id: fileProvider }
+        ApplicationProvider { id: applicationProvider }
     ]
 
     Component {
@@ -40,6 +41,31 @@ Singleton {
         }
     }
 
+    function _evictOldestCacheEntry() {
+        let keys = Object.keys(_wrapperCache)
+        if (keys.length === 0) return
+
+        let oldestKey = keys[0]
+        let oldestTime = _cacheAccessTime[oldestKey] || 0
+
+        for (let i = 1; i < keys.length; i++) {
+            let key = keys[i]
+            let time = _cacheAccessTime[key] || 0
+            if (time < oldestTime) {
+                oldestTime = time
+                oldestKey = key
+            }
+        }
+
+        // Удаляем старейший элемент
+        let wrapper = _wrapperCache[oldestKey]
+        if (wrapper) {
+            wrapper.destroy()
+        }
+        delete _wrapperCache[oldestKey]
+        delete _cacheAccessTime[oldestKey]
+    }
+
     function wrapperForResult(key) {
         if (!key || typeof key !== "string") {
             return null
@@ -47,7 +73,14 @@ Singleton {
 
         let existing = _wrapperCache[key]
         if (existing) {
+            _cacheAccessTime[key] = Date.now()
             return existing
+        }
+
+        // Проверяем размер кэша и evict если нужно
+        let cacheSize = Object.keys(_wrapperCache).length
+        if (cacheSize >= _maxCacheSize) {
+            _evictOldestCacheEntry()
         }
 
         let wrapper = resultWrapperComponent.createObject(root)
@@ -58,6 +91,7 @@ Singleton {
 
         wrapper.resultId = key
         _wrapperCache[key] = wrapper
+        _cacheAccessTime[key] = Date.now()
         return wrapper
     }
 
