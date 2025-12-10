@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
 import qs.src.core.services
+import qs.src.core.config
 import QtQuick.Layouts
 
 // Простая popup структура как в ii
@@ -51,14 +52,42 @@ Variants {
                         values: NotificationService.popupList
                     }
 
-                    delegate: NotificationItem {
+                    delegate: Item {
+                        id: wrapper
                         required property var modelData
                         required property int index
 
-                        notificationObject: modelData
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 360
-                        // Layout.preferredHeight: 100
+                        width: notificationListView.width
+                        height: notifItem.height
+                        clip: true
+
+                        // MD3 Collapse animation при удалении (150ms)
+                        ListView.onRemove: SequentialAnimation {
+                            PropertyAction {
+                                target: wrapper
+                                property: "ListView.delayRemove"
+                                value: true
+                            }
+                            NumberAnimation {
+                                target: wrapper
+                                property: "height"
+                                to: 0
+                                duration: Config.motion.duration.short3  // 150ms
+                                easing.type: Config.motion.easing.standard
+                                easing.bezierCurve: Config.motion.easing.standardPoints
+                            }
+                            PropertyAction {
+                                target: wrapper
+                                property: "ListView.delayRemove"
+                                value: false
+                            }
+                        }
+
+                        NotificationItem {
+                            id: notifItem
+                            notificationObject: modelData
+                            width: 360
+                        }
                     }
                 }
             }

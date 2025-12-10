@@ -44,8 +44,24 @@ Singleton {
         property string image: notification?.image ?? ""
         property string summary: notification?.summary ?? ""
         property double time
-        property string urgency: notification?.urgency.toString() ?? "normal"
+        property int urgency: notification?.urgency ?? NotificationUrgency.Normal
+
         property Timer timer
+
+        // Lock/unlock механизм для безопасного удаления во время анимаций
+        property var locks: new Set()
+
+        function lock(item) {
+            locks.add(item);
+        }
+
+        function unlock(item) {
+            locks.delete(item);
+            // Если popup=false и нет блокировок, можно безопасно удалить
+            if (popup === false && locks.size === 0) {
+                root.discardNotification(notificationId);
+            }
+        }
 
         onNotificationChanged: {
             if (notification === null) {
