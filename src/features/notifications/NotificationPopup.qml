@@ -62,7 +62,8 @@ Variants {
                         clip: true
 
                         // MD3 Collapse animation при удалении (150ms)
-                        ListView.onRemove: SequentialAnimation {
+                        SequentialAnimation {
+                            id: removeAnimation
                             PropertyAction {
                                 target: wrapper
                                 property: "ListView.delayRemove"
@@ -82,6 +83,8 @@ Variants {
                                 value: false
                             }
                         }
+
+                        ListView.onRemove: removeAnimation.start()
 
                         NotificationItem {
                             id: notifItem
