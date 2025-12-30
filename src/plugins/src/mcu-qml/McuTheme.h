@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QVariantMap>
 #include <QQmlEngine>
+#include <QFuture>
 #include <memory>
 
 class McuTheme : public QObject {
@@ -65,12 +66,11 @@ private:
     // Внутренние утилиты
     static uint32_t qcolorToArgb(const QColor& c);
     static QString  argbToHex(uint32_t argb);
+    static bool     extractSeedFromImage(const QUrl& url, uint32_t& outSeed);
 
     // Основные шаги пайплайна
     void applySeed();                              // Пересчитать схему из m_seedArgb (без повторного чтения)
-    bool makeSeedFromImageUrl(const QUrl& url);    // Посчитать m_seedArgb из URL
-    bool makeSeedFromImagePath(const QString& path);
-    void generateColorScheme(uint32_t seedArgb);   // Заполняет m_colors и дёргает signals
+    QVariantMap buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) const;
 
 private:
     // Входные параметры
@@ -87,4 +87,10 @@ private:
 
     // Результат
     QVariantMap m_colors;
+
+    // Асинхронная генерация
+    quint64 m_generation = 0;         // версия запроса для генерации схемы
+    quint64 m_seedRequest = 0;        // версия запроса извлечения семени из картинки
+    QFuture<void> m_future;           // генерация цветовой схемы
+    QFuture<void> m_seedFuture;       // извлечение семени из картинки
 };

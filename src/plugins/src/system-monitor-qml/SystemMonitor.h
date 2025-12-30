@@ -2,7 +2,35 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
+#include <QtCore/QAtomicInt>
 #include <QtQml/QQmlEngine>
+#include <memory>
+
+class StatsWorker;
+
+struct StatsSnapshot {
+    qreal cpuUsage = 0.0;
+    int cpuTemp = 0;
+    QString cpuModel;
+
+    qreal ramUsage = 0.0;
+    QString ramUsed;
+    QString ramTotal;
+
+    int gpuUsage = 0;
+    int gpuTemp = 0;
+    QString gpuModel;
+
+    qreal diskUsage = 0.0;
+    QString diskUsed;
+    QString diskTotal;
+
+    bool hasCpuTemp = false;
+    bool hasGpuStats = false;
+};
+
+Q_DECLARE_METATYPE(StatsSnapshot)
 
 class SystemMonitor : public QObject {
     Q_OBJECT
@@ -36,6 +64,8 @@ class SystemMonitor : public QObject {
 
     // Status
     Q_PROPERTY(bool isMonitoring READ isMonitoring NOTIFY isMonitoringChanged)
+    Q_PROPERTY(bool hasCpuTemp READ hasCpuTemp NOTIFY hasCpuTempChanged)
+    Q_PROPERTY(bool hasGpuStats READ hasGpuStats NOTIFY hasGpuStatsChanged)
 
 public:
     explicit SystemMonitor(QObject* parent = nullptr);
@@ -71,6 +101,8 @@ public:
     QString wmName() const { return QStringLiteral("Hyprland"); }
 
     bool isMonitoring() const { return m_isMonitoring; }
+    bool hasCpuTemp() const { return m_hasCpuTemp; }
+    bool hasGpuStats() const { return m_hasGpuStats; }
 
 public slots:
     void setUpdateInterval(int milliseconds);
@@ -91,28 +123,17 @@ signals:
     void diskTotalChanged();
     void userNameChanged();
     void isMonitoringChanged();
+    void hasCpuTempChanged();
+    void hasGpuStatsChanged();
     void statsUpdated();  // Batch signal for UI
     void errorOccurred(const QString& message);
 
 private slots:
-    void updateStats();
+    void handleSnapshot(const StatsSnapshot& snapshot);
 
 private:
-    // Initialization
     void initializeStaticInfo();
-    void openProcFiles();
-    void closeProcFiles();
-
-    // Update methods
-    void updateCpu();
-    void updateRam();
-    void updateDisk();
-    void updateTemperature();
-    void updateGpu();
-
-    // Helper methods
-    bool readProcFile(int fd, char* buffer, size_t bufferSize);
-    QString formatBytes(double bytes);
+    void stopWorker();
 
     // CPU state
     qreal m_cpuUsage = 0.0;
@@ -139,15 +160,11 @@ private:
     // System info
     QString m_userName;
 
-    // File descriptors (kept open for performance)
-    int m_cpuStatFd = -1;
-    int m_meminfoFd = -1;
-
-    // Update timer
-    QTimer m_updateTimer;
     bool m_isMonitoring = false;
+    bool m_hasCpuTemp = false;
+    bool m_hasGpuStats = false;
 
-    // Buffers (reused to avoid allocations)
-    char m_cpuBuffer[2048];
-    char m_memBuffer[4096];
+    // Worker thread
+    QThread m_workerThread;
+    StatsWorker* m_worker = nullptr;
 };

@@ -1,10 +1,6 @@
 # Включаем новую политику ресурса для QML
 qt_policy(SET QTP0001 NEW)
 
-# # Найти libqalculate через pkg-config
-# find_package(PkgConfig REQUIRED)
-# pkg_check_modules(QALCULATE REQUIRED IMPORTED_TARGET libqalculate)
-#
 qt_add_qml_module(systemmonitorqml
     URI SystemMonitor
     VERSION 1.0
@@ -16,11 +12,39 @@ qt_add_qml_module(systemmonitorqml
         SystemMonitor.cpp
 )
 
+find_path(SENSORS_INCLUDE_DIR
+    NAMES sensors/sensors.h
+    PATHS /usr/include /usr/local/include
+)
+
+# Ищем библиотеку
+find_library(SENSORS_LIB
+    NAMES sensors
+    PATHS /usr/lib /usr/local/lib
+)
+
+if (NOT SENSORS_INCLUDE_DIR)
+    message(WARNING "Could not find sensors/sensors.h")
+endif()
+
+if (NOT SENSORS_LIB)
+    message(WARNING "Could not find libsensors.so")
+else()
+    target_compile_definitions(systemmonitorqml PRIVATE HAVE_LIBSENSORS)
+endif()
+
+target_include_directories(systemmonitorqml
+    PRIVATE
+        ${SENSORS_INCLUDE_DIR}
+)
+
 target_link_libraries(systemmonitorqml
     PRIVATE
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
+        # ${LIBSENSORS_LIB}
+        ${SENSORS_LIB}
 )
 
 # Переменные установки (как у mcu-qml)

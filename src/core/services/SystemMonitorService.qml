@@ -19,6 +19,7 @@ QtObject {
     readonly property int gpuUsage: SystemMonitor.gpuUsage
     readonly property int gpuTemp: SystemMonitor.gpuTemp
     readonly property string gpuModel: SystemMonitor.gpuModel
+    readonly property bool hasGpuStats: SystemMonitor.hasGpuStats
 
     readonly property real diskUsage: SystemMonitor.diskUsage
     readonly property string diskUsed: SystemMonitor.diskUsed
@@ -27,6 +28,7 @@ QtObject {
     readonly property string userName: SystemMonitor.userName
     readonly property string osName: SystemMonitor.osName
     readonly property string wmName: SystemMonitor.wmName
+    readonly property bool hasCpuTemp: SystemMonitor.hasCpuTemp
 
     readonly property bool isMonitoring: SystemMonitor.isMonitoring
 

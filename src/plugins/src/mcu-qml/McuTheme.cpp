@@ -4,7 +4,9 @@
 #include <QImageReader>
 #include <QFileInfo>
 #include <QUrl>
+#include <QMetaObject>
 #include <qlogging.h>
+#include <QtConcurrent>
 #include <vector>
 #include <algorithm>
 
@@ -99,12 +101,30 @@ void McuTheme::setSource(const QVariant& v) {
         m_valid  = false;
         emit sourceChanged();
 
-        // считаем seed один раз (с даунскейлом)
-        if (makeSeedFromImageUrl(u)) {
-            applySeed();
-        } else {
-            qWarning() << "McuTheme: failed to extract seed from image" << u;
+        const auto requestId = ++m_seedRequest;
+        if (!m_loading) {
+            m_loading = true;
+            emit loadingChanged();
         }
+
+        m_seedFuture = QtConcurrent::run([this, requestId, u]() {
+            uint32_t seed = 0;
+            const bool ok = extractSeedFromImage(u, seed);
+            QMetaObject::invokeMethod(this, [this, requestId, ok, seed, u]() {
+                if (requestId != m_seedRequest)
+                    return;
+                if (!ok) {
+                    qWarning() << "McuTheme: failed to extract seed from image" << u;
+                    if (m_loading) {
+                        m_loading = false;
+                        emit loadingChanged();
+                    }
+                    return;
+                }
+                m_seedArgb = seed;
+                applySeed();
+            }, Qt::QueuedConnection);
+        });
         return;
     }
 
@@ -134,25 +154,18 @@ void McuTheme::setContrast(double contrast) {
     applySeed();
 }
 
-bool McuTheme::makeSeedFromImageUrl(const QUrl& url) {
+bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed) {
     QString path;
     if (url.isLocalFile() || url.scheme() == "file")
         path = url.toLocalFile();
     else
-        path = url.toString(); // если нужен non-file (http/https) — расширяй по желанию
-
-    return makeSeedFromImagePath(path);
-}
-
-bool McuTheme::makeSeedFromImagePath(const QString& path) {
-    m_loading = true; emit loadingChanged();
+        path = url.toString();
 
     QImage img = readDownscaled(path, 160);
     qDebug() << "McuTheme: read image" << path
              << "size:" << img.size();
 
     if (img.isNull()) {
-        m_loading = false; emit loadingChanged();
         return false;
     }
 
@@ -166,20 +179,48 @@ bool McuTheme::makeSeedFromImagePath(const QString& path) {
     auto quant  = QuantizeCelebi(pixels, 128);
     auto ranked = material_color_utilities::RankedSuggestions(quant.color_to_count);
 
-    m_loading = false; emit loadingChanged();
-
     if (ranked.empty()) return false;
 
-    m_seedArgb = ranked.front();
+    outSeed = ranked.front();
     return true;
 }
 
 void McuTheme::applySeed() {
     if (!m_seedArgb) return;
-    generateColorScheme(m_seedArgb);
+    const auto requestId = ++m_generation;
+    const uint32_t seed = m_seedArgb;
+    const bool dark = m_darkMode;
+    const QString variant = m_variant;
+    const double contrast = m_contrast;
+
+    if (!m_loading) {
+        m_loading = true;
+        emit loadingChanged();
+    }
+
+    // Генерация в пуле потоков, чтобы не блокировать GUI
+    m_future = QtConcurrent::run([this, requestId, seed, dark, variant, contrast]() {
+        const QVariantMap colors = buildScheme(seed, dark, variant, contrast);
+
+        QMetaObject::invokeMethod(this, [this, requestId, colors]() {
+            if (requestId != m_generation) {
+                return; // устаревший результат
+            }
+
+            m_colors = colors;
+            m_valid = true;
+            emit validChanged();
+            emit colorsChanged();
+
+            if (m_loading) {
+                m_loading = false;
+                emit loadingChanged();
+            }
+        }, Qt::QueuedConnection);
+    });
 }
 
-void McuTheme::generateColorScheme(uint32_t seedArgb) {
+QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) const {
     using namespace material_color_utilities;
 
     Hct sourceHct(seedArgb);
@@ -188,21 +229,21 @@ void McuTheme::generateColorScheme(uint32_t seedArgb) {
              << QString("#%1").arg(seedArgb,8,16,QLatin1Char('0')).toUpper();
 
     std::unique_ptr<DynamicScheme> scheme;
-    if (m_variant == "vibrant")
-        scheme = std::make_unique<SchemeVibrant>(sourceHct, m_darkMode, m_contrast);
-    else if (m_variant == "expressive")
-        scheme = std::make_unique<SchemeExpressive>(sourceHct, m_darkMode, m_contrast);
-    else if (m_variant == "content")
-        scheme = std::make_unique<SchemeContent>(sourceHct, m_darkMode, m_contrast);
+    if (variant == "vibrant")
+        scheme = std::make_unique<SchemeVibrant>(sourceHct, dark, contrast);
+    else if (variant == "expressive")
+        scheme = std::make_unique<SchemeExpressive>(sourceHct, dark, contrast);
+    else if (variant == "content")
+        scheme = std::make_unique<SchemeContent>(sourceHct, dark, contrast);
     else
-        scheme = std::make_unique<SchemeTonalSpot>(sourceHct, m_darkMode, m_contrast);
+        scheme = std::make_unique<SchemeTonalSpot>(sourceHct, dark, contrast);
+
+    QVariantMap result;
 
     auto put = [&](const char* key, DynamicColor dc) {
-        m_colors.insert(QString::fromLatin1(key),
-                        argbToHex(dc.GetArgb(*scheme)));
+        result.insert(QString::fromLatin1(key),
+                      argbToHex(dc.GetArgb(*scheme)));
     };
-
-    m_colors.clear();
 
     // Material 3 roles
     put("primary",              MaterialDynamicColors::Primary());
@@ -267,8 +308,6 @@ void McuTheme::generateColorScheme(uint32_t seedArgb) {
     put("onTertiaryFixed", MaterialDynamicColors::OnTertiaryFixed());
     put("onTertiaryFixedVariant", MaterialDynamicColors::OnTertiaryFixedVariant());
 
-    qDebug() << "McuTheme: generated" << m_colors.size() << "colors";
-    m_valid = true;
-    emit validChanged();
-    emit colorsChanged();
+    qDebug() << "McuTheme: generated" << result.size() << "colors";
+    return result;
 }

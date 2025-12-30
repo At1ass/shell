@@ -38,7 +38,7 @@ BarElement {
     nonVisualChildren: [
         Process {
             id: fetchLayoutsProcess
-            running: true
+            running: false
             command: ["hyprctl", "-j", "devices"]
 
             stdout: StdioCollector {
@@ -120,10 +120,19 @@ BarElement {
             triggeredOnStart: false
 
             onTriggered: {
-                fetchLayoutsProcess.running = true
+                if (!fetchLayoutsProcess.running) {
+                    fetchLayoutsProcess.running = true
+                }
             }
         }
     ]
+
+    Component.onCompleted: {
+        // Initial fetch
+        if (!fetchLayoutsProcess.running) {
+            fetchLayoutsProcess.running = true
+        }
+    }
 
     // Обновление кода раскладки при изменении имени
     onCurrentLayoutNameChanged: updateLayoutCode()
@@ -132,7 +141,9 @@ BarElement {
         if (cachedLayoutCodes.hasOwnProperty(currentLayoutName)) {
             currentLayoutCode = cachedLayoutCodes[currentLayoutName]
         } else {
-            getLayoutCodeProcess.running = true
+            if (!getLayoutCodeProcess.running) {
+                getLayoutCodeProcess.running = true
+            }
         }
     }
 
@@ -145,8 +156,10 @@ BarElement {
         const nextLayout = layoutCodes[nextIndex]
 
         // Переключение через hyprctl
-        switchProcess.command = ["hyprctl", "switchxkblayout", "main", "next"]
-        switchProcess.running = true
+        if (!switchProcess.running) {
+            switchProcess.command = ["hyprctl", "switchxkblayout", "main", "next"]
+            switchProcess.running = true
+        }
 
         // console.log(`Переключение раскладки: ${currentLayoutCode} -> ${nextLayout}`)
     }
