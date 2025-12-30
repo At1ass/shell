@@ -163,7 +163,6 @@ Singleton {
             return
         }
 
-        console.log("LauncherService: Executing action for", result.text)
         result.action()
     }
 

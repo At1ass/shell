@@ -42,11 +42,7 @@ Scope {
             active: dashboardLoader.active && GlobalStates.dashboardOpen
             windows: [dashboardWindow]
             onCleared: () => {
-                console.log("Dashboard focus lost, closing");
                 GlobalStates.dashboardOpen = false;
-            }
-            onActiveChanged: {
-                console.log("HyprlandFocusGrab active changed to:", active, "dashboardOpen:", GlobalStates.dashboardOpen);
             }
         }
 
@@ -55,10 +51,6 @@ Scope {
             active: GlobalStates.dashboardOpen
 
             focus: GlobalStates.dashboardOpen
-
-            onActiveChanged: {
-                console.log("DashboardContentLoader active changed to:", active);
-            }
 
             anchors {
                 fill: parent
@@ -72,8 +64,6 @@ Scope {
                 implicitHeight: parent.implicitHeight
 
                 Component.onCompleted: {
-                    console.log("DashboardContent loaded");
-                    // Изначально устанавливаем высоту окна
                     dashboardWindow.implicitHeight = root.sidebarHight
                 }
 
@@ -84,7 +74,6 @@ Scope {
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Escape) {
-                    console.log("Escape pressed, closing Dashboard");
                     GlobalStates.dashboardOpen = false;
                 }
             }

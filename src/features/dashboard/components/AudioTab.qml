@@ -216,7 +216,10 @@ Item {
                     spacing: Config.spacing.medium
 
                         Repeater {
-                            model: AudioService.streamNodes
+                            // ScriptModel для эффективного обновления (без пересоздания делегатов)
+                            model: ScriptModel {
+                                values: AudioService.streamNodes
+                            }
 
                             delegate: MaterialCard {
                                 required property var modelData

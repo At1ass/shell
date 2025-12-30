@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import Quickshell
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -252,7 +253,9 @@ Item {
                     spacing: Config.spacing.small
 
                     Repeater {
-                            model: root.selectedDayEvents
+                            model: ScriptModel {
+                                values: root.selectedDayEvents
+                            }
 
                             delegate: ListItem {
                                 Layout.fillWidth: true

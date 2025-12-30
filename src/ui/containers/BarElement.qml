@@ -107,7 +107,6 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         onClicked: function(mouse) {
-            console.log("BarElement clicked, clickable:", clickable)
             if (root.clickHandler) {
                 root.clickHandler(mouse)
             } else {

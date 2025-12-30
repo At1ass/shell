@@ -54,8 +54,6 @@ Item {
 		onStatusChanged: {
 			if (status === Image.Error) {
 				console.error(`Failed to load wallpaper for ${screen.name}: ${source}`)
-			} else if (status === Image.Ready) {
-				console.log(`Wallpaper loaded for ${screen.name}: ${source}`)
 			}
 		}
         // Behavior on source {

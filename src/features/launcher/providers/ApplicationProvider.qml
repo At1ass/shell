@@ -143,8 +143,6 @@ BaseProvider {
             score: score,
             data: { entry: app },
             action: function() {
-                console.log("Launching:", app.name)
-
                 // Инкрементируем частоту запуска
                 AppFrequencyService.incrementFrequency(app.id)
 

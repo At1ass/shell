@@ -113,12 +113,10 @@ Singleton {
             }
 
             root.updatePopupList();
-            console.log("[NotificationService] New notification:", notification.summary, "popup:", newNotifObject.popup)
         }
     }
 
     function discardNotification(id) {
-        console.log("[Notifications] Discarding notification with ID:", id);
         const index = root.list.findIndex((notif) => notif.notificationId === id);
         const notifServerIndex = notifServer.trackedNotifications.values.findIndex((notif) => notif.id === id);
         if (index !== -1) {
@@ -175,14 +173,11 @@ Singleton {
     }
 
     function attemptInvokeAction(id, notifIdentifier) {
-        console.log("[Notifications] Attempting to invoke action:", notifIdentifier, "for notification ID:", id);
         const notifServerIndex = notifServer.trackedNotifications.values.findIndex((notif) => notif.id === id);
         if (notifServerIndex !== -1) {
             const notifServerNotif = notifServer.trackedNotifications.values[notifServerIndex];
             const action = notifServerNotif.actions.find((action) => action.identifier === notifIdentifier);
             action.invoke()
-        } else {
-            console.log("Notification not found in server:", id)
         }
         root.discardNotification(id);
     }

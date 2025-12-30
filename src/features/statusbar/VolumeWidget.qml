@@ -1,12 +1,11 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell.Services.Pipewire
 import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.feedback
-import QtQuick.Controls
-import Quickshell.Services.Pipewire
 import qs.src.ui.base
-import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
 

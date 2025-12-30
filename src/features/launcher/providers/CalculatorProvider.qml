@@ -77,8 +77,8 @@ BaseProvider {
             score: 100,
             data: { result: result, expression: expr },
             action: function() {
-                console.log("Calculator result:", result)
-                // TODO: Копировать в clipboard
+                // Copy to clipboard
+                Quickshell.clipboardText = result
             }
         }]
 

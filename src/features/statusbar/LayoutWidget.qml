@@ -111,10 +111,11 @@ BarElement {
             running: false
         },
 
-        // Периодическое обновление состояния клавиатуры
+        // Периодическое обновление состояния клавиатуры (CapsLock/NumLock)
+        // Раскладка обновляется через события Hyprland, поэтому polling редкий
         Timer {
             id: keyboardStateTimer
-            interval: 1000
+            interval: 5000  // 5 секунд вместо 1 - снижает нагрузку
             running: true
             repeat: true
             triggeredOnStart: false

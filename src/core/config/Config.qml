@@ -18,10 +18,6 @@ Singleton {
         variant: "content" // "expressive" // "vibrant" // "content" // "tonal-spot"
         contrast: 0.0
 
-        onColorsChanged: {
-            console.log("Theme colors updated:", colors);
-            console.log("Primary color:", colors.primary);
-        }
     }
 
     property QtObject weather: QtObject {
