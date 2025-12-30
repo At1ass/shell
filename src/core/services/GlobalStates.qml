@@ -17,6 +17,7 @@ Singleton {
     property bool darkMode: true
     property bool inhibit: false
     property bool launcherOpen: false
+    property bool controlPanelLeftOpen: false
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false

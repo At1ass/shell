@@ -1,10 +1,11 @@
 pragma Singleton
 import QtQuick
+import Quickshell
 import SystemMonitor 1.0
 
 // Thin wrapper around C++ SystemMonitor singleton
 // All heavy lifting is done in C++ for performance and reliability
-QtObject {
+Singleton {
     id: root
 
     // Re-export all properties from C++ SystemMonitor
@@ -41,14 +42,16 @@ QtObject {
         SystemMonitor.refresh()
     }
 
-    // Forward signals
-    Component.onCompleted: {
-        SystemMonitor.statsUpdated.connect(function() {
-            // Can add custom logic here if needed
-        })
+    // Forward signals declaratively (auto-disconnect on destroy)
+    Connections {
+        target: SystemMonitor
 
-        SystemMonitor.errorOccurred.connect(function(message) {
+        function onStatsUpdated() {
+            // Can add custom logic here if needed
+        }
+
+        function onErrorOccurred(message) {
             console.warn("SystemMonitor error:", message)
-        })
+        }
     }
 }

@@ -29,6 +29,7 @@ class McuTheme : public QObject {
 
 public:
     explicit McuTheme(QObject* parent = nullptr);
+    ~McuTheme() override;
 
     // Source
     QVariant source() const { return m_source; }

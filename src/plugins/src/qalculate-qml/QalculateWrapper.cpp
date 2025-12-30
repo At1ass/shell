@@ -1,6 +1,7 @@
 #include "QalculateWrapper.h"
 #include <libqalculate/qalculate.h>
 #include <QDebug>
+#include <QMutexLocker>
 #include <memory>
 
 QalculateWrapper::QalculateWrapper(QObject* parent)
@@ -22,6 +23,9 @@ QString QalculateWrapper::eval(const QString& expression, bool printExpr) const 
     if (expression.isEmpty()) {
         return QString();
     }
+
+    // Thread-safe доступ к глобальному CALCULATOR
+    QMutexLocker locker(&m_mutex);
 
     EvaluationOptions eo;
     PrintOptions po;

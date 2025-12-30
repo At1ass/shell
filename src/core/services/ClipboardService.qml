@@ -63,21 +63,32 @@ Singleton {
         }
     }
 
-    // Процесс удаления записи
+    // Процесс удаления записи (безопасный: без shell interpolation)
     Process {
         id: deleteProc
-        property string entry: ""
-        command: ["bash", "-c", `echo '${deleteProc.entry.replace(/'/g, "'\\''")}' | ${root.cliphistBinary} delete`]
+        property string pendingEntry: ""
+        stdinEnabled: true
 
-        function deleteEntry(entry) {
-            deleteProc.entry = entry
-            deleteProc.running = true
-            deleteProc.entry = ""
+        command: [root.cliphistBinary, "delete"]
+
+        onStarted: {
+            // Отправляем entry через stdin - безопасно от injection
+            deleteProc.write(deleteProc.pendingEntry)
         }
 
         onExited: (exitCode, exitStatus) => {
+            deleteProc.pendingEntry = ""
             root.refresh()
         }
+    }
+
+    function safeDeleteEntry(entry) {
+        if (deleteProc.running) {
+            console.warn("[ClipboardService] Delete already in progress")
+            return
+        }
+        deleteProc.pendingEntry = entry
+        deleteProc.running = true
     }
 
     // Обновление истории
@@ -86,18 +97,37 @@ Singleton {
         readProc.running = true
     }
 
+    // Процесс копирования записи в clipboard (безопасный)
+    Process {
+        id: copyProc
+        property string pendingEntry: ""
+        stdinEnabled: true
+
+        command: ["sh", "-c", root.cliphistBinary + " decode | wl-copy"]
+
+        onStarted: {
+            // Отправляем entry через stdin - безопасно от injection
+            copyProc.write(copyProc.pendingEntry)
+        }
+
+        onExited: {
+            copyProc.pendingEntry = ""
+        }
+    }
+
     // Копирование записи в clipboard
     function copy(entry) {
-        const escaped = entry.replace(/'/g, "'\\''")
-        Quickshell.execDetached([
-            "bash", "-c",
-            `printf '%s' '${escaped}' | ${root.cliphistBinary} decode | wl-copy`
-        ])
+        if (copyProc.running) {
+            console.warn("[ClipboardService] Copy already in progress")
+            return
+        }
+        copyProc.pendingEntry = entry
+        copyProc.running = true
     }
 
     // Удаление записи
     function deleteEntry(entry) {
-        deleteProc.deleteEntry(entry)
+        safeDeleteEntry(entry)
     }
 
     // Простой fuzzy search

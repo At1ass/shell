@@ -50,6 +50,16 @@ McuTheme::McuTheme(QObject* parent) : QObject(parent) {
     setSource(QColor("#6750A4"));
 }
 
+McuTheme::~McuTheme() {
+    // Ожидаем завершения асинхронных операций чтобы избежать use-after-free
+    if (m_future.isRunning()) {
+        m_future.waitForFinished();
+    }
+    if (m_seedFuture.isRunning()) {
+        m_seedFuture.waitForFinished();
+    }
+}
+
 uint32_t McuTheme::qcolorToArgb(const QColor& c) {
     QColor rgba = c.isValid() ? c : QColor(Qt::magenta);
     return (uint32_t(rgba.alpha()) << 24)
