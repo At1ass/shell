@@ -5,6 +5,7 @@ import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
+import qs.src.features.dashboard.components
 import qs.src.features.dashboard.tabs
 
 Item {

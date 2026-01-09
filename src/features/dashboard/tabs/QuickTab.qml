@@ -124,7 +124,6 @@ Item {
             Layout.columnSpan: 4
             Layout.fillWidth: true
             Layout.preferredHeight: 200
-            maxVisibleEvents: 2
         }
     }
 }

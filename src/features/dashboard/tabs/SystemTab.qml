@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Services.Pipewire
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.inputs

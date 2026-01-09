@@ -68,18 +68,25 @@ Singleton {
     }
 
     function loadDefaultConfig() {
-        // Пробуем загрузить default.json
-        const xhr = new XMLHttpRequest()
-        xhr.open("GET", "file://" + config.defaultConfigPath, false)
-        try {
-            xhr.send()
-            if (xhr.status === 200 || xhr.status === 0) {
-                config.data = JSON.parse(xhr.responseText)
-                config.ready = true
-                console.log("Default config loaded successfully")
-            }
-        } catch (e) {
-            console.error("Failed to load default config:", e)
+        // Загружаем default.json через FileView (без XMLHttpRequest)
+        defaultConfigLoader.path = config.defaultConfigPath
+    }
+
+    FileView {
+        id: defaultConfigLoader
+
+        JsonAdapter {
+            id: defaultAdapter
+        }
+
+        onLoaded: {
+            console.log("Default config loaded from:", config.defaultConfigPath)
+            config.data = parseConfig(defaultAdapter)
+            config.ready = true
+        }
+
+        onLoadFailed: error => {
+            console.error("Failed to load default config:", error)
             config.data = {}
             config.ready = true
         }
