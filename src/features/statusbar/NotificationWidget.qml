@@ -15,6 +15,8 @@ BarElement {
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
             GlobalStates.notificationCenterOpen = !GlobalStates.notificationCenterOpen
+        } else if (mouse.button === Qt.RightButton) {
+            NotificationService.doNotDisturb = !NotificationService.doNotDisturb
         }
     }
 
@@ -27,9 +29,10 @@ BarElement {
 
             MaterialIcon {
                 anchors.centerIn: parent
-                iconName: "notifications"
+                iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
                 fontSize: Config.typography.titleLarge.size
-                iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
+                iconColor: NotificationService.doNotDisturb ? Config.colors.tertiary :
+                          (root.hovered ? Config.colors.primary : Config.colors.onSurface)
                 backgroundColor: "transparent"
             }
 
