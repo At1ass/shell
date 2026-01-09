@@ -1,0 +1,18 @@
+{
+    "classes": [
+        {
+            "className": "McuPlugin",
+            "lineNumber": 11,
+            "object": true,
+            "qualifiedClassName": "McuPlugin",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QQmlEngineExtensionPlugin"
+                }
+            ]
+        }
+    ],
+    "inputFile": "mcuqml_McuPlugin.cpp",
+    "outputRevision": 69
+}

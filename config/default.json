@@ -1,0 +1,230 @@
+{
+  "version": 1,
+
+  "appearance": {
+    "theme": {
+      "source": "wallpaper",
+      "variant": "content",
+      "darkMode": true
+    },
+    "spacing": {
+      "scale": 1.0
+    },
+    "rounding": {
+      "scale": 1.0
+    },
+    "animations": {
+      "enabled": true,
+      "durationScale": 1.0
+    }
+  },
+
+  "bar": {
+    "position": "top",
+    "height": 48,
+    "margin": 16,
+    "transparent": false,
+    "widgets": [
+      {
+        "type": "workspaces",
+        "enabled": true,
+        "settings": {
+          "count": 10,
+          "showWindows": true,
+          "activeIndicator": "pill"
+        }
+      },
+      {
+        "type": "spacer",
+        "enabled": true
+      },
+      {
+        "type": "media",
+        "enabled": true,
+        "clickAction": "dashboard-media",
+        "settings": {
+          "compact": true,
+          "showIcon": true,
+          "maxWidth": 120
+        }
+      },
+      {
+        "type": "spacer",
+        "enabled": true
+      },
+      {
+        "type": "tray",
+        "enabled": true,
+        "settings": {
+          "iconSize": 20,
+          "spacing": 8
+        }
+      },
+      {
+        "type": "notifications",
+        "enabled": true,
+        "clickAction": "notification-center",
+        "settings": {
+          "showCount": true
+        }
+      },
+      {
+        "type": "volume",
+        "enabled": true,
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "scrollable": true,
+          "showPercentage": true
+        }
+      },
+      {
+        "type": "network",
+        "enabled": true,
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "showIcon": true
+        }
+      },
+      {
+        "type": "battery",
+        "enabled": true,
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "showPercentage": true,
+          "showIcon": true
+        }
+      },
+      {
+        "type": "clock",
+        "enabled": true,
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "format": "HH:mm",
+          "showDate": false
+        }
+      }
+    ]
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "width": 420,
+    "height": 600,
+    "defaultTab": "quick",
+    "tabs": [
+      {
+        "id": "quick",
+        "name": "Quick",
+        "icon": "dashboard",
+        "keybind": "Super+D",
+        "widgets": [
+          "volume-slider",
+          "brightness-slider",
+          "network-quick-toggle",
+          "bluetooth-quick-toggle",
+          "night-light-toggle",
+          "upcoming-events"
+        ]
+      },
+      {
+        "id": "media",
+        "name": "Media",
+        "icon": "music_note",
+        "widgets": [
+          "media-player",
+          "media-device-selector"
+        ]
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar",
+        "icon": "calendar_month",
+        "widgets": [
+          "calendar-month-view",
+          "event-list"
+        ]
+      },
+      {
+        "id": "system",
+        "name": "System",
+        "icon": "settings",
+        "widgets": [
+          "weather-detailed",
+          "system-monitor",
+          "audio-advanced"
+        ]
+      }
+    ]
+  },
+
+  "notifications": {
+    "enabled": true,
+    "panel": {
+      "enabled": true,
+      "position": "right",
+      "width": 380,
+      "height": 600,
+      "maxVisible": 10,
+      "groupByApp": true,
+      "showActions": true
+    },
+    "popup": {
+      "enabled": true,
+      "position": "top-right",
+      "timeout": 5000,
+      "maxVisible": 3
+    }
+  },
+
+  "launcher": {
+    "enabled": true,
+    "fuzzy": false,
+    "maxResults": 7,
+    "providers": [
+      "applications",
+      "calculator",
+      "clipboard"
+    ],
+    "hiddenApps": []
+  },
+
+  "osd": {
+    "enabled": true,
+    "position": "center",
+    "timeout": 2000,
+    "types": ["volume", "brightness", "microphone"]
+  },
+
+  "lockscreen": {
+    "enabled": false,
+    "blurWallpaper": true,
+    "showClock": true
+  },
+
+  "wallpaper": {
+    "current": "",
+    "directory": "~/Pictures/Wallpapers"
+  },
+
+  "services": {
+    "weather": {
+      "enabled": true,
+      "location": "London",
+      "units": "metric",
+      "refreshMinutes": 15
+    },
+    "calendar": {
+      "enabled": true,
+      "upcomingEventsCount": 2
+    },
+    "vpn": {
+      "enabled": false,
+      "name": ""
+    }
+  },
+
+  "hyprland": {
+    "workspaceCount": 10,
+    "perMonitor": true
+  }
+}

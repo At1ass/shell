@@ -1,0 +1,101 @@
+{
+    "classes": [
+        {
+            "className": "StatsWorker",
+            "lineNumber": 28,
+            "object": true,
+            "qualifiedClassName": "StatsWorker",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "snapshot",
+                            "type": "StatsSnapshot"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 42,
+                    "name": "snapshotReady",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "message",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 43,
+                    "name": "errorOccurred",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "ms",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 35,
+                    "name": "setFastInterval",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 36,
+                    "name": "refreshNow",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "model",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 37,
+                    "name": "setCpuModel",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "model",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 38,
+                    "name": "setGpuModel",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 39,
+                    "name": "startTimers",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "SystemMonitor.cpp",
+    "outputRevision": 69
+}

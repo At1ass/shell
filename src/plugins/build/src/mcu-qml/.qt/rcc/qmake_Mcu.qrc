@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Mcu">
+    <file alias="qmldir">/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/Mcu/qmldir</file>
+  </qresource>
+</RCC>
+

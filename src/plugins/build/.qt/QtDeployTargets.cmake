@@ -1,0 +1,8 @@
+set(__QT_DEPLOY_TARGET_mcu-cpp_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/external/mcu-cpp/libmcu-cpp.a)
+set(__QT_DEPLOY_TARGET_mcu-cpp_TYPE STATIC_LIBRARY)
+set(__QT_DEPLOY_TARGET_mcuqml_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/Mcu/libmcuqml.so)
+set(__QT_DEPLOY_TARGET_mcuqml_TYPE MODULE_LIBRARY)
+set(__QT_DEPLOY_TARGET_qalculateqml_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/Qalculate/libqalculateqml.so)
+set(__QT_DEPLOY_TARGET_qalculateqml_TYPE MODULE_LIBRARY)
+set(__QT_DEPLOY_TARGET_systemmonitorqml_FILE /home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/SystemMonitor/libsystemmonitorqml.so)
+set(__QT_DEPLOY_TARGET_systemmonitorqml_TYPE MODULE_LIBRARY)
