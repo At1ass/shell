@@ -11,18 +11,48 @@ Item {
     GridLayout {
         anchors.fill: parent
         anchors.margins: Config.spacing.medium
-        columns: 4
-        rows: 3
+        columns: 10
+        rows: 6
         columnSpacing: Config.spacing.small
         rowSpacing: Config.spacing.small
 
-        // ===== ROW 0, COL 0-1: BRIGHTNESS SLIDER =====
-        MaterialCard {
+        // ===== ROW 0, COL 0: CLOCK =====
+        ClockElement {
             Layout.row: 0
             Layout.column: 0
-            Layout.rowSpan: 2
+            Layout.rowSpan: 3
             Layout.columnSpan: 1
+            Layout.fillHeight: true
             Layout.preferredWidth: 80
+        }
+
+        // ===== ROW 0-1, COL 1-4: USER INFO =====
+        UserInfoElement {
+            Layout.row: 0
+            Layout.column: 1
+            Layout.columnSpan: 4
+            Layout.rowSpan: 2
+            Layout.preferredWidth: 400
+            Layout.fillHeight: true
+        }
+
+        // ===== ROW 0-2, COL 5-7: QUICK ACTIONS =====
+        QuickActionsElement {
+            Layout.row: 0
+            Layout.column: 5
+            Layout.columnSpan: 3
+            Layout.rowSpan: 3
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+
+        // ===== ROW 0-2, COL 8: BRIGHTNESS SLIDER =====
+        MaterialCard {
+            Layout.row: 0
+            Layout.column: 8
+            Layout.rowSpan: 3
+            Layout.columnSpan: 1
+            Layout.preferredWidth: 70
             Layout.fillHeight: true
             color: Config.colors.surfaceContainerHigh
             radius: Config.shape.large
@@ -61,13 +91,13 @@ Item {
             }
         }
 
-        // ===== ROW 0, COL 1: VOLUME SLIDER =====
+        // ===== ROW 0-2, COL 9: VOLUME SLIDER =====
         MaterialCard {
             Layout.row: 0
-            Layout.column: 1
-            Layout.rowSpan: 2
+            Layout.column: 9
+            Layout.rowSpan: 3
             Layout.columnSpan: 1
-            Layout.preferredWidth: 80
+            Layout.preferredWidth: 70
             Layout.fillHeight: true
             color: Config.colors.surfaceContainerHigh
             radius: Config.shape.large
@@ -107,23 +137,34 @@ Item {
             }
         }
 
-        // ===== ROW 0-2, COL 2-3: QUICK ACTIONS =====
-        QuickActionsElement {
-            Layout.row: 0
-            Layout.column: 2
-            Layout.columnSpan: 2
-            Layout.rowSpan: 2
+        // ===== ROW 2, COL 1-7: SYSTEM MONITORING =====
+        SystemMonitoringElement {
+            Layout.row: 2
+            Layout.column: 1
+            Layout.rowSpan: 1
+            Layout.columnSpan: 7
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: 90
         }
 
-        // ===== ROW 2, COL 0-3: UPCOMING EVENTS =====
-        SheduleElement {
-            Layout.row: 2
+        // ===== ROW 3-4, COL 0-2: MEDIA PLAYER =====
+        MediaPlayerElement {
+            Layout.row: 3
             Layout.column: 0
-            Layout.columnSpan: 4
+            Layout.rowSpan: 2
+            Layout.columnSpan: 3
+            Layout.fillHeight: true
+            Layout.preferredWidth: 400
+        }
+
+        // ===== ROW 3-5, COL 3-9: UPCOMING EVENTS =====
+        SheduleElement {
+            Layout.row: 3
+            Layout.column: 3
+            Layout.rowSpan: 3
+            Layout.columnSpan: 7
             Layout.fillWidth: true
-            Layout.preferredHeight: 200
+            Layout.fillHeight: true
         }
     }
 }
