@@ -1,0 +1,2 @@
+module SystemMonitor
+singleton SystemMonitor 1.0 SystemMonitor.qml

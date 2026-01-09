@@ -122,7 +122,6 @@ Scope {
                 windows: [ popup, bar, ...(activeItem?.grabWindows ?? []) ]
                 onActiveChanged: {
                     if (!active && activeItem?.isMenu) {
-                        console.log("Menu lost focus, closing")
                         activeMenu.close()
                     }
                 }

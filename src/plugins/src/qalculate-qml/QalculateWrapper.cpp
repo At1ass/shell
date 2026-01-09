@@ -1,13 +1,16 @@
 #include "QalculateWrapper.h"
 #include <libqalculate/qalculate.h>
 #include <QDebug>
+#include <QMutexLocker>
+#include <memory>
 
 QalculateWrapper::QalculateWrapper(QObject* parent)
     : QObject(parent)
 {
     // Инициализируем глобальный CALCULATOR если еще не создан
     if (!CALCULATOR) {
-        new Calculator();
+        static std::unique_ptr<Calculator> s_calculator(new Calculator());
+        CALCULATOR = s_calculator.get();
         CALCULATOR->loadExchangeRates();
         CALCULATOR->loadGlobalDefinitions();
         CALCULATOR->loadLocalDefinitions();
@@ -20,6 +23,9 @@ QString QalculateWrapper::eval(const QString& expression, bool printExpr) const 
     if (expression.isEmpty()) {
         return QString();
     }
+
+    // Thread-safe доступ к глобальному CALCULATOR
+    QMutexLocker locker(&m_mutex);
 
     EvaluationOptions eo;
     PrintOptions po;

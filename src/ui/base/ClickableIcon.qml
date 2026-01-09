@@ -7,6 +7,11 @@ import qs.src.ui.base
 MaterialIcon {
     // Mouse interaction
     id: root
+
+    // Цвета для состояний
+    property color disabledColor: Qt.alpha(Config.colors.onSurface, 0.38)
+    property color backgroundColor: Config.colors.onSurface
+
     color: !enabled ? disabledColor : backgroundColor
 
     signal clicked(MouseEvent mouse)

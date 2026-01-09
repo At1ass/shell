@@ -38,7 +38,7 @@ BarElement {
     nonVisualChildren: [
         Process {
             id: fetchLayoutsProcess
-            running: true
+            running: false
             command: ["hyprctl", "-j", "devices"]
 
             stdout: StdioCollector {
@@ -111,19 +111,29 @@ BarElement {
             running: false
         },
 
-        // Периодическое обновление состояния клавиатуры
+        // Периодическое обновление состояния клавиатуры (CapsLock/NumLock)
+        // Раскладка обновляется через события Hyprland, поэтому polling редкий
         Timer {
             id: keyboardStateTimer
-            interval: 1000
+            interval: 5000  // 5 секунд вместо 1 - снижает нагрузку
             running: true
             repeat: true
             triggeredOnStart: false
 
             onTriggered: {
-                fetchLayoutsProcess.running = true
+                if (!fetchLayoutsProcess.running) {
+                    fetchLayoutsProcess.running = true
+                }
             }
         }
     ]
+
+    Component.onCompleted: {
+        // Initial fetch
+        if (!fetchLayoutsProcess.running) {
+            fetchLayoutsProcess.running = true
+        }
+    }
 
     // Обновление кода раскладки при изменении имени
     onCurrentLayoutNameChanged: updateLayoutCode()
@@ -132,7 +142,9 @@ BarElement {
         if (cachedLayoutCodes.hasOwnProperty(currentLayoutName)) {
             currentLayoutCode = cachedLayoutCodes[currentLayoutName]
         } else {
-            getLayoutCodeProcess.running = true
+            if (!getLayoutCodeProcess.running) {
+                getLayoutCodeProcess.running = true
+            }
         }
     }
 
@@ -145,8 +157,10 @@ BarElement {
         const nextLayout = layoutCodes[nextIndex]
 
         // Переключение через hyprctl
-        switchProcess.command = ["hyprctl", "switchxkblayout", "main", "next"]
-        switchProcess.running = true
+        if (!switchProcess.running) {
+            switchProcess.command = ["hyprctl", "switchxkblayout", "main", "next"]
+            switchProcess.running = true
+        }
 
         // console.log(`Переключение раскладки: ${currentLayoutCode} -> ${nextLayout}`)
     }

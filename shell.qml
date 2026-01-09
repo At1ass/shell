@@ -5,6 +5,7 @@ import qs.src.features.background
 import qs.src.features.dashboard
 import qs.src.features.launcher
 import qs.src.features.osd
+import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
 
 ShellRoot {
@@ -57,5 +58,18 @@ ShellRoot {
     LazyLoader {
         loading: true
         Launcher {}
+    }
+
+
+    // Notification popups
+    LazyLoader {
+        loading: true
+        NotificationPopup {}
+    }
+
+    // Notification center
+    LazyLoader {
+        loading: true
+        NotificationCenter {}
     }
 }

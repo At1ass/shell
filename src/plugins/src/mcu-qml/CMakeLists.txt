@@ -18,6 +18,7 @@ find_package(absl REQUIRED)
 target_link_libraries(mcuqml
   PRIVATE
     Qt6::Core Qt6::Gui Qt6::Qml
+    Qt6::Concurrent
     mcu-cpp
     absl::strings
     absl::hash
@@ -49,4 +50,3 @@ install(TARGETS mcuqml LIBRARY DESTINATION "${module_dir}" RUNTIME DESTINATION "
 install(TARGETS "${module_plugin_target}" LIBRARY DESTINATION "${module_dir}" RUNTIME DESTINATION "${module_dir}")
 install(FILES "${module_qmldir}" DESTINATION "${module_dir}")
 install(FILES "${module_typeinfo}" DESTINATION "${module_dir}")
-

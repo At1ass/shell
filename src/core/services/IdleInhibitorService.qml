@@ -11,8 +11,8 @@ pragma Singleton
 Singleton {
     id: root
 
-    property alias inhibit: idleInhibitor.enabled
-    inhibit: GlobalStates.inhibit
+    // Только readonly property с биндингом - без конфликта alias
+    readonly property bool inhibit: GlobalStates.inhibit
 
     function toggleInhibit() {
         GlobalStates.inhibit = !GlobalStates.inhibit
@@ -20,6 +20,8 @@ Singleton {
 
     IdleInhibitor {
         id: idleInhibitor
+        // Биндим enabled напрямую к GlobalStates
+        enabled: GlobalStates.inhibit
         window: PanelWindow { // Inhibitor requires a "visible" surface
             // Actually not lol
             implicitWidth: 0

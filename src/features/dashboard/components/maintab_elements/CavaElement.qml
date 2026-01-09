@@ -3,8 +3,10 @@ import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
+import qs.src.core.services
 
 MaterialCard {
+    id: cavaElement
     Layout.row: 3
     Layout.column: 6
     Layout.columnSpan: 4
@@ -14,6 +16,9 @@ MaterialCard {
     Layout.preferredWidth: 220
     color: Config.colors.surfaceContainerHigh
     radius: Config.shape.large
+
+    // Анимации работают только когда dashboard виден
+    readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible
 
     ColumnLayout {
         anchors.fill: parent
@@ -61,9 +66,9 @@ MaterialCard {
                             }
                         }
 
-                        // Animation loop
+                        // Animation loop - только когда dashboard виден
                         SequentialAnimation on barHeight {
-                            running: true
+                            running: cavaElement.animationsEnabled
                             loops: Animation.Infinite
 
                             NumberAnimation {

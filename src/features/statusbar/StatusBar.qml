@@ -5,8 +5,6 @@ import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.features.dashboard
 import qs.src.ui.containers
-import qs.src.ui.containers
-import qs.src.ui.feedback
 import qs.src.ui.feedback
 import qs.src.ui.inputs
 
@@ -88,6 +86,9 @@ PanelWindow {
             MPRISWidget {
                 visible: statusBar.screen.name === "DP-2"
                 tooltipManager: statusBar.tooltip
+            }
+
+            NotificationWidget {
             }
 
             VolumeWidget {

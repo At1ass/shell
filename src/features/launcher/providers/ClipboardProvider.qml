@@ -64,7 +64,6 @@ BaseProvider {
                 score: score,
                 data: { entry: capturedEntry, content: content },
                 action: function() {
-                    console.log("Copying to clipboard:", content.substring(0, 50))
                     ClipboardService.copy(capturedEntry)
                 }
             })

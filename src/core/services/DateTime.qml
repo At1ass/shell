@@ -13,9 +13,10 @@ Singleton {
     property string uptime: "0h, 0m"
 
     Timer {
-        interval: 10
+        interval: 3000
         running: true
         repeat: true
+        triggeredOnStart: true
         onTriggered: {
             fileUptime.reload()
             const textUptime = fileUptime.text()
@@ -32,7 +33,6 @@ Singleton {
             if (hours > 0) formatted += `${formatted ? ", " : ""}${hours}h`
             if (minutes > 0 || !formatted) formatted += `${formatted ? ", " : ""}${minutes}m`
             uptime = formatted
-            interval = 3000
         }
     }
 

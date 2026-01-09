@@ -107,9 +107,7 @@ Singleton {
         id: postScriptProcess
         onExited: wallpaperService.runNextPostScript()
 
-        stdout: StdioCollector {
-            onStreamFinished: console.log(`Wallpaper post-script stdout: ${text}`)
-        }
+        stdout: StdioCollector {}
 
         stderr: StdioCollector {
             onStreamFinished: console.warn(`Wallpaper post-script stderr: ${text}`)
@@ -192,8 +190,6 @@ Singleton {
             },
             monitors: parsed.monitors || {}
         }
-
-        console.log("WallpaperService: merged", merged)
 
         configData = merged
         applyConfigData()
@@ -462,7 +458,6 @@ Singleton {
             saveConfig()
         }
 
-        console.log(`Set wallpaper for ${monitor}: ${safePath}`)
         schedulePostScript(monitor, safePath)
     }
 
@@ -490,8 +485,6 @@ Singleton {
         }
 
         keys.forEach(monitor => schedulePostScript(monitor, safePath))
-
-        console.log(`Set wallpaper for all monitors: ${safePath}`)
     }
 
     function setDirectory(monitor, dirPath) {
@@ -590,8 +583,6 @@ Singleton {
         ensureMonitorConfig(monitor)
         configData.monitors[monitor].fillMode = fillMode
         saveConfig()
-
-        console.log(`Set fillMode for ${monitor}: ${fillMode}`)
     }
 
     function setAllMonitorsFillMode(fillMode) {
@@ -605,8 +596,6 @@ Singleton {
             configData.monitors[monitor].fillMode = fillMode
         })
         saveConfig()
-
-        console.log(`Set fillMode for all monitors: ${fillMode}`)
     }
 
     function getWallpaper(monitor) {
