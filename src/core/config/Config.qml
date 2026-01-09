@@ -11,7 +11,7 @@ Singleton {
 
     // Путь к конфигу
     readonly property string configDir: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
-    readonly property string configPath: configDir + "/shell/config.json"
+    readonly property string configPath: configDir + "/quickshell/shell/config.json"
     readonly property string defaultConfigPath: Qt.resolvedUrl("../../../config/default.json").toString().replace("file://", "")
 
     // Флаг готовности конфига
@@ -248,24 +248,34 @@ Singleton {
 
         property var entries: [
             {
-                "id": "workspaces",
-                "enabled": true
+                "type": "workspaces",
+                "enabled": true,
+                "section": "left"
             },
             {
-                "id": "spacer",
-                "enabled": true
+                "type": "media",
+                "enabled": true,
+                "section": "center"
             },
             {
-                "id": "tray",
-                "enabled": true
+                "type": "notifications",
+                "enabled": true,
+                "section": "right"
             },
             {
-                "id": "system",
-                "enabled": true
+                "type": "volume",
+                "enabled": true,
+                "section": "right"
             },
             {
-                "id": "clock",
-                "enabled": true
+                "type": "layout",
+                "enabled": true,
+                "section": "right"
+            },
+            {
+                "type": "clock",
+                "enabled": true,
+                "section": "right"
             }
         ]
     }

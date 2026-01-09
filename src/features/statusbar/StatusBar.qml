@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.features.dashboard
+import qs.src.features.statusbar
 import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.ui.inputs
@@ -11,18 +12,14 @@ import qs.src.ui.inputs
 PanelWindow {
     id: statusBar
 
-    // property var modelData: parent.modelData
-    // Tooltip Manager
     readonly property TooltipManager tooltip: tooltipManager
 
-    // screen: modelData
     implicitHeight: Config.bar.height
     color: "transparent"
 
     exclusiveZone: implicitHeight
-	WlrLayershell.namespace: "shell:bar"
+    WlrLayershell.namespace: "shell:bar"
 
-    // Position on top edge
     anchors {
         left: true
         top: true
@@ -31,7 +28,6 @@ PanelWindow {
 
     TooltipManager {
         id: tooltipManager
-
         bar: statusBar
     }
 
@@ -50,54 +46,126 @@ PanelWindow {
             radius: parent.radius
         }
 
-        // Left section - Workspaces
-        BarSection {
-            alignment: "left"
+        RowLayout {
+            spacing: Config.spacing.small
 
             anchors {
                 left: parent.left
-                verticalCenter: parent.verticalCenter
-                leftMargin: Config.spacing.medium
-            }
-
-            WorkspaceWidget {
-            }
-
-        }
-
-        // Center section - Clock and MPRIS (absolute positioning)
-        ClockWidget {
-            anchors.centerIn: parent
-            tooltipManager: statusBar.tooltip
-        }
-
-        // Right section - System info
-        BarSection {
-            alignment: "right"
-            spacingToken: "small"
-
-            anchors {
                 right: parent.right
-                verticalCenter: parent.verticalCenter
+                top: parent.top
+                bottom: parent.bottom
+                leftMargin: Config.spacing.medium
                 rightMargin: Config.spacing.medium
             }
 
-            // MPRIS Widget (only on main monitor DP-2)
-            MPRISWidget {
-                visible: statusBar.screen.name === "DP-2"
-                tooltipManager: statusBar.tooltip
-            }
+        // Left section
+        RowLayout {
+            spacing: Config.spacing.small
+            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+            // anchors.left: parent.left
+            // anchors.leftMargin: Config.spacing.medium
+            // anchors.verticalCenter: parent.verticalCenter
 
-            NotificationWidget {
-            }
+            Repeater {
+                model: {
+                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
+                    return widgets.filter(w => (w.section || "left") === "left");
+                }
 
-            VolumeWidget {
-                tooltipManager: statusBar.tooltip
-            }
+                delegate: Item {
+                    implicitHeight: loaderLeft.item?.implicitHeight ?? 0
+                    implicitWidth: loaderLeft.item?.implicitWidth ?? 0
+                    Layout.alignment: Qt.AlignVCenter
 
-            LayoutWidget {
+                    BarWidgetLoader {
+                        id: loaderLeft
+                        anchors.verticalCenter: parent.verticalCenter
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
             }
         }
 
+        // Left spacer
+        // Item {
+        //     Layout.fillWidth: true
+        // }
+
+        // Center section
+        RowLayout {
+            spacing: Config.spacing.small
+            // Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            anchors.centerIn: parent
+            // anchors.leftMargin: Config.spacing.medium
+            // anchors.verticalCenter: parent.verticalCenter
+
+            Repeater {
+                model: {
+                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
+                    return widgets.filter(w => (w.section || "left") === "center");
+                }
+
+                delegate: Item {
+                    implicitHeight: loaderCenter.item?.implicitHeight ?? 0
+                    implicitWidth: loaderCenter.item?.implicitWidth ?? 0
+
+                    BarWidgetLoader {
+                        id: loaderCenter
+                        anchors.verticalCenter: parent.verticalCenter
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
+            }
+        }
+
+        // Right spacer
+        // Item {
+        //     Layout.fillWidth: true
+        // }
+
+        // Right section
+        RowLayout {
+            spacing: Config.spacing.small
+            // Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            // Layout.fillWidth: true
+            // anchors.centerIn: parent
+            // anchors.right: parent.right
+            // anchors.left: parent.left
+            // anchors.rightMargin: Config.spacing.medium
+            // anchors.verticalCenter: parent.verticalCenter
+            // MPRISWidget {
+            //     visible: statusBar.screen.name === "DP-2"
+            //     tooltipManager: statusBar.tooltip
+            // }
+            //
+            // VolumeWidget {
+            //     tooltipManager: statusBar.tooltip
+            // }
+            //
+            // LayoutWidget {
+            // }
+            Repeater {
+                model: {
+                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
+                    return widgets.filter(w => (w.section || "left") === "right");
+                }
+                Layout.fillWidth: true
+
+                delegate: Item {
+                    implicitHeight: loaderRight.item?.implicitHeight ?? 0
+                    implicitWidth: loaderRight.item?.implicitWidth ?? 0
+
+                    BarWidgetLoader {
+                        id: loaderRight
+                        anchors.verticalCenter: parent.verticalCenter
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
+            }
+        }
+    }
     }
 }

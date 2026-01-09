@@ -137,32 +137,22 @@ Item {
             }
         }
 
-        // ===== ROW 2, COL 1-7: SYSTEM MONITORING =====
-        SystemMonitoringElement {
-            Layout.row: 2
-            Layout.column: 1
-            Layout.rowSpan: 1
-            Layout.columnSpan: 7
-            Layout.fillWidth: true
-            Layout.preferredHeight: 90
-        }
-
-        // ===== ROW 3-4, COL 0-2: MEDIA PLAYER =====
+        // ===== ROW 3-4, COL 0-4: MEDIA PLAYER =====
         MediaPlayerElement {
             Layout.row: 3
             Layout.column: 0
             Layout.rowSpan: 2
-            Layout.columnSpan: 3
+            Layout.columnSpan: 5
             Layout.fillHeight: true
-            Layout.preferredWidth: 400
+            Layout.fillWidth: true
         }
 
-        // ===== ROW 3-5, COL 3-9: UPCOMING EVENTS =====
+        // ===== ROW 3-4, COL 5-9: UPCOMING EVENTS =====
         SheduleElement {
             Layout.row: 3
-            Layout.column: 3
-            Layout.rowSpan: 3
-            Layout.columnSpan: 7
+            Layout.column: 5
+            Layout.rowSpan: 2
+            Layout.columnSpan: 5
             Layout.fillWidth: true
             Layout.fillHeight: true
         }

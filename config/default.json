@@ -28,6 +28,7 @@
       {
         "type": "workspaces",
         "enabled": true,
+        "section": "left",
         "settings": {
           "count": 10,
           "showWindows": true,
@@ -35,12 +36,9 @@
         }
       },
       {
-        "type": "spacer",
-        "enabled": true
-      },
-      {
         "type": "media",
         "enabled": true,
+        "section": "center",
         "clickAction": "dashboard-media",
         "settings": {
           "compact": true,
@@ -49,12 +47,9 @@
         }
       },
       {
-        "type": "spacer",
-        "enabled": true
-      },
-      {
         "type": "tray",
-        "enabled": true,
+        "enabled": false,
+        "section": "right",
         "settings": {
           "iconSize": 20,
           "spacing": 8
@@ -63,6 +58,7 @@
       {
         "type": "notifications",
         "enabled": true,
+        "section": "right",
         "clickAction": "notification-center",
         "settings": {
           "showCount": true
@@ -71,6 +67,7 @@
       {
         "type": "volume",
         "enabled": true,
+        "section": "right",
         "clickAction": "dashboard-quick",
         "settings": {
           "scrollable": true,
@@ -79,7 +76,8 @@
       },
       {
         "type": "network",
-        "enabled": true,
+        "enabled": false,
+        "section": "right",
         "clickAction": "dashboard-quick",
         "settings": {
           "showIcon": true
@@ -87,7 +85,8 @@
       },
       {
         "type": "battery",
-        "enabled": true,
+        "enabled": false,
+        "section": "right",
         "clickAction": "dashboard-quick",
         "settings": {
           "showPercentage": true,
@@ -95,8 +94,14 @@
         }
       },
       {
+        "type": "layout",
+        "enabled": true,
+        "section": "right"
+      },
+      {
         "type": "clock",
         "enabled": true,
+        "section": "right",
         "clickAction": "dashboard-quick",
         "settings": {
           "format": "HH:mm",
