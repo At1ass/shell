@@ -88,6 +88,9 @@ PanelWindow {
                 tooltipManager: statusBar.tooltip
             }
 
+            NotificationWidget {
+            }
+
             VolumeWidget {
                 tooltipManager: statusBar.tooltip
             }

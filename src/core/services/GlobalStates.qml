@@ -13,6 +13,7 @@ Singleton {
     property bool controlPanelOpen: false
     property bool dashboardOpen: false
     property int  dashboardOpenIndex: 0
+    property bool notificationCenterOpen: false
     property bool showDateSelector: false
     property bool darkMode: true
     property bool inhibit: false
@@ -28,6 +29,7 @@ Singleton {
         controlPanelOpen = false
         dashboardOpen = false
         launcherOpen = false
+        notificationCenterOpen = false
     }
 
     function closeAllOSD() {
@@ -40,6 +42,7 @@ Singleton {
         if (controlPanelOpen) {
             dashboardOpen = false
             launcherOpen = false
+            notificationCenterOpen = false
         }
     }
 
@@ -47,6 +50,7 @@ Singleton {
         if (dashboardOpen) {
             controlPanelOpen = false
             launcherOpen = false
+            notificationCenterOpen = false
         }
     }
 
@@ -54,6 +58,15 @@ Singleton {
         if (launcherOpen) {
             controlPanelOpen = false
             dashboardOpen = false
+            notificationCenterOpen = false
+        }
+    }
+
+    onNotificationCenterOpenChanged: {
+        if (notificationCenterOpen) {
+            controlPanelOpen = false
+            dashboardOpen = false
+            launcherOpen = false
         }
     }
 
@@ -127,6 +140,18 @@ Singleton {
 
         function closeAll(): void {
             root.closeAllPanels()
+        }
+
+        function toggleNotificationCenter(): void {
+            root.notificationCenterOpen = !root.notificationCenterOpen
+        }
+
+        function openNotificationCenter(): void {
+            root.notificationCenterOpen = true
+        }
+
+        function closeNotificationCenter(): void {
+            root.notificationCenterOpen = false
         }
     }
 }
