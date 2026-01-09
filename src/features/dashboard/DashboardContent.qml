@@ -5,7 +5,7 @@ import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
-import qs.src.features.dashboard.components
+import qs.src.features.dashboard.tabs
 
 Item {
     id: root
@@ -37,10 +37,10 @@ Item {
 
                     Repeater {
                         model: [
-                            {icon: "dashboard", label: "Main"},
+                            {icon: "dashboard", label: "Quick"},
                             {icon: "music_note", label: "Media"},
                             {icon: "calendar_month", label: "Calendar"},
-                            {icon: "volume_up", label: "Audio"}
+                            {icon: "settings", label: "System"}
                         ]
 
                         delegate: TabButton {
@@ -80,10 +80,10 @@ Item {
                     }
                 }
 
-                MainTab {}
+                QuickTab {}
                 MediaTab {}
                 CalendarTab {}
-                AudioTab {}
+                SystemTab {}
             }
         }
     }
