@@ -60,9 +60,9 @@ BarElement {
     ]
 
     clickHandler: function(mouse) {
-        if (mouse.button === Qt.LeftButton) {
-            GlobalStates.dashboardOpenIndex = 0
-            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
+        if (mouse.button === Qt.RightButton) {
+            // Right-click: Open Dashboard on Quick tab (index 0)
+            GlobalStates.openDashboardTab(0)
         }
     }
 

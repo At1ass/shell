@@ -12,7 +12,7 @@ import qs.src.core.services
 
 BarElement {
     id: root
-    clickable: false
+    clickable: true
     hoverable: true
 
     property var tooltipManager: null
@@ -52,10 +52,11 @@ BarElement {
 
     ]
 
-    onClicked: function (mouse) {
-        if (mouse && mouse.button === Qt.RightButton) {
-            GlobalStates.dashboardOpenIndex = 1
-            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
+    clickHandler: function (mouse) {
+        if (mouse.button === Qt.RightButton) {
+            // Right-click: Open Dashboard on Media tab (index 1)
+            GlobalStates.openDashboardTab(1)
+            mouse.accepted = true
         }
     }
 

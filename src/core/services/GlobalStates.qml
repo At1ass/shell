@@ -32,6 +32,13 @@ Singleton {
         notificationCenterOpen = false
     }
 
+    // Открыть Dashboard на конкретной вкладке
+    // tabIndex: 0 = Quick, 1 = Media, 2 = Calendar, 3 = System
+    function openDashboardTab(tabIndex) {
+        dashboardOpenIndex = tabIndex
+        dashboardOpen = true
+    }
+
     function closeAllOSD() {
         osdVolumeOpen = false
         osdBrightnessOpen = false

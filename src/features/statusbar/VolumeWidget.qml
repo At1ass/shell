@@ -58,22 +58,20 @@ BarElement {
 
     clickHandler: function (mouse) {
         if (mouse.button === Qt.LeftButton) {
+            // Left-click: Mute/unmute
             if (!root.sink || !root.sink.audio) {
                 mouse.accepted = false;
                 return;
             }
-
-            mouse.accepted = true;
             root.sink.audio.muted = !root.sink.audio.muted;
-            root.mixerOpen = false;
+            mouse.accepted = true;
             return;
         }
 
         if (mouse.button === Qt.RightButton) {
-            GlobalStates.dashboardOpenIndex = 3
-            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
-            // root.mixerOpen = !root.mixerOpen;
-            // mouse.accepted = true;
+            // Right-click: Open Dashboard on Quick tab (index 0) for volume slider
+            GlobalStates.openDashboardTab(0)
+            mouse.accepted = true;
             return;
         }
 
