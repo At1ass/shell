@@ -8,7 +8,7 @@ Singleton {
 
     property var todayEvents: []
     property var weekEvents: []
-    property var upcomingEvents: [] // Top 3 upcoming events for MainTab
+    property var upcomingEvents: [] // Top 2 upcoming events for QuickTab
     property string lastLoadedDate: Qt.formatDate(new Date(), "yyyy-MM-dd")
 
     signal eventsChanged()
@@ -75,12 +75,12 @@ Singleton {
         const today = Qt.formatDate(now, "yyyy-MM-dd")
 
         db.transaction(tx => {
-            // Get today's upcoming events + future events, limit 3
+            // Get today's upcoming events + future events, limit 2
             var result = tx.executeSql(
                 `SELECT * FROM events
                  WHERE (date = ? AND start_time >= ?) OR date > ?
                  ORDER BY date, start_time
-                 LIMIT 3`,
+                 LIMIT 2`,
                 [today, currentTime, today]
             )
 

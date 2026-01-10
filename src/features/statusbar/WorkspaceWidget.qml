@@ -6,12 +6,17 @@ import qs.src.ui.feedback
 import Quickshell.Hyprland
 import qs.src.ui.base
 import qs.src.core.config
+import qs.src.core.services
 
 BarElement {
     id: workspaceWidget
 
-    property int wsBaseIndex: 1
-    property int wsCount: 9
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+
+    property int wsBaseIndex: widgetSettings.baseIndex ?? 1
+    property int wsCount: widgetSettings.count ?? 9
+    property bool showWindows: widgetSettings.showWindows ?? true
 
     // BarElement configuration - отключаем clickable, чтобы пропускать клики к индикаторам
     hoverable: true
@@ -71,6 +76,7 @@ BarElement {
                 property int wsIndex: workspaceWidget.wsBaseIndex + index
                 property var workspace: null
                 property bool exists: workspace != null
+                property bool showIndicator: workspaceWidget.showWindows ? (exists || active) : true
                 // Показываем как активный только workspace в фокусе (не просто активный на мониторе)
                 property bool active: workspace?.id === Hyprland.focusedWorkspace?.id
 
@@ -112,14 +118,14 @@ BarElement {
                     // Масштабирование на основе состояния
                     scale: {
                         if (active) return 1.0 + animActive * 0.15
-                        if (exists) return 0.8
+                        if (showIndicator) return 0.8
                         return 0.4
                     }
 
                     // Интерполяция цветов на основе состояния
                     color: {
                         if (active) return Config.colors.primary
-                        if (exists) return Config.colors.secondaryContainer
+                        if (showIndicator) return Config.colors.secondaryContainer
                         return Config.colors.outline
                     }
 
@@ -153,9 +159,17 @@ BarElement {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                     onClicked: {
-                        Hyprland.dispatch("workspace " + wsIndex)
+                        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+                            GlobalStates.handleClickAction(widgetConfig.clickAction)
+                            return
+                        }
+
+                        if (mouse.button === Qt.LeftButton) {
+                            Hyprland.dispatch("workspace " + wsIndex)
+                        }
                     }
 
                     // Ripple effect

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/Qalculate">/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/Qalculate</file>
+
+  </qresource>
+</RCC>

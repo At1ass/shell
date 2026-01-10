@@ -1,0 +1,7 @@
+module Qalculate
+linktarget qalculateqml
+optional plugin qalculateqml
+classname QalculatePlugin
+typeinfo qalculateqml.qmltypes
+prefer :/qt/qml/Qalculate/
+

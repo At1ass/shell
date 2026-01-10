@@ -1,0 +1,12 @@
+/usr/lib/qt6/qml/Mcu/libmcuqml.so
+/usr/lib/qt6/qml/Mcu/libmcuqml.so
+/usr/lib/qt6/qml/Mcu/qmldir
+/usr/lib/qt6/qml/Mcu/mcuqml.qmltypes
+/usr/lib/qt6/qml/Qalculate/libqalculateqml.so
+/usr/lib/qt6/qml/Qalculate/libqalculateqml.so
+/usr/lib/qt6/qml/Qalculate/qmldir
+/usr/lib/qt6/qml/Qalculate/qalculateqml.qmltypes
+/usr/lib/qt6/qml/SystemMonitor/libsystemmonitorqml.so
+/usr/lib/qt6/qml/SystemMonitor/libsystemmonitorqml.so
+/usr/lib/qt6/qml/SystemMonitor/qmldir
+/usr/lib/qt6/qml/SystemMonitor/systemmonitorqml.qmltypes

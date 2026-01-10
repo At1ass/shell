@@ -1,0 +1,2 @@
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include/../EWIEGA46WW/moc_McuTheme.cpp.json
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/mcu-qml/mcuqml_autogen/include/mcuqml_McuPlugin.moc.json

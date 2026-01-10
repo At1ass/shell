@@ -1,0 +1,8 @@
+-I
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml
+-I
+/usr/lib/qt6/qml
+--resource
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/.qt/rcc/qmake_SystemMonitor.qrc
+--module
+SystemMonitor

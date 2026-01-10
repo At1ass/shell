@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/SystemMonitor">/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/SystemMonitor</file>
+
+  </qresource>
+</RCC>

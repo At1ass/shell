@@ -1,0 +1,2 @@
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/qalculateqml_autogen/include/../EWIEGA46WW/moc_QalculateWrapper.cpp.json
+/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/qalculateqml_autogen/include/qalculateqml_QalculatePlugin.moc.json

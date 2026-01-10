@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.features.dashboard
+import qs.src.features.statusbar
 import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.ui.inputs
@@ -11,18 +12,16 @@ import qs.src.ui.inputs
 PanelWindow {
     id: statusBar
 
-    // property var modelData: parent.modelData
-    // Tooltip Manager
     readonly property TooltipManager tooltip: tooltipManager
+    readonly property var barWidgets: Config.ready ? (Config.data.bar?.widgets || []) : []
 
-    // screen: modelData
+
     implicitHeight: Config.bar.height
     color: "transparent"
 
     exclusiveZone: implicitHeight
-	WlrLayershell.namespace: "shell:bar"
+    WlrLayershell.namespace: "shell:bar"
 
-    // Position on top edge
     anchors {
         left: true
         top: true
@@ -31,7 +30,6 @@ PanelWindow {
 
     TooltipManager {
         id: tooltipManager
-
         bar: statusBar
     }
 
@@ -50,54 +48,68 @@ PanelWindow {
             radius: parent.radius
         }
 
-        // Left section - Workspaces
-        BarSection {
-            alignment: "left"
+            // Left section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Config.spacing.small
 
-            anchors {
-                left: parent.left
-                verticalCenter: parent.verticalCenter
-                leftMargin: Config.spacing.medium
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "left")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
             }
 
-            WorkspaceWidget {
+            // Center section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.centerIn: parent
+
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "center")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
             }
 
+            // Right section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: Config.spacing.small
+
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "right")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
+            }
         }
-
-        // Center section - Clock and MPRIS (absolute positioning)
-        ClockWidget {
-            anchors.centerIn: parent
-            tooltipManager: statusBar.tooltip
-        }
-
-        // Right section - System info
-        BarSection {
-            alignment: "right"
-            spacingToken: "small"
-
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-                rightMargin: Config.spacing.medium
-            }
-
-            // MPRIS Widget (only on main monitor DP-2)
-            MPRISWidget {
-                visible: statusBar.screen.name === "DP-2"
-                tooltipManager: statusBar.tooltip
-            }
-
-            NotificationWidget {
-            }
-
-            VolumeWidget {
-                tooltipManager: statusBar.tooltip
-            }
-
-            LayoutWidget {
-            }
-        }
-
-    }
 }

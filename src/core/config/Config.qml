@@ -1,6 +1,7 @@
 pragma Singleton
 
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import Mcu 1.0
 import qs.src.core.services
@@ -8,21 +9,83 @@ import qs.src.core.services
 Singleton {
     id: config
 
+    // Путь к конфигу
+    readonly property string configDir: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
+    readonly property string configPath: configDir + "/quickshell/shell/config.json"
+    readonly property string defaultConfigPath: Qt.resolvedUrl("../../../config/default.json").toString().replace("file://", "")
+
+    // Флаг готовности конфига
+    property bool ready: false
+
+    // Данные из JSON
+    property var data: ({})
+
     McuTheme {
         id: theme
-        // source: Qt.alpha("#00FF00", 0) // Material Design purple
-        // source: Qt.resolvedUrl("/home/at1ass/Downloads/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg")
         source: WallpaperService.currentWallpaper !== "" ? WallpaperService.currentWallpaper : Qt.alpha("#6200EE", 0)
-        // source: Qt.resolvedUrl("/home/at1ass/Downloads/taro-sakamoto-3840x2160-23909.png")
-        darkMode: GlobalStates.darkMode
-        variant: "content" // "expressive" // "vibrant" // "content" // "tonal-spot"
+        darkMode: config.data.appearance?.theme?.darkMode ?? GlobalStates.darkMode
+        variant: config.data.appearance?.theme?.variant ?? "content"
         contrast: 0.0
-
     }
 
     property QtObject weather: QtObject {
-        property int refreshMinutes: 15
-        property string location: "Penza"
+        property int refreshMinutes: config.data.services?.weather?.refreshMinutes ?? 15
+        property string location: config.data.services?.weather?.location ?? "London"
+    }
+
+    // FileView для загрузки конфига
+    FileView {
+        id: configFile
+        path: config.configPath
+        watchChanges: true
+
+        onLoaded: {
+            console.log("Config loaded from:", config.configPath)
+            config.data = parseConfigText(text())
+            config.ready = true
+        }
+
+        onLoadFailed: error => {
+            console.warn("Failed to load config:", error)
+            console.log("Loading default config from:", config.defaultConfigPath)
+            loadDefaultConfig()
+        }
+
+        onFileChanged: {
+            console.log("Config file changed, reloading...")
+            reload()
+        }
+    }
+
+    function parseConfigText(rawText) {
+        try {
+            const parsed = JSON.parse(rawText)
+            return parsed || {}
+        } catch (e) {
+            console.warn("Config parse: failed to parse JSON", e)
+            return {}
+        }
+    }
+
+    function loadDefaultConfig() {
+        // Загружаем default.json через FileView (без XMLHttpRequest)
+        defaultConfigLoader.path = config.defaultConfigPath
+    }
+
+    FileView {
+        id: defaultConfigLoader
+
+        onLoaded: {
+            console.log("Default config loaded from:", config.defaultConfigPath)
+            config.data = parseConfigText(text())
+            config.ready = true
+        }
+
+        onLoadFailed: error => {
+            console.error("Failed to load default config:", error)
+            config.data = {}
+            config.ready = true
+        }
     }
 
     property QtObject colors: QtObject {
@@ -181,24 +244,34 @@ Singleton {
 
         property var entries: [
             {
-                "id": "workspaces",
-                "enabled": true
+                "type": "workspaces",
+                "enabled": true,
+                "section": "left"
             },
             {
-                "id": "spacer",
-                "enabled": true
+                "type": "media",
+                "enabled": true,
+                "section": "center"
             },
             {
-                "id": "tray",
-                "enabled": true
+                "type": "notifications",
+                "enabled": true,
+                "section": "right"
             },
             {
-                "id": "system",
-                "enabled": true
+                "type": "volume",
+                "enabled": true,
+                "section": "right"
             },
             {
-                "id": "clock",
-                "enabled": true
+                "type": "layout",
+                "enabled": true,
+                "section": "right"
+            },
+            {
+                "type": "clock",
+                "enabled": true,
+                "section": "right"
             }
         ]
     }

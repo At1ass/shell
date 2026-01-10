@@ -1,0 +1,7 @@
+module SystemMonitor
+linktarget systemmonitorqml
+optional plugin systemmonitorqml
+classname SystemMonitorPlugin
+typeinfo systemmonitorqml.qmltypes
+prefer :/qt/qml/SystemMonitor/
+

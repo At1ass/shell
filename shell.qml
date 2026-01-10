@@ -11,16 +11,17 @@ import qs.src.features.statusbar as Bar
 ShellRoot {
     Variants {
         model: Quickshell.screens
-
         Scope {
-            property var modelData
+            id: screenScope
+            required property ShellScreen modelData
+
             Bar.StatusBar {
-                screen: modelData
+                screen: screenScope.modelData
             }
 
             PanelWindow {
                 id: wallpaperPanel
-                screen: modelData
+                screen: screenScope.modelData
 
                 anchors {
                     left: true
@@ -37,9 +38,7 @@ ShellRoot {
                     screen: wallpaperPanel.screen
                 }
             }
-
         }
-
     }
 
     // Dashboard
@@ -59,7 +58,6 @@ ShellRoot {
         loading: true
         Launcher {}
     }
-
 
     // Notification popups
     LazyLoader {

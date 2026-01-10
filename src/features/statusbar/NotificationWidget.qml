@@ -12,9 +12,23 @@ BarElement {
     hoverable: true
     minWidth: 48
 
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+    property bool showCount: widgetSettings.showCount ?? true
+
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
-            GlobalStates.notificationCenterOpen = !GlobalStates.notificationCenterOpen
+            if (widgetConfig?.clickAction) {
+                GlobalStates.handleClickAction(widgetConfig.clickAction)
+            } else {
+                GlobalStates.notificationCenterOpen = !GlobalStates.notificationCenterOpen
+            }
+            mouse.accepted = true
+        } else if (mouse.button === Qt.RightButton) {
+            NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+            mouse.accepted = true
+        } else {
+            mouse.accepted = false
         }
     }
 
@@ -27,14 +41,15 @@ BarElement {
 
             MaterialIcon {
                 anchors.centerIn: parent
-                iconName: "notifications"
+                iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
                 fontSize: Config.typography.titleLarge.size
-                iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
+                iconColor: NotificationService.doNotDisturb ? Config.colors.tertiary :
+                          (root.hovered ? Config.colors.primary : Config.colors.onSurface)
                 backgroundColor: "transparent"
             }
 
             Badge {
-                visible: NotificationService.historyList.count > 0
+                visible: root.showCount && NotificationService.historyList.count > 0
                 text: NotificationService.historyList.count > 99
                       ? "99+"
                       : NotificationService.historyList.count.toString()

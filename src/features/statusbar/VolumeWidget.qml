@@ -15,6 +15,11 @@ BarElement {
     clickable: true
     hoverable: true
 
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+    property bool scrollable: widgetSettings.scrollable ?? true
+    property bool showPercentage: widgetSettings.showPercentage ?? true
+
     property var tooltipManager: null
     property bool mixerOpen: false
 
@@ -45,6 +50,11 @@ BarElement {
     ]
 
     wheelHandler: function (event) {
+        if (!root.scrollable) {
+            event.accepted = false;
+            return;
+        }
+
         if (!root.sink || !root.sink.audio) {
             event.accepted = false;
             return;
@@ -58,23 +68,22 @@ BarElement {
 
     clickHandler: function (mouse) {
         if (mouse.button === Qt.LeftButton) {
+            // Left-click: Mute/unmute
             if (!root.sink || !root.sink.audio) {
                 mouse.accepted = false;
                 return;
             }
-
-            mouse.accepted = true;
             root.sink.audio.muted = !root.sink.audio.muted;
-            root.mixerOpen = false;
+            mouse.accepted = true;
             return;
         }
 
         if (mouse.button === Qt.RightButton) {
-            GlobalStates.dashboardOpenIndex = 3
-            GlobalStates.dashboardOpen = !GlobalStates.dashboardOpen
-            // root.mixerOpen = !root.mixerOpen;
-            // mouse.accepted = true;
-            return;
+            if (widgetConfig?.clickAction) {
+                GlobalStates.handleClickAction(widgetConfig.clickAction)
+                mouse.accepted = true;
+                return;
+            }
         }
 
         mouse.accepted = false;
@@ -104,6 +113,7 @@ BarElement {
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
             colorRole: "onSurface"
+            visible: root.showPercentage
         }
     }
 }
