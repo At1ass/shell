@@ -9,11 +9,16 @@ import qs.src.core.config
 BarElement {
     id: clockWidget
 
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+
     property var tooltipManager: null
 
     property string currentTime: ""
     property string currentDate: ""
     property string currentDateTime: ""
+    property string timeFormat: widgetSettings.format ?? "HH:mm"
+    property bool showDate: widgetSettings.showDate ?? true
 
     // BarElement configuration
     expandOnHover: true
@@ -30,7 +35,7 @@ BarElement {
 
             onTriggered: {
                 const now = new Date()
-                clockWidget.currentTime = Qt.formatTime(now, "hh:mm")
+                clockWidget.currentTime = Qt.formatTime(now, clockWidget.timeFormat)
                 clockWidget.currentDate = Qt.formatDate(now, "dd MMM")
                 clockWidget.currentDateTime = Qt.formatDateTime(now, "hh:mm:ss\ndddd, d MMMM yyyy")
             }
@@ -60,10 +65,13 @@ BarElement {
     ]
 
     clickHandler: function(mouse) {
-        if (mouse.button === Qt.RightButton) {
-            // Right-click: Open Dashboard on Quick tab (index 0)
-            GlobalStates.openDashboardTab(0)
+        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+            GlobalStates.handleClickAction(widgetConfig.clickAction)
+            mouse.accepted = true
+            return
         }
+
+        mouse.accepted = false
     }
 
     // Time display content
@@ -82,7 +90,7 @@ BarElement {
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
             anchors.verticalCenter: parent.verticalCenter
-            visible: clockWidget.expanded
+            visible: clockWidget.expanded && clockWidget.showDate
         }
 
         MaterialText {
@@ -90,7 +98,7 @@ BarElement {
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
             anchors.verticalCenter: parent.verticalCenter
-            visible: clockWidget.expanded
+            visible: clockWidget.expanded && clockWidget.showDate
         }
     }
 }

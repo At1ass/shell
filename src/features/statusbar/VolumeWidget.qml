@@ -15,6 +15,11 @@ BarElement {
     clickable: true
     hoverable: true
 
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+    property bool scrollable: widgetSettings.scrollable ?? true
+    property bool showPercentage: widgetSettings.showPercentage ?? true
+
     property var tooltipManager: null
     property bool mixerOpen: false
 
@@ -45,6 +50,11 @@ BarElement {
     ]
 
     wheelHandler: function (event) {
+        if (!root.scrollable) {
+            event.accepted = false;
+            return;
+        }
+
         if (!root.sink || !root.sink.audio) {
             event.accepted = false;
             return;
@@ -69,10 +79,11 @@ BarElement {
         }
 
         if (mouse.button === Qt.RightButton) {
-            // Right-click: Open Dashboard on Quick tab (index 0) for volume slider
-            GlobalStates.openDashboardTab(0)
-            mouse.accepted = true;
-            return;
+            if (widgetConfig?.clickAction) {
+                GlobalStates.handleClickAction(widgetConfig.clickAction)
+                mouse.accepted = true;
+                return;
+            }
         }
 
         mouse.accepted = false;
@@ -102,6 +113,7 @@ BarElement {
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
             colorRole: "onSurface"
+            visible: root.showPercentage
         }
     }
 }

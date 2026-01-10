@@ -39,6 +39,38 @@ Singleton {
         dashboardOpen = true
     }
 
+    // Handle widget click actions from bar configuration
+    function handleClickAction(action) {
+        if (!action)
+            return
+
+        switch (action) {
+            case "dashboard-quick":
+                openDashboardTab(0)
+                return
+            case "dashboard-media":
+                openDashboardTab(1)
+                return
+            case "dashboard-calendar":
+                openDashboardTab(2)
+                return
+            case "dashboard-system":
+                openDashboardTab(3)
+                return
+            case "notification-center":
+                notificationCenterOpen = !notificationCenterOpen
+                return
+            case "launcher":
+                launcherOpen = !launcherOpen
+                return
+            case "control-panel":
+                controlPanelOpen = !controlPanelOpen
+                return
+            default:
+                console.warn("GlobalStates: unknown clickAction:", action)
+        }
+    }
+
     function closeAllOSD() {
         osdVolumeOpen = false
         osdBrightnessOpen = false

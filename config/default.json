@@ -38,7 +38,7 @@
       {
         "type": "media",
         "enabled": true,
-        "section": "center",
+        "section": "right",
         "clickAction": "dashboard-media",
         "settings": {
           "compact": true,
@@ -101,7 +101,7 @@
       {
         "type": "clock",
         "enabled": true,
-        "section": "right",
+        "section": "center",
         "clickAction": "dashboard-quick",
         "settings": {
           "format": "HH:mm",

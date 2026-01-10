@@ -4,6 +4,11 @@ import qs.src.core.config
 Rectangle {
     id: root
 
+    // Bar widget interface (expected by StatusBar/BarWidgetLoader):
+    // - property var widgetConfig: full config entry for the widget
+    // - property var widgetSettings: widgetConfig?.settings ?? {}
+    // - optional: widgetConfig.clickAction for GlobalStates handler
+
     // Content properties
     property alias content: contentLoader.sourceComponent
     property list<QtObject> nonVisualChildren
@@ -48,6 +53,8 @@ Rectangle {
         if (expandedWidth > 0 && expanded) return expandedWidth
         return Math.max(minWidth, contentContainer.implicitWidth + Config.spacing.medium)
     }
+    implicitWidth: width
+    implicitHeight: height
 
     // Primary surface tint for consistency
     Rectangle {

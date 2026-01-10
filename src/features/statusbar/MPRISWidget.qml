@@ -15,13 +15,19 @@ BarElement {
     clickable: true
     hoverable: true
 
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+    property bool compact: widgetSettings.compact ?? false
+    property bool showIcon: widgetSettings.showIcon ?? true
+    property int maxWidth: widgetSettings.maxWidth ?? 0
+
     property var tooltipManager: null
 
     // Always visible for testing - comment out to hide when no player
     visible: true
     // visible: (typeof MprisController !== 'undefined') && MprisController.activePlayer !== null
 
-    implicitWidth: content.width + Config.spacing.small * 2
+    implicitWidth: content.implicitWidth + Config.spacing.small * 2
     // minWidth: content.implicitWidth
 
     nonVisualChildren: [
@@ -53,17 +59,44 @@ BarElement {
     ]
 
     clickHandler: function (mouse) {
-        if (mouse.button === Qt.RightButton) {
-            // Right-click: Open Dashboard on Media tab (index 1)
-            GlobalStates.openDashboardTab(1)
+        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+            GlobalStates.handleClickAction(widgetConfig.clickAction)
             mouse.accepted = true
+            return
         }
+
+        mouse.accepted = false
     }
 
     // Main content - compact display on bar
     RowLayout {
         id: content
-        spacing: Config.spacing.none
+        spacing: Config.spacing.extraSmall
+
+        MaterialIcon {
+            visible: root.showIcon
+            iconName: "music_note"
+            fontSize: Config.typography.titleLarge.size
+            iconColor: Config.colors.onSurface
+            color: "transparent"
+        }
+
+        MaterialText {
+            visible: !root.compact
+            text: {
+                if (typeof MprisController === "undefined" || !MprisController.activeTrack)
+                    return "Нет воспроизведения";
+                const title = MprisController.activeTrack.title || "Unknown Title";
+                const artist = MprisController.activeTrack.artist || "Unknown Artist";
+                return `${title} — ${artist}`;
+            }
+            textStyle: "bodyMedium"
+            colorRole: "onSurface"
+            elide: Text.ElideRight
+            maximumLineCount: 1
+            Layout.maximumWidth: root.maxWidth > 0 ? root.maxWidth : -1
+            Layout.alignment: Qt.AlignVCenter
+        }
 
         // Previous button
         IconButton {
@@ -74,6 +107,7 @@ BarElement {
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
             iconColor: Config.colors.onSurface
+            visible: !root.compact
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')
@@ -90,6 +124,7 @@ BarElement {
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
             iconColor: Config.colors.onSurface
+            visible: true
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')
@@ -107,6 +142,7 @@ BarElement {
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
             iconColor: Config.colors.onSurface
+            visible: !root.compact
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     if (typeof MprisController !== 'undefined')

@@ -13,6 +13,8 @@ PanelWindow {
     id: statusBar
 
     readonly property TooltipManager tooltip: tooltipManager
+    readonly property var barWidgets: Config.ready ? (Config.data.bar?.widgets || []) : []
+
 
     implicitHeight: Config.bar.height
     color: "transparent"
@@ -46,126 +48,68 @@ PanelWindow {
             radius: parent.radius
         }
 
-        RowLayout {
-            spacing: Config.spacing.small
+            // Left section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Config.spacing.small
 
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-                leftMargin: Config.spacing.medium
-                rightMargin: Config.spacing.medium
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "left")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
+                }
             }
 
-        // Left section
-        RowLayout {
-            spacing: Config.spacing.small
-            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-            // anchors.left: parent.left
-            // anchors.leftMargin: Config.spacing.medium
-            // anchors.verticalCenter: parent.verticalCenter
+            // Center section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.centerIn: parent
 
-            Repeater {
-                model: {
-                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
-                    return widgets.filter(w => (w.section || "left") === "left");
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "center")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
+                        widgetConfig: modelData
+                        tooltipManager: statusBar.tooltip
+                    }
                 }
+            }
 
-                delegate: Item {
-                    implicitHeight: loaderLeft.item?.implicitHeight ?? 0
-                    implicitWidth: loaderLeft.item?.implicitWidth ?? 0
-                    Layout.alignment: Qt.AlignVCenter
+            // Right section
+            RowLayout {
+                spacing: Config.spacing.small
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: Config.spacing.small
 
-                    BarWidgetLoader {
-                        id: loaderLeft
-                        anchors.verticalCenter: parent.verticalCenter
+                Repeater {
+                    model: {
+                        const widgets = statusBar.barWidgets
+                        return widgets.filter(w => (w.section || "left") === "right")
+                    }
+
+                    delegate: BarWidgetLoader {
+                        required property var modelData
+
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
                     }
                 }
             }
         }
-
-        // Left spacer
-        // Item {
-        //     Layout.fillWidth: true
-        // }
-
-        // Center section
-        RowLayout {
-            spacing: Config.spacing.small
-            // Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-            anchors.centerIn: parent
-            // anchors.leftMargin: Config.spacing.medium
-            // anchors.verticalCenter: parent.verticalCenter
-
-            Repeater {
-                model: {
-                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
-                    return widgets.filter(w => (w.section || "left") === "center");
-                }
-
-                delegate: Item {
-                    implicitHeight: loaderCenter.item?.implicitHeight ?? 0
-                    implicitWidth: loaderCenter.item?.implicitWidth ?? 0
-
-                    BarWidgetLoader {
-                        id: loaderCenter
-                        anchors.verticalCenter: parent.verticalCenter
-                        widgetConfig: modelData
-                        tooltipManager: statusBar.tooltip
-                    }
-                }
-            }
-        }
-
-        // Right spacer
-        // Item {
-        //     Layout.fillWidth: true
-        // }
-
-        // Right section
-        RowLayout {
-            spacing: Config.spacing.small
-            // Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-            // Layout.fillWidth: true
-            // anchors.centerIn: parent
-            // anchors.right: parent.right
-            // anchors.left: parent.left
-            // anchors.rightMargin: Config.spacing.medium
-            // anchors.verticalCenter: parent.verticalCenter
-            // MPRISWidget {
-            //     visible: statusBar.screen.name === "DP-2"
-            //     tooltipManager: statusBar.tooltip
-            // }
-            //
-            // VolumeWidget {
-            //     tooltipManager: statusBar.tooltip
-            // }
-            //
-            // LayoutWidget {
-            // }
-            Repeater {
-                model: {
-                    let widgets = Config.ready ? (Config.data.bar?.widgets || Config.bar.entries) : Config.bar.entries;
-                    return widgets.filter(w => (w.section || "left") === "right");
-                }
-                Layout.fillWidth: true
-
-                delegate: Item {
-                    implicitHeight: loaderRight.item?.implicitHeight ?? 0
-                    implicitWidth: loaderRight.item?.implicitWidth ?? 0
-
-                    BarWidgetLoader {
-                        id: loaderRight
-                        anchors.verticalCenter: parent.verticalCenter
-                        widgetConfig: modelData
-                        tooltipManager: statusBar.tooltip
-                    }
-                }
-            }
-        }
-    }
-    }
 }

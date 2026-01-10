@@ -39,14 +39,9 @@ Singleton {
         path: config.configPath
         watchChanges: true
 
-        JsonAdapter {
-            id: adapter
-            // Default values будут из default.json
-        }
-
         onLoaded: {
             console.log("Config loaded from:", config.configPath)
-            config.data = parseConfig(adapter)
+            config.data = parseConfigText(text())
             config.ready = true
         }
 
@@ -62,9 +57,14 @@ Singleton {
         }
     }
 
-    function parseConfig(adapter) {
-        // Конвертируем JsonAdapter в обычный JS объект
-        return JSON.parse(JSON.stringify(adapter))
+    function parseConfigText(rawText) {
+        try {
+            const parsed = JSON.parse(rawText)
+            return parsed || {}
+        } catch (e) {
+            console.warn("Config parse: failed to parse JSON", e)
+            return {}
+        }
     }
 
     function loadDefaultConfig() {
@@ -75,13 +75,9 @@ Singleton {
     FileView {
         id: defaultConfigLoader
 
-        JsonAdapter {
-            id: defaultAdapter
-        }
-
         onLoaded: {
             console.log("Default config loaded from:", config.defaultConfigPath)
-            config.data = parseConfig(defaultAdapter)
+            config.data = parseConfigText(text())
             config.ready = true
         }
 

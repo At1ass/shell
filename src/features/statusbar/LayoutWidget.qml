@@ -9,9 +9,13 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import qs.src.ui.base
 import qs.src.core.config
+import qs.src.core.services
 
 BarElement {
     id: layoutWidget
+
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
 
     property string currentLayoutName: ""
     property string currentLayoutCode: ""
@@ -30,8 +34,20 @@ BarElement {
     // Показывать только если есть несколько раскладок
     visible: layoutCodes.length > 1
 
-    onClicked: {
-        layoutWidget.switchLayout()
+    clickHandler: function(mouse) {
+        if (mouse.button === Qt.LeftButton) {
+            layoutWidget.switchLayout()
+            mouse.accepted = true
+            return
+        }
+
+        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+            GlobalStates.handleClickAction(widgetConfig.clickAction)
+            mouse.accepted = true
+            return
+        }
+
+        mouse.accepted = false
     }
 
     // Получение текущих раскладок при инициализации

@@ -2,9 +2,12 @@ module qs.src.features.statusbar
 
 StatusBar 1.0 StatusBar.qml
 BarWidgetLoader 1.0 BarWidgetLoader.qml
+BatteryWidget 1.0 BatteryWidget.qml
 ClockWidget 1.0 ClockWidget.qml
 LayoutWidget 1.0 LayoutWidget.qml
 MPRISWidget 1.0 MPRISWidget.qml
+NetworkWidget 1.0 NetworkWidget.qml
 NotificationWidget 1.0 NotificationWidget.qml
+TrayWidget 1.0 TrayWidget.qml
 VolumeWidget 1.0 VolumeWidget.qml
 WorkspaceWidget 1.0 WorkspaceWidget.qml
