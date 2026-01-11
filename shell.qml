@@ -7,11 +7,11 @@ import qs.src.features.launcher
 import qs.src.features.osd
 import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
+import qs.src.features.popouts as Popouts
 
 ShellRoot {
-    // Глобальное окно меню трея (одно для всех экранов)
-    Bar.TrayMenuOverlay {
-        id: globalTrayMenu
+    Popouts.Popouts {
+        id: globalPopouts
     }
 
     Variants {
@@ -23,10 +23,10 @@ ShellRoot {
             Bar.StatusBar {
                 id: statusBar
                 screen: screenScope.modelData
-                trayMenu: globalTrayMenu
+                popouts: globalPopouts
             }
 
-            Bar.TrayMenuScrim {
+            Popouts.PopoutsScrim {
                 screen: screenScope.modelData
             }
 
@@ -76,9 +76,4 @@ ShellRoot {
         NotificationPopup {}
     }
 
-    // Notification center
-    LazyLoader {
-        loading: true
-        NotificationCenter {}
-    }
 }

@@ -16,17 +16,17 @@ PanelWindow {
     }
 
     color: "transparent"
-    visible: GlobalStates.trayMenuOpen && GlobalStates.trayMenuOwner !== screen.name
+    visible: PopoutsState.open && PopoutsState.screenName !== screen.name
 
     exclusiveZone: 0
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "shell:traymenu:scrim:" + (screen?.name || "unknown")
+    WlrLayershell.namespace: "shell:popouts:scrim:" + (screen?.name || "unknown")
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-        onClicked: GlobalStates.closeTrayMenu()
+        onClicked: PopoutsState.closePopout()
     }
 }

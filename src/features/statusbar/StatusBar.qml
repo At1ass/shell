@@ -14,7 +14,7 @@ PanelWindow {
 
     readonly property TooltipManager tooltip: tooltipManager
     readonly property var barWidgets: Config.ready ? (Config.data.bar?.widgets || []) : []
-    property var trayMenu: null
+    property var popouts: null
 
 
     implicitHeight: Config.bar.height
@@ -67,7 +67,7 @@ PanelWindow {
 
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        trayMenu: statusBar.trayMenu
+                        popouts: statusBar.popouts
                     }
                 }
             }
@@ -88,7 +88,7 @@ PanelWindow {
 
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        trayMenu: statusBar.trayMenu
+                        popouts: statusBar.popouts
                     }
                 }
             }
@@ -111,7 +111,7 @@ PanelWindow {
 
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        trayMenu: statusBar.trayMenu
+                        popouts: statusBar.popouts
                     }
                 }
             }

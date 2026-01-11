@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -19,7 +20,7 @@ BarElement {
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property var tooltipManager: null
     readonly property var currentTrayItem: null
-    property var trayMenu: null
+    property var popouts: null
 
     property int iconSize: widgetSettings.iconSize ?? 20
     property int itemSpacing: widgetSettings.spacing ?? Config.spacing.small
@@ -102,23 +103,22 @@ BarElement {
                         event.accepted = true
 
                         if (event.button === Qt.LeftButton) {
-                            if (root.trayMenu && root.trayMenu.visible)
-                                root.trayMenu.hideMenu()
+                            if (root.popouts && root.popouts.visible)
+                                root.popouts.closePopout()
                             trayItem.modelData.activate()
                             return
                         }
 
                         if (event.button === Qt.MiddleButton) {
-                            if (root.trayMenu && root.trayMenu.visible)
-                                root.trayMenu.hideMenu()
+                            if (root.popouts && root.popouts.visible)
+                                root.popouts.closePopout()
                             trayItem.modelData.secondaryActivate()
                             return
                         }
 
                         if (event.button === Qt.RightButton && trayItem.modelData.hasMenu) {
-                            if (root.trayMenu) {
-                                console.log("Showing tray menu via TrayMenuOverlay")
-                                root.trayMenu.showMenu(trayItem.modelData.menu, trayItem)
+                            if (root.popouts) {
+                                root.popouts.openPopout("traymenu", trayItem.modelData.menu, trayItem)
                                 return
                             }
                             root.showMenu(trayItem.modelData, trayItem)

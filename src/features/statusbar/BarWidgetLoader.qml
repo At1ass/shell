@@ -8,7 +8,7 @@ Item {
 
     required property var widgetConfig
     required property var tooltipManager
-    property var trayMenu: null
+    property var popouts: null
 
     property string widgetType: (widgetConfig && (widgetConfig.type || widgetConfig["type"])) || ""
     property bool widgetEnabled: !(widgetConfig && (widgetConfig.enabled === false || widgetConfig["enabled"] === false))
@@ -85,7 +85,7 @@ Item {
         TrayWidget {
             widgetConfig: root.widgetConfig
             tooltipManager: root.tooltipManager
-            trayMenu: root.trayMenu
+            popouts: root.popouts
         }
     }
 
@@ -93,6 +93,7 @@ Item {
         id: notificationsComponent
         NotificationWidget {
             widgetConfig: root.widgetConfig
+            popouts: root.popouts
         }
     }
 

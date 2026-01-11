@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.base
-import qs.src.features.statusbar
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.dashboard.components.maintab_elements
@@ -185,25 +184,6 @@ Item {
             Layout.fillWidth: true
         }
 
-        // ===== ROW 4, COL 0-8: SYSTEM TRAY =====
-        SystemTrayElement {
-            id: trayItem
-            Layout.row: 5
-            Layout.column: 0
-            Layout.rowSpan: 1
-            Layout.columnSpan: 3
-            Layout.preferredHeight: 50
-            Layout.preferredWidth: 400
-            trayTooltip: trayTooltip
-            trayMenu: trayMenu
-        }
     }
 
-    TrayMenuOverlay {
-        id: trayMenu
-    }
-
-    TrayTooltip {
-        id: trayTooltip
-    }
 }
