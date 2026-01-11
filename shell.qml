@@ -9,6 +9,11 @@ import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
 
 ShellRoot {
+    // Глобальное окно меню трея (одно для всех экранов)
+    Bar.TrayMenuOverlay {
+        id: globalTrayMenu
+    }
+
     Variants {
         model: Quickshell.screens
         Scope {
@@ -16,6 +21,12 @@ ShellRoot {
             required property ShellScreen modelData
 
             Bar.StatusBar {
+                id: statusBar
+                screen: screenScope.modelData
+                trayMenu: globalTrayMenu
+            }
+
+            Bar.TrayMenuScrim {
                 screen: screenScope.modelData
             }
 

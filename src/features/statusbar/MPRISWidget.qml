@@ -52,10 +52,6 @@ BarElement {
                 colorRole: "onSurface"
             }
         }
-
-        // MediaControls теперь управляется через GlobalStates
-        // Удален старый MPRISPopup
-
     ]
 
     clickHandler: function (mouse) {

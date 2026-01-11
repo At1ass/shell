@@ -36,6 +36,16 @@
         }
       },
       {
+        "type": "clock",
+        "enabled": true,
+        "section": "center",
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "format": "HH:mm",
+          "showDate": false
+        }
+      },
+      {
         "type": "media",
         "enabled": true,
         "section": "right",
@@ -44,15 +54,6 @@
           "compact": true,
           "showIcon": true,
           "maxWidth": 120
-        }
-      },
-      {
-        "type": "tray",
-        "enabled": false,
-        "section": "right",
-        "settings": {
-          "iconSize": 20,
-          "spacing": 8
         }
       },
       {
@@ -99,13 +100,12 @@
         "section": "right"
       },
       {
-        "type": "clock",
+        "type": "tray",
         "enabled": true,
-        "section": "center",
-        "clickAction": "dashboard-quick",
+        "section": "right",
         "settings": {
-          "format": "HH:mm",
-          "showDate": false
+          "iconSize": 20,
+          "spacing": 8
         }
       }
     ]

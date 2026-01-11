@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Services.SystemTray
+import qs.src.ui.base
 import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.core.config
@@ -10,26 +11,53 @@ import qs.src.core.services
 BarElement {
     id: root
     hoverable: true
-    clickable: widgetConfig?.clickAction ? true : false
+    // clickable: widgetConfig?.clickAction ? true : false
+    clickable: false
     minWidth: 48
 
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property var tooltipManager: null
+    readonly property var currentTrayItem: null
+    property var trayMenu: null
 
     property int iconSize: widgetSettings.iconSize ?? 20
     property int itemSpacing: widgetSettings.spacing ?? Config.spacing.small
 
-    clickHandler: function(mouse) {
-        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
-            GlobalStates.handleClickAction(widgetConfig.clickAction)
-            mouse.accepted = true
-            return
-        }
+    // clickHandler: function(mouse) {
+    //     if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+    //         GlobalStates.handleClickAction(widgetConfig.clickAction)
+    //         mouse.accepted = true
+    //         return
+    //     }
+    //
+    //     mouse.accepted = false
+    // }
 
-        mouse.accepted = false
-    }
-
+    // nonVisualChildren: [
+    //     // Simple hover tooltip for track info
+    //     TooltipItem {
+    //         id: hoverTooltip
+    //         tooltip: root.tooltipManager
+    //         owner: root
+    //         isMenu: false
+    //         hoverable: true
+    //         show: root.hovered && (typeof MprisController !== 'undefined') && !!MprisController.activePlayer
+    //
+    //         MaterialText {
+    //             text: root.currentTrayItem
+    //                 // if (typeof MprisController === 'undefined' || !MprisController.activeTrack)
+    //                 //     return "Нет воспроизведения";
+    //                 // const title = MprisController.activeTrack.title || "Unknown Title";
+    //                 // const artist = MprisController.activeTrack.artist || "Unknown Artist";
+    //                 // return `${title} — ${artist}`;
+    //             //     visible: trayMouseArea.containsMouse
+    //             //     delay: 500
+    //             textStyle: "bodyMedium"
+    //             colorRole: "onSurface"
+    //         }
+    //     }
+    // ]
     RowLayout {
         spacing: root.itemSpacing
 
@@ -54,7 +82,7 @@ BarElement {
                     anchors.centerIn: parent
                     width: root.iconSize
                     height: root.iconSize
-                    source: root.getTrayIcon(modelData.icon)
+                    source: root.getTrayIcon(trayItem.modelData.icon)
                     sourceSize.width: width
                     sourceSize.height: height
                     fillMode: Image.PreserveAspectFit
@@ -69,41 +97,52 @@ BarElement {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                     onClicked: event => {
+                    // onPressed: event => {
+                    console.log("TrayWidget: clicked on tray item", trayItem.modelData.id, "button:", event.button)
                         event.accepted = true
 
                         if (event.button === Qt.LeftButton) {
-                            modelData.activate()
+                            if (root.trayMenu && root.trayMenu.visible)
+                                root.trayMenu.hideMenu()
+                            trayItem.modelData.activate()
                             return
                         }
 
                         if (event.button === Qt.MiddleButton) {
-                            modelData.secondaryActivate()
+                            if (root.trayMenu && root.trayMenu.visible)
+                                root.trayMenu.hideMenu()
+                            trayItem.modelData.secondaryActivate()
                             return
                         }
 
-                        if (event.button === Qt.RightButton && modelData.hasMenu) {
-                            root.showMenu(modelData, trayItem)
+                        if (event.button === Qt.RightButton && trayItem.modelData.hasMenu) {
+                            if (root.trayMenu) {
+                                console.log("Showing tray menu via TrayMenuOverlay")
+                                root.trayMenu.showMenu(trayItem.modelData.menu, trayItem)
+                                return
+                            }
+                            root.showMenu(trayItem.modelData, trayItem)
                         }
                     }
 
                     onWheel: event => {
                         event.accepted = true
                         const points = event.angleDelta.y / 120
-                        modelData.scroll(points, false)
+                        trayItem.modelData.scroll(points, false)
                     }
                 }
 
-                ToolTip {
-                    visible: trayMouseArea.containsMouse
-                    text: modelData.tooltipTitle || modelData.title || modelData.id
-                    delay: 500
-                }
+                // ToolTip {
+                //     visible: trayMouseArea.containsMouse
+                //     text: trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id
+                //     delay: 500
+                // }
             }
         }
     }
 
     function showMenu(item, sourceItem) {
-        if (!root.window || !item || !item.hasMenu)
+        if (!item || !item.hasMenu)
             return
 
         const windowItem = root.window.contentItem || root

@@ -19,6 +19,9 @@ Singleton {
     property bool inhibit: false
     property bool launcherOpen: false
     property bool controlPanelLeftOpen: false
+    property bool trayMenuOpen: false
+    property string trayMenuOwner: ""
+    property int trayMenuEpoch: 0
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
@@ -74,6 +77,20 @@ Singleton {
     function closeAllOSD() {
         osdVolumeOpen = false
         osdBrightnessOpen = false
+    }
+
+    function openTrayMenu(ownerKey) {
+        trayMenuOpen = true
+        trayMenuOwner = ownerKey || ""
+        trayMenuEpoch++
+    }
+
+    function closeTrayMenu() {
+        if (!trayMenuOpen && trayMenuOwner === "")
+            return
+        trayMenuOpen = false
+        trayMenuOwner = ""
+        trayMenuEpoch++
     }
 
     // Автозакрытие панелей при открытии другой
