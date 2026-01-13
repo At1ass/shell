@@ -16,11 +16,14 @@ PanelWindow {
     readonly property var barWidgets: Config.ready ? (Config.data.bar?.widgets || []) : []
     property var popouts: null
 
+    // Monitor filtering - use internal property to avoid binding loop
+    readonly property bool shouldShow: Config.ready && Config.shouldShowWidget("bar", screen ? screen.name : "")
+    visible: shouldShow
 
     implicitHeight: Config.bar.height
     color: "transparent"
 
-    exclusiveZone: implicitHeight
+    exclusiveZone: shouldShow ? implicitHeight : 0
     WlrLayershell.namespace: "shell:bar"
 
     anchors {

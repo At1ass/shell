@@ -427,6 +427,44 @@ Singleton {
 
     property string vpnName: "nikuznetsov\(2\)"
 
+    // Monitor filtering for widgets
+    // widgetName: "bar", "dashboard", "notifications", "launcher", "osd"
+    // monitorName: output name like "DP-1", "HDMI-1", etc.
+    function shouldShowWidget(widgetName, monitorName) {
+        if (!config.data || !widgetName || !monitorName) {
+            return true; // Default to showing if data is missing
+        }
+
+        const widgetConfig = config.data[widgetName];
+        if (!widgetConfig) {
+            return true; // No config for this widget, show by default
+        }
+
+        // Check if widget is enabled
+        if (widgetConfig.enabled === false) {
+            return false;
+        }
+
+        // Check monitors setting
+        const monitors = widgetConfig.monitors;
+        if (!monitors || monitors === "all") {
+            return true; // Show on all monitors
+        }
+
+        // If monitors is an array, check if current monitor is in the list
+        if (Array.isArray(monitors)) {
+            return monitors.indexOf(monitorName) !== -1;
+        }
+
+        // If monitors is a specific string (not "all"), check if it matches
+        if (typeof monitors === "string") {
+            return monitors === monitorName;
+        }
+
+        // Default to showing
+        return true;
+    }
+
     Component.onCompleted: {
         c.apply(theme.colors);
     }

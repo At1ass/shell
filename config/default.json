@@ -4,7 +4,7 @@
   "appearance": {
     "theme": {
       "source": "wallpaper",
-      "variant": "tonalspot",
+      "variant": "vibrant",
       "darkMode": true
     },
     "spacing": {
@@ -28,6 +28,8 @@
   },
 
   "bar": {
+    "enabled": true,
+    "monitors": "all",
     "position": "top",
     "height": 48,
     "margin": 16,
@@ -121,6 +123,7 @@
 
   "dashboard": {
     "enabled": true,
+    "monitors": "all",
     "width": 420,
     "height": 600,
     "defaultTab": "quick",
@@ -172,6 +175,7 @@
 
   "notifications": {
     "enabled": true,
+    "monitors": "all",
     "panel": {
       "enabled": true,
       "position": "right",
@@ -191,6 +195,7 @@
 
   "launcher": {
     "enabled": true,
+    "monitors": "all",
     "fuzzy": false,
     "maxResults": 7,
     "providers": [
@@ -203,6 +208,7 @@
 
   "osd": {
     "enabled": true,
+    "monitors": "all",
     "position": "center",
     "timeout": 2000,
     "types": ["volume", "brightness", "microphone"]
