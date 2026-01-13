@@ -12,14 +12,16 @@ Rectangle {
     property bool enabled: true
     property real fill: enabled ? 1 : 0
     property int grade: 0
+    property real sizePadding: 1.2  // Multiplier for auto-sizing (fontSize * sizePadding)
 
     // Color properties
     property color backgroundColor: "transparent"
     property color iconColor: enabled ? Config.colors.primary : Config.colors.surfaceText
 
-    width: 30
-    height: 30
-    radius: 24
+    // Auto-size based on fontSize with padding (can be overridden by setting width/height explicitly)
+    implicitWidth: fontSize * sizePadding
+    implicitHeight: fontSize * sizePadding
+    radius: Math.min(width, height) / 2
 
     color: backgroundColor
 

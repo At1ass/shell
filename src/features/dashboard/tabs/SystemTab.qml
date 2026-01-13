@@ -47,7 +47,7 @@ Item {
             // Устройство вывода
             MaterialCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
+                Layout.preferredHeight: 84
                 color: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
                 radius: Config.shape.large
 
@@ -125,7 +125,7 @@ Item {
             // Устройство ввода
             MaterialCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
+                Layout.preferredHeight: 84
                 color: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
                 radius: Config.shape.large
 
@@ -236,7 +236,7 @@ Item {
                             property string appIcon: AudioService.getAppIcon(stream)
 
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 80
+                            Layout.preferredHeight: 90
                             color: Config.colors.surfaceContainer
                             radius: Config.shape.medium
 
