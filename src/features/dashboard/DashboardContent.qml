@@ -18,7 +18,7 @@ Item {
         anchors.fill: parent
         color: Qt.alpha(Config.colors.surfaceContainer, 0.85)
         radius: Config.shape.large
-        outlined: true
+        outlined: false
 
         ColumnLayout {
             anchors.fill: parent
