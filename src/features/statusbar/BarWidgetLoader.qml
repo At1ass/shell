@@ -93,7 +93,6 @@ Item {
         id: notificationsComponent
         NotificationWidget {
             widgetConfig: root.widgetConfig
-            popouts: root.popouts
         }
     }
 

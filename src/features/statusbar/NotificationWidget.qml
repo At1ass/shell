@@ -15,14 +15,13 @@ BarElement {
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property bool showCount: widgetSettings.showCount ?? true
-    property var popouts: null
 
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
             if (widgetConfig?.clickAction) {
                 GlobalStates.handleClickAction(widgetConfig.clickAction)
-            } else if (root.popouts) {
-                root.popouts.openPopout("notification-center", null, root)
+            } else {
+                GlobalStates.notificationCenterOpen = !GlobalStates.notificationCenterOpen
             }
             mouse.accepted = true
         } else if (mouse.button === Qt.RightButton) {

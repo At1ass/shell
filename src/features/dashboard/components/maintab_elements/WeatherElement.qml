@@ -29,7 +29,7 @@ MaterialCard {
                     Layout.alignment: Qt.AlignHCenter
                 }
                 MaterialText {
-                    text: Weather.tempC + "°C"
+                    text: Math.round(Weather.tempC) + "°C"
                     textStyle: "headlineMedium"
                     colorRole: "onSurface"
                     font.weight: Font.Bold
@@ -41,6 +41,9 @@ MaterialCard {
                     textStyle: "labelSmall"
                     colorRole: "onSurfaceVariant"
                     Layout.alignment: Qt.AlignHCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
                 }
             }
             // ColumnLayout {

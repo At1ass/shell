@@ -4,7 +4,7 @@
   "appearance": {
     "theme": {
       "source": "wallpaper",
-      "variant": "content",
+      "variant": "tonal-spot",
       "darkMode": true
     },
     "spacing": {
@@ -214,7 +214,7 @@
   "services": {
     "weather": {
       "enabled": true,
-      "location": "London",
+      "location": "Penza",
       "units": "metric",
       "refreshMinutes": 15
     },

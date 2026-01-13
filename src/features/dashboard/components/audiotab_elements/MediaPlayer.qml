@@ -81,76 +81,76 @@ MaterialCard {
             spacing: Config.spacing.medium
 
             // ===== HEADER: SOURCE SELECTOR =====
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Config.spacing.small
-
-                MaterialText {
-                    text: "Playing from"
-                    textStyle: "labelSmall"
-                    colorRole: "onSurfaceVariant"
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                // Source selector dropdown
-                MaterialCard {
-                    Layout.preferredHeight: 32
-                    Layout.preferredWidth: sourceRow.implicitWidth + Config.spacing.medium * 2
-                    color: sourceMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : Config.colors.surfaceContainer
-                    radius: Config.shape.full
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Config.motion.duration.short4
-                        }
-                    }
-
-                    RowLayout {
-                        id: sourceRow
-                        anchors.centerIn: parent
-                        spacing: Config.spacing.extraSmall
-
-                        // Player icon (from desktop entry or fallback)
-                        MaterialIcon {
-                            iconName: "music_note"
-                            fontSize: 16
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                        }
-
-                        MaterialText {
-                            text: MprisController.identity || "Unknown Player"
-                            textStyle: "labelMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Medium
-                        }
-
-                        MaterialIcon {
-                            iconName: "arrow_drop_down"
-                            fontSize: 16
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                            visible: MprisController.availablePlayers.length > 1
-                        }
-                    }
-
-                    MouseArea {
-                        id: sourceMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: MprisController.availablePlayers.length > 1
-                        onClicked: sourceMenu.visible = !sourceMenu.visible
-                    }
-                }
-            }
-
-            Item {
-                Layout.fillHeight: true
-            }
+            // RowLayout {
+            //     Layout.fillWidth: true
+            //     spacing: Config.spacing.small
+            //
+            //     MaterialText {
+            //         text: "Playing from"
+            //         textStyle: "labelSmall"
+            //         colorRole: "onSurfaceVariant"
+            //     }
+            //
+            //     Item {
+            //         Layout.fillWidth: true
+            //     }
+            //
+            //     // Source selector dropdown
+            //     MaterialCard {
+            //         Layout.preferredHeight: 32
+            //         Layout.preferredWidth: sourceRow.implicitWidth + Config.spacing.medium * 2
+            //         color: sourceMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : Config.colors.surfaceContainer
+            //         radius: Config.shape.full
+            //
+            //         Behavior on color {
+            //             ColorAnimation {
+            //                 duration: Config.motion.duration.short4
+            //             }
+            //         }
+            //
+            //         RowLayout {
+            //             id: sourceRow
+            //             anchors.centerIn: parent
+            //             spacing: Config.spacing.extraSmall
+            //
+            //             // Player icon (from desktop entry or fallback)
+            //             MaterialIcon {
+            //                 iconName: "music_note"
+            //                 fontSize: 16
+            //                 iconColor: Config.colors.onSurfaceVariant
+            //                 backgroundColor: "transparent"
+            //             }
+            //
+            //             MaterialText {
+            //                 text: MprisController.identity || "Unknown Player"
+            //                 textStyle: "labelMedium"
+            //                 colorRole: "onSurface"
+            //                 font.weight: Font.Medium
+            //             }
+            //
+            //             MaterialIcon {
+            //                 iconName: "arrow_drop_down"
+            //                 fontSize: 16
+            //                 iconColor: Config.colors.onSurfaceVariant
+            //                 backgroundColor: "transparent"
+            //                 visible: MprisController.availablePlayers.length > 1
+            //             }
+            //         }
+            //
+            //         MouseArea {
+            //             id: sourceMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: Qt.PointingHandCursor
+            //             enabled: MprisController.availablePlayers.length > 1
+            //             onClicked: sourceMenu.visible = !sourceMenu.visible
+            //         }
+            //     }
+            // }
+            //
+            // Item {
+            //     Layout.fillHeight: true
+            // }
             // ===== ALBUM ART (optional, smaller) =====
             RowLayout {
                 Layout.fillWidth: true
@@ -208,6 +208,14 @@ MaterialCard {
                         border.width: 1
                         border.color: Config.colors.outlineVariant
                     }
+                    MouseArea {
+                        id: sourceMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        enabled: MprisController.availablePlayers.length > 1
+                        onClicked: sourceMenu.visible = !sourceMenu.visible
+                    }
                 }
 
                 // ===== TRACK INFO =====
@@ -248,10 +256,6 @@ MaterialCard {
                         horizontalAlignment: Text.AlignHCenter
                         visible: text !== "" && text !== "Unknown Album"
                     }
-                }
-            }
-
-            // ===== POSITION SLIDER =====
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Config.spacing.extraSmall
@@ -292,8 +296,6 @@ MaterialCard {
                     }
                 }
             }
-
-            // ===== PLAYBACK CONTROLS =====
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -496,6 +498,255 @@ MaterialCard {
                     }
                 }
             }
+                }
+
+            }
+
+            // ===== POSITION SLIDER =====
+            // ColumnLayout {
+            //     Layout.fillWidth: true
+            //     spacing: Config.spacing.extraSmall
+            //
+            //     // Interactive slider
+            //     MaterialSlider {
+            //         id: positionSlider
+            //         Layout.fillWidth: true
+            //         from: 0
+            //         to: MprisController.length > 0 ? MprisController.length : 1
+            //         value: MprisController.position
+            //         enabled: MprisController.canSeek && MprisController.positionSupported
+            //
+            //         onMoved: {
+            //             MprisController.setPosition(value);
+            //         }
+            //     }
+            //
+            //     // Time labels
+            //     RowLayout {
+            //         Layout.fillWidth: true
+            //         spacing: Config.spacing.extraSmall
+            //
+            //         MaterialText {
+            //             text: formatTime(MprisController.position)
+            //             textStyle: "labelSmall"
+            //             colorRole: "onSurfaceVariant"
+            //         }
+            //
+            //         Item {
+            //             Layout.fillWidth: true
+            //         }
+            //
+            //         MaterialText {
+            //             text: formatTime(MprisController.length)
+            //             textStyle: "labelSmall"
+            //             colorRole: "onSurfaceVariant"
+            //         }
+            //     }
+            // }
+
+            // ===== PLAYBACK CONTROLS =====
+            // RowLayout {
+            //     Layout.fillWidth: true
+            //     Layout.alignment: Qt.AlignHCenter
+            //     spacing: 4
+            //
+            //     // Shuffle
+            //     Rectangle {
+            //         width: 40
+            //         height: 40
+            //         radius: 20
+            //         color: MprisController.shuffle ? Config.colors.primaryContainer : "transparent"
+            //         opacity: MprisController.shuffleSupported ? 1.0 : 0.38
+            //
+            //         Behavior on color {
+            //             ColorAnimation {
+            //                 duration: Config.motion.duration.short4
+            //             }
+            //         }
+            //
+            //         MaterialIcon {
+            //             anchors.centerIn: parent
+            //             iconName: "shuffle"
+            //             fontSize: 20
+            //             iconColor: MprisController.shuffle ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+            //             backgroundColor: "transparent"
+            //
+            //             Behavior on iconColor {
+            //                 ColorAnimation {
+            //                     duration: Config.motion.duration.short4
+            //                 }
+            //             }
+            //         }
+            //
+            //         StateLayer {
+            //             layerColor: MprisController.shuffle ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+            //             hovered: shuffleMouseArea.containsMouse
+            //             pressed: shuffleMouseArea.pressed
+            //         }
+            //
+            //         MouseArea {
+            //             id: shuffleMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: MprisController.shuffleSupported ? Qt.PointingHandCursor : Qt.ArrowCursor
+            //             enabled: MprisController.shuffleSupported && MprisController.canControl
+            //             onClicked: MprisController.toggleShuffle()
+            //         }
+            //     }
+            //
+            //     // Previous
+            //     Rectangle {
+            //         width: 48
+            //         height: 48
+            //         radius: 24
+            //         color: "transparent"
+            //         opacity: MprisController.canGoPrevious ? 1.0 : 0.38
+            //
+            //         MaterialIcon {
+            //             anchors.centerIn: parent
+            //             iconName: "skip_previous"
+            //             fontSize: 28
+            //             iconColor: Config.colors.onSurface
+            //             backgroundColor: "transparent"
+            //         }
+            //
+            //         StateLayer {
+            //             layerColor: Config.colors.onSurface
+            //             hovered: prevMouseArea.containsMouse
+            //             pressed: prevMouseArea.pressed
+            //         }
+            //
+            //         MouseArea {
+            //             id: prevMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: MprisController.canGoPrevious ? Qt.PointingHandCursor : Qt.ArrowCursor
+            //             enabled: MprisController.canGoPrevious
+            //             onClicked: MprisController.previous()
+            //         }
+            //     }
+            //
+            //     // Play/Pause (FAB style)
+            //     Rectangle {
+            //         width: 56
+            //         height: 56
+            //         radius: 28
+            //         color: Config.colors.primaryContainer
+            //
+            //         // M3 FAB elevation через surface tint (вместо DropShadow)
+            //         Rectangle {
+            //             anchors.fill: parent
+            //             radius: parent.radius
+            //             color: Config.colors.primary
+            //             opacity: 0.08  // elevation level 1
+            //         }
+            //
+            //         MaterialIcon {
+            //             anchors.centerIn: parent
+            //             iconName: MprisController.isPlaying ? "pause" : "play_arrow"
+            //             fontSize: 32
+            //             iconColor: Config.colors.onPrimaryContainer
+            //             backgroundColor: "transparent"
+            //         }
+            //
+            //         StateLayer {
+            //             layerColor: Config.colors.onPrimaryContainer
+            //             hovered: playMouseArea.containsMouse
+            //             pressed: playMouseArea.pressed
+            //         }
+            //
+            //         MouseArea {
+            //             id: playMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: MprisController.canTogglePlaying ? Qt.PointingHandCursor : Qt.ArrowCursor
+            //             enabled: MprisController.canTogglePlaying
+            //             onClicked: MprisController.togglePlaying()
+            //         }
+            //     }
+            //
+            //     // Next
+            //     Rectangle {
+            //         width: 48
+            //         height: 48
+            //         radius: 24
+            //         color: "transparent"
+            //         opacity: MprisController.canGoNext ? 1.0 : 0.38
+            //
+            //         MaterialIcon {
+            //             anchors.centerIn: parent
+            //             iconName: "skip_next"
+            //             fontSize: 28
+            //             iconColor: Config.colors.onSurface
+            //             backgroundColor: "transparent"
+            //         }
+            //
+            //         StateLayer {
+            //             layerColor: Config.colors.onSurface
+            //             hovered: nextMouseArea.containsMouse
+            //             pressed: nextMouseArea.pressed
+            //         }
+            //
+            //         MouseArea {
+            //             id: nextMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: MprisController.canGoNext ? Qt.PointingHandCursor : Qt.ArrowCursor
+            //             enabled: MprisController.canGoNext
+            //             onClicked: MprisController.next()
+            //         }
+            //     }
+            //
+            //     // Loop
+            //     Rectangle {
+            //         width: 40
+            //         height: 40
+            //         radius: 20
+            //         color: MprisController.loopState !== MprisLoopState.None ? Config.colors.primaryContainer : "transparent"
+            //         opacity: MprisController.loopSupported ? 1.0 : 0.38
+            //
+            //         Behavior on color {
+            //             ColorAnimation {
+            //                 duration: Config.motion.duration.short4
+            //             }
+            //         }
+            //
+            //         MaterialIcon {
+            //             anchors.centerIn: parent
+            //             iconName: {
+            //                 if (MprisController.loopState === MprisLoopState.Track)
+            //                     return "repeat_one";
+            //                 if (MprisController.loopState === MprisLoopState.Playlist)
+            //                     return "repeat";
+            //                 return "repeat";
+            //             }
+            //             fontSize: 20
+            //             iconColor: MprisController.loopState !== MprisLoopState.None ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+            //             backgroundColor: "transparent"
+            //
+            //             Behavior on iconColor {
+            //                 ColorAnimation {
+            //                     duration: Config.motion.duration.short4
+            //                 }
+            //             }
+            //         }
+            //
+            //         StateLayer {
+            //             layerColor: MprisController.loopState !== MprisLoopState.None ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+            //             hovered: loopMouseArea.containsMouse
+            //             pressed: loopMouseArea.pressed
+            //         }
+            //
+            //         MouseArea {
+            //             id: loopMouseArea
+            //             anchors.fill: parent
+            //             hoverEnabled: true
+            //             cursorShape: MprisController.loopSupported ? Qt.PointingHandCursor : Qt.ArrowCursor
+            //             enabled: MprisController.loopSupported && MprisController.canControl
+            //             onClicked: MprisController.toggleLoop()
+            //         }
+            //     }
+            // }
 
             Item {
                 Layout.fillHeight: true
@@ -507,7 +758,8 @@ MaterialCard {
             id: sourceMenu
             visible: false
             anchors.top: parent.top
-            anchors.right: parent.right
+            // anchors.right: parent.right
+            anchors.left: parent.left
             anchors.margins: Config.spacing.large
             anchors.topMargin: Config.spacing.large + 40
             width: 200

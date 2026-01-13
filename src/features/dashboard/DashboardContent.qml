@@ -39,7 +39,7 @@ Item {
                     Repeater {
                         model: [
                             {icon: "dashboard", label: "Quick"},
-                            {icon: "music_note", label: "Media"},
+                            {icon: "partly_cloudy_day", label: "Weather"},
                             {icon: "calendar_month", label: "Calendar"},
                             {icon: "settings", label: "System"}
                         ]
@@ -71,18 +71,18 @@ Item {
                 onCurrentIndexChanged: {
                     // Изменяем высоту окна в зависимости от вкладки
                     if (currentIndex === 0) {
-                        root.requestHeightChange(640)
+                        root.requestHeightChange(640)  // QuickTab
                     } else if (currentIndex === 1) {
-                        root.requestHeightChange(600)
+                        root.requestHeightChange(600)  // WeatherTab
                     } else if (currentIndex === 2) {
-                        root.requestHeightChange(600)
+                        root.requestHeightChange(600)  // CalendarTab
                     } else if (currentIndex === 3) {
-                        root.requestHeightChange(700)
+                        root.requestHeightChange(700)  // SystemTab
                     }
                 }
 
                 QuickTab {}
-                MediaTab {}
+                WeatherTab {}
                 CalendarTab {}
                 SystemTab {}
             }

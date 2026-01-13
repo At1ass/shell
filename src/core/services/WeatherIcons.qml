@@ -3,58 +3,37 @@ pragma Singleton
 import Quickshell
 
 Singleton {
-    // credits: calestia
-    // this snippet is taken from
-    // https://github.com/caelestia-dots/shell
+    // WMO Weather interpretation codes (Open-Meteo)
+    // https://open-meteo.com/en/docs
     readonly property var codeToName: ({
-            113: "clear_day",
-            116: "partly_cloudy_day",
-            119: "cloud",
-            122: "cloud",
-            143: "foggy",
-            176: "rainy",
-            179: "rainy",
-            182: "rainy",
-            185: "rainy",
-            200: "thunderstorm",
-            227: "cloudy_snowing",
-            230: "snowing_heavy",
-            248: "foggy",
-            260: "foggy",
-            263: "rainy",
-            266: "rainy",
-            281: "rainy",
-            284: "rainy",
-            293: "rainy",
-            296: "rainy",
-            299: "rainy",
-            302: "weather_hail",
-            305: "rainy",
-            308: "weather_hail",
-            311: "rainy",
-            314: "rainy",
-            317: "rainy",
-            320: "cloudy_snowing",
-            323: "cloudy_snowing",
-            326: "cloudy_snowing",
-            329: "snowing_heavy",
-            332: "snowing_heavy",
-            335: "snowing",
-            338: "snowing_heavy",
-            350: "rainy",
-            353: "rainy",
-            356: "rainy",
-            359: "weather_hail",
-            362: "rainy",
-            365: "rainy",
-            368: "cloudy_snowing",
-            371: "snowing",
-            374: "rainy",
-            377: "rainy",
-            386: "thunderstorm",
-            389: "thunderstorm",
-            392: "thunderstorm",
-            395: "snowing"
+            0: "clear_day",           // Clear sky
+            1: "clear_day",           // Mainly clear
+            2: "partly_cloudy_day",   // Partly cloudy
+            3: "cloud",               // Overcast
+            45: "foggy",              // Fog
+            48: "foggy",              // Depositing rime fog
+            51: "rainy",              // Drizzle: Light
+            53: "rainy",              // Drizzle: Moderate
+            55: "rainy",              // Drizzle: Dense
+            56: "rainy",              // Freezing Drizzle: Light
+            57: "rainy",              // Freezing Drizzle: Dense
+            61: "rainy",              // Rain: Slight
+            63: "rainy",              // Rain: Moderate
+            65: "rainy",              // Rain: Heavy
+            66: "weather_hail",       // Freezing Rain: Light
+            67: "weather_hail",       // Freezing Rain: Heavy
+            71: "cloudy_snowing",     // Snow fall: Slight
+            73: "snowing",            // Snow fall: Moderate
+            75: "snowing_heavy",      // Snow fall: Heavy
+            77: "snowing",            // Snow grains
+            80: "rainy",              // Rain showers: Slight
+            81: "rainy",              // Rain showers: Moderate
+            82: "rainy",              // Rain showers: Violent
+            85: "cloudy_snowing",     // Snow showers: Slight
+            86: "snowing_heavy",      // Snow showers: Heavy
+            95: "thunderstorm",       // Thunderstorm
+            96: "thunderstorm",       // Thunderstorm with slight hail
+            99: "thunderstorm"        // Thunderstorm with heavy hail
         })
 }
 

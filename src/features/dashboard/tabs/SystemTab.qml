@@ -20,23 +20,23 @@ Item {
         spacing: Config.spacing.medium
 
         // ===== ROW 1: WEATHER & SYSTEM MONITORING =====
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 140
-            spacing: Config.spacing.medium
-
-            // Weather (detailed)
-            WeatherElement {
-                Layout.preferredWidth: 200
-                Layout.fillHeight: true
-            }
-
-            // System Monitor
-            SystemMonitoringElement {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-        }
+        // RowLayout {
+        //     Layout.fillWidth: true
+        //     Layout.preferredHeight: 140
+        //     spacing: Config.spacing.medium
+        //
+        //     // Weather (detailed)
+        //     WeatherElement {
+        //         Layout.preferredWidth: 200
+        //         Layout.fillHeight: true
+        //     }
+        //
+        //     // System Monitor
+        //     SystemMonitoringElement {
+        //         Layout.fillWidth: true
+        //         Layout.fillHeight: true
+        //     }
+        // }
 
         // ===== ROW 2+: AUDIO ADVANCED (from AudioTab) =====
         // Выбор устройств

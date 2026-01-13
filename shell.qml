@@ -26,9 +26,9 @@ ShellRoot {
                 popouts: globalPopouts
             }
 
-            Popouts.PopoutsScrim {
-                screen: screenScope.modelData
-            }
+            // Popouts.PopoutsScrim {
+            //     screen: screenScope.modelData
+            // }
 
             PanelWindow {
                 id: wallpaperPanel
@@ -74,6 +74,12 @@ ShellRoot {
     LazyLoader {
         loading: true
         NotificationPopup {}
+    }
+
+    // Notification center
+    LazyLoader {
+        loading: true
+        NotificationCenter {}
     }
 
 }

@@ -27,13 +27,13 @@ MaterialCard {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            MaterialText {
-                text: SystemMonitorService.userName || "User"
-                textStyle: "titleLarge"
-                colorRole: "onSurface"
-                font.weight: Font.Bold
-                Layout.alignment: Qt.AlignHCenter
-            }
+            // MaterialText {
+            //     text: SystemMonitorService.userName || "User"
+            //     textStyle: "titleLarge"
+            //     colorRole: "onSurface"
+            //     font.weight: Font.Bold
+            //     Layout.alignment: Qt.AlignHCenter
+            // }
         }
 
         // System Info
@@ -41,6 +41,14 @@ MaterialCard {
             spacing: Config.spacing.small
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            MaterialText {
+                text: SystemMonitorService.userName || "User"
+                textStyle: "titleLarge"
+                colorRole: "onSurface"
+                font.weight: Font.Bold
+                Layout.alignment: Qt.AlignHCenter
+            }
 
             // OS + WM
             RowLayout {
@@ -61,40 +69,40 @@ MaterialCard {
             }
 
             // CPU
-            RowLayout {
-                spacing: Config.spacing.small
-
-                MaterialIcon {
-                    iconName: "developer_board"
-                    fontSize: Config.typography.titleMedium.size
-                    iconColor: Config.colors.primary
-                    backgroundColor: "transparent"
-                }
-
-                MaterialText {
-                    text: SystemMonitorService.cpuModel || "CPU"
-                    textStyle: "bodyLarge"
-                    colorRole: "onSurface"
-                }
-            }
-
-            // GPU
-            RowLayout {
-                spacing: Config.spacing.small
-
-                MaterialIcon {
-                    iconName: "videogame_asset"
-                    fontSize: Config.typography.titleMedium.size
-                    iconColor: Config.colors.primary
-                    backgroundColor: "transparent"
-                }
-
-                MaterialText {
-                    text: SystemMonitorService.gpuModel || "GPU"
-                    textStyle: "bodyLarge"
-                    colorRole: "onSurface"
-                }
-            }
+            // RowLayout {
+            //     spacing: Config.spacing.small
+            //
+            //     MaterialIcon {
+            //         iconName: "developer_board"
+            //         fontSize: Config.typography.titleMedium.size
+            //         iconColor: Config.colors.primary
+            //         backgroundColor: "transparent"
+            //     }
+            //
+            //     MaterialText {
+            //         text: SystemMonitorService.cpuModel || "CPU"
+            //         textStyle: "bodyLarge"
+            //         colorRole: "onSurface"
+            //     }
+            // }
+            //
+            // // GPU
+            // RowLayout {
+            //     spacing: Config.spacing.small
+            //
+            //     MaterialIcon {
+            //         iconName: "videogame_asset"
+            //         fontSize: Config.typography.titleMedium.size
+            //         iconColor: Config.colors.primary
+            //         backgroundColor: "transparent"
+            //     }
+            //
+            //     MaterialText {
+            //         text: SystemMonitorService.gpuModel || "GPU"
+            //         textStyle: "bodyLarge"
+            //         colorRole: "onSurface"
+            //     }
+            // }
 
             // Uptime
             RowLayout {
