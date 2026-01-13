@@ -427,17 +427,9 @@ Singleton {
 
     property string vpnName: "nikuznetsov\(2\)"
 
-    // Monitor filtering for widgets
-    // widgetName: "bar", "dashboard", "notifications", "launcher", "osd"
-    // monitorName: output name like "DP-1", "HDMI-1", etc.
-    function shouldShowWidget(widgetName, monitorName) {
-        if (!config.data || !widgetName || !monitorName) {
+    function shouldShowWidget2(widgetConfig, monitorName) {
+        if (!widgetConfig || !monitorName) {
             return true; // Default to showing if data is missing
-        }
-
-        const widgetConfig = config.data[widgetName];
-        if (!widgetConfig) {
-            return true; // No config for this widget, show by default
         }
 
         // Check if widget is enabled
@@ -464,7 +456,6 @@ Singleton {
         // Default to showing
         return true;
     }
-
     Component.onCompleted: {
         c.apply(theme.colors);
     }

@@ -188,8 +188,10 @@ Singleton {
 
     function setPosition(seconds: real) {
         if (canSeek && positionSupported && activePlayer) {
-            const currentPos = activePlayer.position ?? 0
-            activePlayer.seek(seconds - currentPos)
+            activePlayer.position = seconds
+            // const currentPos = activePlayer.position ?? 0
+            // activePlayer.seek(seconds - currentPos)
+
         }
     }
 

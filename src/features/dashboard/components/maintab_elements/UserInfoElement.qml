@@ -15,9 +15,9 @@ MaterialCard {
         spacing: Config.spacing.medium
 
         // Avatar + Username
-        ColumnLayout {
-            spacing: Config.spacing.small
-            Layout.alignment: Qt.AlignTop
+        // ColumnLayout {
+        //     spacing: Config.spacing.small
+        //     Layout.alignment: Qt.AlignTop
 
             CircleAvatar {
                 customSize: 100
@@ -34,7 +34,7 @@ MaterialCard {
             //     font.weight: Font.Bold
             //     Layout.alignment: Qt.AlignHCenter
             // }
-        }
+        // }
 
         // System Info
         ColumnLayout {

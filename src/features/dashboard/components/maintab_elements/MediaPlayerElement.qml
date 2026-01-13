@@ -62,7 +62,8 @@ MaterialCard {
         // Overlay to dim background
         Rectangle {
             anchors.fill: parent
-            color: Config.colors.surfaceContainerHigh
+            // color: Config.colors.surfaceContainerHigh
+            color: Config.colors.primaryContainer
             opacity: 0.85
         }
     }

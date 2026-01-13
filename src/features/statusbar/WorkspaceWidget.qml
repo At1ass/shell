@@ -1,9 +1,11 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.feedback
 import Quickshell.Hyprland
+import Quickshell
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
@@ -19,7 +21,7 @@ BarElement {
     property bool showWindows: widgetSettings.showWindows ?? true
 
     // BarElement configuration - отключаем clickable, чтобы пропускать клики к индикаторам
-    hoverable: true
+    hoverable: false
     clickable: false
 
     // Поддержка прокрутки колесиком как у outfoxxed
@@ -30,21 +32,21 @@ BarElement {
     signal workspaceAdded(workspace: var)
 
     // Обработчик прокрутки колесиком
-    wheelHandler: function(wheel) {
-        wheel.accepted = true
-        let acc = scrollAccumulator - wheel.angleDelta.y
-        const sign = Math.sign(acc)
-        acc = Math.abs(acc)
+    wheelHandler: function (wheel) {
+        wheel.accepted = true;
+        let acc = scrollAccumulator - wheel.angleDelta.y;
+        const sign = Math.sign(acc);
+        acc = Math.abs(acc);
 
-        const offset = sign * Math.floor(acc / 120)
-        scrollAccumulator = sign * (acc % 120)
+        const offset = sign * Math.floor(acc / 120);
+        scrollAccumulator = sign * (acc % 120);
 
         if (offset != 0) {
-            const targetWorkspace = currentIndex + offset
-            const id = Math.max(wsBaseIndex, Math.min(wsBaseIndex + wsCount - 1, targetWorkspace))
+            const targetWorkspace = currentIndex + offset;
+            const id = Math.max(wsBaseIndex, Math.min(wsBaseIndex + wsCount - 1, targetWorkspace));
             if (id != currentIndex) {
-                currentIndex = id
-                Hyprland.dispatch("workspace " + id)
+                currentIndex = id;
+                Hyprland.dispatch("workspace " + id);
             }
         }
     }
@@ -55,13 +57,13 @@ BarElement {
             target: Hyprland.workspaces
 
             function onObjectInsertedPost(workspace) {
-                workspaceWidget.workspaceAdded(workspace)
+                workspaceWidget.workspaceAdded(workspace);
             }
         }
     ]
 
     // Workspace indicators content
-    Row {
+    RowLayout {
         spacing: Config.spacing.small
 
         Repeater {
@@ -69,8 +71,8 @@ BarElement {
 
             Item {
                 id: wsItem
-                width: 24
-                height: 24
+                implicitWidth: hasWindows ? windowIconsRow.implicitWidth + 8 : 24
+                implicitHeight: 24
 
                 required property int index
                 property int wsIndex: workspaceWidget.wsBaseIndex + index
@@ -80,7 +82,21 @@ BarElement {
                 // Показываем как активный только workspace в фокусе (не просто активный на мониторе)
                 property bool active: workspace?.id === Hyprland.focusedWorkspace?.id
 
-                // Анимации состояний как у outfoxxed
+                // Окна на воркспейсе (инициализируем пустыми)
+                property var allWindows: []
+                property bool hasWindows: allWindows.length > 0
+
+                // Функция обновления данных окон
+                function updateWindowData() {
+                    allWindows = HyprlandWindowService.getWindowsForWorkspace(wsIndex);
+                }
+
+                // Инициализация при создании компонента
+                Component.onCompleted: {
+                    updateWindowData();
+                }
+
+                // Анимации состояний
                 property real animActive: active ? 1 : 0
                 Behavior on animActive {
                     NumberAnimation {
@@ -89,11 +105,25 @@ BarElement {
                 }
 
                 property real animExists: exists ? 1 : 0
-                Behavior on animExists { NumberAnimation { duration: Config.animations.durationShort } }
+                Behavior on animExists {
+                    NumberAnimation {
+                        duration: Config.animations.durationShort
+                    }
+                }
 
                 // Обновляем currentIndex при изменении активного workspace
                 onActiveChanged: {
-                    if (active) workspaceWidget.currentIndex = wsIndex
+                    if (active)
+                        workspaceWidget.currentIndex = wsIndex;
+                }
+
+                // Обновляем данные окон при изменении workspace
+                Connections {
+                    target: Hyprland.toplevels
+
+                    function onValuesChanged() {
+                        wsItem.updateWindowData();
+                    }
                 }
 
                 // Подключение к системе workspace
@@ -102,38 +132,68 @@ BarElement {
 
                     function onWorkspaceAdded(workspace) {
                         if (workspace.id == wsItem.wsIndex) {
-                            wsItem.workspace = workspace
+                            wsItem.workspace = workspace;
                         }
                     }
                 }
 
-                // Workspace indicator circle
+                // Плавная анимация размера
+                Behavior on implicitWidth {
+                    NumberAnimation {
+                        duration: Config.animations.durationMedium
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                // Подложка для активного workspace с иконками
+                Rectangle {
+                    id: activeBackground
+                    anchors.fill: parent
+                    anchors.margins: 2
+                    radius: Config.shape.small
+                    color: Config.colors.primary
+                    opacity: active && hasWindows ? 0.15 : 0
+                    z: -1
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Config.animations.durationMedium
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
+
+                // Workspace indicator circle (точка) - только для пустых workspace
                 Rectangle {
                     id: wsIndicator
-                    anchors.centerIn: parent
                     width: Config.typography.titleMedium.size
                     height: Config.typography.titleMedium.size
+                    anchors.centerIn: parent
                     radius: Config.shape.small
+                    visible: !hasWindows
 
                     // Масштабирование на основе состояния
                     scale: {
-                        if (active) return 1.0 + animActive * 0.15
-                        if (showIndicator) return 0.8
-                        return 0.4
+                        if (active)
+                            return 1.0 + animActive * 0.15;
+                        if (showIndicator)
+                            return 0.8;
+                        return 0.4;
                     }
 
                     // Интерполяция цветов на основе состояния
                     color: {
-                        if (active) return Config.colors.primary
-                        if (showIndicator) return Config.colors.secondaryContainer
-                        return Config.colors.outline
+                        if (active)
+                            return Config.colors.primary;
+                        if (showIndicator)
+                            return Config.colors.secondaryContainer;
+                        return Config.colors.outline;
                     }
 
                     // Shadow for active workspace
                     Rectangle {
                         anchors.fill: parent
                         anchors.topMargin: active ? 1 : 0
-                        // color: "#000000"
                         color: Config.colors.onSurface
                         opacity: active ? 0.10 : 0
                         radius: parent.radius
@@ -155,45 +215,119 @@ BarElement {
                     }
                 }
 
-                // Click interaction
+                // Material Icons для окон - горизонтальный ряд
+                Row {
+                    id: windowIconsRow
+                    anchors.centerIn: parent
+                    spacing: 2
+                    visible: hasWindows
+                    opacity: hasWindows ? 1 : 0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Config.animations.durationShort
+                        }
+                    }
+
+                    Repeater {
+                        model: wsItem.allWindows
+
+                        MaterialIcon {
+                            required property var modelData
+
+                            iconName: IconCategoryResolver.getAppCategoryIcon(modelData.lastIpcObject?.class, "terminal")
+                            fontSize: 14
+                            iconColor: active ? Config.colors.primary : Config.colors.onSurfaceVariant
+
+                            // Плавная анимация появления
+                            scale: 1
+                            opacity: 1
+
+                            Component.onCompleted: {
+                                scale = 0
+                                opacity = 0
+                                scaleAnim.start()
+                                opacityAnim.start()
+                            }
+
+                            NumberAnimation on scale {
+                                id: scaleAnim
+                                to: 1
+                                duration: Config.animations.durationMedium
+                                easing.type: Easing.OutBack
+                                running: false
+                            }
+
+                            NumberAnimation on opacity {
+                                id: opacityAnim
+                                to: 1
+                                duration: Config.animations.durationShort
+                                running: false
+                            }
+
+                            Behavior on iconColor {
+                                ColorAnimation {
+                                    duration: Config.animations.durationMedium
+                                }
+                            }
+
+                            // Tooltip с названием приложения
+                            ToolTip.visible: iconMouseArea.containsMouse
+                            ToolTip.text: modelData.lastIpcObject?.title || modelData.lastIpcObject?.class || "Unknown"
+
+                            MouseArea {
+                                id: iconMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton
+
+                                onClicked: {
+                                    // Фокус на конкретное окно
+                                    Hyprland.dispatch("focuswindow address:" + modelData.address);
+                                }
+
+                                // Ripple effect на hover
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: parent.containsMouse ? parent.width + 4 : parent.width
+                                    height: width
+                                    radius: width / 2
+                                    color: Config.colors.onSurface
+                                    opacity: parent.containsMouse ? 0.08 : 0.0
+                                    z: -1
+
+                                    Behavior on width {
+                                        NumberAnimation {
+                                            duration: Config.animations.durationShort
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation {
+                                            duration: Config.animations.durationShort
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Click interaction для всего workspace item
                 MouseArea {
                     anchors.fill: parent
-                    hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                     onClicked: {
                         if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
-                            GlobalStates.handleClickAction(widgetConfig.clickAction)
-                            return
+                            GlobalStates.handleClickAction(widgetConfig.clickAction);
+                            return;
                         }
 
                         if (mouse.button === Qt.LeftButton) {
-                            Hyprland.dispatch("workspace " + wsIndex)
-                        }
-                    }
-
-                    // Ripple effect
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.containsMouse ? 24 : 20
-                        height: width
-                        radius: width / 2
-                        // color: Config.colors.textPrimary
-                        color: Config.colors.onPrimary
-                        opacity: parent.containsMouse ? 0.04 : 0.0
-
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Config.animations.durationShort
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: Config.animations.durationShort
-                                easing.type: Easing.OutCubic
-                            }
+                            Hyprland.dispatch("workspace " + wsIndex);
                         }
                     }
                 }
@@ -201,13 +335,12 @@ BarElement {
         }
     }
 
-
     // Инициализация существующих workspace
     Component.onCompleted: {
         if (Hyprland.workspaces && Hyprland.workspaces.values) {
             Hyprland.workspaces.values.forEach(workspace => {
-                workspaceWidget.workspaceAdded(workspace)
-            })
+                workspaceWidget.workspaceAdded(workspace);
+            });
         }
     }
 }

@@ -63,7 +63,7 @@ MaterialCard {
                 source: albumArtBackground
                 blurEnabled: true
                 blur: 1.0  // максимальное размытие (было radius: 40)
-                blurMax: 64
+                blurMax: 32
             }
 
             // Overlay to dim background

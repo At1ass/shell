@@ -1,0 +1,57 @@
+import QtQuick
+import QtQuick.Layouts
+import qs.src.ui.containers
+import qs.src.ui.base
+import qs.src.core.config
+import qs.src.core.services
+
+BarElement {
+    id: root
+    clickable: true
+    hoverable: true
+    minWidth: 56
+
+    property var widgetConfig: null
+    property var widgetSettings: widgetConfig?.settings ?? ({})
+    property bool showLocation: widgetSettings.showLocation ?? true
+    property bool showIcon: widgetSettings.showIcon ?? true
+    property bool showTemp: widgetSettings.showTemp ?? true
+
+
+    clickHandler: function(mouse) {
+        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
+            GlobalStates.handleClickAction(widgetConfig.clickAction)
+            mouse.accepted = true
+            return
+        }
+
+        mouse.accepted = false
+    }
+
+    RowLayout {
+        spacing: Config.spacing.extraSmall
+
+        MaterialText {
+            visible: root.showLocation
+            text: Weather.location
+            textStyle: "bodyMedium"
+            colorRole: root.hovered ? "primary" : "onSurface"
+        }
+
+        MaterialIcon {
+            visible: root.showIcon
+            // iconName: root.batteryIcon(root.percentage, root.charging, root.deviceReady)
+            iconName: Weather.icon
+            fontSize: Config.typography.titleLarge.size
+            iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
+            color: "transparent"
+        }
+
+        MaterialText {
+            visible: root.showTemp
+            text: Math.round(Weather.tempC) + "°C"
+            textStyle: "bodyMedium"
+            colorRole: root.hovered ? "primary" : "onSurface"
+        }
+    }
+}

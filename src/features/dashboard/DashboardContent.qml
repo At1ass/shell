@@ -73,7 +73,7 @@ Item {
                     if (currentIndex === 0) {
                         root.requestHeightChange(640)  // QuickTab
                     } else if (currentIndex === 1) {
-                        root.requestHeightChange(600)  // WeatherTab
+                        root.requestHeightChange(660)  // WeatherTab
                     } else if (currentIndex === 2) {
                         root.requestHeightChange(600)  // CalendarTab
                     } else if (currentIndex === 3) {

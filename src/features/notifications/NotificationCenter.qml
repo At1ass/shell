@@ -49,7 +49,7 @@ Scope {
 
         Item {
             id: panel
-            width: 380
+            width: 400
             anchors {
                 top: parent.top
                 bottom: parent.bottom
@@ -62,7 +62,6 @@ Scope {
                 anchors.fill: parent
                 color: Config.colors.surfaceContainer
                 radius: Config.shape.extraLarge
-                outlined: false
 
                 ColumnLayout {
                     anchors.fill: parent

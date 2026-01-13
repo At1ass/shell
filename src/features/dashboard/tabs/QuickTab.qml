@@ -52,16 +52,6 @@ Item {
             // Layout.fillHeight: true
             Layout.fillWidth: true
         }
-        // MediaPlayerElement {
-        //     Layout.row: 1
-        //     Layout.column: 0
-        //     Layout.rowSpan: 2
-        //     Layout.columnSpan: 2
-        //     Layout.preferredWidth: 400
-        //     Layout.preferredHeight: 240
-        //     // Layout.fillHeight: true
-        //     Layout.fillWidth: true
-        // }
 
         WeatherElement {
             Layout.row: 0
@@ -70,7 +60,7 @@ Item {
             Layout.columnSpan: 1
             Layout.fillHeight: true
             // Layout.fillWidth: true
-            Layout.preferredWidth: 200
+            Layout.preferredWidth: 240
         }
 
         // ===== ROW 0-2, COL 5-7: QUICK ACTIONS =====
@@ -78,8 +68,9 @@ Item {
             Layout.row: 2
             Layout.column: 2
             Layout.columnSpan: 2
-            Layout.rowSpan: 1
+            Layout.rowSpan: 2
             Layout.fillWidth: true
+            // Layout.preferredHeight: 100
             Layout.fillHeight: true
         }
 
@@ -87,7 +78,7 @@ Item {
             Layout.row: 3
             Layout.column: 0
             Layout.rowSpan: 1
-            Layout.columnSpan: 4
+            Layout.columnSpan: 2
             Layout.preferredHeight: 100
             Layout.fillWidth: true
         }

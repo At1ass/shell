@@ -1,3 +1,0 @@
-Mcu(mcuqml)
-Qalculate(qalculateqml)
-SystemMonitor(systemmonitorqml)

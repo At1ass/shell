@@ -12,3 +12,4 @@ NotificationWidget 1.0 NotificationWidget.qml
 TrayWidget 1.0 TrayWidget.qml
 VolumeWidget 1.0 VolumeWidget.qml
 WorkspaceWidget 1.0 WorkspaceWidget.qml
+WeatherWidget 1.0 WeatherWidget.qml

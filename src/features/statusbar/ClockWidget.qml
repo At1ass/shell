@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import qs.src.core.services
 import qs.src.ui.base
 import qs.src.ui.containers
@@ -75,21 +76,21 @@ BarElement {
     }
 
     // Time display content
-    Row {
+    RowLayout {
         spacing: Config.spacing.extraSmall
 
         MaterialText {
             text: clockWidget.currentTime
             textStyle: "titleMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurface"
-            anchors.verticalCenter: parent.verticalCenter
+            // anchors.verticalCenter: parent.verticalCenter
         }
 
         MaterialText {
             text: "•"
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            anchors.verticalCenter: parent.verticalCenter
+            // anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded && clockWidget.showDate
         }
 
@@ -97,7 +98,7 @@ BarElement {
             text: clockWidget.currentDate
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            anchors.verticalCenter: parent.verticalCenter
+            // anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded && clockWidget.showDate
         }
     }

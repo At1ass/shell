@@ -18,7 +18,6 @@ MaterialCard {
            ? Config.colors.errorContainer
            : Config.colors.surfaceContainerHigh
     radius: Config.shape.large
-    outlined: true
 
     ColumnLayout {
         id: contentLayout
