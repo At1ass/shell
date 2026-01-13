@@ -2,3 +2,4 @@ module qs.src.features.dashboard.components.weathertab_elements
 
 ForecastCard 1.0 ForecastCard.qml
 DetailRow 1.0 DetailRow.qml
+DetailCard 1.0 DetailCard.qml

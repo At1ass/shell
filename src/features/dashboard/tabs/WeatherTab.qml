@@ -14,216 +14,241 @@ Item {
         anchors.margins: Config.spacing.medium
         spacing: Config.spacing.small
 
-        // === Row 1: Current Weather + Details ===
+        // === Header: Location + Date + Sunrise/Sunset ===
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 180
-            spacing: Config.spacing.small
+            spacing: Config.spacing.medium
 
-            // Current Weather (compact)
-            MaterialCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 380
-                color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-                radius: Config.shape.large
+            // Left: Location + Date
+            ColumnLayout {
+                spacing: 2
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.medium
+                MaterialText {
+                    text: Weather.location || "Penza, Russia"
+                    textStyle: "headlineSmall"
+                    colorRole: "onSurface"
+                    font.weight: Font.Bold
+                }
 
-                    // Weather icon
-                    MaterialIcon {
-                        iconName: Weather.icon
-                        fontSize: 90
-                        iconColor: Config.colors.primary
-                        backgroundColor: "transparent"
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    // Item { Layout.fillWidth: true }
-
-                    // Temperature + info
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.alignment: Qt.AlignVCenter
-                        spacing: 2
-
-                        RowLayout {
-                            spacing: 0
-
-                            MaterialText {
-                                text: Math.round(Weather.tempC)
-                                textStyle: "displayMedium"
-                                colorRole: "onSurface"
-                                font.weight: Font.Bold
-                            }
-
-                            MaterialText {
-                                text: "°C"
-                                textStyle: "headlineMedium"
-                                colorRole: "onSurfaceVariant"
-                                Layout.alignment: Qt.AlignTop
-                                Layout.topMargin: 4
-                            }
-                        }
-
-                        MaterialText {
-                            text: Weather.weatherDesc
-                            textStyle: "titleMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Medium
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        MaterialText {
-                            text: "Feels like " + Math.round(Weather.feelsLikeC) + "°C"
-                            textStyle: "bodyMedium"
-                            colorRole: "onSurfaceVariant"
-                        }
-
-                        Item { Layout.fillHeight: true }
-
-                        // Location
-                        RowLayout {
-                            spacing: 4
-
-                            MaterialIcon {
-                                iconName: "location_on"
-                                fontSize: Config.typography.bodySmall.size
-                                iconColor: Config.colors.primary
-                                backgroundColor: "transparent"
-                            }
-
-                            MaterialText {
-                                text: Weather.location || "Penza, Russia"
-                                textStyle: "bodySmall"
-                                colorRole: "onSurfaceVariant"
-                            }
-                        }
-                    }
+                MaterialText {
+                    text: new Date().toLocaleDateString(Qt.locale(), "dddd, MMMM d")
+                    textStyle: "bodyMedium"
+                    colorRole: "onSurfaceVariant"
                 }
             }
 
-            // Details (compact, 2 columns)
-            MaterialCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-                radius: Config.shape.large
+            Item { Layout.fillWidth: true }
 
-                GridLayout {
-                    anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    columns: 2
-                    rowSpacing: Config.spacing.extraSmall
-                    columnSpacing: Config.spacing.medium
+            // Right: Sunrise/Sunset
+            RowLayout {
+                spacing: Config.spacing.large
 
-                    // Column 1
-                    DetailRow {
-                        Layout.fillWidth: true
-                        iconName: "humidity_percentage"
-                        label: "Humidity"
-                        value: Weather.humidity + "%"
-                    }
+                // Sunrise
+                RowLayout {
+                    spacing: Config.spacing.extraSmall
 
-                    DetailRow {
-                        Layout.fillWidth: true
-                        iconName: "compress"
-                        label: "Pressure"
-                        value: Math.round(Weather.pressure) + " hPa"
-                    }
-
-                    DetailRow {
-                        Layout.fillWidth: true
-                        iconName: "air"
-                        label: "Wind"
-                        value: Math.round(Weather.windSpeed) + " km/h"
-                    }
-
-                    DetailRow {
-                        Layout.fillWidth: true
-                        iconName: "water_drop"
-                        label: "Precipitation"
-                        value: Weather.precipitation.toFixed(1) + " mm"
-                    }
-
-                    DetailRow {
-                        Layout.fillWidth: true
+                    MaterialIcon {
                         iconName: "wb_twilight"
-                        label: "Sunrise"
-                        value: {
-                            if (Weather.dailySunrise.length > 0) {
-                                var dt = new Date(Weather.dailySunrise[0]);
-                                return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
+                        fontSize: Config.typography.titleLarge.size
+                        iconColor: Config.colors.tertiary
+                        backgroundColor: "transparent"
+                    }
+
+                    ColumnLayout {
+                        spacing: 0
+
+                        MaterialText {
+                            text: "Sunrise"
+                            textStyle: "bodySmall"
+                            colorRole: "onSurfaceVariant"
+                        }
+
+                        MaterialText {
+                            text: {
+                                if (Weather.dailySunrise.length > 0) {
+                                    var dt = new Date(Weather.dailySunrise[0]);
+                                    return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
+                                }
+                                return "--:--";
                             }
-                            return "--:--";
+                            textStyle: "bodyMedium"
+                            colorRole: "onSurface"
+                            font.weight: Font.Bold
                         }
                     }
+                }
 
-                    DetailRow {
-                        Layout.fillWidth: true
-                        iconName: "wb_twilight"
-                        label: "Sunset"
-                        value: {
-                            if (Weather.dailySunset.length > 0) {
-                                var dt = new Date(Weather.dailySunset[0]);
-                                return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
+                // Sunset
+                RowLayout {
+                    spacing: Config.spacing.extraSmall
+
+                    MaterialIcon {
+                        iconName: "bedtime"
+                        fontSize: Config.typography.titleLarge.size
+                        iconColor: Config.colors.tertiary
+                        backgroundColor: "transparent"
+                    }
+
+                    ColumnLayout {
+                        spacing: 0
+
+                        MaterialText {
+                            text: "Sunset"
+                            textStyle: "bodySmall"
+                            colorRole: "onSurfaceVariant"
+                        }
+
+                        MaterialText {
+                            text: {
+                                if (Weather.dailySunset.length > 0) {
+                                    var dt = new Date(Weather.dailySunset[0]);
+                                    return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
+                                }
+                                return "--:--";
                             }
-                            return "--:--";
+                            textStyle: "bodyMedium"
+                            colorRole: "onSurface"
+                            font.weight: Font.Bold
                         }
                     }
                 }
             }
         }
 
-        // === Row 2: 7-Day Forecast ===
+        // === Hero Card: Current Weather (Big) ===
         MaterialCard {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: 140
             color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: Config.spacing.medium
-                spacing: Config.spacing.small
+            RowLayout {
+                anchors.centerIn: parent
+                spacing: Config.spacing.large
 
-                MaterialText {
-                    text: "7-Day Forecast"
-                    textStyle: "titleMedium"
-                    colorRole: "onSurface"
-                    font.weight: Font.Bold
+                // Weather icon (big)
+                MaterialIcon {
+                    iconName: Weather.icon
+                    fontSize: 100
+                    iconColor: Config.colors.secondary
+                    backgroundColor: "transparent"
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: Config.spacing.small
+                // Temperature + description
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: -4
 
-                    Repeater {
-                        model: Math.min(Weather.dailyTime.length, 7)
+                    // Temperature
+                    RowLayout {
+                        spacing: 0
 
-                        delegate: ForecastCard {
-                            required property int index
+                        MaterialText {
+                            text: Math.round(Weather.tempC)
+                            textStyle: "displayLarge"
+                            colorRole: "primary"
+                            font.weight: Font.Medium
+                        }
 
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.minimumWidth: 80
-
-                            date: Weather.dailyTime[index] || ""
-                            tempMax: Weather.dailyTempMax[index] || 0
-                            tempMin: Weather.dailyTempMin[index] || 0
-                            weatherCode: Weather.dailyWeatherCode[index] || 0
-                            precipSum: Weather.dailyPrecipSum[index] || 0
-                            precipProbMax: Weather.dailyPrecipProbMax[index] || 0
-                            sunrise: Weather.dailySunrise[index] || ""
-                            sunset: Weather.dailySunset[index] || ""
+                        MaterialText {
+                            text: "°C"
+                            textStyle: "displaySmall"
+                            colorRole: "onSurfaceVariant"
+                            Layout.alignment: Qt.AlignTop
+                            Layout.topMargin: 8
                         }
                     }
+
+                    // Description
+                    MaterialText {
+                        text: Weather.weatherDesc
+                        textStyle: "titleLarge"
+                        colorRole: "onSurfaceVariant"
+                        Layout.leftMargin: Config.spacing.extraSmall
+                    }
+                }
+            }
+        }
+
+        // === Details Cards Row ===
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Config.spacing.small
+
+            // Humidity
+            DetailCard {
+                Layout.fillWidth: true
+                iconName: "water_drop"
+                label: "Humidity"
+                value: Weather.humidity + "%"
+                iconColor: Config.colors.secondary
+            }
+
+            // Feels Like
+            DetailCard {
+                Layout.fillWidth: true
+                iconName: "thermostat"
+                label: "Feels Like"
+                value: Math.round(Weather.feelsLikeC) + "°C"
+                iconColor: Config.colors.primary
+            }
+
+            // Wind
+            DetailCard {
+                Layout.fillWidth: true
+                iconName: "air"
+                label: "Wind"
+                value: Math.round(Weather.windSpeed) + " km/h"
+                iconColor: Config.colors.tertiary
+            }
+
+            // Pressure
+            DetailCard {
+                Layout.fillWidth: true
+                iconName: "compress"
+                label: "Pressure"
+                value: Math.round(Weather.pressure) + " hPa"
+                iconColor: Config.colors.secondary
+            }
+        }
+
+        // === 7-Day Forecast Section ===
+        // Header
+        MaterialText {
+            text: "7-Day Forecast"
+            textStyle: "titleMedium"
+            colorRole: "onSurface"
+            font.weight: Font.Bold
+            Layout.topMargin: Config.spacing.small
+            Layout.leftMargin: Config.spacing.extraSmall
+            visible: Weather.dailyTime.length > 0
+        }
+
+        // Forecast cards
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: Config.spacing.small
+
+            Repeater {
+                model: Math.min(Weather.dailyTime.length, 7)
+
+                delegate: ForecastCard {
+                    required property int index
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumWidth: 90
+
+                    date: Weather.dailyTime[index] || ""
+                    tempMax: Weather.dailyTempMax[index] || 0
+                    tempMin: Weather.dailyTempMin[index] || 0
+                    weatherCode: Weather.dailyWeatherCode[index] || 0
+                    precipSum: Weather.dailyPrecipSum[index] || 0
+                    precipProbMax: Weather.dailyPrecipProbMax[index] || 0
+                    sunrise: Weather.dailySunrise[index] || ""
+                    sunset: Weather.dailySunset[index] || ""
                 }
             }
         }

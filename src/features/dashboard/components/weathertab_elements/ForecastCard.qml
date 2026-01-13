@@ -17,7 +17,7 @@ MaterialCard {
     required property string sunrise
     required property string sunset
 
-    color: Config.colors.surfaceContainerHigh
+    color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
     radius: Config.shape.medium
 
     ColumnLayout {
@@ -25,7 +25,7 @@ MaterialCard {
         anchors.margins: Config.spacing.small
         spacing: Config.spacing.extraSmall
 
-        // Day name
+        // Day name (bold, primary color)
         MaterialText {
             text: {
                 if (!date || date === "") return "N/A";
@@ -46,43 +46,60 @@ MaterialCard {
                 var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 return days[d.getDay()];
             }
-            textStyle: "labelMedium"
-            colorRole: "onSurface"
-            font.weight: Font.Medium
+            textStyle: "titleMedium"
+            colorRole: "primary"
+            font.weight: Font.Bold
             Layout.alignment: Qt.AlignHCenter
         }
 
-        // Weather icon
+        // Date (small, under day name)
+        MaterialText {
+            text: {
+                if (!date || date === "") return "";
+                var d = new Date(date);
+                if (isNaN(d.getTime())) return "";
+                return d.toLocaleDateString(Qt.locale(), "MMM d");
+            }
+            textStyle: "bodySmall"
+            colorRole: "onSurfaceVariant"
+            opacity: 0.7
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: -Config.spacing.extraSmall
+        }
+
+        // Weather icon (secondary color like caelesia)
         MaterialIcon {
             iconName: WeatherIcons.codeToName[weatherCode] || "cloud"
-            fontSize: 40
-            iconColor: Config.colors.primary
+            fontSize: 48
+            iconColor: Config.colors.secondary
             backgroundColor: "transparent"
             Layout.alignment: Qt.AlignHCenter
         }
 
-        // Temperature range
+        // Temperature range (tertiary color for emphasis)
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 2
+            spacing: 4
 
             MaterialText {
                 text: Math.round(tempMax) + "°"
                 textStyle: "titleMedium"
-                colorRole: "onSurface"
+                colorRole: "tertiary"
                 font.weight: Font.Bold
             }
 
             MaterialText {
                 text: "/"
-                textStyle: "bodyLarge"
+                textStyle: "titleMedium"
                 colorRole: "onSurfaceVariant"
+                opacity: 0.5
             }
 
             MaterialText {
                 text: Math.round(tempMin) + "°"
-                textStyle: "bodyLarge"
-                colorRole: "onSurfaceVariant"
+                textStyle: "titleMedium"
+                colorRole: "tertiary"
+                font.weight: Font.Bold
             }
         }
 
