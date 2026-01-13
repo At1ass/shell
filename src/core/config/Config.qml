@@ -24,8 +24,8 @@ Singleton {
         id: theme
         source: WallpaperService.currentWallpaper !== "" ? WallpaperService.currentWallpaper : Qt.alpha("#6200EE", 0)
         darkMode: config.data.appearance?.theme?.darkMode ?? GlobalStates.darkMode
-        variant: config.data.appearance?.theme?.variant ?? "content"
-        contrast: 0.0
+        variant: config.data.appearance?.theme?.variant ?? "tonalspot"
+        contrast: 0.5
     }
 
     property QtObject weather: QtObject {

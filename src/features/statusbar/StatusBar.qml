@@ -38,14 +38,14 @@ PanelWindow {
         id: barBackground
 
         anchors.fill: parent
-        color: Config.colors.surfaceContainer
-        opacity: Config.bar.backgroundOpacity
+        color: Qt.alpha(Config.colors.surfaceContainer, 0.90)
+        // opacity: Config.bar.backgroundOpacity  // Removed - using alpha above
 
-        // Primary surface tint
+        // Primary surface tint - more visible
         Rectangle {
             anchors.fill: parent
             color: Config.colors.primary
-            opacity: Config.elevation.level2Opacity
+            opacity: 0.12  // Increased from 0.08 to 0.12
             radius: parent.radius
         }
 

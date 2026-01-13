@@ -16,9 +16,9 @@ Item {
 
     MaterialCard {
         anchors.fill: parent
-        color: Config.colors.surfaceContainer
+        color: Qt.alpha(Config.colors.surfaceContainer, 0.85)
         radius: Config.shape.large
-        outlined: false
+        outlined: true
 
         ColumnLayout {
             anchors.fill: parent

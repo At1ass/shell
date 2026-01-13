@@ -4,7 +4,7 @@
   "appearance": {
     "theme": {
       "source": "wallpaper",
-      "variant": "tonal-spot",
+      "variant": "tonalspot",
       "darkMode": true
     },
     "spacing": {
