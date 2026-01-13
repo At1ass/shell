@@ -25,7 +25,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 380
-                color: Config.colors.surfaceContainerHigh
+                color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
                 radius: Config.shape.large
 
                 RowLayout {
@@ -112,7 +112,7 @@ Item {
             MaterialCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: Config.colors.surfaceContainerHigh
+                color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
                 radius: Config.shape.large
 
                 GridLayout {
@@ -184,7 +184,7 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {

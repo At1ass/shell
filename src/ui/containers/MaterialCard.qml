@@ -5,7 +5,8 @@ import qs.src.core.config
 Pane {
     id: card
 
-    property bool outlined: true
+    // property bool outlined: true
+    property bool outlined: false
     property color color: Config.colors.surfaceContainerHigh
     property int radius: Config.shape.large
 

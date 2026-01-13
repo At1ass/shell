@@ -205,7 +205,7 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {

@@ -90,7 +90,7 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -220,7 +220,7 @@ Item {
         MaterialCard {
             Layout.preferredWidth: 280
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -248,7 +248,7 @@ Item {
                         delegate: ListItem {
                             Layout.fillWidth: true
                             radius: Config.shape.medium
-                            color: Config.colors.surfaceContainerHighest
+                            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
 
                             headline: modelData.title
                             supportingText: modelData.time

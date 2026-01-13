@@ -56,7 +56,7 @@ Button {
         }
 
         function backgroundColor() {
-            if (!control.enabled) return Config.colors.surfaceContainerHigh
+            if (!control.enabled) return Qt.alpha(Config.colors.surfaceContainerHigh, 0.60)
             switch (control.variant) {
             case "filled":
                 return Config.colors.primary
@@ -64,7 +64,7 @@ Button {
             case "text":
                 return "transparent"
             default:
-                return Config.colors.primaryContainer
+                return Qt.alpha(Config.colors.primaryContainer, 0.85)
             }
         }
     }

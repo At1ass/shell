@@ -110,7 +110,7 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -156,7 +156,7 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {

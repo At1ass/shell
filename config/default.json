@@ -16,6 +16,14 @@
     "animations": {
       "enabled": true,
       "durationScale": 1.0
+    },
+    "colors": {
+      "transparency": {
+        "enabled": true,
+        "default": 0.85,
+        "cards": 0.80,
+        "dialogs": 0.90
+      }
     }
   },
 
