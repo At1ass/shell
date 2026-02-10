@@ -79,7 +79,8 @@ Item {
                     from: 0
                     to: 1
                     stepSize: 0.01
-                    value: 0.8
+                    value: AudioService.micVolume
+                    onMoved: AudioService.setMicVolume(value)
                 }
                 Item {
                     Layout.fillWidth: true

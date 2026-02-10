@@ -107,10 +107,11 @@ MaterialCard {
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: 2
-            visible: precipProbMax > 0
+            // visible: precipProbMax > 0
 
             MaterialIcon {
                 iconName: "water_drop"
+                visible: precipProbMax > 0
                 fontSize: 12
                 iconColor: Config.colors.primary
                 backgroundColor: "transparent"
@@ -120,6 +121,7 @@ MaterialCard {
                 text: precipProbMax + "%"
                 textStyle: "labelSmall"
                 colorRole: "onSurfaceVariant"
+                visible: precipProbMax > 0
             }
         }
     }

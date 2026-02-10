@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import qs.src.ui.containers
-import qs.src.ui.inputs
 import qs.src.ui.feedback
 import Quickshell.Hyprland
 import Quickshell
@@ -16,6 +15,8 @@ BarElement {
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
 
+    property var tooltipManager: null
+
     property int wsBaseIndex: widgetSettings.baseIndex ?? 1
     property int wsCount: widgetSettings.count ?? 9
     property bool showWindows: widgetSettings.showWindows ?? true
@@ -28,8 +29,42 @@ BarElement {
     property int scrollAccumulator: 0
     property int currentIndex: 1
 
-    // Реактивная система отслеживания workspace - как у outfoxxed
-    signal workspaceAdded(workspace: var)
+    // Reactive occupation map (pattern from caelesia Workspaces.qml)
+    readonly property var occupied: {
+        const map = {};
+        if (Hyprland.workspaces?.values) {
+            Hyprland.workspaces.values.forEach(ws => {
+                map[ws.id] = (ws.lastIpcObject?.windows ?? 0) > 0;
+            });
+        }
+        return map;
+    }
+
+
+    // nonVisualChildren: [
+    //     TooltipItem {
+    //         id: workspaceTooltip
+    //         tooltip: workspaceWidget.tooltipManager
+    //         owner: workspaceWidget
+    //         show: workspaceWidget.hovered
+    //
+    //         Column {
+    //             anchors.centerIn: parent
+    //             spacing: Config.spacing.extraSmall
+    //
+    //             MaterialText {
+    //                 // text: workspaceWidget.currentDateTime
+    //                 text: "Hellow"
+    //                 textStyle: "bodyLarge"
+    //                 colorRole: "onSurface"
+    //                 horizontalAlignment: Text.AlignHCenter
+    //                 anchors.horizontalCenter: parent.horizontalCenter
+    //                 wrapMode: Text.Wrap
+    //             }
+    //         }
+    //     }
+    // ]
+    //
 
     // Обработчик прокрутки колесиком
     wheelHandler: function (wheel) {
@@ -51,50 +86,27 @@ BarElement {
         }
     }
 
-    // Невизуальные элементы
-    nonVisualChildren: [
-        Connections {
-            target: Hyprland.workspaces
-
-            function onObjectInsertedPost(workspace) {
-                workspaceWidget.workspaceAdded(workspace);
-            }
-        }
-    ]
-
     // Workspace indicators content
     RowLayout {
-        spacing: Config.spacing.small
+        spacing: Config.spacing.extraSmall
 
         Repeater {
             model: workspaceWidget.wsCount
 
             Item {
                 id: wsItem
-                implicitWidth: hasWindows ? windowIconsRow.implicitWidth + 8 : 24
+                implicitWidth: hasWindows ? windowIconsRow.implicitWidth + 12 : 24
                 implicitHeight: 24
 
                 required property int index
                 property int wsIndex: workspaceWidget.wsBaseIndex + index
-                property var workspace: null
-                property bool exists: workspace != null
+                property bool exists: workspaceWidget.occupied[wsIndex] ?? false
                 property bool showIndicator: workspaceWidget.showWindows ? (exists || active) : true
-                // Показываем как активный только workspace в фокусе (не просто активный на мониторе)
-                property bool active: workspace?.id === Hyprland.focusedWorkspace?.id
+                property bool active: wsIndex === Hyprland.focusedWorkspace?.id
 
-                // Окна на воркспейсе (инициализируем пустыми)
-                property var allWindows: []
+                // Windows on workspace (reactive binding, re-evaluated on toplevels change)
+                property var allWindows: Hyprland.toplevels.values.filter(t => t.workspace?.id === wsIndex)
                 property bool hasWindows: allWindows.length > 0
-
-                // Функция обновления данных окон
-                function updateWindowData() {
-                    allWindows = HyprlandWindowService.getWindowsForWorkspace(wsIndex);
-                }
-
-                // Инициализация при создании компонента
-                Component.onCompleted: {
-                    updateWindowData();
-                }
 
                 // Анимации состояний
                 property real animActive: active ? 1 : 0
@@ -115,26 +127,6 @@ BarElement {
                 onActiveChanged: {
                     if (active)
                         workspaceWidget.currentIndex = wsIndex;
-                }
-
-                // Обновляем данные окон при изменении workspace
-                Connections {
-                    target: Hyprland.toplevels
-
-                    function onValuesChanged() {
-                        wsItem.updateWindowData();
-                    }
-                }
-
-                // Подключение к системе workspace
-                Connections {
-                    target: workspaceWidget
-
-                    function onWorkspaceAdded(workspace) {
-                        if (workspace.id == wsItem.wsIndex) {
-                            wsItem.workspace = workspace;
-                        }
-                    }
                 }
 
                 // Плавная анимация размера
@@ -236,7 +228,7 @@ BarElement {
                             required property var modelData
 
                             iconName: IconCategoryResolver.getAppCategoryIcon(modelData.lastIpcObject?.class, "terminal")
-                            fontSize: 14
+                            fontSize: Config.typography.bodyMedium.size
                             iconColor: active ? Config.colors.primary : Config.colors.onSurfaceVariant
 
                             // Плавная анимация появления
@@ -244,10 +236,10 @@ BarElement {
                             opacity: 1
 
                             Component.onCompleted: {
-                                scale = 0
-                                opacity = 0
-                                scaleAnim.start()
-                                opacityAnim.start()
+                                scale = 0;
+                                opacity = 0;
+                                scaleAnim.start();
+                                opacityAnim.start();
                             }
 
                             NumberAnimation on scale {
@@ -270,10 +262,6 @@ BarElement {
                                     duration: Config.animations.durationMedium
                                 }
                             }
-
-                            // Tooltip с названием приложения
-                            ToolTip.visible: iconMouseArea.containsMouse
-                            ToolTip.text: modelData.lastIpcObject?.title || modelData.lastIpcObject?.class || "Unknown"
 
                             MouseArea {
                                 id: iconMouseArea
@@ -332,15 +320,6 @@ BarElement {
                     }
                 }
             }
-        }
-    }
-
-    // Инициализация существующих workspace
-    Component.onCompleted: {
-        if (Hyprland.workspaces && Hyprland.workspaces.values) {
-            Hyprland.workspaces.values.forEach(workspace => {
-                workspaceWidget.workspaceAdded(workspace);
-            });
         }
     }
 }

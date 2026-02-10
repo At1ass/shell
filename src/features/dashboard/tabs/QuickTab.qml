@@ -129,6 +129,8 @@ Item {
                     to: 1
                     stepSize: 0.01
                     value: 0.8
+                    // value: AudioService.micVolume
+                    // onMoved: AudioService.setMicVolume(value)
                 }
 
                 Item {
@@ -160,11 +162,18 @@ Item {
                 }
 
                 MaterialIcon {
-                    iconName: "volume_up"
-                    iconColor: Config.colors.primary
+                    iconName: AudioService.masterMuted ? "volume_off" : "volume_up"
+                    iconColor: Config.colors.onSurfaceVariant
                     fontSize: Config.typography.headlineSmall.size
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            console.log("Mute toggle clicked")
+                            AudioService.toggleMasterMute()
+                        }
+                    }
                 }
 
                 MaterialSlider {

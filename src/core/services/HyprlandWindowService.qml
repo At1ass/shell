@@ -12,6 +12,31 @@ pragma ComponentBehavior: Bound
 Singleton {
     id: root
 
+    // Event-driven refresh (pattern from caelesia/services/Hypr.qml)
+    // Without explicit refresh calls, Quickshell's Hyprland data goes stale
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            const n = event.name
+            if (n.endsWith("v2"))
+                return
+
+            if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
+                Hyprland.refreshWorkspaces()
+                Hyprland.refreshMonitors()
+            } else if (["openwindow", "closewindow", "movewindow", "exec"].includes(n)) {
+                Hyprland.refreshToplevels()
+                Hyprland.refreshWorkspaces()
+            } else if (n.includes("mon")) {
+                Hyprland.refreshMonitors()
+            } else if (n.includes("workspace")) {
+                Hyprland.refreshWorkspaces()
+            } else if (n.includes("window") || n.includes("group") || ["pin", "fullscreen", "changefloatingmode", "minimize"].includes(n)) {
+                Hyprland.refreshToplevels()
+            }
+        }
+    }
+
     /**
      * Получить все окна для указанного воркспейса
      * @param workspaceId - ID воркспейса

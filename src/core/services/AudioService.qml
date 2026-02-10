@@ -24,6 +24,10 @@ Singleton {
     readonly property real masterVolume: defaultSink?.audio?.volume ?? 0
     readonly property bool masterMuted: defaultSink?.audio?.muted ?? false
 
+    // ===== MIC VOLUME (0.0 - 1.0)=====
+    readonly property real micVolume: defaultSource?.audio?.volume ?? 0
+    readonly property bool micMuted: defaultSource?.audio?.muted ?? false
+
     // ===== SIGNALS =====
     signal volumeChanged(real volume, bool muted)
 
@@ -59,6 +63,28 @@ Singleton {
         }
     }
 
+    // ===== MIC VOLUME CONTROL =====
+    function setMicVolume(value) {
+        if (defaultSource && defaultSource.audio) {
+            const newVolume = Math.max(0, Math.min(1, value))
+            defaultSource.audio.volume = newVolume
+            // volumeChanged будет эмитен автоматически через onMasterVolumeChanged
+        }
+    }
+
+    function toggleMicMute() {
+        if (defaultSource && defaultSource.audio) {
+            defaultSource.audio.muted = !defaultSource.audio.muted
+            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+        }
+    }
+
+    function setMicMute(muted) {
+        if (defaultSource && defaultSource.audio) {
+            defaultSource.audio.muted = muted
+            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+        }
+    }
     // ===== DEVICE SELECTION =====
     function setDefaultSink(device) {
         if (device) {

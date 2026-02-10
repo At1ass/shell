@@ -26,9 +26,8 @@ Rectangle {
            ? Config.colors.errorContainer
            : Config.colors.surfaceContainerHighest
 
-    // MD3 Animations: используем Behavior как в Caelestia
-    // Начальное положение - за экраном справа
-    x: 400
+    // Start off-screen right, slide in on completion
+    x: implicitWidth
     opacity: 0
 
     // Behavior анимирует ИЗМЕНЕНИЕ свойств, не создание компонента

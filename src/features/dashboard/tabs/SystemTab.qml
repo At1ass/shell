@@ -263,15 +263,29 @@ Item {
                                     Layout.fillWidth: true
                                     spacing: 2
 
-                                    MaterialText {
-                                        text: stream && stream.properties && stream.properties["application.name"] ?
-                                              stream.properties["application.name"] :
-                                              (stream.appName || stream.name || stream.clientName || "Application")
-                                        textStyle: "labelLarge"
-                                        colorRole: "onSurface"
-                                        font.weight: Font.Medium
-                                        elide: Text.ElideRight
+                                    RowLayout {
                                         Layout.fillWidth: true
+                                        MaterialText {
+                                            text: stream && stream.properties && stream.properties["application.name"] ?
+                                            stream.properties["application.name"] :
+                                            (stream.appName || stream.name || stream.clientName || "Application")
+                                            textStyle: "labelLarge"
+                                            colorRole: "onSurface"
+                                            font.weight: Font.Medium
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+                                        Item {
+                                            Layout.fillWidth: true
+                                        }
+                                        MaterialText {
+                                            text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
+                                            textStyle: "labelMedium"
+                                            colorRole: "onSurfaceVariant"
+                                            font.weight: Font.Medium
+                                            Layout.preferredWidth: 40
+                                            horizontalAlignment: Text.AlignRight
+                                        }
                                     }
 
                                     MaterialSlider {
@@ -284,15 +298,6 @@ Item {
                                         onMoved: if (stream && stream.audio)
                                             stream.audio.volume = value
                                     }
-                                }
-
-                                MaterialText {
-                                    text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
-                                    textStyle: "labelMedium"
-                                    colorRole: "onSurfaceVariant"
-                                    font.weight: Font.Medium
-                                    Layout.preferredWidth: 40
-                                    horizontalAlignment: Text.AlignRight
                                 }
 
                                 Rectangle {
@@ -310,7 +315,8 @@ Item {
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
-                                        fontSize: Config.typography.titleMedium.size
+                                        // fontSize: Config.typography.titleMedium.size
+                                        fontSize: Config.typography.headlineSmall.size
                                         iconColor: (stream && stream.audio && stream.audio.muted) ?
                                                   Config.colors.onErrorContainer :
                                                   Config.colors.onSurfaceVariant

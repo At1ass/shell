@@ -38,10 +38,22 @@ Item {
 
                     Repeater {
                         model: [
-                            {icon: "dashboard", label: "Quick"},
-                            {icon: "partly_cloudy_day", label: "Weather"},
-                            {icon: "calendar_month", label: "Calendar"},
-                            {icon: "settings", label: "System"}
+                            {
+                                icon: "dashboard",
+                                label: "Quick"
+                            },
+                            {
+                                icon: "partly_cloudy_day",
+                                label: "Weather"
+                            },
+                            {
+                                icon: "calendar_month",
+                                label: "Calendar"
+                            },
+                            {
+                                icon: "settings",
+                                label: "System"
+                            }
                         ]
 
                         delegate: TabButton {
@@ -68,16 +80,19 @@ Item {
                 Layout.fillHeight: true
                 currentIndex: GlobalStates.dashboardOpenIndex
 
+                onVisibleChanged: {
+                    if (!visible) currentIndexChanged()
+                }
                 onCurrentIndexChanged: {
                     // Изменяем высоту окна в зависимости от вкладки
                     if (currentIndex === 0) {
-                        root.requestHeightChange(640)  // QuickTab
+                        root.requestHeightChange(640);  // QuickTab
                     } else if (currentIndex === 1) {
-                        root.requestHeightChange(660)  // WeatherTab
+                        root.requestHeightChange(660);  // WeatherTab
                     } else if (currentIndex === 2) {
-                        root.requestHeightChange(600)  // CalendarTab
+                        root.requestHeightChange(600);  // CalendarTab
                     } else if (currentIndex === 3) {
-                        root.requestHeightChange(700)  // SystemTab
+                        root.requestHeightChange(700);  // SystemTab
                     }
                 }
 
