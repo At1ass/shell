@@ -31,26 +31,9 @@ Variants {
             }
         }
 
-        property real listHeight: 0
-
-        function calcListHeight() {
-            const count = notificationListView.count;
-            if (count === 0)
-                return 0;
-            let height = (count - 1) * 8;
-            for (let i = 0; i < count; i++) {
-                const item = notificationListView.itemAtIndex(i);
-                if (item && item.nonAnimHeight !== undefined)
-                    height += item.nonAnimHeight;
-            }
-            return height;
-        }
-
-        function updateListHeight() {
-            listHeight = calcListHeight();
-        }
-
-        implicitHeight: listHeight
+        // Window height tracks ListView contentHeight directly — no manual
+        // calcListHeight that can desync with actual delegate sizes.
+        implicitHeight: notificationListView.contentHeight
 
         anchors {
             top: true
@@ -78,11 +61,9 @@ Variants {
             width: parent.width
             height: contentHeight
             interactive: false
-            spacing: 0
+            spacing: 8
             reuseItems: false
             model: NotificationService.activeList
-            onCountChanged: popupWindow.updateListHeight()
-            onContentHeightChanged: popupWindow.updateListHeight()
             move: Transition {
                 NumberAnimation {
                     property: "y"
@@ -103,7 +84,6 @@ Variants {
             delegate: Item {
                 id: wrapper
                 required property int index
-                property int stableIndex: 0
                 required property string notificationId
                 required property string summary
                 required property string body
@@ -115,12 +95,6 @@ Variants {
                 required property int timestamp
                 required property real progress
                 property var entry: ({})
-                readonly property real nonAnimHeight: notifItem.nonAnimHeight
-
-                onIndexChanged: {
-                    if (index !== -1)
-                        stableIndex = index;
-                }
 
                 function updateEntry() {
                     entry = {
@@ -151,7 +125,7 @@ Variants {
                 onProgressChanged: Qt.callLater(updateEntry)
 
                 width: notificationListView.width
-                implicitHeight: notifItem.implicitHeight + (stableIndex === 0 ? 0 : 8)
+                implicitHeight: notifItem.implicitHeight
                 height: implicitHeight
                 clip: true
 
@@ -173,6 +147,7 @@ Variants {
                         property: "z"
                         value: 1
                     }
+                    // Slide out to the right
                     NumberAnimation {
                         target: notifItem
                         property: "x"
@@ -181,18 +156,14 @@ Variants {
                         easing.type: Config.motion.easing.standard
                         easing.bezierCurve: Config.motion.easing.standardPoints
                     }
+                    // Collapse height smoothly so neighbours don't jump
                     NumberAnimation {
-                        target: notifItem
-                        property: "opacity"
+                        target: wrapper
+                        property: "implicitHeight"
                         to: 0
                         duration: Config.motion.duration.short3
                         easing.type: Config.motion.easing.standard
                         easing.bezierCurve: Config.motion.easing.standardPoints
-                    }
-                    PropertyAction {
-                        target: wrapper
-                        property: "implicitHeight"
-                        value: 0
                     }
                     PropertyAction {
                         target: wrapper
@@ -209,11 +180,8 @@ Variants {
                     animatePopupExit: false
                     width: 360
                     anchors.top: parent.top
-                    anchors.topMargin: stableIndex === 0 ? 0 : 8
                 }
             }
         }
-
-        Component.onCompleted: updateListHeight()
     }
 }
