@@ -96,12 +96,6 @@ Slider {
         }
     }
 
-    onMoved: {
-        console.log("background x:", background.x, "y:", background.y,
-                    "width:", background.width, "height:", background.height,
-                    "leftPadding:", control.leftPadding, "topPadding:", control.topPadding,)
-    }
-
     handle: Item {
         x: control.orientation === Qt.Horizontal
            ? control.leftPadding + control.visualPosition * (control.availableWidth - width)

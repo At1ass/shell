@@ -98,8 +98,6 @@ BarElement {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                     onClicked: event => {
-                    // onPressed: event => {
-                    console.log("TrayWidget: clicked on tray item", trayItem.modelData.id, "button:", event.button)
                         event.accepted = true
 
                         if (event.button === Qt.LeftButton) {

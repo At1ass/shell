@@ -40,7 +40,6 @@ PanelWindow {
         active: root.visible && root.hasPopout && root.grabReady && PopoutsState.open
         windows: [root]
         onCleared: {
-            console.log("Popouts: focus grab cleared, closing popout");
             root.closePopout();
         }
     }
@@ -54,7 +53,6 @@ PanelWindow {
     // Focus grab disabled; close handled by click-outside.
 
     function openPopout(name, data, source) {
-        console.log("Popouts: opening popout", name);
         if (!name)
             return;
         if (root.visible && root.sourceItem === source && root.currentName === name) {
@@ -75,7 +73,6 @@ PanelWindow {
     }
 
     function closePopout() {
-        console.log("Popouts: closing popout", root.currentName);
         root.grabReady = false;
         grabReadyTimer.stop();
         PopoutsState.closePopout();
@@ -93,7 +90,6 @@ PanelWindow {
 
     Keys.onPressed: event => {
         if (root.visible && event.key === Qt.Key_Escape) {
-            console.log("Popouts: Escape pressed, closing popout");
             closePopout();
             event.accepted = true;
         }
@@ -152,7 +148,6 @@ PanelWindow {
                 if (root.currentMode !== "card" || !root.screen || !root.visible)
                     return;
                 PopoutsState.setPopoutRect(x, y, width, height, root.screen?.name || "");
-                console.log("Popouts: rect set", x, y, width, height, "screen", root.screen?.name || "");
             }
 
             onXChanged: updateRect()

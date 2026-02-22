@@ -58,6 +58,10 @@ Singleton {
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 
+    // OSD
+    readonly property bool osdEnabled: data.osd?.enabled ?? true
+    readonly property int osdTimeout: data.osd?.timeout ?? 2000
+
     // Hyprland
     readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 

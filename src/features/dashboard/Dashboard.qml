@@ -42,7 +42,6 @@ Scope {
             active: dashboardLoader.active && GlobalStates.dashboardOpen
             windows: [dashboardWindow]
             onCleared: () => {
-                console.log("Dashboard: focus lost, closing dashboard")
                 GlobalStates.dashboardOpen = false;
             }
         }

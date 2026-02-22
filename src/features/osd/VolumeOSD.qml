@@ -17,7 +17,7 @@ Scope {
     // Таймер автоскрытия
     Timer {
         id: hideTimer
-        interval: 2000
+        interval: AppConfig.osdTimeout
         repeat: false
         onTriggered: root.osdVisible = false
     }

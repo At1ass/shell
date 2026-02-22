@@ -170,7 +170,6 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            console.log("Mute toggle clicked")
                             AudioService.toggleMasterMute()
                         }
                     }

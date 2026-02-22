@@ -20,7 +20,7 @@ Pane {
         // radius: Tokens.shape.large
         // color: Theme.surfaceContainerHigh
         radius: card.radius
-        color: Qt.alpha(card.color, 0.85)
+        color: card.color
         border.width: outlined ? 1 : 0
         border.color: outlined ? Theme.outlineVariant : "transparent"
     }
