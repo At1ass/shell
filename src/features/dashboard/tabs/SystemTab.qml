@@ -20,23 +20,23 @@ Item {
         spacing: Config.spacing.medium
 
         // ===== ROW 1: WEATHER & SYSTEM MONITORING =====
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 140
-            spacing: Config.spacing.medium
-
-            // Weather (detailed)
-            WeatherElement {
-                Layout.preferredWidth: 200
-                Layout.fillHeight: true
-            }
-
-            // System Monitor
-            SystemMonitoringElement {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-        }
+        // RowLayout {
+        //     Layout.fillWidth: true
+        //     Layout.preferredHeight: 140
+        //     spacing: Config.spacing.medium
+        //
+        //     // Weather (detailed)
+        //     WeatherElement {
+        //         Layout.preferredWidth: 200
+        //         Layout.fillHeight: true
+        //     }
+        //
+        //     // System Monitor
+        //     SystemMonitoringElement {
+        //         Layout.fillWidth: true
+        //         Layout.fillHeight: true
+        //     }
+        // }
 
         // ===== ROW 2+: AUDIO ADVANCED (from AudioTab) =====
         // Выбор устройств
@@ -47,7 +47,7 @@ Item {
             // Устройство вывода
             MaterialCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
+                Layout.preferredHeight: 84
                 color: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
                 radius: Config.shape.large
 
@@ -125,7 +125,7 @@ Item {
             // Устройство ввода
             MaterialCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
+                Layout.preferredHeight: 84
                 color: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
                 radius: Config.shape.large
 
@@ -205,7 +205,7 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -236,7 +236,7 @@ Item {
                             property string appIcon: AudioService.getAppIcon(stream)
 
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 80
+                            Layout.preferredHeight: 90
                             color: Config.colors.surfaceContainer
                             radius: Config.shape.medium
 
@@ -263,15 +263,29 @@ Item {
                                     Layout.fillWidth: true
                                     spacing: 2
 
-                                    MaterialText {
-                                        text: stream && stream.properties && stream.properties["application.name"] ?
-                                              stream.properties["application.name"] :
-                                              (stream.appName || stream.name || stream.clientName || "Application")
-                                        textStyle: "labelLarge"
-                                        colorRole: "onSurface"
-                                        font.weight: Font.Medium
-                                        elide: Text.ElideRight
+                                    RowLayout {
                                         Layout.fillWidth: true
+                                        MaterialText {
+                                            text: stream && stream.properties && stream.properties["application.name"] ?
+                                            stream.properties["application.name"] :
+                                            (stream.appName || stream.name || stream.clientName || "Application")
+                                            textStyle: "labelLarge"
+                                            colorRole: "onSurface"
+                                            font.weight: Font.Medium
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+                                        Item {
+                                            Layout.fillWidth: true
+                                        }
+                                        MaterialText {
+                                            text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
+                                            textStyle: "labelMedium"
+                                            colorRole: "onSurfaceVariant"
+                                            font.weight: Font.Medium
+                                            Layout.preferredWidth: 40
+                                            horizontalAlignment: Text.AlignRight
+                                        }
                                     }
 
                                     MaterialSlider {
@@ -284,15 +298,6 @@ Item {
                                         onMoved: if (stream && stream.audio)
                                             stream.audio.volume = value
                                     }
-                                }
-
-                                MaterialText {
-                                    text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
-                                    textStyle: "labelMedium"
-                                    colorRole: "onSurfaceVariant"
-                                    font.weight: Font.Medium
-                                    Layout.preferredWidth: 40
-                                    horizontalAlignment: Text.AlignRight
                                 }
 
                                 Rectangle {
@@ -310,7 +315,8 @@ Item {
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
-                                        fontSize: Config.typography.titleMedium.size
+                                        // fontSize: Config.typography.titleMedium.size
+                                        fontSize: Config.typography.headlineSmall.size
                                         iconColor: (stream && stream.audio && stream.audio.muted) ?
                                                   Config.colors.onErrorContainer :
                                                   Config.colors.onSurfaceVariant

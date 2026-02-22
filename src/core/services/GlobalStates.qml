@@ -48,7 +48,7 @@ Singleton {
             case "dashboard-quick":
                 openDashboardTab(0)
                 return
-            case "dashboard-media":
+            case "dashboard-weather":
                 openDashboardTab(1)
                 return
             case "dashboard-calendar":
@@ -75,6 +75,7 @@ Singleton {
         osdVolumeOpen = false
         osdBrightnessOpen = false
     }
+
 
     // Автозакрытие панелей при открытии другой
     onControlPanelOpenChanged: {

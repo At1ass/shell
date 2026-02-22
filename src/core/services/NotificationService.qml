@@ -412,9 +412,13 @@ Singleton {
     function dismissActiveNotification(id) {
         const meta = activeNotifications[id]
         if (meta && meta.notification && meta.notification.dismiss) {
+            // dismiss() fires the closed signal which triggers removeNotification
+            // via the connection set up in addNewNotification. Only call
+            // removeNotification directly if dismiss is not available.
             meta.notification.dismiss()
+        } else {
+            removeNotification(id)
         }
-        removeNotification(id)
     }
 
     function pauseTimeout(id) {

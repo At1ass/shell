@@ -1,9 +1,0 @@
---bare
--I
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml
--I
-/usr/lib/qt6/qml
---resource
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/qalculate-qml/.qt/rcc/qmake_Qalculate.qrc
---json
-/home/at1ass/.config/quickshell/shell/src/plugins/build/qalculateqml_qmllint.json

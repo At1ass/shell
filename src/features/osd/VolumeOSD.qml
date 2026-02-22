@@ -53,7 +53,7 @@ Scope {
                 top: 80
             }
 
-            implicitWidth: 320
+            implicitWidth: 380
             implicitHeight: 120
 
             WlrLayershell.namespace: "quickshell:volumeosd"
@@ -89,7 +89,7 @@ Scope {
 
                 MaterialCard {
                     id: osdCard
-                    width: 320
+                    width: 380
                     height: 100
                     color: Config.colors.surfaceContainerHigh
                     radius: Config.shape.extraLarge

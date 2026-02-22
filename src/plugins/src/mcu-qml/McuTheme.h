@@ -6,6 +6,7 @@
 #include <QVariantMap>
 #include <QQmlEngine>
 #include <QFuture>
+#include <QPointer>
 #include <memory>
 
 class McuTheme : public QObject {
@@ -71,7 +72,7 @@ private:
 
     // Основные шаги пайплайна
     void applySeed();                              // Пересчитать схему из m_seedArgb (без повторного чтения)
-    QVariantMap buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) const;
+    static QVariantMap buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast);
 
 private:
     // Входные параметры

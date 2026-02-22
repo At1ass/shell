@@ -1,7 +1,0 @@
-module Mcu
-linktarget mcuqml
-optional plugin mcuqml
-classname McuPlugin
-typeinfo mcuqml.qmltypes
-prefer :/qt/qml/Mcu/
-

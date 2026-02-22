@@ -3,20 +3,20 @@
 #include <QDebug>
 #include <QMutexLocker>
 #include <memory>
+#include <mutex>
+
+static std::once_flag s_calcInitFlag;
 
 QalculateWrapper::QalculateWrapper(QObject* parent)
     : QObject(parent)
 {
-    // Инициализируем глобальный CALCULATOR если еще не создан
-    if (!CALCULATOR) {
+    std::call_once(s_calcInitFlag, []() {
         static std::unique_ptr<Calculator> s_calculator(new Calculator());
         CALCULATOR = s_calculator.get();
         CALCULATOR->loadExchangeRates();
         CALCULATOR->loadGlobalDefinitions();
         CALCULATOR->loadLocalDefinitions();
-
-        qDebug() << "QalculateWrapper: Initialized with libqalculate";
-    }
+    });
 }
 
 QString QalculateWrapper::eval(const QString& expression, bool printExpr) const {

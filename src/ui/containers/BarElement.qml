@@ -46,15 +46,18 @@ Rectangle {
     // Base styling using Config
     color: expanded ? expandedColor : backgroundColor
     radius: customRadius
-    height: customHeight
+    // height: customHeight
 
+    implicitHeight: customHeight
     // Dynamic width calculation
-    width: {
+    implicitWidth: {
         if (expandedWidth > 0 && expanded) return expandedWidth
         return Math.max(minWidth, contentContainer.implicitWidth + Config.spacing.medium)
     }
-    implicitWidth: width
-    implicitHeight: height
+    width: implicitWidth
+    // height: implicitHeight
+    // implicitWidth: width
+    // implicitHeight: height
 
     // Primary surface tint for consistency
     Rectangle {
@@ -145,11 +148,12 @@ Rectangle {
     }
 
     // Animations
-    Behavior on width {
+    // Behavior on width {
+    Behavior on implicitWidth {
         enabled: root.animated
         NumberAnimation {
             duration: Config.animations.durationMedium
-            easing.type: Easing.OutQuad
+            easing.type: Easing.OutCubic
         }
     }
 

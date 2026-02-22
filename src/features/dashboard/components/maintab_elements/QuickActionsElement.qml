@@ -19,8 +19,9 @@ MaterialCard {
         GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            columns: 4
-            rows: 2
+            // columns: 4
+            columns: 2
+            rows: 4
             columnSpacing: 4
             rowSpacing: 4
 

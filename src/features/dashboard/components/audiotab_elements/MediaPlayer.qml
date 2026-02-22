@@ -63,7 +63,7 @@ MaterialCard {
                 source: albumArtBackground
                 blurEnabled: true
                 blur: 1.0  // максимальное размытие (было radius: 40)
-                blurMax: 64
+                blurMax: 32
             }
 
             // Overlay to dim background
@@ -80,77 +80,6 @@ MaterialCard {
             anchors.margins: Config.spacing.large
             spacing: Config.spacing.medium
 
-            // ===== HEADER: SOURCE SELECTOR =====
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Config.spacing.small
-
-                MaterialText {
-                    text: "Playing from"
-                    textStyle: "labelSmall"
-                    colorRole: "onSurfaceVariant"
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                // Source selector dropdown
-                MaterialCard {
-                    Layout.preferredHeight: 32
-                    Layout.preferredWidth: sourceRow.implicitWidth + Config.spacing.medium * 2
-                    color: sourceMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : Config.colors.surfaceContainer
-                    radius: Config.shape.full
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Config.motion.duration.short4
-                        }
-                    }
-
-                    RowLayout {
-                        id: sourceRow
-                        anchors.centerIn: parent
-                        spacing: Config.spacing.extraSmall
-
-                        // Player icon (from desktop entry or fallback)
-                        MaterialIcon {
-                            iconName: "music_note"
-                            fontSize: 16
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                        }
-
-                        MaterialText {
-                            text: MprisController.identity || "Unknown Player"
-                            textStyle: "labelMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Medium
-                        }
-
-                        MaterialIcon {
-                            iconName: "arrow_drop_down"
-                            fontSize: 16
-                            iconColor: Config.colors.onSurfaceVariant
-                            backgroundColor: "transparent"
-                            visible: MprisController.availablePlayers.length > 1
-                        }
-                    }
-
-                    MouseArea {
-                        id: sourceMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: MprisController.availablePlayers.length > 1
-                        onClicked: sourceMenu.visible = !sourceMenu.visible
-                    }
-                }
-            }
-
-            Item {
-                Layout.fillHeight: true
-            }
             // ===== ALBUM ART (optional, smaller) =====
             RowLayout {
                 Layout.fillWidth: true
@@ -208,6 +137,14 @@ MaterialCard {
                         border.width: 1
                         border.color: Config.colors.outlineVariant
                     }
+                    MouseArea {
+                        id: sourceMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        enabled: MprisController.availablePlayers.length > 1
+                        onClicked: sourceMenu.visible = !sourceMenu.visible
+                    }
                 }
 
                 // ===== TRACK INFO =====
@@ -216,42 +153,30 @@ MaterialCard {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 4
 
-                    MaterialText {
+                    MaterialMarqueeText {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
-                        // Layout.maximumWidth: parent.width
                         text: MprisController.activeTrack?.title ?? "Unknown Title"
                         textStyle: "titleLarge"
                         colorRole: "onSurface"
-                        font.weight: Font.Bold
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
+                        weight: Font.Bold
+                        align: Text.AlignHCenter
                     }
-
-                    MaterialText {
+                    MaterialMarqueeText {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.maximumWidth: parent.width
-                        text: MprisController.activeTrack?.artist ?? "Unknown Artist"
+                        // Layout.maximumWidth: parent.width
+                        Layout.fillWidth: true
+                        text: {
+                            let artist = MprisController.activeTrack?.artist ?? "Unknown Artist"
+                            let album = MprisController.activeTrack?.album ?? "Unknown Album"
+                            return artist + (album !== "" && album !== "Unknown Album" ? " - " + album : "");
+                        }
                         textStyle: "bodyMedium"
                         colorRole: "onSurfaceVariant"
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
+                        // elide: Text.ElideRight
+                        align: Text.AlignHCenter
                     }
 
-                    MaterialText {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.maximumWidth: parent.width
-                        text: MprisController.activeTrack?.album ?? ""
-                        textStyle: "bodySmall"
-                        colorRole: "onSurfaceVariant"
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: text !== "" && text !== "Unknown Album"
-                    }
-                }
-            }
-
-            // ===== POSITION SLIDER =====
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Config.spacing.extraSmall
@@ -292,8 +217,6 @@ MaterialCard {
                     }
                 }
             }
-
-            // ===== PLAYBACK CONTROLS =====
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -496,6 +419,9 @@ MaterialCard {
                     }
                 }
             }
+                }
+
+            }
 
             Item {
                 Layout.fillHeight: true
@@ -507,7 +433,8 @@ MaterialCard {
             id: sourceMenu
             visible: false
             anchors.top: parent.top
-            anchors.right: parent.right
+            // anchors.right: parent.right
+            anchors.left: parent.left
             anchors.margins: Config.spacing.large
             anchors.topMargin: Config.spacing.large + 40
             width: 200
@@ -602,8 +529,11 @@ MaterialCard {
         if (!isFinite(seconds) || seconds < 0)
             return "0:00";
 
-        const mins = Math.floor(seconds / 60);
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
+        if (hours > 0)
+        return hours + ":" + (mins < 10 ? "0" : "") + mins + ":" + (secs < 10 ? "0" : "") + secs;
         return mins + ":" + (secs < 10 ? "0" : "") + secs;
     }
 

@@ -1,3 +1,0 @@
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/systemmonitorqml_autogen/include/../EWIEGA46WW/moc_SystemMonitor.cpp.json
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/systemmonitorqml_autogen/include/SystemMonitor.moc.json
-/home/at1ass/.config/quickshell/shell/src/plugins/build/src/system-monitor-qml/systemmonitorqml_autogen/include/systemmonitorqml_SystemMonitorPlugin.moc.json

@@ -15,13 +15,15 @@ Slider {
     implicitWidth: orientation === Qt.Horizontal ? 200 : 48
     implicitHeight: orientation === Qt.Horizontal ? 48 : 200
 
-    property real trackHeight: 16
+    // property real trackHeight: 16
+    property real trackHeight: 24
     property real thumbWidth: 4
-    property real thumbHeight: 44
+    // property real thumbHeight: 44
+    property real thumbHeight: 48
     property real thumbTrackGap: 6
     property real trackCornerSize: 8
     property real trackInsideCornerSize: 2
-    property real stopIndicatorSize: 4
+    property real stopIndicatorSize: 6
 
     background: Item {
         x: control.orientation === Qt.Horizontal
@@ -30,8 +32,8 @@ Slider {
         y: control.orientation === Qt.Horizontal
            ? control.topPadding + control.availableHeight / 2 - control.trackHeight / 2
            : control.topPadding
-        implicitWidth: control.orientation === Qt.Horizontal ? 200 : control.trackHeight
-        implicitHeight: control.orientation === Qt.Horizontal ? control.trackHeight : 200
+        // implicitWidth: control.orientation === Qt.Horizontal ? 200 : control.trackHeight
+        // implicitHeight: control.orientation === Qt.Horizontal ? control.trackHeight : 200
         width: control.orientation === Qt.Horizontal ? control.availableWidth : control.trackHeight
         height: control.orientation === Qt.Horizontal ? control.trackHeight : control.availableHeight
 
@@ -40,25 +42,27 @@ Slider {
             x: control.orientation === Qt.Horizontal
                ? Math.min(control.visualPosition * parent.width + control.thumbWidth / 2 + control.thumbTrackGap, parent.width)
                : 0
-            y: control.orientation === Qt.Horizontal
-               ? 0
-               : Math.min(0, control.visualPosition * parent.height - control.thumbWidth / 2 - control.thumbTrackGap)
+            y: 0
             width: control.orientation === Qt.Horizontal
                    ? Math.max(0, parent.width - x)
                    : parent.width
             height: control.orientation === Qt.Horizontal
                     ? parent.height
-                    : Math.max(parent.height - y, parent.height)
-            // radius: control.trackCornerSize
+                    : Math.max(0, control.visualPosition * parent.height - control.thumbWidth / 2 - control.thumbTrackGap)
             radius: control.trackInsideCornerSize
             color: Config.colors.surfaceContainerHighest
 
+
             // Stop indicator (точка на конце)
             Rectangle {
-                anchors.right: control.orientation === Qt.Horizontal ? parent.right : undefined
-                anchors.horizontalCenter: control.orientation === Qt.Horizontal ? undefined : parent.horizontalCenter
-                anchors.verticalCenter: control.orientation === Qt.Horizontal ? parent.verticalCenter : undefined
-                anchors.top: control.orientation === Qt.Horizontal ? undefined : parent.top
+                anchors {
+                    right: control.orientation === Qt.Horizontal ? parent.right : undefined
+                    horizontalCenter: control.orientation === Qt.Horizontal ? undefined : parent.horizontalCenter
+                    verticalCenter: control.orientation === Qt.Horizontal ? parent.verticalCenter : undefined
+                    top: control.orientation === Qt.Horizontal ? undefined : parent.top
+                    topMargin: control.orientation === Qt.Horizontal ? 0 : control.stopIndicatorSize / 2
+                    rightMargin: control.orientation === Qt.Horizontal ? control.stopIndicatorSize / 2 : 0
+                }
                 width: control.stopIndicatorSize
                 height: control.stopIndicatorSize
                 radius: control.stopIndicatorSize / 2
@@ -90,6 +94,12 @@ Slider {
                 ColorAnimation { duration: Config.motion.duration.short4 }
             }
         }
+    }
+
+    onMoved: {
+        console.log("background x:", background.x, "y:", background.y,
+                    "width:", background.width, "height:", background.height,
+                    "leftPadding:", control.leftPadding, "topPadding:", control.topPadding,)
     }
 
     handle: Item {

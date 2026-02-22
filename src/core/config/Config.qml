@@ -24,8 +24,8 @@ Singleton {
         id: theme
         source: WallpaperService.currentWallpaper !== "" ? WallpaperService.currentWallpaper : Qt.alpha("#6200EE", 0)
         darkMode: config.data.appearance?.theme?.darkMode ?? GlobalStates.darkMode
-        variant: config.data.appearance?.theme?.variant ?? "content"
-        contrast: 0.0
+        variant: config.data.appearance?.theme?.variant ?? "tonalspot"
+        contrast: 0.5
     }
 
     property QtObject weather: QtObject {
@@ -427,6 +427,35 @@ Singleton {
 
     property string vpnName: "nikuznetsov\(2\)"
 
+    function shouldShowWidget2(widgetConfig, monitorName) {
+        if (!widgetConfig || !monitorName) {
+            return true; // Default to showing if data is missing
+        }
+
+        // Check if widget is enabled
+        if (widgetConfig.enabled === false) {
+            return false;
+        }
+
+        // Check monitors setting
+        const monitors = widgetConfig.monitors;
+        if (!monitors || monitors === "all") {
+            return true; // Show on all monitors
+        }
+
+        // If monitors is an array, check if current monitor is in the list
+        if (Array.isArray(monitors)) {
+            return monitors.indexOf(monitorName) !== -1;
+        }
+
+        // If monitors is a specific string (not "all"), check if it matches
+        if (typeof monitors === "string") {
+            return monitors === monitorName;
+        }
+
+        // Default to showing
+        return true;
+    }
     Component.onCompleted: {
         c.apply(theme.colors);
     }

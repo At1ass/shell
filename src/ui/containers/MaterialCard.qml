@@ -5,7 +5,8 @@ import qs.src.core.config
 Pane {
     id: card
 
-    property bool outlined: true
+    // property bool outlined: true
+    property bool outlined: false
     property color color: Config.colors.surfaceContainerHigh
     property int radius: Config.shape.large
 
@@ -19,7 +20,7 @@ Pane {
         // radius: Config.shape.large
         // color: Config.colors.surfaceContainerHigh
         radius: card.radius
-        color: card.color
+        color: Qt.alpha(card.color, 0.85)
         border.width: outlined ? 1 : 0
         border.color: outlined ? Config.colors.outlineVariant : "transparent"
     }

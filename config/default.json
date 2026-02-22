@@ -4,7 +4,7 @@
   "appearance": {
     "theme": {
       "source": "wallpaper",
-      "variant": "content",
+      "variant": "vibrant",
       "darkMode": true
     },
     "spacing": {
@@ -16,10 +16,20 @@
     "animations": {
       "enabled": true,
       "durationScale": 1.0
+    },
+    "colors": {
+      "transparency": {
+        "enabled": true,
+        "default": 0.85,
+        "cards": 0.80,
+        "dialogs": 0.90
+      }
     }
   },
 
   "bar": {
+    "enabled": true,
+    "monitors": "all",
     "position": "top",
     "height": 48,
     "margin": 16,
@@ -29,6 +39,7 @@
         "type": "workspaces",
         "enabled": true,
         "section": "left",
+        "monitors": "all",
         "settings": {
           "count": 10,
           "showWindows": true,
@@ -36,10 +47,33 @@
         }
       },
       {
+        "type": "weather",
+        "enabled": true,
+        "section": "left",
+        "clickAction": "dashboard-weather",
+        "monitors": "DP-2",
+        "settings": {
+          "showIcon": true,
+          "showTemperature": true,
+          "showLocation": false
+        }
+      },
+      {
+        "type": "clock",
+        "enabled": true,
+        "section": "center",
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "format": "HH:mm",
+          "showDate": false
+        }
+      },
+      {
         "type": "media",
         "enabled": true,
         "section": "right",
-        "clickAction": "dashboard-media",
+        "clickAction": "dashboard-quick",
+        "monitors": "DP-2",
         "settings": {
           "compact": true,
           "showIcon": true,
@@ -47,19 +81,11 @@
         }
       },
       {
-        "type": "tray",
-        "enabled": false,
-        "section": "right",
-        "settings": {
-          "iconSize": 20,
-          "spacing": 8
-        }
-      },
-      {
         "type": "notifications",
         "enabled": true,
         "section": "right",
         "clickAction": "notification-center",
+        "monitors": "DP-2",
         "settings": {
           "showCount": true
         }
@@ -68,7 +94,7 @@
         "type": "volume",
         "enabled": true,
         "section": "right",
-        "clickAction": "dashboard-quick",
+        "clickAction": "dashboard-system",
         "settings": {
           "scrollable": true,
           "showPercentage": true
@@ -99,13 +125,12 @@
         "section": "right"
       },
       {
-        "type": "clock",
+        "type": "tray",
         "enabled": true,
-        "section": "center",
-        "clickAction": "dashboard-quick",
+        "section": "right",
         "settings": {
-          "format": "HH:mm",
-          "showDate": false
+          "iconSize": 20,
+          "spacing": 8
         }
       }
     ]
@@ -113,6 +138,7 @@
 
   "dashboard": {
     "enabled": true,
+    "monitors": "all",
     "width": 420,
     "height": 600,
     "defaultTab": "quick",
@@ -164,6 +190,7 @@
 
   "notifications": {
     "enabled": true,
+    "monitors": "all",
     "panel": {
       "enabled": true,
       "position": "right",
@@ -183,6 +210,7 @@
 
   "launcher": {
     "enabled": true,
+    "monitors": "all",
     "fuzzy": false,
     "maxResults": 7,
     "providers": [
@@ -195,6 +223,7 @@
 
   "osd": {
     "enabled": true,
+    "monitors": "all",
     "position": "center",
     "timeout": 2000,
     "types": ["volume", "brightness", "microphone"]
@@ -214,7 +243,7 @@
   "services": {
     "weather": {
       "enabled": true,
-      "location": "London",
+      "location": "Penza",
       "units": "metric",
       "refreshMinutes": 15
     },

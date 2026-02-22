@@ -103,7 +103,8 @@ BarElement {
             }
             fontSize: Config.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: Config.colors.onSurface
+            // iconColor: Config.colors.onSurface
+            iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
             color: "transparent"
         }
 
@@ -112,7 +113,7 @@ BarElement {
             anchors.verticalCenter: parent.verticalCenter
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
-            colorRole: "onSurface"
+            colorRole: root.hovered ? "primary" : "onSurface"
             visible: root.showPercentage
         }
     }

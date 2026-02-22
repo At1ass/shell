@@ -7,8 +7,15 @@ import qs.src.features.launcher
 import qs.src.features.osd
 import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
+import qs.src.features.popouts as Popouts
+import qs.src.core.services
 
 ShellRoot {
+    readonly property var _hws: HyprlandWindowService
+    Popouts.Popouts {
+        id: globalPopouts
+    }
+
     Variants {
         model: Quickshell.screens
         Scope {
@@ -16,8 +23,14 @@ ShellRoot {
             required property ShellScreen modelData
 
             Bar.StatusBar {
+                id: statusBar
                 screen: screenScope.modelData
+                popouts: globalPopouts
             }
+
+            // Popouts.PopoutsScrim {
+            //     screen: screenScope.modelData
+            // }
 
             PanelWindow {
                 id: wallpaperPanel

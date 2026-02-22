@@ -90,7 +90,7 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -149,6 +149,8 @@ Item {
                     columns: 7
                     columnSpacing: 8
                     rowSpacing: 8
+                    uniformCellWidths: true
+                    uniformCellHeights: true
 
                     Repeater {
                         model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -157,6 +159,7 @@ Item {
                             textStyle: "labelSmall"
                             colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
+                            // Layout.preferredWidth: parent.width / 7
                             horizontalAlignment: Text.AlignHCenter
                             font.weight: Font.Medium
                         }
@@ -220,7 +223,7 @@ Item {
         MaterialCard {
             Layout.preferredWidth: 280
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
+            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
             radius: Config.shape.large
 
             ColumnLayout {
@@ -248,7 +251,7 @@ Item {
                         delegate: ListItem {
                             Layout.fillWidth: true
                             radius: Config.shape.medium
-                            color: Config.colors.surfaceContainerHighest
+                            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
 
                             headline: modelData.title
                             supportingText: modelData.time
