@@ -41,7 +41,7 @@
         "section": "left",
         "monitors": "all",
         "settings": {
-          "count": 10,
+          "count": 9,
           "showWindows": true,
           "activeIndicator": "pill"
         }
@@ -51,7 +51,7 @@
         "enabled": true,
         "section": "left",
         "clickAction": "dashboard-weather",
-        "monitors": "DP-2",
+        "monitors": "DP-1",
         "settings": {
           "showIcon": true,
           "showTemperature": true,
@@ -73,7 +73,7 @@
         "enabled": true,
         "section": "right",
         "clickAction": "dashboard-quick",
-        "monitors": "DP-2",
+        "monitors": "DP-1",
         "settings": {
           "compact": true,
           "showIcon": true,
@@ -85,7 +85,7 @@
         "enabled": true,
         "section": "right",
         "clickAction": "notification-center",
-        "monitors": "DP-2",
+        "monitors": "DP-1",
         "settings": {
           "showCount": true
         }

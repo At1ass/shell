@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import QtQml
 import Quickshell
+import qs.src.core.config
 import qs.src.features.launcher.providers
 
 // ProviderManager - управляет провайдерами для поиска
@@ -153,7 +154,7 @@ Singleton {
         collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0))
 
         // Преобразуем результаты в формат для ListView (ограничиваем top-10)
-        filteredApps = collectedResults.slice(0, 10)
+        filteredApps = collectedResults.slice(0, AppConfig.launcherMaxResults)
     }
 
     // Выполнение action результата

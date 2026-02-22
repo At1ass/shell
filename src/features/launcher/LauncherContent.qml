@@ -15,7 +15,7 @@ Item {
 
     property var screen
 
-    implicitHeight: Math.min(600, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 для тени
+    implicitHeight: Math.min(AppConfig.launcherWidth, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 для тени
 
     // MD3 Shadow (Elevation Level 2)
 
@@ -152,7 +152,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(
                     contentHeight,
-                    400  // Max height
+                    AppConfig.launcherListMaxHeight
                 )
 
                 maximumFlickVelocity: 3000

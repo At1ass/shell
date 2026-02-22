@@ -5,14 +5,15 @@ import QtCore
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
+import qs.src.core.config
 
 Singleton {
     id: root
 
     // Configuration
-    property int maxVisible: 5
+    property int maxVisible: AppConfig.notificationPopupMaxVisible
     property int maxHistory: 200
-    property int defaultExpireTimeout: 7000
+    property int defaultExpireTimeout: AppConfig.notificationPopupTimeout
     property bool doNotDisturb: false
 
     // State

@@ -49,7 +49,7 @@ Scope {
 
         Item {
             id: panel
-            width: 400
+            width: AppConfig.notificationPanelWidth
             anchors {
                 top: parent.top
                 bottom: parent.bottom

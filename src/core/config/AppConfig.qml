@@ -1,5 +1,6 @@
 pragma Singleton
 
+import QtQuick
 import Quickshell
 import Quickshell.Io
 
@@ -17,11 +18,48 @@ Singleton {
     // Raw JSON data
     property var data: ({})
 
-    // Typed accessors
+    // === Typed accessors ===
+
+    // Appearance
+    readonly property string themeSource: data.appearance?.theme?.source ?? "wallpaper"
+    readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
+    readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
+
+    // Bar
+    readonly property bool barEnabled: data.bar?.enabled ?? true
+    readonly property string barPosition: data.bar?.position ?? "top"
     readonly property int barHeight: data.bar?.height ?? 48
+    readonly property int barMargin: data.bar?.margin ?? 16
     readonly property var barWidgets: data.bar?.widgets || []
+
+    // Dashboard
+    readonly property bool dashboardEnabled: data.dashboard?.enabled ?? true
+    readonly property int dashboardWidth: data.dashboard?.width ?? 900
+    readonly property int dashboardHeight: data.dashboard?.height ?? 640
+
+    // Notifications
+    readonly property int notificationPanelWidth: data.notifications?.panel?.width ?? 400
+    readonly property int notificationPopupWidth: data.notifications?.popup?.width ?? 360
+    readonly property int notificationPopupTimeout: data.notifications?.popup?.timeout ?? 7000
+    readonly property int notificationPopupMaxVisible: data.notifications?.popup?.maxVisible ?? 5
+
+    // Launcher
+    readonly property int launcherMaxResults: data.launcher?.maxResults ?? 10
+    readonly property int launcherWidth: data.launcher?.width ?? 600
+    readonly property int launcherListMaxHeight: data.launcher?.listMaxHeight ?? 400
+    readonly property int launcherTopMargin: data.launcher?.topMargin ?? 56
+
+    // Services
+    readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
     readonly property string weatherLocation: data.services?.weather?.location ?? "London"
+    readonly property real weatherLatitude: data.services?.weather?.latitude ?? 53.2
+    readonly property real weatherLongitude: data.services?.weather?.longitude ?? 45.0
     readonly property int weatherRefreshMinutes: data.services?.weather?.refreshMinutes ?? 15
+    readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
+    readonly property string vpnName: data.services?.vpn?.name ?? ""
+
+    // Hyprland
+    readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 
     // FileView for config loading
     FileView {
@@ -75,6 +113,54 @@ Singleton {
             root.data = {}
             root.ready = true
         }
+    }
+
+    // === State persistence (state.json) ===
+    readonly property string statePath: configDir + "/quickshell/state.json"
+    property var stateData: ({})
+
+    property bool _stateLoaded: false
+
+    FileView {
+        id: stateFile
+        watchChanges: false
+
+        onLoaded: {
+            try {
+                root.stateData = JSON.parse(text()) || {}
+            } catch (e) {
+                console.warn("AppConfig: state.json parse failed, starting with empty state:", e)
+                root.stateData = {}
+            }
+            root._stateLoaded = true
+        }
+
+        onLoadFailed: error => {
+            console.log("AppConfig: state.json not found, will be created on first write")
+            root.stateData = {}
+            root._stateLoaded = true
+        }
+    }
+
+    Timer {
+        id: stateSaveTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            stateFile.setText(JSON.stringify(root.stateData, null, 2))
+            stateFile.write()
+        }
+    }
+
+    function updateState(section, data) {
+        let current = root.stateData || {}
+        current[section] = Object.assign(current[section] || {}, data)
+        root.stateData = current
+        stateSaveTimer.restart()
+    }
+
+    Component.onCompleted: {
+        stateFile.path = root.statePath
     }
 
     function shouldShowOnMonitor(widgetConfig, monitorName) {

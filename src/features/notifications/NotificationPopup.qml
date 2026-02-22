@@ -41,8 +41,8 @@ Variants {
         }
 
         margins {
-            top: 48
-            right: 16
+            top: AppConfig.barHeight
+            right: AppConfig.barMargin
         }
 
         WlrLayershell.layer: WlrLayer.Overlay
@@ -54,7 +54,7 @@ Variants {
             item: notificationListView.contentItem
         }
 
-        implicitWidth: 360
+        implicitWidth: AppConfig.notificationPopupWidth
 
         ListView {
             id: notificationListView
@@ -178,7 +178,7 @@ Variants {
                     id: notifItem
                     notificationObject: entry
                     animatePopupExit: false
-                    width: 360
+                    width: AppConfig.notificationPopupWidth
                     anchors.top: parent.top
                 }
             }

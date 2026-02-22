@@ -11,14 +11,14 @@ import qs.src.ui.base
 Scope {
     id: root
 
-    property int sidebarWidth: 900
-    property int sidebarHight: 640
+    property int sidebarWidth: AppConfig.dashboardWidth
+    property int sidebarHeight: AppConfig.dashboardHeight
 
     PanelWindow {
         id: dashboardWindow
         color: "transparent"
         implicitWidth: root.sidebarWidth
-        implicitHeight: root.sidebarHight
+        implicitHeight: root.sidebarHeight
 
         Behavior on implicitHeight {
             NumberAnimation {
@@ -65,7 +65,7 @@ Scope {
                 implicitHeight: parent.implicitHeight
 
                 Component.onCompleted: {
-                    dashboardWindow.implicitHeight = root.sidebarHight
+                    dashboardWindow.implicitHeight = root.sidebarHeight
                 }
 
                 onRequestHeightChange: (newHeight) => {

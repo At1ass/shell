@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import qs.src.core.config
 import qs.src.core.services
 
 Scope {
@@ -62,10 +63,10 @@ Scope {
             active: GlobalStates.launcherOpen
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: 56  // 48px бар + 8px MD3 spacing
+            anchors.topMargin: AppConfig.launcherTopMargin  // barHeight + MD3 spacing
 
             sourceComponent: Item {
-                implicitWidth: 600
+                implicitWidth: AppConfig.launcherWidth
                 implicitHeight: launcherContent.implicitHeight
 
                 // MD3 анимация появления (slide down + fade in)

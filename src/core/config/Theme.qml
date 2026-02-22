@@ -11,8 +11,8 @@ Singleton {
     McuTheme {
         id: mcuTheme
         source: WallpaperService.currentWallpaper !== "" ? WallpaperService.currentWallpaper : Qt.alpha("#6200EE", 0)
-        darkMode: AppConfig.data.appearance?.theme?.darkMode ?? GlobalStates.darkMode
-        variant: AppConfig.data.appearance?.theme?.variant ?? "tonalspot"
+        darkMode: AppConfig.darkMode
+        variant: AppConfig.themeVariant
         contrast: 0.5
     }
 

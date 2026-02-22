@@ -312,7 +312,7 @@ PanelWindow {
 
         const globalPos = sourceGlobalPos();
         const localY = globalPos.y - root.screen.y;
-        const barPosition = AppConfig.data?.bar?.position || "top";
+        const barPosition = AppConfig.barPosition;
 
         let menuY = barPosition === "bottom" ? localY - cardHeight - margin : localY + root.sourceItem.height + margin;
 
