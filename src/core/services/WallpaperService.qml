@@ -1,8 +1,8 @@
 pragma Singleton
 import QtQuick
-import QtCore
 import Quickshell
 import Quickshell.Io
+import qs.src.core.config
 
 Singleton {
     id: wallpaperService
@@ -10,15 +10,15 @@ Singleton {
     // ═══════════════════════════════════════════════════════════════
     // CONFIGURATION STATE
     // ═══════════════════════════════════════════════════════════════
-    readonly property string configDir: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell"
 
-    readonly property string configPath: configDir && configDir.length > 0 ? configDir + "/wallpaper.json" : ""
+    property bool _initialized: false
+    property bool _suppressConfigReapply: false
 
     property string defaultWallpaperPath: ""
     property string primaryMonitor: ""
     property string postSetScriptPath: ""
 
-    property var configData: defaultConfig()
+    property var configData: ({})
     property var configuredMonitors: []
 
     property var monitorWallpapers: ({})
@@ -37,35 +37,24 @@ Singleton {
     property int changeInterval: 300000
     property bool randomOrder: true
 
-    property bool suppressConfigReload: false
-
     // ═══════════════════════════════════════════════════════════════
-    // CONFIG FILE
+    // INITIALIZATION VIA APPCONFIG
     // ═══════════════════════════════════════════════════════════════
 
-    FileView {
-        id: configFile
-        path: wallpaperService.configPath
-        watchChanges: false
+    Component.onCompleted: {
+        if (AppConfig.ready) initFromConfig()
+    }
 
-        onLoaded: {
-            if (wallpaperService.suppressConfigReload)
-                return
-            wallpaperService.loadConfigFromText(text())
+    Connections {
+        target: AppConfig
+        function onReadyChanged() {
+            if (AppConfig.ready && !wallpaperService._initialized)
+                initFromConfig()
         }
-
-        onLoadFailed: error => {
-            console.warn(`WallpaperService: failed to load config (${error}), restoring defaults`)
-            wallpaperService.configData = wallpaperService.defaultConfig()
-            wallpaperService.applyConfigData()
-            wallpaperService.saveConfig()
-        }
-
-        onSaved: wallpaperService.suppressConfigReload = false
-
-        onSaveFailed: error => {
-            console.warn(`WallpaperService: failed to save config (${error})`)
-            wallpaperService.suppressConfigReload = false
+        function onDataChanged() {
+            if (wallpaperService._initialized && !wallpaperService._suppressConfigReapply)
+                initFromConfig()
+            wallpaperService._suppressConfigReapply = false
         }
     }
 
@@ -114,85 +103,28 @@ Singleton {
         }
     }
 
-    Component.onCompleted: wallpaperService.bootstrap()
-
     // ═══════════════════════════════════════════════════════════════
     // CONFIGURATION HELPERS
     // ═══════════════════════════════════════════════════════════════
 
-    function bootstrap() {
-        if (!configPath || configPath.length === 0) {
-            initialize()
-            return
-        }
-
-        initialize()
-    }
-
-    function initialize() {
-        if (!configFile.path || configFile.path.length === 0) {
-            wallpaperService.loadConfigFromText("")
-            return
-        }
-
-        if (configFile.loaded) {
-            wallpaperService.loadConfigFromText(configFile.text())
-        } else {
-            configFile.reload()
-        }
-    }
-
-    function defaultConfig() {
-        return {
-            primaryMonitor: "",
-            defaultWallpaper: "",
-            postSetScript: "",
+    function initFromConfig() {
+        const wp = AppConfig.data.wallpaper || {}
+        configData = {
+            primaryMonitor: wp.primaryMonitor || "",
+            defaultWallpaper: wp.defaultWallpaper || "",
+            postSetScript: wp.postSetScript || "",
             global: {
-                directory: "",
-                randomOrder: true,
+                directory: wp.global?.directory || "",
+                randomOrder: wp.global?.randomOrder !== undefined ? wp.global.randomOrder : true,
                 autoChange: {
-                    enabled: false,
-                    intervalMs: 300000
+                    enabled: wp.global?.autoChange?.enabled ?? false,
+                    intervalMs: wp.global?.autoChange?.intervalMs ?? 300000
                 }
             },
-            monitors: {}
+            monitors: JSON.parse(JSON.stringify(wp.monitors || {}))
         }
-    }
-
-    function loadConfigFromText(rawText) {
-        if (!rawText || rawText.trim().length === 0) {
-            configData = defaultConfig()
-            applyConfigData()
-            saveConfig()
-            return
-        }
-
-        let parsed = {}
-        try {
-            parsed = JSON.parse(rawText)
-        } catch (e) {
-            console.warn("WallpaperService: invalid config JSON, using defaults", e)
-            parsed = defaultConfig()
-        }
-
-        const defaults = defaultConfig()
-        const merged = {
-            primaryMonitor: parsed.primaryMonitor || defaults.primaryMonitor,
-            defaultWallpaper: parsed.defaultWallpaper || defaults.defaultWallpaper,
-            postSetScript: parsed.postSetScript || "",
-            global: {
-                directory: parsed.global && parsed.global.directory || "",
-                randomOrder: parsed.global && parsed.global.randomOrder !== undefined ? parsed.global.randomOrder : defaults.global.randomOrder,
-                autoChange: {
-                    enabled: parsed.global && parsed.global.autoChange && parsed.global.autoChange.enabled !== undefined ? parsed.global.autoChange.enabled : defaults.global.autoChange.enabled,
-                    intervalMs: parsed.global && parsed.global.autoChange && parsed.global.autoChange.intervalMs ? parsed.global.autoChange.intervalMs : defaults.global.autoChange.intervalMs
-                }
-            },
-            monitors: parsed.monitors || {}
-        }
-
-        configData = merged
         applyConfigData()
+        _initialized = true
     }
 
     function applyConfigData() {
@@ -220,8 +152,7 @@ Singleton {
             if (monitorCfg.fillMode !== undefined)
                 newFillModes[monitor] = monitorCfg.fillMode
 
-            const wall = monitorCfg.wallpaper && monitorCfg.wallpaper.length > 0 ? monitorCfg.wallpaper : defaultWallpaperPath
-            newWallpapers[monitor] = asUrl(wall)
+            newWallpapers[monitor] = baseWallpaper
 
             if (monitorCfg.directory && monitorCfg.directory.length > 0) {
                 newDirectories[monitor] = monitorCfg.directory
@@ -253,15 +184,39 @@ Singleton {
             enqueueScan(monitor, monitorDirectories[monitor])
 
         processNextScan()
+        loadState()
     }
 
     function saveConfig() {
-        if (!configFile.path || configFile.path.length === 0)
-            return
+        _suppressConfigReapply = true
+        AppConfig.updateConfig("wallpaper", configData)
+    }
 
-        suppressConfigReload = true
-        const serialized = JSON.stringify(configData, null, 2)
-        configFile.setText(serialized)
+    function saveState() {
+        const state = { monitors: {} }
+        for (let monitor in monitorWallpapers) {
+            const key = filesKeyForMonitor(monitor)
+            state.monitors[monitor] = {
+                current: normalizeFilesystemPath(monitorWallpapers[monitor]),
+                index: key ? (monitorIndices[key] || 0) : 0
+            }
+        }
+        AppConfig.updateState("wallpaper", state)
+    }
+
+    function loadState() {
+        const state = AppConfig.wallpaperState
+        if (!state || !state.monitors) return
+
+        const indices = {}
+        for (let monitor in state.monitors) {
+            const ms = state.monitors[monitor]
+            if (ms.index !== undefined) {
+                const key = filesKeyForMonitor(monitor)
+                if (key) indices[key] = ms.index
+            }
+        }
+        monitorIndices = indices
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -334,8 +289,10 @@ Singleton {
             return
 
         let explicit = ""
-        if (initial && configData.monitors && configData.monitors[monitor] && configData.monitors[monitor].wallpaper) {
-            explicit = configData.monitors[monitor].wallpaper
+        if (initial) {
+            const state = AppConfig.wallpaperState
+            if (state && state.monitors && state.monitors[monitor])
+                explicit = state.monitors[monitor].current || ""
         }
 
         if (initial && explicit.length > 0) {
@@ -453,9 +410,7 @@ Singleton {
             persist = true
 
         if (persist) {
-            ensureMonitorConfig(monitor)
-            configData.monitors[monitor].wallpaper = safePath
-            saveConfig()
+            saveState()
         }
 
         schedulePostScript(monitor, safePath)
@@ -476,12 +431,7 @@ Singleton {
             persist = true
 
         if (persist) {
-            configData.defaultWallpaper = safePath
-            keys.forEach(monitor => {
-                ensureMonitorConfig(monitor)
-                configData.monitors[monitor].wallpaper = safePath
-            })
-            saveConfig()
+            saveState()
         }
 
         keys.forEach(monitor => schedulePostScript(monitor, safePath))
@@ -662,13 +612,17 @@ Singleton {
     }
 
     function normalizeFilesystemPath(path) {
-        if (!path || path.length === 0)
+        if (!path)
             return ""
 
-        if (path.startsWith("file://"))
-            return path.substring(7)
+        const str = String(path)
+        if (str.length === 0)
+            return ""
 
-        return path
+        if (str.startsWith("file://"))
+            return str.substring(7)
+
+        return str
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -240,8 +240,18 @@
   },
 
   "wallpaper": {
-    "current": "",
-    "directory": "~/Pictures/Wallpapers"
+    "primaryMonitor": "",
+    "defaultWallpaper": "",
+    "postSetScript": "",
+    "global": {
+      "directory": "",
+      "randomOrder": true,
+      "autoChange": {
+        "enabled": false,
+        "intervalMs": 300000
+      }
+    },
+    "monitors": {}
   },
 
   "services": {

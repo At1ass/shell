@@ -61,6 +61,21 @@ Singleton {
     // Hyprland
     readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 
+    // Wallpaper
+    readonly property string wallpaperPrimaryMonitor: data.wallpaper?.primaryMonitor ?? ""
+    readonly property string wallpaperDefaultPath: data.wallpaper?.defaultWallpaper ?? ""
+    readonly property string wallpaperPostScript: data.wallpaper?.postSetScript ?? ""
+    readonly property bool wallpaperAutoChange: data.wallpaper?.global?.autoChange?.enabled ?? false
+    readonly property int wallpaperAutoChangeInterval: data.wallpaper?.global?.autoChange?.intervalMs ?? 300000
+    readonly property bool wallpaperRandomOrder: data.wallpaper?.global?.randomOrder ?? true
+    readonly property string wallpaperGlobalDirectory: data.wallpaper?.global?.directory ?? ""
+    readonly property var wallpaperMonitors: data.wallpaper?.monitors ?? ({})
+
+    // Wallpaper state (from state.json)
+    readonly property var wallpaperState: stateData.wallpaper ?? ({})
+
+    property bool _suppressConfigReload: false
+
     // FileView for config loading
     FileView {
         id: configFile
@@ -68,6 +83,10 @@ Singleton {
         watchChanges: true
 
         onLoaded: {
+            if (root._suppressConfigReload) {
+                root._suppressConfigReload = false
+                return
+            }
             console.log("Config loaded from:", root.configPath)
             root.data = root.parseConfigText(text())
             root.ready = true
@@ -143,12 +162,28 @@ Singleton {
     }
 
     Timer {
+        id: configSaveTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            root._suppressConfigReload = true
+            configFile.setText(JSON.stringify(root.data, null, 2))
+        }
+    }
+
+    function updateConfig(section, newData) {
+        let current = Object.assign({}, root.data || {})
+        current[section] = newData
+        root.data = current
+        configSaveTimer.restart()
+    }
+
+    Timer {
         id: stateSaveTimer
         interval: 500
         repeat: false
         onTriggered: {
             stateFile.setText(JSON.stringify(root.stateData, null, 2))
-            stateFile.write()
         }
     }
 
