@@ -149,6 +149,8 @@ Item {
                     columns: 7
                     columnSpacing: 8
                     rowSpacing: 8
+                    uniformCellWidths: true
+                    uniformCellHeights: true
 
                     Repeater {
                         model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -157,6 +159,7 @@ Item {
                             textStyle: "labelSmall"
                             colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
+                            // Layout.preferredWidth: parent.width / 7
                             horizontalAlignment: Text.AlignHCenter
                             font.weight: Font.Medium
                         }

@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QUrl>
 #include <QMetaObject>
+#include <QCoreApplication>
 #include <qlogging.h>
 #include <QtConcurrent>
 #include <vector>
@@ -37,7 +38,6 @@ static QImage readDownscaled(const QString& path, int maxSide = 160) {
     }
     QImage img = r.read();
     if (img.isNull()) {
-        qWarning() << "QImageReader error:" << r.errorString();
         return img;
     }
     if (img.format() != QImage::Format_ARGB32)
@@ -51,13 +51,18 @@ McuTheme::McuTheme(QObject* parent) : QObject(parent) {
 }
 
 McuTheme::~McuTheme() {
-    // Ожидаем завершения асинхронных операций чтобы избежать use-after-free
-    if (m_future.isRunning()) {
+    // Инвалидируем счётчики генерации, чтобы отложенные коллбеки
+    // не выполняли работу (QPointer защитит от use-after-free,
+    // а generation guard — от устаревших обновлений).
+    m_generation = UINT64_MAX;
+    m_seedRequest = UINT64_MAX;
+
+    // Ждём завершения фьючеров для чистого шатдауна
+    // (лямбды используют QPointer, поэтому обращения к this не будет).
+    if (m_future.isRunning())
         m_future.waitForFinished();
-    }
-    if (m_seedFuture.isRunning()) {
+    if (m_seedFuture.isRunning())
         m_seedFuture.waitForFinished();
-    }
 }
 
 uint32_t McuTheme::qcolorToArgb(const QColor& c) {
@@ -117,22 +122,25 @@ void McuTheme::setSource(const QVariant& v) {
             emit loadingChanged();
         }
 
-        m_seedFuture = QtConcurrent::run([this, requestId, u]() {
+        m_seedFuture = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, u]() {
             uint32_t seed = 0;
             const bool ok = extractSeedFromImage(u, seed);
-            QMetaObject::invokeMethod(this, [this, requestId, ok, seed, u]() {
-                if (requestId != m_seedRequest)
+            auto* app = QCoreApplication::instance();
+            if (!app) return;
+            QMetaObject::invokeMethod(app, [guard, requestId, ok, seed, u]() {
+                if (!guard) return;
+                if (requestId != guard->m_seedRequest)
                     return;
                 if (!ok) {
                     qWarning() << "McuTheme: failed to extract seed from image" << u;
-                    if (m_loading) {
-                        m_loading = false;
-                        emit loadingChanged();
+                    if (guard->m_loading) {
+                        guard->m_loading = false;
+                        emit guard->loadingChanged();
                     }
                     return;
                 }
-                m_seedArgb = seed;
-                applySeed();
+                guard->m_seedArgb = seed;
+                guard->applySeed();
             }, Qt::QueuedConnection);
         });
         return;
@@ -172,9 +180,6 @@ bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed) {
         path = url.toString();
 
     QImage img = readDownscaled(path, 160);
-    qDebug() << "McuTheme: read image" << path
-             << "size:" << img.size();
-
     if (img.isNull()) {
         return false;
     }
@@ -208,35 +213,37 @@ void McuTheme::applySeed() {
         emit loadingChanged();
     }
 
-    // Генерация в пуле потоков, чтобы не блокировать GUI
-    m_future = QtConcurrent::run([this, requestId, seed, dark, variant, contrast]() {
+    // Генерация в пуле потоков, чтобы не блокировать GUI.
+    // QPointer guard защищает от use-after-free: если McuTheme уничтожен
+    // до обработки коллбека, guard станет null и коллбек не выполнится.
+    // buildScheme — статическая функция, не обращается к this.
+    m_future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, seed, dark, variant, contrast]() {
         const QVariantMap colors = buildScheme(seed, dark, variant, contrast);
 
-        QMetaObject::invokeMethod(this, [this, requestId, colors]() {
-            if (requestId != m_generation) {
-                return; // устаревший результат
-            }
+        auto* app = QCoreApplication::instance();
+        if (!app) return;
+        QMetaObject::invokeMethod(app, [guard, requestId, colors]() {
+            if (!guard) return;
+            if (requestId != guard->m_generation)
+                return;
 
-            m_colors = colors;
-            m_valid = true;
-            emit validChanged();
-            emit colorsChanged();
+            guard->m_colors = colors;
+            guard->m_valid = true;
+            emit guard->validChanged();
+            emit guard->colorsChanged();
 
-            if (m_loading) {
-                m_loading = false;
-                emit loadingChanged();
+            if (guard->m_loading) {
+                guard->m_loading = false;
+                emit guard->loadingChanged();
             }
         }, Qt::QueuedConnection);
     });
 }
 
-QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) const {
+QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) {
     using namespace material_color_utilities;
 
     Hct sourceHct(seedArgb);
-
-    qDebug() << "McuTheme: generateColorScheme from ARGB"
-             << QString("#%1").arg(seedArgb,8,16,QLatin1Char('0')).toUpper();
 
     std::unique_ptr<DynamicScheme> scheme;
     if (variant == "vibrant")
@@ -318,6 +325,5 @@ QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& v
     put("onTertiaryFixed", MaterialDynamicColors::OnTertiaryFixed());
     put("onTertiaryFixedVariant", MaterialDynamicColors::OnTertiaryFixedVariant());
 
-    qDebug() << "McuTheme: generated" << result.size() << "colors";
     return result;
 }

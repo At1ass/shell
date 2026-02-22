@@ -634,7 +634,10 @@ void SystemMonitor::stopWorker()
 {
     m_workerThread.requestInterruption();
     m_workerThread.quit();
-    m_workerThread.wait(1000);
+    if (!m_workerThread.wait(3000)) {
+        qWarning("SystemMonitor: worker thread did not stop in 3s, waiting indefinitely");
+        m_workerThread.wait();
+    }
 }
 
 #include "SystemMonitor.moc"
