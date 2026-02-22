@@ -90,7 +90,7 @@ BarElement {
     }
 
     Row {
-        spacing: Config.spacing.small
+        spacing: Tokens.spacing.small
 
         MaterialIcon {
             iconName: {
@@ -101,10 +101,10 @@ BarElement {
                 const v = root.sink.audio.volume;
                 return (v < 0.34 ? "volume_mute" : v < 0.67 ? "volume_down" : "volume_up");
             }
-            fontSize: Config.typography.titleLarge.size
+            fontSize: Tokens.typography.titleLarge.size
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            // iconColor: Config.colors.onSurface
-            iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
+            // iconColor: Theme.onSurface
+            iconColor: root.hovered ? Theme.primary : Theme.onSurface
             color: "transparent"
         }
 

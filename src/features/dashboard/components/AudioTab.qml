@@ -22,50 +22,50 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.large
-        spacing: Config.spacing.large
+        anchors.margins: Tokens.spacing.large
+        spacing: Tokens.spacing.large
 
         // Выбор устройств (MD3)
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.medium
+            spacing: Tokens.spacing.medium
 
             // Устройство вывода
             MaterialCard {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
-                color: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                color: sinkMouseArea.containsMouse ? Theme.secondaryContainer : Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
                 Behavior on color {
-                    ColorAnimation { duration: Config.motion.duration.short4 }
+                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                     // Icon container
                     Rectangle {
                         width: 40
                         height: 40
                         radius: 20
-                        color: sinkMouseArea.containsMouse ? Config.colors.onSecondaryContainer : Config.colors.primaryContainer
+                        color: sinkMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.primaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                         }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             iconName: "volume_up"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.onPrimaryContainer
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: sinkMouseArea.containsMouse ? Theme.secondaryContainer : Theme.onPrimaryContainer
                             backgroundColor: "transparent"
 
                             Behavior on iconColor {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
                         }
                     }
@@ -92,8 +92,8 @@ Item {
 
                     MaterialIcon {
                         iconName: "chevron_right"
-                        fontSize: Config.typography.headlineSmall.size
-                        iconColor: Config.colors.onSurfaceVariant
+                        fontSize: Tokens.typography.headlineSmall.size
+                        iconColor: Theme.onSurfaceVariant
                         backgroundColor: "transparent"
                     }
                 }
@@ -113,38 +113,38 @@ Item {
             MaterialCard {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
-                color: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                color: sourceMouseArea.containsMouse ? Theme.secondaryContainer : Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
                 Behavior on color {
-                    ColorAnimation { duration: Config.motion.duration.short4 }
+                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                     // Icon container
                     Rectangle {
                         width: 40
                         height: 40
                         radius: 20
-                        color: sourceMouseArea.containsMouse ? Config.colors.onSecondaryContainer : Config.colors.tertiaryContainer
+                        color: sourceMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.tertiaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                         }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             iconName: "mic"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.onTertiaryContainer
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: sourceMouseArea.containsMouse ? Theme.secondaryContainer : Theme.onTertiaryContainer
                             backgroundColor: "transparent"
 
                             Behavior on iconColor {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
                         }
                     }
@@ -171,8 +171,8 @@ Item {
 
                     MaterialIcon {
                         iconName: "chevron_right"
-                        fontSize: Config.typography.headlineSmall.size
-                        iconColor: Config.colors.onSurfaceVariant
+                        fontSize: Tokens.typography.headlineSmall.size
+                        iconColor: Theme.onSurfaceVariant
                         backgroundColor: "transparent"
                     }
                 }
@@ -193,13 +193,13 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
-            radius: Config.shape.large
+            color: Theme.surfaceContainerHigh
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.large
-                spacing: Config.spacing.medium
+                anchors.margins: Tokens.spacing.large
+                spacing: Tokens.spacing.medium
 
                 // Header (MD3)
                 SectionHeader {
@@ -213,7 +213,7 @@ Item {
                 ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: Config.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                         Repeater {
                             // ScriptModel для эффективного обновления (без пересоздания делегатов)
@@ -228,8 +228,8 @@ Item {
 
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 120
-                                color: Config.colors.surfaceContainer
-                                radius: Config.shape.medium
+                                color: Theme.surfaceContainer
+                                radius: Tokens.shape.medium
 
                                 data: [
                                     PwObjectTracker {
@@ -239,8 +239,8 @@ Item {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: Config.spacing.medium
-                                    spacing: Config.spacing.medium
+                                    anchors.margins: Tokens.spacing.medium
+                                    spacing: Tokens.spacing.medium
 
                                     // App icon (real or fallback)
                                     CircleAvatar {
@@ -281,7 +281,7 @@ Item {
 
                                         MaterialSlider {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: Config.spacing.extraSmall
+                                            Layout.topMargin: Tokens.spacing.extraSmall
                                             enabled: !!(stream && stream.audio)
                                             from: 0
                                             to: 1
@@ -308,24 +308,24 @@ Item {
                                         height: 48
                                         radius: 24
                                         color: (stream && stream.audio && stream.audio.muted) ?
-                                               Config.colors.errorContainer :
-                                               (muteMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent")
+                                               Theme.errorContainer :
+                                               (muteMouseArea.containsMouse ? Theme.surfaceContainerHighest : "transparent")
 
                                         Behavior on color {
-                                            ColorAnimation { duration: Config.motion.duration.short4 }
+                                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                                         }
 
                                         MaterialIcon {
                                             anchors.centerIn: parent
                                             iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
-                                            fontSize: Config.typography.titleLarge.size
+                                            fontSize: Tokens.typography.titleLarge.size
                                             iconColor: (stream && stream.audio && stream.audio.muted) ?
-                                                      Config.colors.onErrorContainer :
-                                                      Config.colors.onSurfaceVariant
+                                                      Theme.onErrorContainer :
+                                                      Theme.onSurfaceVariant
                                             backgroundColor: "transparent"
 
                                             Behavior on iconColor {
-                                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                                             }
                                         }
 
@@ -359,10 +359,10 @@ Item {
                 MaterialCard {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 56
-                    radius: Config.shape.full
-                    color: pavuMouseArea.pressed ? Config.colors.primary :
-                           pavuMouseArea.containsMouse ? Qt.lighter(Config.colors.primaryContainer, 1.1) :
-                           Config.colors.primaryContainer
+                    radius: Tokens.shape.full
+                    color: pavuMouseArea.pressed ? Theme.primary :
+                           pavuMouseArea.containsMouse ? Qt.lighter(Theme.primaryContainer, 1.1) :
+                           Theme.primaryContainer
 
                     // M3 Filled Button - без outline
                     outlined: false
@@ -372,32 +372,32 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 1
                         radius: parent.radius - 1
-                        color: Config.colors.primary
+                        color: Theme.primary
                         opacity: pavuMouseArea.containsMouse ? 0.08 : 0.03
                         z: -1
                         visible: !pavuMouseArea.pressed
 
                         Behavior on opacity {
-                            NumberAnimation { duration: Config.motion.duration.short4 }
+                            NumberAnimation { duration: Tokens.motion.duration.short4 }
                         }
                     }
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                     }
 
                     RowLayout {
                         anchors.centerIn: parent
-                        spacing: Config.spacing.small
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             iconName: "tune"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: pavuMouseArea.pressed ? Config.colors.onPrimary : Config.colors.onPrimaryContainer
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: pavuMouseArea.pressed ? Theme.onPrimary : Theme.onPrimaryContainer
                             backgroundColor: "transparent"
 
                             Behavior on iconColor {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
                         }
 
@@ -413,12 +413,12 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         // radius: parent.radius
-                        radius: Config.shape.full
-                        color: Config.colors.onPrimaryContainer
+                        radius: Tokens.shape.full
+                        color: Theme.onPrimaryContainer
                         opacity: pavuMouseArea.pressed ? 0.12 : (pavuMouseArea.containsMouse ? 0.08 : 0)
 
                         Behavior on opacity {
-                            NumberAnimation { duration: Config.motion.duration.short4 }
+                            NumberAnimation { duration: Tokens.motion.duration.short4 }
                         }
                     }
 

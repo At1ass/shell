@@ -16,8 +16,8 @@ Item {
 
     MaterialCard {
         anchors.fill: parent
-        color: Qt.alpha(Config.colors.surfaceContainer, 0.85)
-        radius: Config.shape.large
+        color: Qt.alpha(Theme.surfaceContainer, 0.85)
+        radius: Tokens.shape.large
         outlined: false
 
         ColumnLayout {
@@ -33,7 +33,7 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
                     spacing: 0
 
                     Repeater {
@@ -86,20 +86,40 @@ Item {
                 onCurrentIndexChanged: {
                     // Изменяем высоту окна в зависимости от вкладки
                     if (currentIndex === 0) {
-                        root.requestHeightChange(640);  // QuickTab
+                        root.requestHeightChange(AppConfig.dashboardHeight);       // QuickTab
                     } else if (currentIndex === 1) {
-                        root.requestHeightChange(660);  // WeatherTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 20);  // WeatherTab
                     } else if (currentIndex === 2) {
-                        root.requestHeightChange(600);  // CalendarTab
+                        root.requestHeightChange(AppConfig.dashboardHeight - 40);  // CalendarTab
                     } else if (currentIndex === 3) {
-                        root.requestHeightChange(700);  // SystemTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 60);  // SystemTab
                     }
                 }
 
-                QuickTab {}
-                WeatherTab {}
-                CalendarTab {}
-                SystemTab {}
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 0
+                    sourceComponent: Component { QuickTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 1
+                    sourceComponent: Component { WeatherTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 2
+                    sourceComponent: Component { CalendarTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 3
+                    sourceComponent: Component { SystemTab {} }
+                }
             }
         }
     }

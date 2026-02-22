@@ -42,7 +42,7 @@ StackView {
         property bool isSubMenu
         property bool shown
 
-        padding: Config.spacing.extraSmall / 2
+        padding: Tokens.spacing.extraSmall / 2
         spacing: 1
 
         opacity: shown ? 1 : 0
@@ -55,17 +55,17 @@ StackView {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Config.motion.duration.medium4
+                duration: Tokens.motion.duration.medium4
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Config.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standard
             }
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: Config.motion.duration.medium4
+                duration: Tokens.motion.duration.medium4
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Config.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standard
             }
         }
 
@@ -86,8 +86,8 @@ StackView {
                 implicitWidth: 220
                 implicitHeight: modelData.isSeparator ? 1 : children.implicitHeight
 
-                radius: Config.shape.medium
-                color: modelData.isSeparator ? Config.colors.outlineVariant : "transparent"
+                radius: Tokens.shape.medium
+                color: modelData.isSeparator ? Theme.outlineVariant : "transparent"
                 border.width: 0
 
                 Loader {
@@ -100,7 +100,7 @@ StackView {
                     asynchronous: true
 
                     sourceComponent: Item {
-                        implicitHeight: label.implicitHeight + Config.spacing.extraSmall
+                        implicitHeight: label.implicitHeight + Tokens.spacing.extraSmall
 
                         MouseArea {
                             id: mouseArea
@@ -133,7 +133,7 @@ StackView {
                             id: icon
 
                             anchors.left: parent.left
-                            anchors.leftMargin: Config.spacing.extraSmall
+                            anchors.leftMargin: Tokens.spacing.extraSmall
                             anchors.verticalCenter: parent.verticalCenter
 
                             active: item.modelData.icon !== ""
@@ -150,11 +150,11 @@ StackView {
                             id: label
 
                             anchors.left: icon.active ? icon.right : parent.left
-                            anchors.leftMargin: icon.active ? Config.spacing.extraSmall : Config.spacing.small
+                            anchors.leftMargin: icon.active ? Tokens.spacing.extraSmall : Tokens.spacing.small
                             anchors.verticalCenter: parent.verticalCenter
 
                             text: labelMetrics.elidedText
-                            color: item.modelData.enabled ? Config.colors.onSurface : Config.colors.outline
+                            color: item.modelData.enabled ? Theme.onSurface : Theme.outline
                         }
 
                         TextMetrics {
@@ -165,7 +165,7 @@ StackView {
                             font.family: label.font.family
 
                             elide: Text.ElideRight
-                            elideWidth: item.implicitWidth - (icon.active ? icon.implicitWidth + Config.spacing.small * 2 : Config.spacing.medium) - (expand.active ? expand.implicitWidth + Config.spacing.small * 2 : Config.spacing.small)
+                            elideWidth: item.implicitWidth - (icon.active ? icon.implicitWidth + Tokens.spacing.small * 2 : Tokens.spacing.medium) - (expand.active ? expand.implicitWidth + Tokens.spacing.small * 2 : Tokens.spacing.small)
                         }
 
                         Loader {
@@ -173,14 +173,14 @@ StackView {
 
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
-                            anchors.rightMargin: Config.spacing.extraSmall
+                            anchors.rightMargin: Tokens.spacing.extraSmall
 
                             active: item.modelData.hasChildren
                             asynchronous: true
 
                             sourceComponent: MaterialIcon {
                                 iconName: "chevron_right"
-                                iconColor: item.modelData.enabled ? Config.colors.onSurface : Config.colors.outline
+                                iconColor: item.modelData.enabled ? Theme.onSurface : Theme.outline
                                 backgroundColor: "transparent"
                             }
                         }
@@ -195,18 +195,18 @@ StackView {
 
             sourceComponent: Item {
                 implicitWidth: back.implicitWidth
-                implicitHeight: back.implicitHeight + Config.spacing.small / 2
+                implicitHeight: back.implicitHeight + Tokens.spacing.small / 2
 
                 Item {
                     anchors.bottom: parent.bottom
-                    implicitWidth: back.implicitWidth + Config.spacing.extraSmall * 2
-                    implicitHeight: back.implicitHeight + Config.spacing.extraSmall
+                    implicitWidth: back.implicitWidth + Tokens.spacing.extraSmall * 2
+                    implicitHeight: back.implicitHeight + Tokens.spacing.extraSmall
 
                     Rectangle {
                         anchors.fill: parent
 
-                        radius: Config.shape.medium
-                        color: Config.colors.secondaryContainer
+                        radius: Tokens.shape.medium
+                        color: Theme.secondaryContainer
                         border.width: 0
 
                         MouseArea {
@@ -221,7 +221,7 @@ StackView {
 
                         StateLayer {
                             anchors.fill: parent
-                            layerColor: Config.colors.onSecondaryContainer
+                            layerColor: Theme.onSecondaryContainer
                             hovered: backMouseArea.containsMouse
                             pressed: backMouseArea.pressed
                         }
@@ -232,20 +232,20 @@ StackView {
 
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
-                        anchors.leftMargin: Config.spacing.extraSmall
-                        spacing: Config.spacing.extraSmall / 2
+                        anchors.leftMargin: Tokens.spacing.extraSmall
+                        spacing: Tokens.spacing.extraSmall / 2
 
                         MaterialIcon {
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: "chevron_left"
-                            iconColor: Config.colors.onSecondaryContainer
+                            iconColor: Theme.onSecondaryContainer
                             backgroundColor: "transparent"
                         }
 
                         MaterialText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: qsTr("Back")
-                            color: Config.colors.onSecondaryContainer
+                            color: Theme.onSecondaryContainer
                         }
                     }
                 }

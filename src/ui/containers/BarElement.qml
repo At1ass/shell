@@ -26,9 +26,9 @@ Rectangle {
     property bool expandOnHover: false
 
     // Styling overrides
-    property color backgroundColor: Config.colors.surfaceContainerHigh
-    property color expandedColor: Config.colors.primaryContainer
-    property real customRadius: Config.shape.large
+    property color backgroundColor: Theme.surfaceContainerHigh
+    property color expandedColor: Theme.primaryContainer
+    property real customRadius: Tokens.shape.large
     property int customHeight: 32
     property int minWidth: 48
     property int expandedWidth: 0
@@ -43,7 +43,7 @@ Rectangle {
     property var clickHandler: null
     property var wheelHandler: null
 
-    // Base styling using Config
+    // Base styling using design tokens
     color: expanded ? expandedColor : backgroundColor
     radius: customRadius
     // height: customHeight
@@ -52,7 +52,7 @@ Rectangle {
     // Dynamic width calculation
     implicitWidth: {
         if (expandedWidth > 0 && expanded) return expandedWidth
-        return Math.max(minWidth, contentContainer.implicitWidth + Config.spacing.medium)
+        return Math.max(minWidth, contentContainer.implicitWidth + Tokens.spacing.medium)
     }
     width: implicitWidth
     // height: implicitHeight
@@ -62,7 +62,7 @@ Rectangle {
     // Primary surface tint for consistency
     Rectangle {
         anchors.fill: parent
-        color: Config.colors.primary
+        color: Theme.primary
         opacity: 0.05
         radius: parent.radius
     }
@@ -72,7 +72,7 @@ Rectangle {
         id: stateLayer
         anchors.fill: parent
         radius: parent.radius
-        color: Config.colors.onSurface
+        color: Theme.onSurface
         opacity: {
             if (!clickable && !hoverable) return 0.0
             if (pressed) return 0.12
@@ -83,7 +83,7 @@ Rectangle {
         Behavior on opacity {
             enabled: root.animated
             NumberAnimation {
-                duration: Config.animations.durationShort
+                duration: Tokens.motion.duration.short3
                 easing.type: Easing.OutQuad
             }
         }
@@ -93,7 +93,7 @@ Rectangle {
     Item {
         id: contentContainer
         anchors.centerIn: parent
-        anchors.margins: Config.spacing.small
+        anchors.margins: Tokens.spacing.small
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
     }
@@ -110,7 +110,7 @@ Rectangle {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        anchors.margins: expandOnHover ? -Config.spacing.small : 0
+        anchors.margins: expandOnHover ? -Tokens.spacing.small : 0
         hoverEnabled: clickable || hoverable || expandOnHover
         enabled: clickable || hoverable || expandOnHover
         propagateComposedEvents: true
@@ -152,7 +152,7 @@ Rectangle {
     Behavior on implicitWidth {
         enabled: root.animated
         NumberAnimation {
-            duration: Config.animations.durationMedium
+            duration: Tokens.motion.duration.medium2
             easing.type: Easing.OutCubic
         }
     }
@@ -160,7 +160,7 @@ Rectangle {
     Behavior on color {
         enabled: root.animated
         ColorAnimation {
-            duration: Config.animations.durationMedium
+            duration: Tokens.motion.duration.medium2
             easing.type: Easing.OutQuad
         }
     }
@@ -170,7 +170,7 @@ Rectangle {
     Behavior on scale {
         enabled: root.animated
         NumberAnimation {
-            duration: Config.animations.durationShort
+            duration: Tokens.motion.duration.short3
             easing.type: Easing.OutQuad
         }
     }

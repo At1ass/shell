@@ -9,23 +9,23 @@ RowLayout {
 
     property string title: ""
     property string icon: ""
-    property color iconColor: Config.colors.primary
+    property color iconColor: Theme.primary
 
     // Badge properties
     property string badgeText: ""
-    property color badgeBackground: Config.colors.primaryContainer
-    property color badgeTextColor: Config.colors.onPrimaryContainer
+    property color badgeBackground: Theme.primaryContainer
+    property color badgeTextColor: Theme.onPrimaryContainer
 
     // Trailing content slot
     property alias trailingContent: trailingSlot.data
 
-    spacing: Config.spacing.small
+    spacing: Tokens.spacing.small
 
     // Leading icon
     MaterialIcon {
         visible: root.icon !== ""
         iconName: root.icon
-        fontSize: Config.iconSize.large
+        fontSize: Tokens.iconSize.large
         iconColor: root.iconColor
         backgroundColor: "transparent"
     }
@@ -46,7 +46,7 @@ RowLayout {
     // Badge (if specified)
     Rectangle {
         visible: root.badgeText !== ""
-        implicitWidth: badgeLabel.width + Config.spacing.medium
+        implicitWidth: badgeLabel.width + Tokens.spacing.medium
         implicitHeight: 24
         radius: 12
         color: root.badgeBackground

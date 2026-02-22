@@ -10,7 +10,7 @@ RowLayout {
     property bool animated: true
 
     // Настройка отступов из токенов
-    spacing: Config.spacing[root.spacingToken] || Config.spacing.medium
+    spacing: Tokens.spacing[root.spacingToken] || Tokens.spacing.medium
 
     // Автоматическое выравнивание
     Layout.alignment: {
@@ -26,8 +26,8 @@ RowLayout {
     Behavior on spacing {
         enabled: root.animated
         NumberAnimation {
-            duration: Config.motion.duration.short3
-            easing.type: Config.motion.easing.standard
+            duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.standard
         }
     }
 
@@ -41,7 +41,7 @@ RowLayout {
 
     // Валидация spacing
     Component.onCompleted: {
-        if (!Config.spacing[root.spacingToken]) {
+        if (!Tokens.spacing[root.spacingToken]) {
             console.warn(`BarSection: неизвестный spacing "${root.spacingToken}", используется medium`)
         }
     }

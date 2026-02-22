@@ -27,7 +27,7 @@ Singleton {
      */
     function color(duration, easing) {
         return colorComponent.createObject(null, {
-            duration: duration || Config.motion.duration.short4,
+            duration: duration || Tokens.motion.duration.short4,
             easing: easing || easingStandard()
         })
     }
@@ -38,7 +38,7 @@ Singleton {
      */
     function opacity(duration, easing) {
         return numberComponent.createObject(null, {
-            duration: duration || Config.motion.duration.short3,
+            duration: duration || Tokens.motion.duration.short3,
             easing: easing || easingStandard()
         })
     }
@@ -49,7 +49,7 @@ Singleton {
      */
     function size(duration, easing) {
         return numberComponent.createObject(null, {
-            duration: duration || Config.motion.duration.short4,
+            duration: duration || Tokens.motion.duration.short4,
             easing: easing || easingStandard()
         })
     }
@@ -60,7 +60,7 @@ Singleton {
      */
     function scale(duration, easing) {
         return numberComponent.createObject(null, {
-            duration: duration || Config.motion.duration.medium2,
+            duration: duration || Tokens.motion.duration.medium2,
             easing: easing || easingEmphasized()
         })
     }
@@ -71,7 +71,7 @@ Singleton {
      */
     function position(duration, easing) {
         return numberComponent.createObject(null, {
-            duration: duration || Config.motion.duration.medium2,
+            duration: duration || Tokens.motion.duration.medium2,
             easing: easing || easingEmphasized()
         })
     }
@@ -82,7 +82,7 @@ Singleton {
      */
     function rotation(duration, easing) {
         return numberComponent.createObject(null, {
-            duration: duration || Config.motion.duration.medium3,
+            duration: duration || Tokens.motion.duration.medium3,
             easing: easing || easingStandard()
         })
     }
@@ -96,7 +96,7 @@ Singleton {
      */
     function colorFast() {
         return colorComponent.createObject(null, {
-            duration: Config.motion.duration.short2,
+            duration: Tokens.motion.duration.short2,
             easing: easingStandard()
         })
     }
@@ -106,7 +106,7 @@ Singleton {
      */
     function colorSmooth() {
         return colorComponent.createObject(null, {
-            duration: Config.motion.duration.medium2,
+            duration: Tokens.motion.duration.medium2,
             easing: easingEmphasized()
         })
     }
@@ -116,7 +116,7 @@ Singleton {
      */
     function fadeIn() {
         return numberComponent.createObject(null, {
-            duration: Config.motion.duration.medium2,
+            duration: Tokens.motion.duration.medium2,
             easing: easingEmphasizedDecelerate()
         })
     }
@@ -126,7 +126,7 @@ Singleton {
      */
     function fadeOut() {
         return numberComponent.createObject(null, {
-            duration: Config.motion.duration.short4,
+            duration: Tokens.motion.duration.short4,
             easing: easingEmphasizedAccelerate()
         })
     }
@@ -136,7 +136,7 @@ Singleton {
      */
     function stateLayer() {
         return numberComponent.createObject(null, {
-            duration: Config.motion.duration.short3,
+            duration: Tokens.motion.duration.short3,
             easing: easingStandard()
         })
     }
@@ -147,29 +147,29 @@ Singleton {
 
     function easingStandard() {
         return {
-            type: Config.motion.easing.standard,
-            bezierCurve: Config.motion.easing.standardPoints
+            type: Tokens.motion.easing.standard,
+            bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
     function easingEmphasized() {
         return {
-            type: Config.motion.easing.emphasized,
-            bezierCurve: Config.motion.easing.emphasizedPoints
+            type: Tokens.motion.easing.emphasized,
+            bezierCurve: Tokens.motion.easing.emphasizedPoints
         }
     }
 
     function easingEmphasizedDecelerate() {
         return {
-            type: Config.motion.easing.emphasizedDecelerate,
-            bezierCurve: Config.motion.easing.emphasizedDeceleratePoints
+            type: Tokens.motion.easing.emphasizedDecelerate,
+            bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
     }
 
     function easingEmphasizedAccelerate() {
         return {
-            type: Config.motion.easing.emphasizedAccelerate,
-            bezierCurve: Config.motion.easing.emphasizedAcceleratePoints
+            type: Tokens.motion.easing.emphasizedAccelerate,
+            bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
         }
     }
 

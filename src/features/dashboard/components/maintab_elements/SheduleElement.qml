@@ -8,12 +8,12 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
         spacing: 4
 
         Repeater {
@@ -21,7 +21,7 @@ MaterialCard {
 
             delegate: ListItem {
                 Layout.fillWidth: true
-                margin: Config.spacing.none
+                margin: Tokens.spacing.none
                 clickable: false
                 showStateLayer: false
                 implicitHeight: 48
@@ -34,10 +34,10 @@ MaterialCard {
                     height: 48
                     radius: 1.5
                     color: {
-                        if (modelData.color === 'primary') return Config.colors.primary
-                        if (modelData.color === 'secondary') return Config.colors.secondary
-                        if (modelData.color === 'tertiary') return Config.colors.tertiary
-                        return Config.colors.primary
+                        if (modelData.color === 'primary') return Theme.primary
+                        if (modelData.color === 'secondary') return Theme.secondary
+                        if (modelData.color === 'tertiary') return Theme.tertiary
+                        return Theme.primary
                     }
                 }
             }

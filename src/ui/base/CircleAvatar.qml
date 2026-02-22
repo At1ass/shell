@@ -17,8 +17,8 @@ Rectangle {
     property string fallbackIcon: ""
 
     // Colors
-    property color backgroundColor: Config.colors.primaryContainer
-    property color foregroundColor: Config.colors.onPrimaryContainer
+    property color backgroundColor: Theme.primaryContainer
+    property color foregroundColor: Theme.onPrimaryContainer
 
     // Radius control
     property int customRadius: -1  // -1 = auto (circle), >= 0 = custom radius

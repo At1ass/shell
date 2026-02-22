@@ -8,13 +8,13 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.small
-        spacing: Config.spacing.extraSmall
+        anchors.margins: Tokens.spacing.small
+        spacing: Tokens.spacing.extraSmall
 
         GridLayout {
             Layout.fillWidth: true
@@ -92,7 +92,7 @@ MaterialCard {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    radius: Config.shape.small
+                    radius: Tokens.shape.small
 
                     // Evaluate function or use value directly
                     readonly property bool isActive: typeof modelData.active === "function" ?
@@ -102,26 +102,26 @@ MaterialCard {
                     readonly property string tooltipText: typeof modelData.tooltip === "function" ?
                                                          modelData.tooltip() : (modelData.tooltip || "")
 
-                    color: isActive ? Config.colors.primaryContainer : Config.colors.surfaceContainerHighest
+                    color: isActive ? Theme.primaryContainer : Theme.surfaceContainerHighest
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                     }
 
                     MaterialIcon {
                         anchors.centerIn: parent
                         iconName: parent.iconName
-                        iconColor: parent.isActive ? Config.colors.onPrimaryContainer : Config.colors.onSurfaceVariant
-                        fontSize: Config.typography.titleMedium.size
+                        iconColor: parent.isActive ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                        fontSize: Tokens.typography.titleMedium.size
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                         }
                     }
 
                     StateLayer {
-                        layerColor: parent.isActive ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        layerColor: parent.isActive ? Theme.onPrimaryContainer : Theme.onSurface
                         hovered: actionMouseArea.containsMouse
                         pressed: actionMouseArea.pressed
                     }

@@ -16,14 +16,14 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
 
         // ===== ROW 1: WEATHER & SYSTEM MONITORING =====
         // RowLayout {
         //     Layout.fillWidth: true
         //     Layout.preferredHeight: 140
-        //     spacing: Config.spacing.medium
+        //     spacing: Tokens.spacing.medium
         //
         //     // Weather (detailed)
         //     WeatherElement {
@@ -42,43 +42,43 @@ Item {
         // Выбор устройств
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.medium
+            spacing: Tokens.spacing.medium
 
             // Устройство вывода
             MaterialCard {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 84
-                color: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                color: sinkMouseArea.containsMouse ? Theme.secondaryContainer : Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
                 Behavior on color {
-                    ColorAnimation { duration: Config.motion.duration.short4 }
+                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                     Rectangle {
                         width: 40
                         height: 40
                         radius: 20
-                        color: sinkMouseArea.containsMouse ? Config.colors.onSecondaryContainer : Config.colors.primaryContainer
+                        color: sinkMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.primaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                         }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             iconName: "volume_up"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: sinkMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.onPrimaryContainer
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: sinkMouseArea.containsMouse ? Theme.secondaryContainer : Theme.onPrimaryContainer
                             backgroundColor: "transparent"
 
                             Behavior on iconColor {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
                         }
                     }
@@ -105,8 +105,8 @@ Item {
 
                     MaterialIcon {
                         iconName: "chevron_right"
-                        fontSize: Config.typography.headlineSmall.size
-                        iconColor: Config.colors.onSurfaceVariant
+                        fontSize: Tokens.typography.headlineSmall.size
+                        iconColor: Theme.onSurfaceVariant
                         backgroundColor: "transparent"
                     }
                 }
@@ -126,37 +126,37 @@ Item {
             MaterialCard {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 84
-                color: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.surfaceContainerHigh
-                radius: Config.shape.large
+                color: sourceMouseArea.containsMouse ? Theme.secondaryContainer : Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
                 Behavior on color {
-                    ColorAnimation { duration: Config.motion.duration.short4 }
+                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                     Rectangle {
                         width: 40
                         height: 40
                         radius: 20
-                        color: sourceMouseArea.containsMouse ? Config.colors.onSecondaryContainer : Config.colors.tertiaryContainer
+                        color: sourceMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.tertiaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.motion.duration.short4 }
+                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                         }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             iconName: "mic"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: sourceMouseArea.containsMouse ? Config.colors.secondaryContainer : Config.colors.onTertiaryContainer
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: sourceMouseArea.containsMouse ? Theme.secondaryContainer : Theme.onTertiaryContainer
                             backgroundColor: "transparent"
 
                             Behavior on iconColor {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
                         }
                     }
@@ -183,8 +183,8 @@ Item {
 
                     MaterialIcon {
                         iconName: "chevron_right"
-                        fontSize: Config.typography.headlineSmall.size
-                        iconColor: Config.colors.onSurfaceVariant
+                        fontSize: Tokens.typography.headlineSmall.size
+                        iconColor: Theme.onSurfaceVariant
                         backgroundColor: "transparent"
                     }
                 }
@@ -205,13 +205,13 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.medium
-                spacing: Config.spacing.small
+                anchors.margins: Tokens.spacing.medium
+                spacing: Tokens.spacing.small
 
                 SectionHeader {
                     Layout.fillWidth: true
@@ -223,7 +223,7 @@ Item {
                 ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: Config.spacing.small
+                    spacing: Tokens.spacing.small
 
                     Repeater {
                         model: ScriptModel {
@@ -237,8 +237,8 @@ Item {
 
                             Layout.fillWidth: true
                             Layout.preferredHeight: 90
-                            color: Config.colors.surfaceContainer
-                            radius: Config.shape.medium
+                            color: Theme.surfaceContainer
+                            radius: Tokens.shape.medium
 
                             data: [
                                 PwObjectTracker {
@@ -248,8 +248,8 @@ Item {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: Config.spacing.small
-                                spacing: Config.spacing.small
+                                anchors.margins: Tokens.spacing.small
+                                spacing: Tokens.spacing.small
 
                                 CircleAvatar {
                                     size: "medium"
@@ -305,25 +305,25 @@ Item {
                                     height: 40
                                     radius: 20
                                     color: (stream && stream.audio && stream.audio.muted) ?
-                                           Config.colors.errorContainer :
-                                           (muteMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent")
+                                           Theme.errorContainer :
+                                           (muteMouseArea.containsMouse ? Theme.surfaceContainerHighest : "transparent")
 
                                     Behavior on color {
-                                        ColorAnimation { duration: Config.motion.duration.short4 }
+                                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                                     }
 
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
-                                        // fontSize: Config.typography.titleMedium.size
-                                        fontSize: Config.typography.headlineSmall.size
+                                        // fontSize: Tokens.typography.titleMedium.size
+                                        fontSize: Tokens.typography.headlineSmall.size
                                         iconColor: (stream && stream.audio && stream.audio.muted) ?
-                                                  Config.colors.onErrorContainer :
-                                                  Config.colors.onSurfaceVariant
+                                                  Theme.onErrorContainer :
+                                                  Theme.onSurfaceVariant
                                         backgroundColor: "transparent"
 
                                         Behavior on iconColor {
-                                            ColorAnimation { duration: Config.motion.duration.short4 }
+                                            ColorAnimation { duration: Tokens.motion.duration.short4 }
                                         }
                                     }
 

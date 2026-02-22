@@ -5,18 +5,18 @@ QtObject {
     id: root
 
     property real value: 0
-    property string duration: "medium2"     // duration token from Config.motion.duration
-    property string easing: "standard"     // easing token from Config.motion.easing
+    property string duration: "medium2"     // duration token from Tokens.motion.duration
+    property string easing: "standard"     // easing token from Tokens.motion.easing
     property bool enabled: true
 
     // Получение длительности из токенов
     readonly property int actualDuration: {
-        return Config.motion.duration[duration] || Config.motion.duration.medium2
+        return Tokens.motion.duration[duration] || Tokens.motion.duration.medium2
     }
 
     // Получение easing из токенов
     readonly property int actualEasing: {
-        return Config.motion.easing[easing] || Config.motion.easing.standard
+        return Tokens.motion.easing[easing] || Tokens.motion.easing.standard
     }
 
     // Behavior для анимации значения
@@ -55,10 +55,10 @@ QtObject {
 
     // Валидация токенов
     Component.onCompleted: {
-        if (!Config.motion.duration[duration]) {
+        if (!Tokens.motion.duration[duration]) {
             console.warn(`AnimatedProperty: неизвестный duration "${duration}", используется medium2`)
         }
-        if (!Config.motion.easing[easing]) {
+        if (!Tokens.motion.easing[easing]) {
             console.warn(`AnimatedProperty: неизвестный easing "${easing}", используется standard`)
         }
     }

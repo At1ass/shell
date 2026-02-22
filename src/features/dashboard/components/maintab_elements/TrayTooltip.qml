@@ -40,11 +40,11 @@ Item {
         id: tooltipRect
         visible: root.sourceItem !== null && root.tooltipText !== ""
 
-        color: Config.colors.inverseSurface
-        radius: Config.shape.extraSmall
+        color: Theme.inverseSurface
+        radius: Tokens.shape.extraSmall
 
-        implicitWidth: tooltipTextItem.implicitWidth + Config.spacing.small * 2
-        implicitHeight: tooltipTextItem.implicitHeight + Config.spacing.extraSmall * 2
+        implicitWidth: tooltipTextItem.implicitWidth + Tokens.spacing.small * 2
+        implicitHeight: tooltipTextItem.implicitHeight + Tokens.spacing.extraSmall * 2
 
         opacity: 0
 
@@ -61,11 +61,11 @@ Item {
             if (!root.sourceItem) return 0
 
             const globalPos = root.sourceItem.mapToItem(root, 0, 0)
-            return globalPos.y - tooltipRect.height - Config.spacing.extraSmall
+            return globalPos.y - tooltipRect.height - Tokens.spacing.extraSmall
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: Config.motion.duration.short4 }
+            NumberAnimation { duration: Tokens.motion.duration.short4 }
         }
 
         MaterialText {

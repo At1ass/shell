@@ -19,12 +19,12 @@ Rectangle {
     implicitWidth: 336
     readonly property real nonAnimHeight: column.implicitHeight + 24
     implicitHeight: nonAnimHeight
-    radius: Config.shape.extraSmall  // MD3: 4dp
+    radius: Tokens.shape.extraSmall  // MD3: 4dp
 
     // MD3: errorContainer for critical, surfaceContainerHighest for normal
     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-           ? Config.colors.errorContainer
-           : Config.colors.surfaceContainerHighest
+           ? Theme.errorContainer
+           : Theme.surfaceContainerHighest
 
     // Start off-screen right, slide in on completion
     x: implicitWidth
@@ -33,17 +33,17 @@ Rectangle {
     // Behavior анимирует ИЗМЕНЕНИЕ свойств, не создание компонента
     Behavior on x {
         NumberAnimation {
-            duration: Config.motion.duration.medium2  // 300ms
-            easing.type: Config.motion.easing.standard
-            easing.bezierCurve: Config.motion.easing.standardPoints
+            duration: Tokens.motion.duration.medium2  // 300ms
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
     Behavior on opacity {
         NumberAnimation {
-            duration: Config.motion.duration.medium2
-            easing.type: Config.motion.easing.standard
-            easing.bezierCurve: Config.motion.easing.standardPoints
+            duration: Tokens.motion.duration.medium2
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
@@ -99,8 +99,8 @@ Rectangle {
                     visible: text.length > 0
                     font.bold: true
                     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                           ? Config.colors.onErrorContainer
-                           : Config.colors.onSurface
+                           ? Theme.onErrorContainer
+                           : Theme.onSurface
                     font.pixelSize: 12
                 }
 
@@ -109,8 +109,8 @@ Rectangle {
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                           ? Config.colors.onErrorContainer
-                           : Config.colors.onSurface
+                           ? Theme.onErrorContainer
+                           : Theme.onSurface
                     font.pixelSize: 14
                 }
             }
@@ -133,15 +133,15 @@ Rectangle {
                         anchors.fill: parent
                         radius: parent.radius
                         color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? Config.colors.onErrorContainer
-                               : Config.colors.onSurface
-                        opacity: closeMouseArea.pressed ? Config.stateLayer.pressedOpacity :
-                                 closeMouseArea.containsMouse ? Config.stateLayer.hoverOpacity : 0.0
+                               ? Theme.onErrorContainer
+                               : Theme.onSurface
+                        opacity: closeMouseArea.pressed ? Tokens.stateLayer.pressedOpacity :
+                                 closeMouseArea.containsMouse ? Tokens.stateLayer.hoverOpacity : 0.0
 
                         Behavior on opacity {
                             NumberAnimation {
-                                duration: Config.motion.duration.short4
-                                easing.type: Config.motion.easing.standard
+                                duration: Tokens.motion.duration.short4
+                                easing.type: Tokens.motion.easing.standard
                             }
                         }
                     }
@@ -151,8 +151,8 @@ Rectangle {
                         text: "×"
                         font.pixelSize: 20
                         color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? Config.colors.onErrorContainer
-                               : Config.colors.onSurfaceVariant
+                               ? Theme.onErrorContainer
+                               : Theme.onSurfaceVariant
                     }
                 }
 
@@ -176,8 +176,8 @@ Rectangle {
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                   ? Config.colors.onErrorContainer
-                   : Config.colors.onSurfaceVariant
+                   ? Theme.onErrorContainer
+                   : Theme.onSurfaceVariant
             font.pixelSize: 12
         }
 
@@ -202,7 +202,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 2
-        color: Config.colors.surfaceContainerHighest
+        color: Theme.surfaceContainerHighest
         opacity: 0.6
 
         Rectangle {
@@ -210,12 +210,12 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
             width: parent.width * Math.max(0, Math.min(1, root.progressValue))
-            color: Config.colors.primary
+            color: Theme.primary
 
             Behavior on width {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
         }

@@ -11,13 +11,13 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.small
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.small
 
         // === Header: Location + Date + Sunrise/Sunset ===
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.medium
+            spacing: Tokens.spacing.medium
 
             // Left: Location + Date
             ColumnLayout {
@@ -41,16 +41,16 @@ Item {
 
             // Right: Sunrise/Sunset
             RowLayout {
-                spacing: Config.spacing.large
+                spacing: Tokens.spacing.large
 
                 // Sunrise
                 RowLayout {
-                    spacing: Config.spacing.extraSmall
+                    spacing: Tokens.spacing.extraSmall
 
                     MaterialIcon {
                         iconName: "wb_twilight"
-                        fontSize: Config.typography.titleLarge.size
-                        iconColor: Config.colors.tertiary
+                        fontSize: Tokens.typography.titleLarge.size
+                        iconColor: Theme.tertiary
                         backgroundColor: "transparent"
                     }
 
@@ -80,12 +80,12 @@ Item {
 
                 // Sunset
                 RowLayout {
-                    spacing: Config.spacing.extraSmall
+                    spacing: Tokens.spacing.extraSmall
 
                     MaterialIcon {
                         iconName: "bedtime"
-                        fontSize: Config.typography.titleLarge.size
-                        iconColor: Config.colors.tertiary
+                        fontSize: Tokens.typography.titleLarge.size
+                        iconColor: Theme.tertiary
                         backgroundColor: "transparent"
                     }
 
@@ -119,18 +119,18 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.preferredHeight: 140
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             RowLayout {
                 anchors.centerIn: parent
-                spacing: Config.spacing.large
+                spacing: Tokens.spacing.large
 
                 // Weather icon (big)
                 MaterialIcon {
                     iconName: Weather.icon
                     fontSize: 100
-                    iconColor: Config.colors.secondary
+                    iconColor: Theme.secondary
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignVCenter
                 }
@@ -165,7 +165,7 @@ Item {
                         text: Weather.weatherDesc
                         textStyle: "titleLarge"
                         colorRole: "onSurfaceVariant"
-                        Layout.leftMargin: Config.spacing.extraSmall
+                        Layout.leftMargin: Tokens.spacing.extraSmall
                     }
                 }
             }
@@ -174,7 +174,7 @@ Item {
         // === Details Cards Row ===
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.small
+            spacing: Tokens.spacing.small
 
             // Humidity
             DetailCard {
@@ -182,7 +182,7 @@ Item {
                 iconName: "water_drop"
                 label: "Humidity"
                 value: Weather.humidity + "%"
-                iconColor: Config.colors.secondary
+                iconColor: Theme.secondary
             }
 
             // Feels Like
@@ -191,7 +191,7 @@ Item {
                 iconName: "thermostat"
                 label: "Feels Like"
                 value: Math.round(Weather.feelsLikeC) + "°C"
-                iconColor: Config.colors.primary
+                iconColor: Theme.primary
             }
 
             // Wind
@@ -200,7 +200,7 @@ Item {
                 iconName: "air"
                 label: "Wind"
                 value: Math.round(Weather.windSpeed) + " km/h"
-                iconColor: Config.colors.tertiary
+                iconColor: Theme.tertiary
             }
 
             // Pressure
@@ -209,7 +209,7 @@ Item {
                 iconName: "compress"
                 label: "Pressure"
                 value: Math.round(Weather.pressure) + " hPa"
-                iconColor: Config.colors.secondary
+                iconColor: Theme.secondary
             }
         }
 
@@ -220,8 +220,8 @@ Item {
             textStyle: "titleMedium"
             colorRole: "onSurface"
             font.weight: Font.Bold
-            Layout.topMargin: Config.spacing.small
-            Layout.leftMargin: Config.spacing.extraSmall
+            Layout.topMargin: Tokens.spacing.small
+            Layout.leftMargin: Tokens.spacing.extraSmall
             visible: Weather.dailyTime.length > 0
         }
 
@@ -229,7 +229,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Config.spacing.small
+            spacing: Tokens.spacing.small
 
             Repeater {
                 model: Math.min(Weather.dailyTime.length, 7)
@@ -257,19 +257,19 @@ Item {
         MaterialCard {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
-            color: Config.colors.errorContainer
-            radius: Config.shape.large
+            color: Theme.errorContainer
+            radius: Tokens.shape.large
             visible: Weather.errorString !== ""
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.medium
-                spacing: Config.spacing.medium
+                anchors.margins: Tokens.spacing.medium
+                spacing: Tokens.spacing.medium
 
                 MaterialIcon {
                     iconName: "error"
-                    fontSize: Config.typography.headlineMedium.size
-                    iconColor: Config.colors.onErrorContainer
+                    fontSize: Tokens.typography.headlineMedium.size
+                    iconColor: Theme.onErrorContainer
                     backgroundColor: "transparent"
                 }
 

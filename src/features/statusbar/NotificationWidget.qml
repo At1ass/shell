@@ -33,7 +33,7 @@ BarElement {
     }
 
     RowLayout {
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         Item {
             width: 24
@@ -42,9 +42,9 @@ BarElement {
             MaterialIcon {
                 anchors.centerIn: parent
                 iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
-                fontSize: Config.typography.titleLarge.size
-                iconColor: NotificationService.doNotDisturb ? Config.colors.tertiary :
-                          (root.hovered ? Config.colors.primary : Config.colors.onSurface)
+                fontSize: Tokens.typography.titleLarge.size
+                iconColor: NotificationService.doNotDisturb ? Theme.tertiary :
+                          (root.hovered ? Theme.primary : Theme.onSurface)
                 backgroundColor: "transparent"
             }
 

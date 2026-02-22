@@ -8,8 +8,8 @@ Rectangle {
 
     property string text: ""
     property bool showDot: false  // Small dot badge without text
-    property color badgeColor: Config.colors.error
-    property color textColor: Config.colors.onError
+    property color badgeColor: Theme.error
+    property color textColor: Theme.onError
 
     // Positioning relative to parent
     property int offsetX: -4

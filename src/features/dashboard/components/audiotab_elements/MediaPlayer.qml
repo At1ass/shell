@@ -12,7 +12,7 @@ import qs.src.core.services
 
 MaterialCard {
     id: root
-    color: Config.colors.surfaceContainerHigh
+    color: Theme.surfaceContainerHigh
     radius: 0  // без скругления
     // Layout.preferredHeight: 350
 
@@ -23,7 +23,7 @@ MaterialCard {
     EmptyState {
         visible: !MprisController.activePlayer
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
 
         iconName: "music_note"
         title: "No media playing"
@@ -69,7 +69,7 @@ MaterialCard {
             // Overlay to dim background
             Rectangle {
                 anchors.fill: parent
-                color: Config.colors.surfaceContainerHigh
+                color: Theme.surfaceContainerHigh
                 opacity: 0.85
             }
         }
@@ -77,8 +77,8 @@ MaterialCard {
         // ===== MAIN CONTENT =====
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Config.spacing.large
-            spacing: Config.spacing.medium
+            anchors.margins: Tokens.spacing.large
+            spacing: Tokens.spacing.medium
 
             // ===== ALBUM ART (optional, smaller) =====
             RowLayout {
@@ -124,7 +124,7 @@ MaterialCard {
                         Rectangle {
                             width: 200
                             height: 200
-                            radius: Config.shape.medium
+                            radius: Tokens.shape.medium
                             color: "white"
                         }
                     }
@@ -132,10 +132,10 @@ MaterialCard {
                     // Border поверх
                     Rectangle {
                         anchors.fill: parent
-                        radius: Config.shape.medium
+                        radius: Tokens.shape.medium
                         color: "transparent"
                         border.width: 1
-                        border.color: Config.colors.outlineVariant
+                        border.color: Theme.outlineVariant
                     }
                     MouseArea {
                         id: sourceMouseArea
@@ -179,7 +179,7 @@ MaterialCard {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
 
                 // Interactive slider
                 MaterialSlider {
@@ -198,7 +198,7 @@ MaterialCard {
                 // Time labels
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Config.spacing.extraSmall
+                    spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
                         text: formatTime(MprisController.position)
@@ -227,12 +227,12 @@ MaterialCard {
                     width: 40
                     height: 40
                     radius: 20
-                    color: MprisController.shuffle ? Config.colors.primaryContainer : "transparent"
+                    color: MprisController.shuffle ? Theme.primaryContainer : "transparent"
                     opacity: MprisController.shuffleSupported ? 1.0 : 0.38
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: Config.motion.duration.short4
+                            duration: Tokens.motion.duration.short4
                         }
                     }
 
@@ -240,18 +240,18 @@ MaterialCard {
                         anchors.centerIn: parent
                         iconName: "shuffle"
                         fontSize: 20
-                        iconColor: MprisController.shuffle ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        iconColor: MprisController.shuffle ? Theme.onPrimaryContainer : Theme.onSurface
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
                             ColorAnimation {
-                                duration: Config.motion.duration.short4
+                                duration: Tokens.motion.duration.short4
                             }
                         }
                     }
 
                     StateLayer {
-                        layerColor: MprisController.shuffle ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        layerColor: MprisController.shuffle ? Theme.onPrimaryContainer : Theme.onSurface
                         hovered: shuffleMouseArea.containsMouse
                         pressed: shuffleMouseArea.pressed
                     }
@@ -278,12 +278,12 @@ MaterialCard {
                         anchors.centerIn: parent
                         iconName: "skip_previous"
                         fontSize: 28
-                        iconColor: Config.colors.onSurface
+                        iconColor: Theme.onSurface
                         backgroundColor: "transparent"
                     }
 
                     StateLayer {
-                        layerColor: Config.colors.onSurface
+                        layerColor: Theme.onSurface
                         hovered: prevMouseArea.containsMouse
                         pressed: prevMouseArea.pressed
                     }
@@ -303,13 +303,13 @@ MaterialCard {
                     width: 56
                     height: 56
                     radius: 28
-                    color: Config.colors.primaryContainer
+                    color: Theme.primaryContainer
 
                     // M3 FAB elevation через surface tint (вместо DropShadow)
                     Rectangle {
                         anchors.fill: parent
                         radius: parent.radius
-                        color: Config.colors.primary
+                        color: Theme.primary
                         opacity: 0.08  // elevation level 1
                     }
 
@@ -317,12 +317,12 @@ MaterialCard {
                         anchors.centerIn: parent
                         iconName: MprisController.isPlaying ? "pause" : "play_arrow"
                         fontSize: 32
-                        iconColor: Config.colors.onPrimaryContainer
+                        iconColor: Theme.onPrimaryContainer
                         backgroundColor: "transparent"
                     }
 
                     StateLayer {
-                        layerColor: Config.colors.onPrimaryContainer
+                        layerColor: Theme.onPrimaryContainer
                         hovered: playMouseArea.containsMouse
                         pressed: playMouseArea.pressed
                     }
@@ -349,12 +349,12 @@ MaterialCard {
                         anchors.centerIn: parent
                         iconName: "skip_next"
                         fontSize: 28
-                        iconColor: Config.colors.onSurface
+                        iconColor: Theme.onSurface
                         backgroundColor: "transparent"
                     }
 
                     StateLayer {
-                        layerColor: Config.colors.onSurface
+                        layerColor: Theme.onSurface
                         hovered: nextMouseArea.containsMouse
                         pressed: nextMouseArea.pressed
                     }
@@ -374,12 +374,12 @@ MaterialCard {
                     width: 40
                     height: 40
                     radius: 20
-                    color: MprisController.loopState !== MprisLoopState.None ? Config.colors.primaryContainer : "transparent"
+                    color: MprisController.loopState !== MprisLoopState.None ? Theme.primaryContainer : "transparent"
                     opacity: MprisController.loopSupported ? 1.0 : 0.38
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: Config.motion.duration.short4
+                            duration: Tokens.motion.duration.short4
                         }
                     }
 
@@ -393,18 +393,18 @@ MaterialCard {
                             return "repeat";
                         }
                         fontSize: 20
-                        iconColor: MprisController.loopState !== MprisLoopState.None ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        iconColor: MprisController.loopState !== MprisLoopState.None ? Theme.onPrimaryContainer : Theme.onSurface
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
                             ColorAnimation {
-                                duration: Config.motion.duration.short4
+                                duration: Tokens.motion.duration.short4
                             }
                         }
                     }
 
                     StateLayer {
-                        layerColor: MprisController.loopState !== MprisLoopState.None ? Config.colors.onPrimaryContainer : Config.colors.onSurface
+                        layerColor: MprisController.loopState !== MprisLoopState.None ? Theme.onPrimaryContainer : Theme.onSurface
                         hovered: loopMouseArea.containsMouse
                         pressed: loopMouseArea.pressed
                     }
@@ -435,29 +435,29 @@ MaterialCard {
             anchors.top: parent.top
             // anchors.right: parent.right
             anchors.left: parent.left
-            anchors.margins: Config.spacing.large
-            anchors.topMargin: Config.spacing.large + 40
+            anchors.margins: Tokens.spacing.large
+            anchors.topMargin: Tokens.spacing.large + 40
             width: 200
             height: Math.min(sourceMenuContent.implicitHeight, 300)
-            radius: Config.shape.medium
-            color: Config.colors.surfaceContainerHigh
+            radius: Tokens.shape.medium
+            color: Theme.surfaceContainerHigh
 
             // M3 elevation через border + surface tint (вместо DropShadow)
             border.width: 1
-            border.color: Config.colors.outlineVariant
+            border.color: Theme.outlineVariant
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: parent.radius - 1
-                color: Config.colors.primary
+                color: Theme.primary
                 opacity: 0.05
             }
 
             ColumnLayout {
                 id: sourceMenuContent
                 anchors.fill: parent
-                anchors.margins: Config.spacing.extraSmall
+                anchors.margins: Tokens.spacing.extraSmall
                 spacing: 0
 
                 Repeater {
@@ -471,24 +471,24 @@ MaterialCard {
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 48
-                        radius: Config.shape.extraSmall
-                        color: isActive ? Config.colors.secondaryContainer : (playerMouseArea.containsMouse ? Config.colors.surfaceContainerHighest : "transparent")
+                        radius: Tokens.shape.extraSmall
+                        color: isActive ? Theme.secondaryContainer : (playerMouseArea.containsMouse ? Theme.surfaceContainerHighest : "transparent")
 
                         Behavior on color {
                             ColorAnimation {
-                                duration: Config.motion.duration.short4
+                                duration: Tokens.motion.duration.short4
                             }
                         }
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Config.spacing.small
-                            spacing: Config.spacing.small
+                            anchors.margins: Tokens.spacing.small
+                            spacing: Tokens.spacing.small
 
                             MaterialIcon {
                                 iconName: player.isPlaying ? "play_circle" : "music_note"
                                 fontSize: 24
-                                iconColor: isActive ? Config.colors.onSecondaryContainer : Config.colors.onSurfaceVariant
+                                iconColor: isActive ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
                                 backgroundColor: "transparent"
                             }
 
@@ -503,7 +503,7 @@ MaterialCard {
                             MaterialIcon {
                                 iconName: "check"
                                 fontSize: 20
-                                iconColor: Config.colors.primary
+                                iconColor: Theme.primary
                                 backgroundColor: "transparent"
                                 visible: isActive
                             }

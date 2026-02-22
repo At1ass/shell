@@ -8,7 +8,7 @@ Rectangle {
 
     // Properties
     property Item target: parent
-    property color layerColor: Config.colors.onSurface
+    property color layerColor: Theme.onSurface
     property bool hovered: false
     property bool pressed: false
     property bool focused: false
@@ -21,18 +21,18 @@ Rectangle {
     // Color and opacity
     color: layerColor
     opacity: {
-        if (dragged) return Config.stateLayer.draggedOpacity
-        if (pressed) return Config.stateLayer.pressedOpacity
-        if (focused) return Config.stateLayer.focusOpacity
-        if (hovered) return Config.stateLayer.hoverOpacity
+        if (dragged) return Tokens.stateLayer.draggedOpacity
+        if (pressed) return Tokens.stateLayer.pressedOpacity
+        if (focused) return Tokens.stateLayer.focusOpacity
+        if (hovered) return Tokens.stateLayer.hoverOpacity
         return 0.0
     }
 
     // MD3 motion
     Behavior on opacity {
         NumberAnimation {
-            duration: Config.motion.duration.short4
-            easing.type: Config.motion.easing.standard
+            duration: Tokens.motion.duration.short4
+            easing.type: Tokens.motion.easing.standard
         }
     }
 }

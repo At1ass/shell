@@ -194,8 +194,8 @@ BarElement {
 
             Behavior on color {
                 ColorAnimation {
-                    duration: Config.motion.duration.short3
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short3
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
         }

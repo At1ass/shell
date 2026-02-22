@@ -139,8 +139,8 @@
   "dashboard": {
     "enabled": true,
     "monitors": "all",
-    "width": 420,
-    "height": 600,
+    "width": 900,
+    "height": 640,
     "defaultTab": "quick",
     "tabs": [
       {
@@ -194,7 +194,7 @@
     "panel": {
       "enabled": true,
       "position": "right",
-      "width": 380,
+      "width": 400,
       "height": 600,
       "maxVisible": 10,
       "groupByApp": true,
@@ -203,8 +203,9 @@
     "popup": {
       "enabled": true,
       "position": "top-right",
-      "timeout": 5000,
-      "maxVisible": 3
+      "width": 360,
+      "timeout": 7000,
+      "maxVisible": 5
     }
   },
 
@@ -212,7 +213,10 @@
     "enabled": true,
     "monitors": "all",
     "fuzzy": false,
-    "maxResults": 7,
+    "maxResults": 10,
+    "width": 600,
+    "listMaxHeight": 400,
+    "topMargin": 56,
     "providers": [
       "applications",
       "calculator",
@@ -236,14 +240,26 @@
   },
 
   "wallpaper": {
-    "current": "",
-    "directory": "~/Pictures/Wallpapers"
+    "primaryMonitor": "",
+    "defaultWallpaper": "",
+    "postSetScript": "",
+    "global": {
+      "directory": "",
+      "randomOrder": true,
+      "autoChange": {
+        "enabled": false,
+        "intervalMs": 300000
+      }
+    },
+    "monitors": {}
   },
 
   "services": {
     "weather": {
       "enabled": true,
       "location": "Penza",
+      "latitude": 53.2,
+      "longitude": 45.0,
       "units": "metric",
       "refreshMinutes": 15
     },

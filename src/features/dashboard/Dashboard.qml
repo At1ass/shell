@@ -11,19 +11,19 @@ import qs.src.ui.base
 Scope {
     id: root
 
-    property int sidebarWidth: 900
-    property int sidebarHight: 640
+    property int sidebarWidth: AppConfig.dashboardWidth
+    property int sidebarHeight: AppConfig.dashboardHeight
 
     PanelWindow {
         id: dashboardWindow
         color: "transparent"
         implicitWidth: root.sidebarWidth
-        implicitHeight: root.sidebarHight
+        implicitHeight: root.sidebarHeight
 
         Behavior on implicitHeight {
             NumberAnimation {
-                duration: Config.motion.duration.medium2
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.medium2
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
         anchors {
@@ -42,7 +42,6 @@ Scope {
             active: dashboardLoader.active && GlobalStates.dashboardOpen
             windows: [dashboardWindow]
             onCleared: () => {
-                console.log("Dashboard: focus lost, closing dashboard")
                 GlobalStates.dashboardOpen = false;
             }
         }
@@ -65,7 +64,7 @@ Scope {
                 implicitHeight: parent.implicitHeight
 
                 Component.onCompleted: {
-                    dashboardWindow.implicitHeight = root.sidebarHight
+                    dashboardWindow.implicitHeight = root.sidebarHeight
                 }
 
                 onRequestHeightChange: (newHeight) => {

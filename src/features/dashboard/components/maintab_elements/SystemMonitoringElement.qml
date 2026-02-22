@@ -7,13 +7,13 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
 
         Repeater {
             model: [
@@ -56,8 +56,8 @@ MaterialCard {
 
                 Behavior on animatedProgress {
                     NumberAnimation {
-                        duration: Config.motion.duration.long2
-                        easing.type: Config.motion.easing.emphasizedDecelerate
+                        duration: Tokens.motion.duration.long2
+                        easing.type: Tokens.motion.easing.emphasizedDecelerate
                     }
                 }
 
@@ -73,7 +73,7 @@ MaterialCard {
                         width: 70
                         height: 70
                         radius: 35
-                        color: Config.colors.surfaceContainerHighest
+                        color: Theme.surfaceContainerHighest
                     }
 
                     // Progress ring
@@ -98,15 +98,15 @@ MaterialCard {
                         property color progressColor: {
                             const percent = progress * 100;
                             if (percent < 50)
-                                return Config.colors.primary;
+                                return Theme.primary;
                             if (percent < 80)
-                                return Config.colors.tertiary;
-                            return Config.colors.error;
+                                return Theme.tertiary;
+                            return Theme.error;
                         }
 
                         Behavior on progressColor {
                             ColorAnimation {
-                                duration: Config.motion.duration.medium2
+                                duration: Tokens.motion.duration.medium2
                             }
                         }
 
@@ -137,10 +137,10 @@ MaterialCard {
                     //     property color progressColor: {
                     //         const percent = parent.parent.animatedProgress * 100
                     //         if (percent < 50)
-                    //             return Config.colors.primary;
+                    //             return Theme.primary;
                     //         if (percent < 80)
-                    //             return Config.colors.tertiary;
-                    //         return Config.colors.error;
+                    //             return Theme.tertiary;
+                    //         return Theme.error;
                     //     }
                     //
                     //     onProgressChanged: requestPaint()
@@ -166,7 +166,7 @@ MaterialCard {
                     //
                     //     Behavior on progressColor {
                     //         ColorAnimation {
-                    //             duration: Config.motion.duration.medium2
+                    //             duration: Tokens.motion.duration.medium2
                     //         }
                     //     }
                     // }
@@ -178,8 +178,8 @@ MaterialCard {
 
                         MaterialIcon {
                             iconName: modelData.icon
-                            fontSize: Config.typography.titleMedium.size
-                            iconColor: Config.colors.primary
+                            fontSize: Tokens.typography.titleMedium.size
+                            iconColor: Theme.primary
                             backgroundColor: "transparent"
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -207,7 +207,7 @@ MaterialCard {
 
                         Behavior on color {
                             ColorAnimation {
-                                duration: Config.motion.duration.medium2
+                                duration: Tokens.motion.duration.medium2
                             }
                         }
 

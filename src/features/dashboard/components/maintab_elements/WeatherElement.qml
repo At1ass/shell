@@ -6,26 +6,26 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     // ColumnLayout {
     // ColumnLayout {
     //     anchors.fill: parent
-    //     anchors.margins: Config.spacing.small
+    //     anchors.margins: Tokens.spacing.small
     //     spacing: 2
     //
         RowLayout {
             anchors.fill: parent
-            anchors.margins: Config.spacing.small
+            anchors.margins: Tokens.spacing.small
             // spacing: 2
-            spacing: Config.spacing.extraSmall
+            spacing: Tokens.spacing.extraSmall
             Layout.alignment: Qt.AlignHCenter
 
                 MaterialIcon {
                     iconName: Weather.icon
-                    fontSize: Config.typography.displayMedium.size
-                    iconColor: Config.colors.primary
+                    fontSize: Tokens.typography.displayMedium.size
+                    iconColor: Theme.primary
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
                 }

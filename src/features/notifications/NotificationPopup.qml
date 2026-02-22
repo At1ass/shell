@@ -41,8 +41,8 @@ Variants {
         }
 
         margins {
-            top: 48
-            right: 16
+            top: AppConfig.barHeight
+            right: AppConfig.barMargin
         }
 
         WlrLayershell.layer: WlrLayer.Overlay
@@ -54,7 +54,7 @@ Variants {
             item: notificationListView.contentItem
         }
 
-        implicitWidth: 360
+        implicitWidth: AppConfig.notificationPopupWidth
 
         ListView {
             id: notificationListView
@@ -67,17 +67,17 @@ Variants {
             move: Transition {
                 NumberAnimation {
                     property: "y"
-                    duration: Config.motion.duration.short3
-                    easing.type: Config.motion.easing.standard
-                    easing.bezierCurve: Config.motion.easing.standardPoints
+                    duration: Tokens.motion.duration.short3
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
             displaced: Transition {
                 NumberAnimation {
                     property: "y"
-                    duration: Config.motion.duration.short3
-                    easing.type: Config.motion.easing.standard
-                    easing.bezierCurve: Config.motion.easing.standardPoints
+                    duration: Tokens.motion.duration.short3
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -152,18 +152,18 @@ Variants {
                         target: notifItem
                         property: "x"
                         to: notifItem.implicitWidth
-                        duration: Config.motion.duration.short3
-                        easing.type: Config.motion.easing.standard
-                        easing.bezierCurve: Config.motion.easing.standardPoints
+                        duration: Tokens.motion.duration.short3
+                        easing.type: Tokens.motion.easing.standard
+                        easing.bezierCurve: Tokens.motion.easing.standardPoints
                     }
                     // Collapse height smoothly so neighbours don't jump
                     NumberAnimation {
                         target: wrapper
                         property: "implicitHeight"
                         to: 0
-                        duration: Config.motion.duration.short3
-                        easing.type: Config.motion.easing.standard
-                        easing.bezierCurve: Config.motion.easing.standardPoints
+                        duration: Tokens.motion.duration.short3
+                        easing.type: Tokens.motion.easing.standard
+                        easing.bezierCurve: Tokens.motion.easing.standardPoints
                     }
                     PropertyAction {
                         target: wrapper
@@ -178,7 +178,7 @@ Variants {
                     id: notifItem
                     notificationObject: entry
                     animatePopupExit: false
-                    width: 360
+                    width: AppConfig.notificationPopupWidth
                     anchors.top: parent.top
                 }
             }

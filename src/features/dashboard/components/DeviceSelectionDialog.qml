@@ -8,7 +8,7 @@ import qs.src.core.config
 
 Dialog {
     id: root
-    dialogWidth: Math.min(500, parent.width - Config.spacing.large * 2)
+    dialogWidth: Math.min(500, parent.width - Tokens.spacing.large * 2)
 
     property var devices: []  // Array of device nodes
     property var selectedDevice: null
@@ -31,18 +31,18 @@ Dialog {
     ColumnLayout {
         id: contentLayout
         anchors.fill: parent
-        anchors.margins: Config.spacing.large
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.large
+        spacing: Tokens.spacing.medium
 
             // Header
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Config.spacing.medium
+                spacing: Tokens.spacing.medium
 
                 MaterialIcon {
                     iconName: root.deviceType === "output" ? "volume_up" : "mic"
-                    fontSize: Config.typography.headlineMedium.size
-                    iconColor: Config.colors.primary
+                    fontSize: Tokens.typography.headlineMedium.size
+                    iconColor: Theme.primary
                     backgroundColor: "transparent"
                 }
 
@@ -58,7 +58,7 @@ Dialog {
             ScrollableList {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
 
                 Repeater {
                         model: root.devices
@@ -69,18 +69,18 @@ Dialog {
 
                             Layout.fillWidth: true
                             height: 64
-                            radius: Config.shape.medium
-                            color: deviceMouseArea.containsMouse ? Config.colors.surfaceContainerHighest :
-                                   device.id === root.selectedDevice?.id ? Config.colors.secondaryContainer : "transparent"
+                            radius: Tokens.shape.medium
+                            color: deviceMouseArea.containsMouse ? Theme.surfaceContainerHighest :
+                                   device.id === root.selectedDevice?.id ? Theme.secondaryContainer : "transparent"
 
                             Behavior on color {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: Config.spacing.medium
-                                spacing: Config.spacing.medium
+                                anchors.margins: Tokens.spacing.medium
+                                spacing: Tokens.spacing.medium
 
                                 // Radio indicator
                                 Rectangle {
@@ -89,19 +89,19 @@ Dialog {
                                     radius: 10
                                     color: "transparent"
                                     border.width: 2
-                                    border.color: device.id === root.selectedDevice?.id ? Config.colors.primary : Config.colors.outline
+                                    border.color: device.id === root.selectedDevice?.id ? Theme.primary : Theme.outline
 
                                     Rectangle {
                                         anchors.centerIn: parent
                                         width: 10
                                         height: 10
                                         radius: 5
-                                        color: Config.colors.primary
+                                        color: Theme.primary
                                         visible: device.id === root.selectedDevice?.id
                                     }
 
                                     Behavior on border.color {
-                                        ColorAnimation { duration: Config.motion.duration.short4 }
+                                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                                     }
                                 }
 
@@ -129,8 +129,8 @@ Dialog {
                                 MaterialIcon {
                                     visible: device.id === root.selectedDevice?.id
                                     iconName: "check"
-                                    fontSize: Config.typography.titleMedium.size
-                                    iconColor: Config.colors.primary
+                                    fontSize: Tokens.typography.titleMedium.size
+                                    iconColor: Theme.primary
                                     backgroundColor: "transparent"
                                 }
                             }

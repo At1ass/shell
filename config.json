@@ -1,0 +1,289 @@
+{
+  "version": 1,
+
+  "appearance": {
+    "theme": {
+      "source": "wallpaper",
+      "variant": "vibrant",
+      "darkMode": true
+    },
+    "spacing": {
+      "scale": 1.0
+    },
+    "rounding": {
+      "scale": 1.0
+    },
+    "animations": {
+      "enabled": true,
+      "durationScale": 1.0
+    },
+    "colors": {
+      "transparency": {
+        "enabled": true,
+        "default": 0.85,
+        "cards": 0.80,
+        "dialogs": 0.90
+      }
+    }
+  },
+
+  "bar": {
+    "enabled": true,
+    "monitors": "all",
+    "position": "top",
+    "height": 48,
+    "margin": 16,
+    "transparent": false,
+    "widgets": [
+      {
+        "type": "workspaces",
+        "enabled": true,
+        "section": "left",
+        "monitors": "all",
+        "settings": {
+          "count": 9,
+          "showWindows": true,
+          "activeIndicator": "pill"
+        }
+      },
+      {
+        "type": "weather",
+        "enabled": true,
+        "section": "left",
+        "clickAction": "dashboard-weather",
+        "monitors": "DP-1",
+        "settings": {
+          "showIcon": true,
+          "showTemperature": true,
+          "showLocation": false
+        }
+      },
+      {
+        "type": "clock",
+        "enabled": true,
+        "section": "center",
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "format": "HH:mm",
+          "showDate": false
+        }
+      },
+      {
+        "type": "media",
+        "enabled": true,
+        "section": "right",
+        "clickAction": "dashboard-quick",
+        "monitors": "DP-1",
+        "settings": {
+          "compact": true,
+          "showIcon": true,
+          "maxWidth": 120
+        }
+      },
+      {
+        "type": "notifications",
+        "enabled": true,
+        "section": "right",
+        "clickAction": "notification-center",
+        "monitors": "DP-1",
+        "settings": {
+          "showCount": true
+        }
+      },
+      {
+        "type": "volume",
+        "enabled": true,
+        "section": "right",
+        "clickAction": "dashboard-system",
+        "settings": {
+          "scrollable": true,
+          "showPercentage": true
+        }
+      },
+      {
+        "type": "network",
+        "enabled": false,
+        "section": "right",
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "showIcon": true
+        }
+      },
+      {
+        "type": "battery",
+        "enabled": false,
+        "section": "right",
+        "clickAction": "dashboard-quick",
+        "settings": {
+          "showPercentage": true,
+          "showIcon": true
+        }
+      },
+      {
+        "type": "layout",
+        "enabled": true,
+        "section": "right"
+      },
+      {
+        "type": "tray",
+        "enabled": true,
+        "section": "right",
+        "settings": {
+          "iconSize": 20,
+          "spacing": 8
+        }
+      }
+    ]
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "monitors": "all",
+    "width": 900,
+    "height": 640,
+    "defaultTab": "quick",
+    "tabs": [
+      {
+        "id": "quick",
+        "name": "Quick",
+        "icon": "dashboard",
+        "keybind": "Super+D",
+        "widgets": [
+          "volume-slider",
+          "brightness-slider",
+          "network-quick-toggle",
+          "bluetooth-quick-toggle",
+          "night-light-toggle",
+          "upcoming-events"
+        ]
+      },
+      {
+        "id": "media",
+        "name": "Media",
+        "icon": "music_note",
+        "widgets": [
+          "media-player",
+          "media-device-selector"
+        ]
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar",
+        "icon": "calendar_month",
+        "widgets": [
+          "calendar-month-view",
+          "event-list"
+        ]
+      },
+      {
+        "id": "system",
+        "name": "System",
+        "icon": "settings",
+        "widgets": [
+          "weather-detailed",
+          "system-monitor",
+          "audio-advanced"
+        ]
+      }
+    ]
+  },
+
+  "notifications": {
+    "enabled": true,
+    "monitors": "all",
+    "panel": {
+      "enabled": true,
+      "position": "right",
+      "width": 400,
+      "height": 600,
+      "maxVisible": 10,
+      "groupByApp": true,
+      "showActions": true
+    },
+    "popup": {
+      "enabled": true,
+      "position": "top-right",
+      "width": 360,
+      "timeout": 7000,
+      "maxVisible": 5
+    }
+  },
+
+  "launcher": {
+    "enabled": true,
+    "monitors": "all",
+    "fuzzy": false,
+    "maxResults": 10,
+    "width": 600,
+    "listMaxHeight": 400,
+    "topMargin": 56,
+    "providers": [
+      "applications",
+      "calculator",
+      "clipboard"
+    ],
+    "hiddenApps": []
+  },
+
+  "osd": {
+    "enabled": true,
+    "monitors": "all",
+    "position": "center",
+    "timeout": 2000,
+    "types": ["volume", "brightness", "microphone"]
+  },
+
+  "lockscreen": {
+    "enabled": false,
+    "blurWallpaper": true,
+    "showClock": true
+  },
+
+  "wallpaper": {
+    "primaryMonitor": "DP-2",
+    "defaultWallpaper": "/home/at1ass/wallpapers/stunning-anime-girl-with-bright-blue-eyes-7r-3440x1440.jpg",
+    "postSetScript": "",
+    "global": {
+      "directory": "",
+      "randomOrder": true,
+      "autoChange": {
+        "enabled": true,
+        "intervalMs": 900000
+      }
+    },
+    "monitors": {
+      "DP-2": {
+        "directory": "/home/at1ass/wallpapers/3440x1440",
+        "fillMode": 2
+      },
+      "DP-1": {
+        "directory": "/home/at1ass/wallpapers/1080x1920",
+        "fillMode": 2
+      }
+    }
+  },
+
+  "services": {
+    "weather": {
+      "enabled": true,
+      "location": "Penza",
+      "latitude": 53.2,
+      "longitude": 45.0,
+      "units": "metric",
+      "refreshMinutes": 15
+    },
+    "calendar": {
+      "enabled": true,
+      "upcomingEventsCount": 2
+    },
+    "vpn": {
+      "enabled": false,
+      "name": ""
+    }
+  },
+
+  "hyprland": {
+    "workspaceCount": 10,
+    "perMonitor": true
+  }
+}

@@ -12,22 +12,22 @@ MaterialCard {
     property var notificationObject: null
     readonly property bool hasNotification: notificationObject !== null && notificationObject !== undefined
     property bool expanded: false
-    implicitHeight: contentLayout.implicitHeight + (Config.spacing.medium * 2)
+    implicitHeight: contentLayout.implicitHeight + (Tokens.spacing.medium * 2)
 
     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-           ? Config.colors.errorContainer
-           : Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+           ? Theme.errorContainer
+           : Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     ColumnLayout {
         id: contentLayout
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.small
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.small
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.small
+            spacing: Tokens.spacing.small
 
             Image {
                 visible: root.hasNotification && notificationObject.appIcon !== ""
@@ -85,7 +85,7 @@ MaterialCard {
 
             IconButton {
                 iconName: root.expanded ? "expand_less" : "expand_more"
-                iconSize: Config.iconSize.medium
+                iconSize: Tokens.iconSize.medium
                 variant: "standard"
                 visible: root.hasNotification && !!notificationObject.body
                 onClicked: root.expanded = !root.expanded
@@ -93,7 +93,7 @@ MaterialCard {
 
             IconButton {
                 iconName: "close"
-                iconSize: Config.iconSize.medium
+                iconSize: Tokens.iconSize.medium
                 variant: "standard"
                 onClicked: {
                     if (root.hasNotification) {
@@ -118,7 +118,7 @@ MaterialCard {
         }
 
         ColumnLayout {
-            spacing: Config.spacing.extraSmall
+            spacing: Tokens.spacing.extraSmall
             visible: root.hasNotification &&
                      notificationObject.actions &&
                      notificationObject.actions.length > 0

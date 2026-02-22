@@ -8,34 +8,34 @@ Button {
 
     property string variant: "tonal" // tonal, filled, outlined, text
 
-    leftPadding: Config.spacing.medium
-    rightPadding: Config.spacing.medium
-    topPadding: Config.spacing.small
-    bottomPadding: Config.spacing.small
+    leftPadding: Tokens.spacing.medium
+    rightPadding: Tokens.spacing.medium
+    topPadding: Tokens.spacing.small
+    bottomPadding: Tokens.spacing.small
 
     implicitHeight: Math.max(contentItem.implicitHeight + topPadding + bottomPadding, 40)
     implicitWidth: Math.max(contentItem.implicitWidth + leftPadding + rightPadding, 88)
 
     background: Rectangle {
         id: bg
-        radius: Config.shape.medium
+        radius: Tokens.shape.medium
         border.width: control.variant === "outlined" ? 1 : 0
         border.color: control.variant === "outlined"
-                ? Config.colors.outline
+                ? Theme.outline
                 : "transparent"
         color: backgroundColor()
 
         Behavior on color {
             ColorAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.standard
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
             }
         }
 
         Behavior on border.color {
             ColorAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.standard
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
             }
         }
 
@@ -43,28 +43,28 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: Config.colors.onSurface
-            opacity: control.down ? Config.stateLayer.pressedOpacity :
-                     control.hovered ? Config.stateLayer.hoverOpacity : 0.0
+            color: Theme.onSurface
+            opacity: control.down ? Tokens.stateLayer.pressedOpacity :
+                     control.hovered ? Tokens.stateLayer.hoverOpacity : 0.0
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
         }
 
         function backgroundColor() {
-            if (!control.enabled) return Qt.alpha(Config.colors.surfaceContainerHigh, 0.60)
+            if (!control.enabled) return Qt.alpha(Theme.surfaceContainerHigh, 0.60)
             switch (control.variant) {
             case "filled":
-                return Config.colors.primary
+                return Theme.primary
             case "outlined":
             case "text":
                 return "transparent"
             default:
-                return Qt.alpha(Config.colors.primaryContainer, 0.85)
+                return Qt.alpha(Theme.primaryContainer, 0.85)
             }
         }
     }

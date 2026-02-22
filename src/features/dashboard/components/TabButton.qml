@@ -15,7 +15,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Config.shape.small
+        radius: Tokens.shape.small
         color: "transparent"
 
         StateLayer {
@@ -34,27 +34,27 @@ Item {
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
             iconName: nameIcon
-            fontSize: Config.typography.headlineMedium.size
-            iconColor: isActive ? Config.colors.onPrimaryContainer : Config.colors.onSurfaceVariant
+            fontSize: Tokens.typography.headlineMedium.size
+            iconColor: isActive ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
             backgroundColor: "transparent"
             fill: isActive ? 1 : 0
             Layout.alignment: Qt.AlignHCenter
 
             Behavior on iconColor {
                 ColorAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
 
             Behavior on fill {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
         }
@@ -74,13 +74,13 @@ Item {
         width: parent.width * 0.6
         height: 2
         radius: 1
-        color: Config.colors.primary
+        color: Theme.primary
         opacity: isActive ? 1 : 0
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Config.motion.duration.medium2
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.medium2
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
     }

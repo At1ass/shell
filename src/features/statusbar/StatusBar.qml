@@ -14,20 +14,14 @@ PanelWindow {
     id: statusBar
 
     readonly property TooltipManager tooltip: tooltipManager
-    readonly property var barWidgets: Config.ready ? (Config.data.bar?.widgets || []) : []
+    readonly property var barWidgets: AppConfig.ready ? (AppConfig.barWidgets || []) : []
     readonly property string screenName: screen ? screen.name : ""
     // property ShellScreen screen: null
     property var popouts: null
 
-    // Monitor filtering - use internal property to avoid binding loop
-    // readonly property bool shouldShow: Config.ready && Config.shouldShowWidget("bar", screen ? screen.name : "")
-    // visible: shouldShow
-    // visible: Config.ready && Config.shouldShowWidget("bar", screen ? screen.name : "")
-
-    implicitHeight: Config.bar.height
+    implicitHeight: AppConfig.barHeight
     color: "transparent"
 
-    // exclusiveZone: shouldShow ? implicitHeight : 0
     exclusiveZone: implicitHeight
     WlrLayershell.namespace: "shell:bar"
 
@@ -46,13 +40,11 @@ PanelWindow {
         id: barBackground
 
         anchors.fill: parent
-        color: Qt.alpha(Config.colors.surfaceContainer, 0.90)
-        // opacity: Config.bar.backgroundOpacity  // Removed - using alpha above
-
+        color: Qt.alpha(Theme.surfaceContainer, 0.90)
         // Primary surface tint - more visible
         Rectangle {
             anchors.fill: parent
-            color: Config.colors.primary
+            color: Theme.primary
             opacity: 0.12  // Increased from 0.08 to 0.12
             radius: parent.radius
         }
@@ -63,11 +55,11 @@ PanelWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             // anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: Config.spacing.small
+            anchors.leftMargin: Tokens.spacing.small
             width: leftSection.implicitWidth
             RowLayout {
                 id: leftSection
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
                 // Layout.alignment: Qt.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
                 // anchors.: parent
@@ -96,7 +88,7 @@ PanelWindow {
             width: centerSection.implicitWidth
             RowLayout {
                 id: centerSection
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
@@ -122,11 +114,11 @@ PanelWindow {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.rightMargin: Config.spacing.small
+            anchors.rightMargin: Tokens.spacing.small
             width: rightSection.implicitWidth
             RowLayout {
                 id: rightSection
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {

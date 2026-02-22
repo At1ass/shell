@@ -40,7 +40,6 @@ PanelWindow {
         active: root.visible && root.hasPopout && root.grabReady && PopoutsState.open
         windows: [root]
         onCleared: {
-            console.log("Popouts: focus grab cleared, closing popout");
             root.closePopout();
         }
     }
@@ -54,7 +53,6 @@ PanelWindow {
     // Focus grab disabled; close handled by click-outside.
 
     function openPopout(name, data, source) {
-        console.log("Popouts: opening popout", name);
         if (!name)
             return;
         if (root.visible && root.sourceItem === source && root.currentName === name) {
@@ -75,7 +73,6 @@ PanelWindow {
     }
 
     function closePopout() {
-        console.log("Popouts: closing popout", root.currentName);
         root.grabReady = false;
         grabReadyTimer.stop();
         PopoutsState.closePopout();
@@ -93,7 +90,6 @@ PanelWindow {
 
     Keys.onPressed: event => {
         if (root.visible && event.key === Qt.Key_Escape) {
-            console.log("Popouts: Escape pressed, closing popout");
             closePopout();
             event.accepted = true;
         }
@@ -129,8 +125,8 @@ PanelWindow {
 
         readonly property real contentWidth: popoutContent.item?.implicitWidth ?? 0
         readonly property real contentHeight: popoutContent.item?.implicitHeight ?? 0
-        readonly property real cardWidth: Math.max(contentWidth + Config.spacing.small * 2, 200)
-        readonly property real cardHeight: contentHeight + Config.spacing.small * 2
+        readonly property real cardWidth: Math.max(contentWidth + Tokens.spacing.small * 2, 200)
+        readonly property real cardHeight: contentHeight + Tokens.spacing.small * 2
 
         MaterialCard {
             id: popoutCard
@@ -140,19 +136,18 @@ PanelWindow {
             scale: visible ? 1 : 0.95
             // z: 1
 
-            color: Config.colors.surfaceContainerHigh
-            radius: Config.shape.medium
+            color: Theme.surfaceContainerHigh
+            radius: Tokens.shape.medium
 
             width: cardLayer.cardWidth
             height: cardLayer.cardHeight
-            x: root.computeX(width, Config.spacing.small)
-            y: root.computeY(height, Config.spacing.small)
+            x: root.computeX(width, Tokens.spacing.small)
+            y: root.computeY(height, Tokens.spacing.small)
 
             function updateRect() {
                 if (root.currentMode !== "card" || !root.screen || !root.visible)
                     return;
                 PopoutsState.setPopoutRect(x, y, width, height, root.screen?.name || "");
-                console.log("Popouts: rect set", x, y, width, height, "screen", root.screen?.name || "");
             }
 
             onXChanged: updateRect()
@@ -165,22 +160,22 @@ PanelWindow {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: parent.radius - 1
-                color: Config.colors.primary
+                color: Theme.primary
                 opacity: 0.08
                 // z: -1
             }
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
 
             Behavior on scale {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
 
@@ -188,7 +183,7 @@ PanelWindow {
                 id: popoutContent
 
                 anchors.fill: parent
-                anchors.margins: Config.spacing.small
+                anchors.margins: Tokens.spacing.small
                 active: root.visible && root.hasPopout && root.currentMode === "card"
                 asynchronous: true
                 sourceComponent: popoutComponentFor(root.currentName)
@@ -312,7 +307,7 @@ PanelWindow {
 
         const globalPos = sourceGlobalPos();
         const localY = globalPos.y - root.screen.y;
-        const barPosition = Config.data?.bar?.position || "top";
+        const barPosition = AppConfig.barPosition;
 
         let menuY = barPosition === "bottom" ? localY - cardHeight - margin : localY + root.sourceItem.height + margin;
 

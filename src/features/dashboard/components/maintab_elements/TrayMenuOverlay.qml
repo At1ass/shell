@@ -62,17 +62,17 @@ Item {
         opacity: visible ? 1 : 0
         scale: visible ? 1 : 0.95
 
-        color: Config.colors.surfaceContainerHigh
-        radius: Config.shape.medium
+        color: Theme.surfaceContainerHigh
+        radius: Tokens.shape.medium
 
         width: implicitWidth
         height: implicitHeight
 
-        readonly property real horizontalMargin: Config.spacing.small
-        readonly property real verticalMargin: Config.spacing.small
+        readonly property real horizontalMargin: Tokens.spacing.small
+        readonly property real verticalMargin: Tokens.spacing.small
 
-        implicitWidth: Math.max((menuLoader.item?.implicitWidth ?? 0) + Config.spacing.small * 2, 200)
-        implicitHeight: (menuLoader.item?.implicitHeight ?? 0) + Config.spacing.small * 2
+        implicitWidth: Math.max((menuLoader.item?.implicitWidth ?? 0) + Tokens.spacing.small * 2, 200)
+        implicitHeight: (menuLoader.item?.implicitHeight ?? 0) + Tokens.spacing.small * 2
 
         x: root.computeX(width, horizontalMargin)
         y: root.computeY(height, verticalMargin)
@@ -83,22 +83,22 @@ Item {
             anchors.fill: parent
             anchors.margins: 1
             radius: parent.radius - 1
-            color: Config.colors.primary
+            color: Theme.primary
             opacity: 0.08
             z: -1
         }
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.standard
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
             }
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.standard
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
             }
         }
 
@@ -106,7 +106,7 @@ Item {
             id: menuLoader
 
             anchors.fill: parent
-            anchors.margins: Config.spacing.small
+            anchors.margins: Tokens.spacing.small
             active: root.visible && root.hasMenu
             asynchronous: true
 

@@ -24,8 +24,8 @@ LazyLoader {
         anchors.right: true
         anchors.bottom: false
 
-        implicitWidth: popupBackground.implicitWidth + Config.spacing.large * 2 + root.popupBackgroundMargin
-        implicitHeight: popupBackground.implicitHeight + Config.spacing.large * 2 + root.popupBackgroundMargin
+        implicitWidth: popupBackground.implicitWidth + Tokens.spacing.large * 2 + root.popupBackgroundMargin
+        implicitHeight: popupBackground.implicitHeight + Tokens.spacing.large * 2 + root.popupBackgroundMargin
 
         mask: Region {
             item: popupBackground
@@ -51,32 +51,32 @@ LazyLoader {
 
         Rectangle {
             id: popupBackground
-            readonly property real margin: Config.spacing.large
+            readonly property real margin: Tokens.spacing.large
             anchors {
                 fill: parent
-                leftMargin: Config.spacing.large + root.popupBackgroundMargin
-                rightMargin: Config.spacing.large + root.popupBackgroundMargin
-                topMargin: Config.spacing.large + root.popupBackgroundMargin
-                bottomMargin: Config.spacing.large + root.popupBackgroundMargin
+                leftMargin: Tokens.spacing.large + root.popupBackgroundMargin
+                rightMargin: Tokens.spacing.large + root.popupBackgroundMargin
+                topMargin: Tokens.spacing.large + root.popupBackgroundMargin
+                bottomMargin: Tokens.spacing.large + root.popupBackgroundMargin
             }
 
             implicitWidth: root.contentItem ? root.contentItem.implicitWidth + margin * 2 : 400
             implicitHeight: root.contentItem ? root.contentItem.implicitHeight + margin * 2 : 300
 
-            color: Config.colors.surfaceContainerHigh
-            radius: Config.shape.extraLarge
+            color: Theme.surfaceContainerHigh
+            radius: Tokens.shape.extraLarge
             children: root.contentItem ? [root.contentItem] : []
 
             border.width: 1
-            border.color: Config.colors.outlineVariant
+            border.color: Theme.outlineVariant
 
             // Simple shadow
             Rectangle {
                 anchors.fill: parent
-                anchors.topMargin: Config.spacing.small
-                anchors.leftMargin: Config.spacing.small
+                anchors.topMargin: Tokens.spacing.small
+                anchors.leftMargin: Tokens.spacing.small
                 color: Qt.alpha("#000000", 0.1)
-                radius: Config.shape.extraLarge
+                radius: Tokens.shape.extraLarge
                 z: -1
             }
 

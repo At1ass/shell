@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.src.core.config
 
 Singleton {
     id: root
@@ -12,7 +13,7 @@ Singleton {
     property list<string> availableVPNs: []
 
     // Primary VPN connection name (user-configurable)
-    readonly property string primaryVPN: "diasoft_VPN"
+    readonly property string primaryVPN: AppConfig.vpnName
 
     // Material icon based on state
     readonly property string icon: connected ? "vpn_lock" : "vpn_key_off"
