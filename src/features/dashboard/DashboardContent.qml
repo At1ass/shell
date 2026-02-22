@@ -96,10 +96,30 @@ Item {
                     }
                 }
 
-                QuickTab {}
-                WeatherTab {}
-                CalendarTab {}
-                SystemTab {}
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 0
+                    sourceComponent: Component { QuickTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 1
+                    sourceComponent: Component { WeatherTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 2
+                    sourceComponent: Component { CalendarTab {} }
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 3
+                    sourceComponent: Component { SystemTab {} }
+                }
             }
         }
     }

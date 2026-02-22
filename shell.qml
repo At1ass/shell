@@ -56,7 +56,7 @@ ShellRoot {
 
     // Dashboard
     LazyLoader {
-        loading: true
+        loading: GlobalStates.dashboardOpen
         Dashboard {}
     }
 
@@ -68,7 +68,7 @@ ShellRoot {
 
     // Launcher
     LazyLoader {
-        loading: true
+        loading: GlobalStates.launcherOpen
         Launcher {}
     }
 
@@ -80,7 +80,7 @@ ShellRoot {
 
     // Notification center
     LazyLoader {
-        loading: true
+        loading: GlobalStates.notificationCenterOpen
         NotificationCenter {}
     }
 }
