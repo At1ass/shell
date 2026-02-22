@@ -9,8 +9,8 @@ MaterialIcon {
     id: root
 
     // Цвета для состояний
-    property color disabledColor: Qt.alpha(Config.colors.onSurface, 0.38)
-    property color backgroundColor: Config.colors.onSurface
+    property color disabledColor: Qt.alpha(Theme.onSurface, 0.38)
+    property color backgroundColor: Theme.onSurface
 
     color: !enabled ? disabledColor : backgroundColor
 

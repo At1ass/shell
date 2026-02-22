@@ -25,7 +25,7 @@ Item {
     Loader {
         id: loader
         asynchronous: false
-        active: root.widgetEnabled && root.widgetType !== "" && Config.shouldShowWidget2(root.widgetConfig, screenName)
+        active: root.widgetEnabled && root.widgetType !== "" && AppConfig.shouldShowOnMonitor(root.widgetConfig, screenName)
 
         sourceComponent: {
             if (!root.widgetEnabled || root.widgetType === "")

@@ -7,7 +7,7 @@ import qs.src.core.config
 Item {
     id: root
 
-    property int spacing: Config.spacing.small
+    property int spacing: Tokens.spacing.small
     property int contentPadding: 0
 
     // Content data for child items

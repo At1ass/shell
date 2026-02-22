@@ -16,8 +16,8 @@ Item {
 
     MaterialCard {
         anchors.fill: parent
-        color: Qt.alpha(Config.colors.surfaceContainer, 0.85)
-        radius: Config.shape.large
+        color: Qt.alpha(Theme.surfaceContainer, 0.85)
+        radius: Tokens.shape.large
         outlined: false
 
         ColumnLayout {
@@ -33,7 +33,7 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
+                    anchors.margins: Tokens.spacing.medium
                     spacing: 0
 
                     Repeater {

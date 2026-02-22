@@ -83,7 +83,7 @@ Item {
     Item {
         id: contentItem
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
 
         implicitHeight: children.length > 0 ? children[0].implicitHeight : 0
         implicitWidth: children.length > 0 ? children[0].implicitWidth : 0

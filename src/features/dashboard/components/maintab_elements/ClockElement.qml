@@ -7,8 +7,8 @@ import qs.src.core.config
 
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     SystemClock {
         id: clock

@@ -6,17 +6,17 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
 
         // Avatar + Username
         // ColumnLayout {
-        //     spacing: Config.spacing.small
+        //     spacing: Tokens.spacing.small
         //     Layout.alignment: Qt.AlignTop
 
             CircleAvatar {
@@ -38,7 +38,7 @@ MaterialCard {
 
         // System Info
         ColumnLayout {
-            spacing: Config.spacing.small
+            spacing: Tokens.spacing.small
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -52,12 +52,12 @@ MaterialCard {
 
             // OS + WM
             RowLayout {
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
 
                 MaterialIcon {
                     iconName: "computer"
-                    fontSize: Config.typography.titleMedium.size
-                    iconColor: Config.colors.primary
+                    fontSize: Tokens.typography.titleMedium.size
+                    iconColor: Theme.primary
                     backgroundColor: "transparent"
                 }
 
@@ -70,12 +70,12 @@ MaterialCard {
 
             // CPU
             // RowLayout {
-            //     spacing: Config.spacing.small
+            //     spacing: Tokens.spacing.small
             //
             //     MaterialIcon {
             //         iconName: "developer_board"
-            //         fontSize: Config.typography.titleMedium.size
-            //         iconColor: Config.colors.primary
+            //         fontSize: Tokens.typography.titleMedium.size
+            //         iconColor: Theme.primary
             //         backgroundColor: "transparent"
             //     }
             //
@@ -88,12 +88,12 @@ MaterialCard {
             //
             // // GPU
             // RowLayout {
-            //     spacing: Config.spacing.small
+            //     spacing: Tokens.spacing.small
             //
             //     MaterialIcon {
             //         iconName: "videogame_asset"
-            //         fontSize: Config.typography.titleMedium.size
-            //         iconColor: Config.colors.primary
+            //         fontSize: Tokens.typography.titleMedium.size
+            //         iconColor: Theme.primary
             //         backgroundColor: "transparent"
             //     }
             //
@@ -106,12 +106,12 @@ MaterialCard {
 
             // Uptime
             RowLayout {
-                spacing: Config.spacing.small
+                spacing: Tokens.spacing.small
 
                 MaterialIcon {
                     iconName: "schedule"
-                    fontSize: Config.typography.titleMedium.size
-                    iconColor: Config.colors.primary
+                    fontSize: Tokens.typography.titleMedium.size
+                    iconColor: Theme.primary
                     backgroundColor: "transparent"
                 }
 

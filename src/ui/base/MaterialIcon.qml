@@ -8,7 +8,7 @@ Rectangle {
 
     property string iconName: ""
     readonly property string fontFamily: "Material Symbols Rounded"
-    property int fontSize: Config.typography.bodyLarge.size
+    property int fontSize: Tokens.typography.bodyLarge.size
     property bool enabled: true
     property real fill: enabled ? 1 : 0
     property int grade: 0
@@ -16,7 +16,7 @@ Rectangle {
 
     // Color properties
     property color backgroundColor: "transparent"
-    property color iconColor: enabled ? Config.colors.primary : Config.colors.surfaceText
+    property color iconColor: enabled ? Theme.primary : Theme.surfaceText
 
     // Auto-size based on fontSize with padding (can be overridden by setting width/height explicitly)
     implicitWidth: fontSize * sizePadding
@@ -28,9 +28,9 @@ Rectangle {
     // Color transitions
     Behavior on color {
         ColorAnimation {
-            duration: Config.motion.duration.short3
-            easing.type: Config.motion.easing.standard
-            easing.bezierCurve: Config.motion.easing.standardPoints
+            duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 

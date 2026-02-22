@@ -75,15 +75,15 @@ Scope {
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: Config.motion.duration.short4
-                        easing.type: Config.motion.easing.emphasized
+                        duration: Tokens.motion.duration.short4
+                        easing.type: Tokens.motion.easing.emphasized
                     }
                 }
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: Config.motion.duration.short4
-                        easing.type: Config.motion.easing.emphasized
+                        duration: Tokens.motion.duration.short4
+                        easing.type: Tokens.motion.easing.emphasized
                     }
                 }
 
@@ -91,39 +91,39 @@ Scope {
                     id: osdCard
                     width: 380
                     height: 100
-                    color: Config.colors.surfaceContainerHigh
-                    radius: Config.shape.extraLarge
+                    color: Theme.surfaceContainerHigh
+                    radius: Tokens.shape.extraLarge
 
                     // M3 elevation через surface tint (вместо DropShadow)
                     // border уже есть в MaterialCard через outlined: true
                     Rectangle {
                         anchors.fill: parent
                         radius: osdCard.radius
-                        color: Config.colors.primary
+                        color: Theme.primary
                         opacity: 0.08
                     }
                     // Optional outline
                     Rectangle {
                         anchors.fill: parent
                         radius: osdCard.radius
-                        border.color: Config.colors.outlineVariant
+                        border.color: Theme.outlineVariant
                         border.width: 1
                         color: "transparent"
                     }
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: Config.spacing.large
-                        spacing: Config.spacing.large
+                        anchors.margins: Tokens.spacing.large
+                        spacing: Tokens.spacing.large
 
                         // Иконка громкости
                         Rectangle {
                             width: 56
                             height: 56
-                            radius: Config.shape.full
-                            color: root.currentMuted ? Config.colors.errorContainer : Config.colors.primaryContainer
+                            radius: Tokens.shape.full
+                            color: root.currentMuted ? Theme.errorContainer : Theme.primaryContainer
 
                             Behavior on color {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
 
                             MaterialIcon {
@@ -136,11 +136,11 @@ Scope {
                                     return "volume_up"
                                 }
                                 fontSize: 32
-                                iconColor: root.currentMuted ? Config.colors.onErrorContainer : Config.colors.onPrimaryContainer
+                                iconColor: root.currentMuted ? Theme.onErrorContainer : Theme.onPrimaryContainer
                                 backgroundColor: "transparent"
 
                                 Behavior on iconColor {
-                                    ColorAnimation { duration: Config.motion.duration.short4 }
+                                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                                 }
                             }
                         }
@@ -148,11 +148,11 @@ Scope {
                         // Информация о громкости
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: Config.spacing.extraSmall
+                            spacing: Tokens.spacing.extraSmall
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: Config.spacing.small
+                                spacing: Tokens.spacing.small
 
                                 MaterialText {
                                     text: root.currentMuted ? "Звук выключен" : "Громкость"
@@ -175,26 +175,26 @@ Scope {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 8
-                                radius: Config.shape.full
-                                color: Config.colors.surfaceContainerHighest
+                                radius: Tokens.shape.full
+                                color: Theme.surfaceContainerHighest
 
                                 Rectangle {
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width * root.currentVolume
                                     height: parent.height
-                                    radius: Config.shape.full
-                                    color: root.currentMuted ? Config.colors.error : Config.colors.primary
+                                    radius: Tokens.shape.full
+                                    color: root.currentMuted ? Theme.error : Theme.primary
 
                                     Behavior on width {
                                         NumberAnimation {
-                                            duration: Config.motion.duration.short4
-                                            easing.type: Config.motion.easing.emphasized
+                                            duration: Tokens.motion.duration.short4
+                                            easing.type: Tokens.motion.easing.emphasized
                                         }
                                     }
 
                                     Behavior on color {
-                                        ColorAnimation { duration: Config.motion.duration.short4 }
+                                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                                     }
                                 }
                             }

@@ -50,7 +50,7 @@ BarElement {
     //
     //         Column {
     //             anchors.centerIn: parent
-    //             spacing: Config.spacing.extraSmall
+    //             spacing: Tokens.spacing.extraSmall
     //
     //             MaterialText {
     //                 // text: workspaceWidget.currentDateTime
@@ -88,7 +88,7 @@ BarElement {
 
     // Workspace indicators content
     RowLayout {
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         Repeater {
             model: workspaceWidget.wsCount
@@ -112,14 +112,14 @@ BarElement {
                 property real animActive: active ? 1 : 0
                 Behavior on animActive {
                     NumberAnimation {
-                        duration: Config.animations.durationShort
+                        duration: Tokens.motion.duration.short3
                     }
                 }
 
                 property real animExists: exists ? 1 : 0
                 Behavior on animExists {
                     NumberAnimation {
-                        duration: Config.animations.durationShort
+                        duration: Tokens.motion.duration.short3
                     }
                 }
 
@@ -132,7 +132,7 @@ BarElement {
                 // Плавная анимация размера
                 Behavior on implicitWidth {
                     NumberAnimation {
-                        duration: Config.animations.durationMedium
+                        duration: Tokens.motion.duration.medium2
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -142,14 +142,14 @@ BarElement {
                     id: activeBackground
                     anchors.fill: parent
                     anchors.margins: 2
-                    radius: Config.shape.small
-                    color: Config.colors.primary
+                    radius: Tokens.shape.small
+                    color: Theme.primary
                     opacity: active && hasWindows ? 0.15 : 0
                     z: -1
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: Config.animations.durationMedium
+                            duration: Tokens.motion.duration.medium2
                             easing.type: Easing.OutCubic
                         }
                     }
@@ -158,10 +158,10 @@ BarElement {
                 // Workspace indicator circle (точка) - только для пустых workspace
                 Rectangle {
                     id: wsIndicator
-                    width: Config.typography.titleMedium.size
-                    height: Config.typography.titleMedium.size
+                    width: Tokens.typography.titleMedium.size
+                    height: Tokens.typography.titleMedium.size
                     anchors.centerIn: parent
-                    radius: Config.shape.small
+                    radius: Tokens.shape.small
                     visible: !hasWindows
 
                     // Масштабирование на основе состояния
@@ -176,17 +176,17 @@ BarElement {
                     // Интерполяция цветов на основе состояния
                     color: {
                         if (active)
-                            return Config.colors.primary;
+                            return Theme.primary;
                         if (showIndicator)
-                            return Config.colors.secondaryContainer;
-                        return Config.colors.outline;
+                            return Theme.secondaryContainer;
+                        return Theme.outline;
                     }
 
                     // Shadow for active workspace
                     Rectangle {
                         anchors.fill: parent
                         anchors.topMargin: active ? 1 : 0
-                        color: Config.colors.onSurface
+                        color: Theme.onSurface
                         opacity: active ? 0.10 : 0
                         radius: parent.radius
                         z: -1
@@ -194,14 +194,14 @@ BarElement {
 
                     Behavior on scale {
                         NumberAnimation {
-                            duration: Config.animations.durationMedium
+                            duration: Tokens.motion.duration.medium2
                             easing.type: Easing.OutCubic
                         }
                     }
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: Config.animations.durationMedium
+                            duration: Tokens.motion.duration.medium2
                             easing.type: Easing.OutCubic
                         }
                     }
@@ -217,7 +217,7 @@ BarElement {
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: Config.animations.durationShort
+                            duration: Tokens.motion.duration.short3
                         }
                     }
 
@@ -228,8 +228,8 @@ BarElement {
                             required property var modelData
 
                             iconName: IconCategoryResolver.getAppCategoryIcon(modelData.lastIpcObject?.class, "terminal")
-                            fontSize: Config.typography.bodyMedium.size
-                            iconColor: active ? Config.colors.primary : Config.colors.onSurfaceVariant
+                            fontSize: Tokens.typography.bodyMedium.size
+                            iconColor: active ? Theme.primary : Theme.onSurfaceVariant
 
                             // Плавная анимация появления
                             scale: 1
@@ -245,7 +245,7 @@ BarElement {
                             NumberAnimation on scale {
                                 id: scaleAnim
                                 to: 1
-                                duration: Config.animations.durationMedium
+                                duration: Tokens.motion.duration.medium2
                                 easing.type: Easing.OutBack
                                 running: false
                             }
@@ -253,13 +253,13 @@ BarElement {
                             NumberAnimation on opacity {
                                 id: opacityAnim
                                 to: 1
-                                duration: Config.animations.durationShort
+                                duration: Tokens.motion.duration.short3
                                 running: false
                             }
 
                             Behavior on iconColor {
                                 ColorAnimation {
-                                    duration: Config.animations.durationMedium
+                                    duration: Tokens.motion.duration.medium2
                                 }
                             }
 
@@ -280,20 +280,20 @@ BarElement {
                                     width: parent.containsMouse ? parent.width + 4 : parent.width
                                     height: width
                                     radius: width / 2
-                                    color: Config.colors.onSurface
+                                    color: Theme.onSurface
                                     opacity: parent.containsMouse ? 0.08 : 0.0
                                     z: -1
 
                                     Behavior on width {
                                         NumberAnimation {
-                                            duration: Config.animations.durationShort
+                                            duration: Tokens.motion.duration.short3
                                             easing.type: Easing.OutCubic
                                         }
                                     }
 
                                     Behavior on opacity {
                                         NumberAnimation {
-                                            duration: Config.animations.durationShort
+                                            duration: Tokens.motion.duration.short3
                                             easing.type: Easing.OutCubic
                                         }
                                     }

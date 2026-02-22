@@ -10,13 +10,13 @@ RowLayout {
     required property string label
     required property string value
 
-    spacing: Config.spacing.small
+    spacing: Tokens.spacing.small
     Layout.fillWidth: true
 
     MaterialIcon {
         iconName: row.iconName
-        fontSize: Config.typography.titleMedium.size
-        iconColor: Config.colors.primary
+        fontSize: Tokens.typography.titleMedium.size
+        iconColor: Theme.primary
         backgroundColor: "transparent"
     }
 

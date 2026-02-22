@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import qs.src.core.services
-import qs.src.core.config
 
 Scope {
     property var modelData

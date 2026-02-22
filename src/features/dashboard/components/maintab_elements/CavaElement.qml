@@ -14,15 +14,15 @@ MaterialCard {
     Layout.fillWidth: true
     Layout.preferredHeight: 120
     Layout.preferredWidth: 220
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     // Анимации работают только когда dashboard виден
     readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.small
+        anchors.margins: Tokens.spacing.small
         spacing: 4
 
         // Visualizer bars
@@ -53,16 +53,16 @@ MaterialCard {
 
                         color: {
                             if (barHeight > 0.7)
-                                return Config.colors.primary;
+                                return Theme.primary;
                             if (barHeight > 0.4)
-                                return Config.colors.tertiary;
-                            return Config.colors.primaryContainer;
+                                return Theme.tertiary;
+                            return Theme.primaryContainer;
                         }
 
                         Behavior on height {
                             NumberAnimation {
-                                duration: Config.motion.duration.medium2
-                                easing.type: Config.motion.easing.emphasizedDecelerate
+                                duration: Tokens.motion.duration.medium2
+                                easing.type: Tokens.motion.easing.emphasizedDecelerate
                             }
                         }
 
@@ -74,7 +74,7 @@ MaterialCard {
                             NumberAnimation {
                                 to: Math.random() * 0.9 + 0.1
                                 duration: 300 + Math.random() * 200
-                                easing.type: Config.motion.easing.standard
+                                easing.type: Tokens.motion.easing.standard
                             }
 
                             PauseAnimation {

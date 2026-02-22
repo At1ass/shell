@@ -9,13 +9,13 @@ Item {
     // Button properties
     property string variant: "standard"  // standard, filled, tonal, outlined
     property string iconName: "star"
-    property int iconSize: Config.iconSize.large  // 24dp default
+    property int iconSize: Tokens.iconSize.large  // 24dp default
     property color iconColor: defaultIconColor()
     property bool enabled: true
 
     // Size properties
     property int containerSize: 40
-    property int touchTargetSize: Config.touchTarget.minimum  // 48dp
+    property int touchTargetSize: Tokens.touchTarget.minimum  // 48dp
 
     // Signals
     signal clicked(var mouse)
@@ -36,14 +36,14 @@ Item {
 
         color: containerColor()
         border.width: variant === "outlined" ? 1 : 0
-        border.color: variant === "outlined" ? Config.colors.outline : "transparent"
+        border.color: variant === "outlined" ? Theme.outline : "transparent"
 
         opacity: root.enabled ? 1.0 : 0.38
 
         Behavior on color {
             ColorAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.standard
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
             }
         }
 
@@ -87,13 +87,13 @@ Item {
 
     // Helper functions
     function containerColor() {
-        if (!root.enabled) return Config.colors.surfaceContainerHigh
+        if (!root.enabled) return Theme.surfaceContainerHigh
 
         switch (variant) {
         case "filled":
-            return Config.colors.primary
+            return Theme.primary
         case "tonal":
-            return Config.colors.secondaryContainer
+            return Theme.secondaryContainer
         case "outlined":
         case "standard":
         default:
@@ -104,24 +104,24 @@ Item {
     function defaultIconColor() {
         switch (variant) {
         case "filled":
-            return Config.colors.onPrimary
+            return Theme.onPrimary
         case "tonal":
-            return Config.colors.onSecondaryContainer
+            return Theme.onSecondaryContainer
         case "outlined":
         case "standard":
         default:
-            return Config.colors.onSurfaceVariant
+            return Theme.onSurfaceVariant
         }
     }
 
     function stateLayerColor() {
         switch (variant) {
         case "filled":
-            return Config.colors.onPrimary
+            return Theme.onPrimary
         case "tonal":
-            return Config.colors.onSecondaryContainer
+            return Theme.onSecondaryContainer
         default:
-            return Config.colors.onSurface
+            return Theme.onSurface
         }
     }
 }

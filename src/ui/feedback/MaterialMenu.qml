@@ -23,17 +23,17 @@ Item {
     MaterialCard {
         id: menuButton
         anchors.fill: parent
-        color: mouseArea.containsMouse ? Config.colors.surfaceContainerHighest : Config.colors.surfaceContainerHigh
-        radius: Config.shape.medium
+        color: mouseArea.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+        radius: Tokens.shape.medium
 
         Behavior on color {
-            ColorAnimation { duration: Config.motion.duration.short4 }
+            ColorAnimation { duration: Tokens.motion.duration.short4 }
         }
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: Config.spacing.medium
-            spacing: Config.spacing.small
+            anchors.margins: Tokens.spacing.medium
+            spacing: Tokens.spacing.small
 
             // Selected item content (will be set by parent)
             Item {
@@ -46,14 +46,14 @@ Item {
 
             MaterialIcon {
                 iconName: root.open ? "expand_less" : "expand_more"
-                fontSize: Config.typography.titleLarge.size
-                iconColor: Config.colors.onSurfaceVariant
+                fontSize: Tokens.typography.titleLarge.size
+                iconColor: Theme.onSurfaceVariant
                 backgroundColor: "transparent"
 
                 Behavior on rotation {
                     NumberAnimation {
-                        duration: Config.motion.duration.short4
-                        easing.type: Config.motion.easing.emphasizedDecelerate
+                        duration: Tokens.motion.duration.short4
+                        easing.type: Tokens.motion.easing.emphasizedDecelerate
                     }
                 }
             }
@@ -76,31 +76,31 @@ Item {
         y: menuButton.height + 4
         width: parent.width
         height: menuContent.implicitHeight
-        radius: Config.shape.medium
-        color: Config.colors.surfaceContainerHigh
+        radius: Tokens.shape.medium
+        color: Theme.surfaceContainerHigh
         border.width: 1
-        border.color: Config.colors.outlineVariant
+        border.color: Theme.outlineVariant
 
         // M3 elevation через surface tint (вместо DropShadow)
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
             radius: parent.radius - 1
-            color: Config.colors.primary
+            color: Theme.primary
             opacity: 0.05
         }
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
 
         Behavior on y {
             NumberAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
 
@@ -115,25 +115,25 @@ Item {
                 delegate: Rectangle {
                     Layout.fillWidth: true
                     height: 48
-                    color: itemMouseArea.containsMouse ? Config.colors.surfaceContainerHighest :
-                           modelData.value === root.selectedValue ? Config.colors.secondaryContainer : "transparent"
-                    radius: Config.shape.small
+                    color: itemMouseArea.containsMouse ? Theme.surfaceContainerHighest :
+                           modelData.value === root.selectedValue ? Theme.secondaryContainer : "transparent"
+                    radius: Tokens.shape.small
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                     }
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: Config.spacing.medium
-                        anchors.rightMargin: Config.spacing.medium
-                        spacing: Config.spacing.small
+                        anchors.leftMargin: Tokens.spacing.medium
+                        anchors.rightMargin: Tokens.spacing.medium
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             visible: modelData.icon !== undefined
                             iconName: modelData.icon || ""
-                            fontSize: Config.typography.titleMedium.size
-                            iconColor: modelData.value === root.selectedValue ? Config.colors.onSecondaryContainer : Config.colors.onSurfaceVariant
+                            fontSize: Tokens.typography.titleMedium.size
+                            iconColor: modelData.value === root.selectedValue ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
                             backgroundColor: "transparent"
                         }
 
@@ -147,8 +147,8 @@ Item {
                         MaterialIcon {
                             visible: modelData.value === root.selectedValue
                             iconName: "check"
-                            fontSize: Config.typography.titleMedium.size
-                            iconColor: Config.colors.onSecondaryContainer
+                            fontSize: Tokens.typography.titleMedium.size
+                            iconColor: Theme.onSecondaryContainer
                             backgroundColor: "transparent"
                         }
                     }

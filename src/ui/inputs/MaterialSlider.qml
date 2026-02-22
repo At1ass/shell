@@ -50,7 +50,7 @@ Slider {
                     ? parent.height
                     : Math.max(0, control.visualPosition * parent.height - control.thumbWidth / 2 - control.thumbTrackGap)
             radius: control.trackInsideCornerSize
-            color: Config.colors.surfaceContainerHighest
+            color: Theme.surfaceContainerHighest
 
 
             // Stop indicator (точка на конце)
@@ -66,7 +66,7 @@ Slider {
                 width: control.stopIndicatorSize
                 height: control.stopIndicatorSize
                 radius: control.stopIndicatorSize / 2
-                color: Config.colors.onSurfaceVariant
+                color: Theme.onSurfaceVariant
                 // visible: control.visualPosition < 0.99
                 visible: control.orientation === Qt.Horizontal ? control.visualPosition < 0.99
                                                                : 1.0 - control.visualPosition < 0.99
@@ -87,11 +87,11 @@ Slider {
                     ? parent.height
                     : Math.max(0, parent.height - y)
             radius: control.trackInsideCornerSize
-            color: control.enabled ? Config.colors.primary : Config.colors.onSurface
+            color: control.enabled ? Theme.primary : Theme.onSurface
             opacity: control.enabled ? 1.0 : 0.38
 
             Behavior on color {
-                ColorAnimation { duration: Config.motion.duration.short4 }
+                ColorAnimation { duration: Tokens.motion.duration.short4 }
             }
         }
     }
@@ -118,20 +118,20 @@ Slider {
             width: control.pressed ? 44 : (control.hovered ? 44 : 0)
             height: width
             radius: width / 2
-            color: Config.colors.primary
+            color: Theme.primary
             opacity: control.pressed ? 0.12 : (control.hovered ? 0.08 : 0)
             visible: control.enabled
 
             Behavior on width {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.emphasized
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.emphasized
                 }
             }
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
+                    duration: Tokens.motion.duration.short4
                 }
             }
         }
@@ -142,7 +142,7 @@ Slider {
             width: control.orientation === Qt.Horizontal ? control.thumbWidth : control.thumbHeight
             height: control.orientation === Qt.Horizontal ? control.thumbHeight : control.thumbWidth
             radius: control.orientation === Qt.Horizontal ? control.thumbWidth / 2 : control.thumbHeight / 2
-            color: control.enabled ? Config.colors.primary : Config.colors.onSurface
+            color: control.enabled ? Theme.primary : Theme.onSurface
             opacity: control.enabled ? 1.0 : 0.38
 
             // M3 elevation через subtle border (вместо DropShadow)
@@ -151,7 +151,7 @@ Slider {
 
             Behavior on color {
                 ColorAnimation {
-                    duration: Config.motion.duration.short4
+                    duration: Tokens.motion.duration.short4
                 }
             }
         }

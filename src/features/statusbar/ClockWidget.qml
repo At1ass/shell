@@ -51,7 +51,7 @@ BarElement {
 
             Column {
                 anchors.centerIn: parent
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
                     text: clockWidget.currentDateTime
@@ -77,7 +77,7 @@ BarElement {
 
     // Time display content
     RowLayout {
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         MaterialText {
             text: clockWidget.currentTime

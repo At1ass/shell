@@ -5,7 +5,7 @@ Rectangle {
     id: root
 
     property string size: "small"        // small, medium, large
-    property string colorRole: "outline" // any color from Config.colors
+    property string colorRole: "outline" // any color from Theme
     property bool animated: true
     property string shape: "circle"      // circle, rounded, square
 
@@ -26,37 +26,37 @@ Rectangle {
     radius: {
         switch(shape) {
             case "circle": return width / 2
-            case "rounded": return Config.shape.extraSmall
+            case "rounded": return Tokens.shape.extraSmall
             case "square": return 0
             default: return width / 2
         }
     }
 
     // Автоматический цвет из токенов
-    color: Config.colors[colorRole] || Config.colors.outline
+    color: Theme[colorRole] || Theme.outline
 
     // Анимации
     Behavior on width {
         enabled: root.animated
         NumberAnimation {
-            duration: Config.motion.duration.short2
-            easing.type: Config.motion.easing.standard
+            duration: Tokens.motion.duration.short2
+            easing.type: Tokens.motion.easing.standard
         }
     }
 
     Behavior on height {
         enabled: root.animated
         NumberAnimation {
-            duration: Config.motion.duration.short2
-            easing.type: Config.motion.easing.standard
+            duration: Tokens.motion.duration.short2
+            easing.type: Tokens.motion.easing.standard
         }
     }
 
     Behavior on color {
         enabled: root.animated
         ColorAnimation {
-            duration: Config.motion.duration.medium2
-            easing.type: Config.motion.easing.standard
+            duration: Tokens.motion.duration.medium2
+            easing.type: Tokens.motion.easing.standard
         }
     }
 

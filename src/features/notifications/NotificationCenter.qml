@@ -55,27 +55,27 @@ Scope {
                 bottom: parent.bottom
                 right: parent.right
             }
-            anchors.margins: Config.spacing.medium
+            anchors.margins: Tokens.spacing.medium
             z: 1
 
             MaterialCard {
                 anchors.fill: parent
-                color: Config.colors.surfaceContainer
-                radius: Config.shape.extraLarge
+                color: Theme.surfaceContainer
+                radius: Tokens.shape.extraLarge
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.medium
-                    spacing: Config.spacing.small
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.small
 
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: Config.spacing.small
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             iconName: "notifications"
-                            fontSize: Config.typography.titleLarge.size
-                            iconColor: Config.colors.primary
+                            fontSize: Tokens.typography.titleLarge.size
+                            iconColor: Theme.primary
                             backgroundColor: "transparent"
                         }
 
@@ -107,7 +107,7 @@ Scope {
                         ListView {
                             id: notifList
                             anchors.fill: parent
-                            spacing: Config.spacing.small
+                            spacing: Tokens.spacing.small
                             clip: true
 
                             model: NotificationService.historyList

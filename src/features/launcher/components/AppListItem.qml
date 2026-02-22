@@ -21,8 +21,8 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Config.shape.medium
-        color: isCurrentItem ? Config.colors.secondaryContainer : "transparent"
+        radius: Tokens.shape.medium
+        color: isCurrentItem ? Theme.secondaryContainer : "transparent"
         opacity: isCurrentItem ? 0.12 : 0
 
         Behavior on opacity {
@@ -50,9 +50,9 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Config.spacing.medium
-        anchors.rightMargin: Config.spacing.medium
-        spacing: Config.spacing.medium
+        anchors.leftMargin: Tokens.spacing.medium
+        anchors.rightMargin: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
 
         // App Icon
         Image {

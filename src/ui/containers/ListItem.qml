@@ -16,18 +16,18 @@ Rectangle {
     // Leading element
     property alias leadingContent: leadingSlot.data
     property string leadingIcon: ""
-    property color leadingIconColor: Config.colors.onSurfaceVariant
+    property color leadingIconColor: Theme.onSurfaceVariant
 
     // Trailing element
     property alias trailingContent: trailingSlot.data
     property string trailingIcon: ""
-    property color trailingIconColor: Config.colors.onSurfaceVariant
+    property color trailingIconColor: Theme.onSurfaceVariant
 
     // Behavior
     property bool clickable: true
     property bool showStateLayer: true
 
-    property real margin: Config.spacing.medium
+    property real margin: Tokens.spacing.medium
 
     // Signals
     signal clicked()
@@ -38,13 +38,13 @@ Rectangle {
         return 56
     }
 
-    radius: Config.shape.none
+    radius: Tokens.shape.none
     color: "transparent"
 
     // State layer
     StateLayer {
         visible: root.showStateLayer && root.clickable
-        layerColor: Config.colors.onSurface
+        layerColor: Theme.onSurface
         hovered: mouseArea.containsMouse
         pressed: mouseArea.pressed
     }
@@ -52,9 +52,9 @@ Rectangle {
     // Content
     RowLayout {
         anchors.fill: parent
-        // anchors.leftMargin: Config.spacing.medium
-        // anchors.rightMargin: Config.spacing.medium
-        // spacing: Config.spacing.medium
+        // anchors.leftMargin: Tokens.spacing.medium
+        // anchors.rightMargin: Tokens.spacing.medium
+        // spacing: Tokens.spacing.medium
         anchors.leftMargin: parent.margin
         anchors.rightMargin: parent.margin
         spacing: parent.margin
@@ -70,7 +70,7 @@ Rectangle {
             MaterialIcon {
                 visible: root.leadingIcon !== "" && leadingSlot.children.length === 0
                 iconName: root.leadingIcon
-                fontSize: Config.iconSize.large
+                fontSize: Tokens.iconSize.large
                 iconColor: root.leadingIconColor
                 backgroundColor: "transparent"
             }
@@ -122,7 +122,7 @@ Rectangle {
             MaterialIcon {
                 visible: root.trailingIcon !== "" && trailingSlot.children.length === 0
                 iconName: root.trailingIcon
-                fontSize: Config.iconSize.large
+                fontSize: Tokens.iconSize.large
                 iconColor: root.trailingIconColor
                 backgroundColor: "transparent"
             }

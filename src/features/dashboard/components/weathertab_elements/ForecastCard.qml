@@ -17,13 +17,13 @@ MaterialCard {
     required property string sunrise
     required property string sunset
 
-    color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-    radius: Config.shape.medium
+    color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+    radius: Tokens.shape.medium
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.small
-        spacing: Config.spacing.extraSmall
+        anchors.margins: Tokens.spacing.small
+        spacing: Tokens.spacing.extraSmall
 
         // Day name (bold, primary color)
         MaterialText {
@@ -64,14 +64,14 @@ MaterialCard {
             colorRole: "onSurfaceVariant"
             opacity: 0.7
             Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: -Config.spacing.extraSmall
+            Layout.topMargin: -Tokens.spacing.extraSmall
         }
 
         // Weather icon (secondary color like caelesia)
         MaterialIcon {
             iconName: WeatherIcons.codeToName[weatherCode] || "cloud"
             fontSize: 48
-            iconColor: Config.colors.secondary
+            iconColor: Theme.secondary
             backgroundColor: "transparent"
             Layout.alignment: Qt.AlignHCenter
         }
@@ -113,7 +113,7 @@ MaterialCard {
                 iconName: "water_drop"
                 visible: precipProbMax > 0
                 fontSize: 12
-                iconColor: Config.colors.primary
+                iconColor: Theme.primary
                 backgroundColor: "transparent"
             }
 

@@ -15,7 +15,7 @@ Item {
 
     property var screen
 
-    implicitHeight: Math.min(600, 56 + appListView.contentHeight + Config.spacing.large * 3) + 4  // +4 для тени
+    implicitHeight: Math.min(600, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 для тени
 
     // MD3 Shadow (Elevation Level 2)
 
@@ -25,23 +25,23 @@ Item {
         anchors.margins: 2  // Отступ для тени
         outlined: false
 
-        color: Config.colors.surfaceContainer
-        radius: Config.shape.extraLarge
+        color: Theme.surfaceContainer
+        radius: Tokens.shape.extraLarge
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Config.spacing.large
-            spacing: Config.spacing.medium
+            anchors.margins: Tokens.spacing.large
+            spacing: Tokens.spacing.medium
 
             // Search Field (at top with fixed height)
             Rectangle {
                 id: searchContainer
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
-                radius: Config.shape.full
-                color: Config.colors.surfaceContainerHighest
+                radius: Tokens.shape.full
+                color: Theme.surfaceContainerHighest
                 border.width: searchField.activeFocus ? 2 : 0
-                border.color: searchField.activeFocus ? Config.colors.primary : "transparent"
+                border.color: searchField.activeFocus ? Theme.primary : "transparent"
 
                 Behavior on border.width {
                     NumberAnimation {
@@ -53,14 +53,14 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Config.spacing.small
-                    spacing: Config.spacing.small
+                    anchors.margins: Tokens.spacing.small
+                    spacing: Tokens.spacing.small
 
                     MaterialIcon {
                         Layout.preferredWidth: 24
                         Layout.preferredHeight: 24
                         iconName: "search"
-                        iconColor: Config.colors.onSurfaceVariant
+                        iconColor: Theme.onSurfaceVariant
                     }
 
                     TextField {
@@ -68,8 +68,8 @@ Item {
                         Layout.fillWidth: true
 
                         placeholderText: "Search apps..."
-                        color: Config.colors.onSurface
-                        font.pixelSize: Config.typography.bodyLarge.size
+                        color: Theme.onSurface
+                        font.pixelSize: Tokens.typography.bodyLarge.size
 
                         background: Item {}  // Transparent - используем внешний Rectangle
 
@@ -136,7 +136,7 @@ Item {
                         Layout.preferredHeight: 24
                         iconName: "close"
                         visible: searchField.text.length > 0
-                        iconSize: Config.iconSize.medium
+                        iconSize: Tokens.iconSize.medium
 
                         onClicked: {
                             searchField.text = ""
@@ -166,7 +166,7 @@ Item {
                     onValuesChanged: appListView.currentIndex = 0
                 }
 
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
                 clip: true
 
                 currentIndex: 0
@@ -186,8 +186,8 @@ Item {
                     width: appListView.width
                     height: appListView.currentItem ? appListView.currentItem.height : 0
                     y: appListView.currentItem ? appListView.currentItem.y : 0
-                    radius: Config.shape.medium
-                    color: Config.colors.secondaryContainer
+                    radius: Tokens.shape.medium
+                    color: Theme.secondaryContainer
                     opacity: 0.3
 
                     Behavior on y {

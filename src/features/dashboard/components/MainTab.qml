@@ -10,11 +10,11 @@ import qs.src.features.dashboard.components.maintab_elements
 Item {
     GridLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
         columns: 10
         rows: 6
-        columnSpacing: Config.spacing.small
-        rowSpacing: Config.spacing.small
+        columnSpacing: Tokens.spacing.small
+        rowSpacing: Tokens.spacing.small
 
         ClockElement {
             Layout.row: 0
@@ -54,8 +54,8 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
-            radius: Config.shape.large
+            color: Theme.surfaceContainerHigh
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
@@ -66,8 +66,8 @@ Item {
                 }
                 MaterialIcon {
                     iconName:  "brightness_6"
-                    iconColor: Config.colors.primary
-                    fontSize: Config.typography.titleLarge.size
+                    iconColor: Theme.primary
+                    fontSize: Tokens.typography.titleLarge.size
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -97,8 +97,8 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Config.colors.surfaceContainerHigh
-            radius: Config.shape.large
+            color: Theme.surfaceContainerHigh
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
@@ -109,8 +109,8 @@ Item {
                 }
                 MaterialIcon {
                     iconName:  "volume_up"
-                    iconColor: Config.colors.primary
-                    fontSize: Config.typography.titleLarge.size
+                    iconColor: Theme.primary
+                    fontSize: Tokens.typography.titleLarge.size
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
                 }

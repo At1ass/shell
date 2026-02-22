@@ -22,8 +22,8 @@ Scope {
 
         Behavior on implicitHeight {
             NumberAnimation {
-                duration: Config.motion.duration.medium2
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.medium2
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
         anchors {

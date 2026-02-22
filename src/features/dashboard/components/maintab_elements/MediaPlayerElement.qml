@@ -10,8 +10,8 @@ import qs.src.core.services
 
 MaterialCard {
     id: root
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
     clip: true
 
     property var player: (typeof MprisController !== 'undefined') ? MprisController.activePlayer : null
@@ -62,8 +62,8 @@ MaterialCard {
         // Overlay to dim background
         Rectangle {
             anchors.fill: parent
-            // color: Config.colors.surfaceContainerHigh
-            color: Config.colors.primaryContainer
+            // color: Theme.surfaceContainerHigh
+            color: Theme.primaryContainer
             opacity: 0.85
         }
     }
@@ -71,8 +71,8 @@ MaterialCard {
     RowLayout {
         id: mediaPlayerLayout
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
 
         ColumnLayout {
             Layout.fillWidth: true
@@ -97,7 +97,7 @@ MaterialCard {
 
             // Progress bar
             RowLayout {
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
                     text: root.formatTime(root.position)
@@ -109,18 +109,18 @@ MaterialCard {
                     Layout.fillWidth: true
                     height: 3
                     radius: 1.5
-                    color: Config.colors.surfaceContainerHighest
+                    color: Theme.surfaceContainerHighest
 
                     Rectangle {
                         width: parent.width * (root.length > 0 ? (root.position / root.length) : 0)
                         height: parent.height
                         radius: parent.radius
-                        color: Config.colors.primary
+                        color: Theme.primary
 
                         Behavior on width {
                             NumberAnimation {
-                                duration: Config.motion.duration.short4
-                                easing.type: Config.motion.easing.standard
+                                duration: Tokens.motion.duration.short4
+                                easing.type: Tokens.motion.easing.standard
                             }
                         }
                     }
@@ -158,7 +158,7 @@ MaterialCard {
                         width: modelData.primary ? 40 : 32
                         height: modelData.primary ? 40 : 32
                         radius: (modelData.primary ? 40 : 32) / 2
-                        color: modelData.primary ? Config.colors.primary : "transparent"
+                        color: modelData.primary ? Theme.primary : "transparent"
 
                         property bool isEnabled: {
                             if (modelData.action === "play") return MprisController.canTogglePlaying
@@ -172,21 +172,21 @@ MaterialCard {
                         MaterialIcon {
                             anchors.centerIn: parent
                             iconName: modelData.icon
-                            fontSize: modelData.primary ? Config.typography.titleLarge.size : Config.typography.titleMedium.size
-                            iconColor: modelData.primary ? Config.colors.onPrimary : Config.colors.onSurface
+                            fontSize: modelData.primary ? Tokens.typography.titleLarge.size : Tokens.typography.titleMedium.size
+                            iconColor: modelData.primary ? Theme.onPrimary : Theme.onSurface
                             backgroundColor: "transparent"
                         }
 
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius
-                            color: modelData.primary ? Config.colors.onPrimary : Config.colors.onSurface
+                            color: modelData.primary ? Theme.onPrimary : Theme.onSurface
                             opacity: mouseArea.containsMouse ? (mouseArea.pressed ? 0.12 : 0.08) : 0
 
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Config.motion.duration.short4
-                                    easing.type: Config.motion.easing.standard
+                                    duration: Tokens.motion.duration.short4
+                                    easing.type: Tokens.motion.easing.standard
                                 }
                             }
                         }

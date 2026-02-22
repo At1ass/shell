@@ -84,19 +84,19 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.large
-        spacing: Config.spacing.large
+        anchors.margins: Tokens.spacing.large
+        spacing: Tokens.spacing.large
 
         MaterialCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.large
-                spacing: Config.spacing.medium
+                anchors.margins: Tokens.spacing.large
+                spacing: Tokens.spacing.medium
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -104,7 +104,7 @@ Item {
                     IconButton {
                         variant: "standard"
                         iconName: "chevron_left"
-                        iconSize: Config.iconSize.large
+                        iconSize: Tokens.iconSize.large
                         onClicked: {
                             if (root.currentMonth === 0) {
                                 root.currentMonth = 11
@@ -131,7 +131,7 @@ Item {
                     IconButton {
                         variant: "standard"
                         iconName: "chevron_right"
-                        iconSize: Config.iconSize.large
+                        iconSize: Tokens.iconSize.large
                         onClicked: {
                             if (root.currentMonth === 11) {
                                 root.currentMonth = 0
@@ -177,17 +177,17 @@ Item {
                             property bool isSelected: root.isSameDate(model.date, root.selectedDate)
 
                             color: {
-                                if (isToday) return Config.colors.primary
-                                if (isSelected) return Config.colors.secondaryContainer
-                                if (dayMouseArea.containsMouse) return Config.colors.surfaceContainerHighest
+                                if (isToday) return Theme.primary
+                                if (isSelected) return Theme.secondaryContainer
+                                if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
                                 return "transparent"
                             }
 
                             border.width: isSelected && !isToday ? 2 : 0
-                            border.color: Config.colors.primary
+                            border.color: Theme.primary
 
                             Behavior on color {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
 
                             MaterialText {
@@ -223,13 +223,13 @@ Item {
         MaterialCard {
             Layout.preferredWidth: 280
             Layout.fillHeight: true
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.medium
-                spacing: Config.spacing.medium
+                anchors.margins: Tokens.spacing.medium
+                spacing: Tokens.spacing.medium
 
                 MaterialText {
                     text: Qt.formatDate(root.selectedDate, "MMMM d, yyyy")
@@ -241,7 +241,7 @@ Item {
                 ScrollableList {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: Config.spacing.small
+                    spacing: Tokens.spacing.small
 
                     Repeater {
                         model: ScriptModel {
@@ -250,8 +250,8 @@ Item {
 
                         delegate: ListItem {
                             Layout.fillWidth: true
-                            radius: Config.shape.medium
-                            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
+                            radius: Tokens.shape.medium
+                            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
 
                             headline: modelData.title
                             supportingText: modelData.time
@@ -261,10 +261,10 @@ Item {
                                 height: 48
                                 radius: 2
                                 color: {
-                                    if (modelData.color === 'primary') return Config.colors.primary
-                                    if (modelData.color === 'secondary') return Config.colors.secondary
-                                    if (modelData.color === 'tertiary') return Config.colors.tertiary
-                                    return Config.colors.primary
+                                    if (modelData.color === 'primary') return Theme.primary
+                                    if (modelData.color === 'secondary') return Theme.secondary
+                                    if (modelData.color === 'tertiary') return Theme.tertiary
+                                    return Theme.primary
                                 }
                             }
 
@@ -288,17 +288,17 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 48
-                    radius: Config.shape.medium
-                    color: addButtonMouseArea.containsMouse ? Config.colors.primary : Config.colors.primaryContainer
+                    radius: Tokens.shape.medium
+                    color: addButtonMouseArea.containsMouse ? Theme.primary : Theme.primaryContainer
 
                     RowLayout {
                         anchors.centerIn: parent
-                        spacing: Config.spacing.small
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             iconName: "add"
-                            fontSize: Config.typography.titleMedium.size
-                            iconColor: addButtonMouseArea.containsMouse ? Config.colors.onPrimary : Config.colors.onPrimaryContainer
+                            fontSize: Tokens.typography.titleMedium.size
+                            iconColor: addButtonMouseArea.containsMouse ? Theme.onPrimary : Theme.onPrimaryContainer
                             backgroundColor: "transparent"
                         }
 
@@ -310,7 +310,7 @@ Item {
                     }
 
                     Behavior on color {
-                        ColorAnimation { duration: Config.motion.duration.short4 }
+                        ColorAnimation { duration: Tokens.motion.duration.short4 }
                     }
 
                     MouseArea {

@@ -9,8 +9,8 @@ import qs.src.core.config
 
 MaterialCard {
     id: root
-    color: Config.colors.surfaceContainerHigh
-    radius: Config.shape.large
+    color: Theme.surfaceContainerHigh
+    radius: Tokens.shape.large
 
     // Properties for external menu/tooltip
     property var trayMenu: null
@@ -18,8 +18,8 @@ MaterialCard {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.small
-        spacing: Config.spacing.small
+        anchors.margins: Tokens.spacing.small
+        spacing: Tokens.spacing.small
 
         Repeater {
             model: SystemTray.items
@@ -38,13 +38,13 @@ MaterialCard {
                     id: iconBackground
                     anchors.fill: parent
                     color: "transparent"
-                    radius: Config.shape.medium
+                    radius: Tokens.shape.medium
                 }
 
                 // StateLayer for MD3 interaction (under icon)
                 StateLayer {
                     anchors.fill: parent
-                    layerColor: Config.colors.onSurface
+                    layerColor: Theme.onSurface
                     hovered: trayMouseArea.containsMouse
                     pressed: trayMouseArea.pressed
                 }

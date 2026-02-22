@@ -15,7 +15,7 @@ Item {
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: Config.spacing.medium
+        spacing: Tokens.spacing.medium
 
         // Icon container (MD3 spec: 64-80dp circle)
         Rectangle {
@@ -23,13 +23,13 @@ Item {
             width: root.iconContainerSize
             height: root.iconContainerSize
             radius: root.iconContainerSize / 2
-            color: Config.colors.surfaceContainerHighest
+            color: Theme.surfaceContainerHighest
 
             MaterialIcon {
                 anchors.centerIn: parent
                 iconName: root.iconName
                 fontSize: root.iconSize
-                iconColor: Config.colors.onSurfaceVariant
+                iconColor: Theme.onSurfaceVariant
                 backgroundColor: "transparent"
                 opacity: 0.6
             }

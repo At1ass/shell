@@ -23,7 +23,7 @@ BarElement {
     property var popouts: null
 
     property int iconSize: widgetSettings.iconSize ?? 20
-    property int itemSpacing: widgetSettings.spacing ?? Config.spacing.small
+    property int itemSpacing: widgetSettings.spacing ?? Tokens.spacing.small
 
     // clickHandler: function(mouse) {
     //     if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
@@ -69,12 +69,12 @@ BarElement {
                 id: trayItem
                 required property SystemTrayItem modelData
 
-                width: root.iconSize + Config.spacing.extraSmall * 2
-                height: root.iconSize + Config.spacing.extraSmall * 2
+                width: root.iconSize + Tokens.spacing.extraSmall * 2
+                height: root.iconSize + Tokens.spacing.extraSmall * 2
 
                 StateLayer {
                     anchors.fill: parent
-                    layerColor: Config.colors.onSurface
+                    layerColor: Theme.onSurface
                     hovered: trayMouseArea.containsMouse
                     pressed: trayMouseArea.pressed
                 }

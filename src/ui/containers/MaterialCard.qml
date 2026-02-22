@@ -7,8 +7,8 @@ Pane {
 
     // property bool outlined: true
     property bool outlined: false
-    property color color: Config.colors.surfaceContainerHigh
-    property int radius: Config.shape.large
+    property color color: Theme.surfaceContainerHigh
+    property int radius: Tokens.shape.large
 
     clip: true  // если хотите, чтобы контент не вылезал за скругления
     padding: 0
@@ -17,11 +17,11 @@ Pane {
     topPadding: 0
     bottomPadding: 0
     background: Rectangle {
-        // radius: Config.shape.large
-        // color: Config.colors.surfaceContainerHigh
+        // radius: Tokens.shape.large
+        // color: Theme.surfaceContainerHigh
         radius: card.radius
         color: Qt.alpha(card.color, 0.85)
         border.width: outlined ? 1 : 0
-        border.color: outlined ? Config.colors.outlineVariant : "transparent"
+        border.color: outlined ? Theme.outlineVariant : "transparent"
     }
 }

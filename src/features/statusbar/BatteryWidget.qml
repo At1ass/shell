@@ -34,13 +34,13 @@ BarElement {
     }
 
     RowLayout {
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
             visible: root.showIcon
             iconName: root.batteryIcon(root.percentage, root.charging, root.deviceReady)
-            fontSize: Config.typography.titleLarge.size
-            iconColor: Config.colors.onSurface
+            fontSize: Tokens.typography.titleLarge.size
+            iconColor: Theme.onSurface
             color: "transparent"
         }
 

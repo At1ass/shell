@@ -11,11 +11,11 @@ import qs.src.features.dashboard.components.audiotab_elements
 Item {
     GridLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.medium
+        anchors.margins: Tokens.spacing.medium
         columns: 5
         rows: 4
-        columnSpacing: Config.spacing.small
-        rowSpacing: Config.spacing.small
+        columnSpacing: Tokens.spacing.small
+        rowSpacing: Tokens.spacing.small
 
         // ===== ROW 0, COL 0: CLOCK =====
         // ClockElement {
@@ -101,12 +101,12 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.small
+                anchors.margins: Tokens.spacing.small
 
                 Item {
                     Layout.fillWidth: true
@@ -115,8 +115,8 @@ Item {
 
                 MaterialIcon {
                     iconName: "brightness_6"
-                    iconColor: Config.colors.primary
-                    fontSize: Config.typography.headlineSmall.size
+                    iconColor: Theme.primary
+                    fontSize: Tokens.typography.headlineSmall.size
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -149,12 +149,12 @@ Item {
             Layout.columnSpan: 1
             Layout.preferredWidth: 70
             Layout.fillHeight: true
-            color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-            radius: Config.shape.large
+            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+            radius: Tokens.shape.large
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Config.spacing.small
+                anchors.margins: Tokens.spacing.small
 
                 Item {
                     Layout.fillWidth: true
@@ -163,8 +163,8 @@ Item {
 
                 MaterialIcon {
                     iconName: AudioService.masterMuted ? "volume_off" : "volume_up"
-                    iconColor: Config.colors.onSurfaceVariant
-                    fontSize: Config.typography.headlineSmall.size
+                    iconColor: Theme.onSurfaceVariant
+                    fontSize: Tokens.typography.headlineSmall.size
                     backgroundColor: "transparent"
                     Layout.alignment: Qt.AlignHCenter
                     MouseArea {

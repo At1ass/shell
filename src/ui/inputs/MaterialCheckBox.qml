@@ -8,24 +8,24 @@ import qs.src.ui.base
 CheckBox {
     id: control
 
-    spacing: Config.spacing.small
+    spacing: Tokens.spacing.small
     leftPadding: 0
 
     indicator: Rectangle {
         width: 18
         height: 18
         y: parent.height / 2 - height / 2
-        radius: Config.shape.small
+        radius: Tokens.shape.small
         color: control.checked
-               ? (control.enabled ? Config.colors.primary : Config.colors.surfaceContainerHigh)
-               : Config.colors.surface
+               ? (control.enabled ? Theme.primary : Theme.surfaceContainerHigh)
+               : Theme.surface
         border.width: control.checked ? 0 : 1
-        border.color: control.checked ? Qt.rgba(0, 0, 0, 0) : Config.colors.outline
+        border.color: control.checked ? Qt.rgba(0, 0, 0, 0) : Theme.outline
 
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: Config.colors.primary
+            color: Theme.primary
             opacity: (!control.checked && control.hovered && control.enabled) ? 0.08 : 0
         }
 

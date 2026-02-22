@@ -11,20 +11,20 @@ MaterialCard {
     property string iconName
     property string label
     property string value
-    property color iconColor: Config.colors.primary
+    property color iconColor: Theme.primary
 
     Layout.preferredHeight: 70
-    color: Qt.alpha(Config.colors.surfaceContainerHigh, 0.80)
-    radius: Config.shape.medium
+    color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+    radius: Tokens.shape.medium
 
     RowLayout {
         anchors.centerIn: parent
-        spacing: Config.spacing.medium
+        spacing: Tokens.spacing.medium
 
         // Icon
         MaterialIcon {
             iconName: root.iconName
-            fontSize: Config.typography.headlineMedium.size
+            fontSize: Tokens.typography.headlineMedium.size
             iconColor: root.iconColor
             backgroundColor: "transparent"
             Layout.alignment: Qt.AlignVCenter

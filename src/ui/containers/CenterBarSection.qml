@@ -11,6 +11,6 @@ Item {
     RowLayout {
         id: root
         anchors.centerIn: parent
-        spacing: Config.spacing.medium
+        spacing: Tokens.spacing.medium
     }
 }

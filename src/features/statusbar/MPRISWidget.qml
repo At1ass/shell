@@ -31,7 +31,7 @@ BarElement {
     // Show when there's an active player
     visible: (typeof MprisController !== 'undefined') && MprisController.activePlayer !== null
 
-    implicitWidth: content.implicitWidth + Config.spacing.small * 2
+    implicitWidth: content.implicitWidth + Tokens.spacing.small * 2
 
     nonVisualChildren: [
         // Simple hover tooltip for track info
@@ -70,14 +70,14 @@ BarElement {
     // Main content - compact display on bar
     RowLayout {
         id: content
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
             visible: root.showIcon
             iconName: "music_note"
-            fontSize: Config.typography.titleLarge.size
-            // iconColor: Config.colors.onSurface
-            iconColor: (root.hovered ? Config.colors.primary : Config.colors.onSurface)
+            fontSize: Tokens.typography.titleLarge.size
+            // iconColor: Theme.onSurface
+            iconColor: (root.hovered ? Theme.primary : Theme.onSurface)
             color: "transparent"
         }
 
@@ -113,8 +113,8 @@ BarElement {
         //
         //                 Behavior on Layout.maximumWidth {
         //                     NumberAnimation {
-        //                         duration: Config.motion.duration.short4
-        //                         easing.type: Config.motion.easing.standard
+        //                         duration: Tokens.motion.duration.short4
+        //                         easing.type: Tokens.motion.easing.standard
         //                     }
         //                 }
         //             }
@@ -152,8 +152,8 @@ BarElement {
             // Behavior on Layout.maximumWidth {
             Behavior on Layout.preferredWidth {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
-                    easing.type: Config.motion.easing.standard
+                    duration: Tokens.motion.duration.short4
+                    easing.type: Tokens.motion.easing.standard
                 }
             }
         }
@@ -162,11 +162,11 @@ BarElement {
         IconButton {
             variant: "standard"
             iconName: "skip_previous"
-            iconSize: Config.iconSize.large
+            iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: enabled ? (root.hovered ? Config.colors.primary : Config.colors.onSurface) : Config.colors.onSurfaceVariant
+            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -177,7 +177,7 @@ BarElement {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
+                    duration: Tokens.motion.duration.short4
                 }
             }
         }
@@ -186,12 +186,12 @@ BarElement {
         IconButton {
             variant: "standard"
             iconName: MprisController.isPlaying ? "pause" : "play_arrow"
-            iconSize: Config.iconSize.large
+            iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
-            // iconColor: Config.colors.onSurface
-            iconColor: enabled ? (root.hovered ? Config.colors.primary : Config.colors.onSurface) : Config.colors.onSurfaceVariant
+            // iconColor: Theme.onSurface
+            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
             visible: true
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -205,12 +205,12 @@ BarElement {
         IconButton {
             variant: "standard"
             iconName: "skip_next"
-            iconSize: Config.iconSize.large
+            iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            // iconColor: enabled ? Config.colors.onSurface : Config.colors.onSurfaceVariant
-            iconColor: enabled ? (root.hovered ? Config.colors.primary : Config.colors.onSurface) : Config.colors.onSurfaceVariant
+            // iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
+            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -221,7 +221,7 @@ BarElement {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.short4
+                    duration: Tokens.motion.duration.short4
                 }
             }
         }

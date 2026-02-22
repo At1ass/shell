@@ -42,7 +42,7 @@ StackView {
             property bool isSubMenu
             property bool shown
 
-            padding: Config.spacing.extraSmall / 2
+            padding: Tokens.spacing.extraSmall / 2
             spacing: 1
 
             opacity: shown ? 1 : 0
@@ -55,17 +55,17 @@ StackView {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.motion.duration.medium4
+                    duration: Tokens.motion.duration.medium4
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Config.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standard
                 }
             }
 
             Behavior on scale {
                 NumberAnimation {
-                    duration: Config.motion.duration.medium4
+                    duration: Tokens.motion.duration.medium4
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Config.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standard
                 }
             }
 
@@ -85,8 +85,8 @@ StackView {
                     implicitWidth: 220
                     implicitHeight: modelData.isSeparator ? 1 : children.implicitHeight
 
-                    radius: Config.shape.medium
-                    color: modelData.isSeparator ? Config.colors.outlineVariant : "transparent"
+                    radius: Tokens.shape.medium
+                    color: modelData.isSeparator ? Theme.outlineVariant : "transparent"
                     border.width: 0
 
                     Loader {
@@ -99,7 +99,7 @@ StackView {
                         asynchronous: true
 
                         sourceComponent: Item {
-                            implicitHeight: label.implicitHeight + Config.spacing.extraSmall
+                            implicitHeight: label.implicitHeight + Tokens.spacing.extraSmall
 
                             MouseArea {
                                 id: mouseArea
@@ -132,7 +132,7 @@ StackView {
                                 id: icon
 
                                 anchors.left: parent.left
-                                anchors.leftMargin: Config.spacing.extraSmall
+                                anchors.leftMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 active: item.modelData.icon !== ""
@@ -141,7 +141,7 @@ StackView {
                                 sourceComponent: MaterialIcon {
                                     iconName: item.modelData.icon
                                     iconColor: item.modelData.enabled ? "onSurface" : "outline"
-                                    fontSize: Config.typography.titleMedium.size
+                                    fontSize: Tokens.typography.titleMedium.size
                                 }
                             }
 
@@ -149,9 +149,9 @@ StackView {
                                 id: label
 
                                 anchors.left: icon.active ? icon.right : parent.left
-                                anchors.leftMargin: Config.spacing.extraSmall
+                                anchors.leftMargin: Tokens.spacing.extraSmall
                                 anchors.right: rightIcon.left
-                                anchors.rightMargin: Config.spacing.extraSmall
+                                anchors.rightMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 text: item.modelData.text
@@ -164,13 +164,13 @@ StackView {
                                 id: rightIcon
 
                                 anchors.right: parent.right
-                                anchors.rightMargin: Config.spacing.extraSmall
+                                anchors.rightMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 visible: item.modelData.hasChildren
                                 iconName: "chevron_right"
                                 iconColor: item.modelData.enabled ? "onSurface" : "outline"
-                                fontSize: Config.typography.titleMedium.size
+                                fontSize: Tokens.typography.titleMedium.size
                             }
                         }
                     }

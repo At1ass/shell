@@ -18,6 +18,6 @@ Rectangle {
     height: vertical ? (parent ? parent.height : 0) : 1
 
     // MD3 spec: outlineVariant color, no additional opacity
-    color: Config.colors.outlineVariant
+    color: Theme.outlineVariant
     opacity: 1.0
 }

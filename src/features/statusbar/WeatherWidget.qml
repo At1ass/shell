@@ -29,7 +29,7 @@ BarElement {
     }
 
     RowLayout {
-        spacing: Config.spacing.extraSmall
+        spacing: Tokens.spacing.extraSmall
 
         MaterialText {
             visible: root.showLocation
@@ -42,8 +42,8 @@ BarElement {
             visible: root.showIcon
             // iconName: root.batteryIcon(root.percentage, root.charging, root.deviceReady)
             iconName: Weather.icon
-            fontSize: Config.typography.titleLarge.size
-            iconColor: root.hovered ? Config.colors.primary : Config.colors.onSurface
+            fontSize: Tokens.typography.titleLarge.size
+            iconColor: root.hovered ? Theme.primary : Theme.onSurface
             color: "transparent"
         }
 

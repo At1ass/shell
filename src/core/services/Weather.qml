@@ -8,7 +8,7 @@ Singleton {
     id: store
 
     // --- Конфиг ---
-    property string location: Config.weather.location
+    property string location: AppConfig.weatherLocation
     property real latitude: 53.2  // Пенза по умолчанию
     property real longitude: 45.0
     property int refreshMinutes: 15

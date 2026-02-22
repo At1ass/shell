@@ -25,8 +25,8 @@ Rectangle {
     // MD3 animation
     Behavior on opacity {
         NumberAnimation {
-            duration: Config.motion.duration.short4
-            easing.type: Config.motion.easing.emphasizedDecelerate
+            duration: Tokens.motion.duration.short4
+            easing.type: Tokens.motion.easing.emphasizedDecelerate
         }
     }
 
@@ -43,16 +43,16 @@ Rectangle {
         width: root.dialogWidth
         height: root.dialogHeight
 
-        color: Config.colors.surfaceContainerHigh
-        radius: Config.shape.extraLarge
+        color: Theme.surfaceContainerHigh
+        radius: Tokens.shape.extraLarge
 
         // Scale animation (MD3 spec: 0.8 → 1.0)
         scale: root.opacity * 0.2 + 0.8
 
         Behavior on scale {
             NumberAnimation {
-                duration: Config.motion.duration.short4
-                easing.type: Config.motion.easing.emphasizedDecelerate
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
 
@@ -84,7 +84,7 @@ Rectangle {
 
     Timer {
         id: closeTimer
-        interval: Config.motion.duration.short4
+        interval: Tokens.motion.duration.short4
         onTriggered: {
             root.visible = false
             closed()

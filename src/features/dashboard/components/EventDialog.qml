@@ -43,8 +43,8 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Config.spacing.large
-        spacing: Config.spacing.medium
+        anchors.margins: Tokens.spacing.large
+        spacing: Tokens.spacing.medium
 
         // Header
         MaterialText {
@@ -57,7 +57,7 @@ Dialog {
         // Title field
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.extraSmall
+            spacing: Tokens.spacing.extraSmall
 
             MaterialText {
                 text: "Title"
@@ -69,26 +69,26 @@ Dialog {
                 id: titleField
                 Layout.fillWidth: true
                 placeholderText: "Event title"
-                color: Config.colors.onSurface
-                font.pixelSize: Config.typography.bodyLarge.size
+                color: Theme.onSurface
+                font.pixelSize: Tokens.typography.bodyLarge.size
                 background: Rectangle {
-                    radius: Config.shape.small
-                    color: Config.colors.surfaceContainerHighest
+                    radius: Tokens.shape.small
+                    color: Theme.surfaceContainerHighest
                     border.width: titleField.activeFocus ? 2 : 1
-                    border.color: titleField.activeFocus ? Config.colors.primary : Config.colors.outline
+                    border.color: titleField.activeFocus ? Theme.primary : Theme.outline
                 }
-                padding: Config.spacing.small
+                padding: Tokens.spacing.small
             }
         }
 
         // Time fields
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.medium
+            spacing: Tokens.spacing.medium
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
                     text: "Start time"
@@ -100,22 +100,22 @@ Dialog {
                     id: startTimeField
                     Layout.fillWidth: true
                     placeholderText: "HH:MM"
-                    color: Config.colors.onSurface
-                    font.pixelSize: Config.typography.bodyLarge.size
+                    color: Theme.onSurface
+                    font.pixelSize: Tokens.typography.bodyLarge.size
                     inputMask: "99:99"
                     background: Rectangle {
-                        radius: Config.shape.small
-                        color: Config.colors.surfaceContainerHighest
+                        radius: Tokens.shape.small
+                        color: Theme.surfaceContainerHighest
                         border.width: startTimeField.activeFocus ? 2 : 1
-                        border.color: startTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
+                        border.color: startTimeField.activeFocus ? Theme.primary : Theme.outline
                     }
-                    padding: Config.spacing.small
+                    padding: Tokens.spacing.small
                 }
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Config.spacing.extraSmall
+                spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
                     text: "End time"
@@ -127,16 +127,16 @@ Dialog {
                     id: endTimeField
                     Layout.fillWidth: true
                     placeholderText: "HH:MM"
-                    color: Config.colors.onSurface
-                    font.pixelSize: Config.typography.bodyLarge.size
+                    color: Theme.onSurface
+                    font.pixelSize: Tokens.typography.bodyLarge.size
                     inputMask: "99:99"
                     background: Rectangle {
-                        radius: Config.shape.small
-                        color: Config.colors.surfaceContainerHighest
+                        radius: Tokens.shape.small
+                        color: Theme.surfaceContainerHighest
                         border.width: endTimeField.activeFocus ? 2 : 1
-                        border.color: endTimeField.activeFocus ? Config.colors.primary : Config.colors.outline
+                        border.color: endTimeField.activeFocus ? Theme.primary : Theme.outline
                     }
-                    padding: Config.spacing.small
+                    padding: Tokens.spacing.small
                 }
             }
         }
@@ -144,7 +144,7 @@ Dialog {
         // Priority/Color selector
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.extraSmall
+            spacing: Tokens.spacing.extraSmall
 
             MaterialText {
                 text: "Priority"
@@ -165,22 +165,22 @@ Dialog {
 
                     Repeater {
                         model: [
-                            { color: "primary", label: "High", displayColor: Config.colors.primary },
-                            { color: "secondary", label: "Medium", displayColor: Config.colors.secondary },
-                            { color: "tertiary", label: "Low", displayColor: Config.colors.tertiary }
+                            { color: "primary", label: "High", displayColor: Theme.primary },
+                            { color: "secondary", label: "Medium", displayColor: Theme.secondary },
+                            { color: "tertiary", label: "Low", displayColor: Theme.tertiary }
                         ]
 
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            radius: Config.shape.small
+                            radius: Tokens.shape.small
                             color: colorSegmented.selectedColor === modelData.color ?
-                                   modelData.displayColor : Config.colors.surfaceContainerHighest
+                                   modelData.displayColor : Theme.surfaceContainerHighest
                             border.width: 1
                             border.color: modelData.displayColor
 
                             Behavior on color {
-                                ColorAnimation { duration: Config.motion.duration.short4 }
+                                ColorAnimation { duration: Tokens.motion.duration.short4 }
                             }
 
                             MaterialText {
@@ -208,15 +208,15 @@ Dialog {
         // Action buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: Config.spacing.small
+            spacing: Tokens.spacing.small
 
             // Delete button (only in edit mode)
             IconButton {
                 visible: root.isEditMode
                 variant: "standard"
                 iconName: "delete"
-                iconSize: Config.iconSize.large
-                iconColor: Config.colors.error
+                iconSize: Tokens.iconSize.large
+                iconColor: Theme.error
                 onClicked: {
                     if (root.eventData && root.eventData.id) {
                         eventDeleted(root.eventData.id)

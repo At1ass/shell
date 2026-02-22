@@ -87,7 +87,7 @@ Scope {
             anchor {
                 window: bar
                 rect.x: tooltipItem.targetX
-                rect.y: bar.height + Config.spacing.small
+                rect.y: bar.height + Tokens.spacing.small
                 adjustment: PopupAdjustment.Slide
             }
 
@@ -153,12 +153,12 @@ Scope {
                         const targetCenter = ownerGlobal.x + shownItem.owner.width / 2
                         // Центрируем tooltip под элементом, но не даем выехать за границы
                         const tooltipLeft = targetCenter - targetWidth / 2
-                        const screenMargin = Config.spacing.medium
+                        const screenMargin = Tokens.spacing.medium
                         const maxLeft = bar.width - targetWidth - screenMargin
 
                         return Math.max(screenMargin, Math.min(maxLeft, tooltipLeft))
                     } catch (e) {
-                        return Config.spacing.medium
+                        return Tokens.spacing.medium
                     }
                 }
 
@@ -170,14 +170,14 @@ Scope {
                 // Background
                 Rectangle {
                     anchors.fill: parent
-                    color: Config.colors.surfaceContainerHigh
-                    radius: Config.shape.large
+                    color: Theme.surfaceContainerHigh
+                    radius: Tokens.shape.large
 
                     // Elevation shadow effect
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
-                        border.color: Config.colors.outline
+                        border.color: Theme.outline
                         border.width: 1
                         radius: parent.radius
                         opacity: 0.12
@@ -186,7 +186,7 @@ Scope {
                     // Primary tint
                     Rectangle {
                         anchors.fill: parent
-                        color: Config.colors.primary
+                        color: Theme.primary
                         radius: parent.radius
                         opacity: 0.08
                     }
