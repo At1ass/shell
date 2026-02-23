@@ -100,6 +100,14 @@ void McuTheme::setSource(const QVariant& v) {
         m_kind     = SourceKind::Color;
         m_seedArgb = qcolorToArgb(c);
         m_valid    = false; // будет true после generateColorScheme
+
+        // Luminance из QColor (Rec. 709)
+        const qreal lum = 0.2126 * c.redF() + 0.7152 * c.greenF() + 0.0722 * c.blueF();
+        if (!qFuzzyCompare(m_luminance, lum)) {
+            m_luminance = lum;
+            emit luminanceChanged();
+        }
+
         emit sourceChanged();
         applySeed();
         return;
@@ -124,10 +132,11 @@ void McuTheme::setSource(const QVariant& v) {
 
         m_seedFuture = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, u]() {
             uint32_t seed = 0;
-            const bool ok = extractSeedFromImage(u, seed);
+            qreal luminance = 0.5;
+            const bool ok = extractSeedFromImage(u, seed, luminance);
             auto* app = QCoreApplication::instance();
             if (!app) return;
-            QMetaObject::invokeMethod(app, [guard, requestId, ok, seed, u]() {
+            QMetaObject::invokeMethod(app, [guard, requestId, ok, seed, luminance, u]() {
                 if (!guard) return;
                 if (requestId != guard->m_seedRequest)
                     return;
@@ -140,6 +149,10 @@ void McuTheme::setSource(const QVariant& v) {
                     return;
                 }
                 guard->m_seedArgb = seed;
+                if (!qFuzzyCompare(guard->m_luminance, luminance)) {
+                    guard->m_luminance = luminance;
+                    emit guard->luminanceChanged();
+                }
                 guard->applySeed();
             }, Qt::QueuedConnection);
         });
@@ -172,7 +185,7 @@ void McuTheme::setContrast(double contrast) {
     applySeed();
 }
 
-bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed) {
+bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed, qreal& outLuminance) {
     QString path;
     if (url.isLocalFile() || url.scheme() == "file")
         path = url.toLocalFile();
@@ -185,11 +198,28 @@ bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed) {
     }
 
     const int w = img.width(), h = img.height();
-    std::vector<uint32_t> pixels(size_t(w) * size_t(h));
+    const size_t pixelCount = size_t(w) * size_t(h);
+    std::vector<uint32_t> pixels(pixelCount);
+
+    // Копируем пиксели и одновременно считаем luminance (Rec. 709)
+    double lumSum = 0.0;
+    size_t lumCount = 0;
     for (int y = 0; y < h; ++y) {
         const uint32_t* row = reinterpret_cast<const uint32_t*>(img.constScanLine(y));
-        std::copy(row, row + w, pixels.begin() + size_t(y) * size_t(w));
+        const size_t offset = size_t(y) * size_t(w);
+        for (int x = 0; x < w; ++x) {
+            const uint32_t px = row[x];
+            pixels[offset + size_t(x)] = px;
+            const uint8_t a = (px >> 24) & 0xFF;
+            if (a == 0) continue;
+            const double r = ((px >> 16) & 0xFF) / 255.0;
+            const double g = ((px >> 8)  & 0xFF) / 255.0;
+            const double b = ( px        & 0xFF) / 255.0;
+            lumSum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            ++lumCount;
+        }
     }
+    outLuminance = lumCount > 0 ? (lumSum / lumCount) : 0.5;
 
     auto quant  = QuantizeCelebi(pixels, 128);
     auto ranked = material_color_utilities::RankedSuggestions(quant.color_to_count);

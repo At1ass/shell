@@ -10,3 +10,4 @@ add_subdirectory(external/mcu-cpp)  # делает target mcu-cpp, см. их CM
 add_subdirectory(src/mcu-qml)
 add_subdirectory(src/qalculate-qml)
 add_subdirectory(src/system-monitor-qml)
+add_subdirectory(src/fuzzy-search-qml)

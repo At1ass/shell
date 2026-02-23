@@ -28,6 +28,9 @@ class McuTheme : public QObject {
     Q_PROPERTY(bool valid   READ valid   NOTIFY validChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
+    // Яркость изображения-источника (Rec. 709, диапазон 0.0–1.0)
+    Q_PROPERTY(qreal luminance READ luminance NOTIFY luminanceChanged)
+
 public:
     explicit McuTheme(QObject* parent = nullptr);
     ~McuTheme() override;
@@ -52,6 +55,7 @@ public:
     // Состояние
     bool valid()   const { return m_valid; }
     bool loading() const { return m_loading; }
+    qreal luminance() const { return m_luminance; }
 
 signals:
     void sourceChanged();
@@ -61,6 +65,7 @@ signals:
     void colorsChanged();
     void validChanged();
     void loadingChanged();
+    void luminanceChanged();
 
 private:
     enum class SourceKind { None, Color, Image };
@@ -68,7 +73,7 @@ private:
     // Внутренние утилиты
     static uint32_t qcolorToArgb(const QColor& c);
     static QString  argbToHex(uint32_t argb);
-    static bool     extractSeedFromImage(const QUrl& url, uint32_t& outSeed);
+    static bool     extractSeedFromImage(const QUrl& url, uint32_t& outSeed, qreal& outLuminance);
 
     // Основные шаги пайплайна
     void applySeed();                              // Пересчитать схему из m_seedArgb (без повторного чтения)
@@ -86,6 +91,7 @@ private:
     bool       m_loading  = false;
     SourceKind m_kind     = SourceKind::None;
     uint32_t   m_seedArgb = 0;        // кэш «семени» (из цвета или картинки)
+    qreal      m_luminance = 0.5;    // яркость источника (Rec. 709)
 
     // Результат
     QVariantMap m_colors;

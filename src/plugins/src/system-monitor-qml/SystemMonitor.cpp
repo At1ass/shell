@@ -562,6 +562,35 @@ void SystemMonitor::initializeStaticInfo()
     }
     emit userNameChanged();
 
+    // OS name from /etc/os-release
+    for (const auto& path : {"/etc/os-release", "/usr/lib/os-release"}) {
+        QFile osRelease(path);
+        if (osRelease.open(QIODevice::ReadOnly)) {
+            while (!osRelease.atEnd()) {
+                const QString line = QString::fromUtf8(osRelease.readLine()).trimmed();
+                if (line.startsWith(QStringLiteral("PRETTY_NAME="))) {
+                    m_osName = line.mid(12);
+                    // Убираем кавычки
+                    if (m_osName.startsWith('"') && m_osName.endsWith('"'))
+                        m_osName = m_osName.mid(1, m_osName.size() - 2);
+                    break;
+                }
+            }
+            if (!m_osName.isEmpty()) break;
+        }
+    }
+    if (m_osName.isEmpty())
+        m_osName = QStringLiteral("Linux");
+
+    // WM/DE from environment
+    m_wmName = qEnvironmentVariable("XDG_CURRENT_DESKTOP");
+    if (m_wmName.isEmpty())
+        m_wmName = qEnvironmentVariable("XDG_SESSION_DESKTOP");
+    if (m_wmName.isEmpty())
+        m_wmName = qEnvironmentVariable("DESKTOP_SESSION");
+    if (m_wmName.isEmpty())
+        m_wmName = QStringLiteral("Unknown");
+
     // CPU model
     QFile cpuinfo("/proc/cpuinfo");
     if (cpuinfo.open(QIODevice::ReadOnly)) {

@@ -97,8 +97,8 @@ public:
 
     // System info getters
     QString userName() const { return m_userName; }
-    QString osName() const { return QStringLiteral("Arch Linux"); }
-    QString wmName() const { return QStringLiteral("Hyprland"); }
+    QString osName() const { return m_osName; }
+    QString wmName() const { return m_wmName; }
 
     bool isMonitoring() const { return m_isMonitoring; }
     bool hasCpuTemp() const { return m_hasCpuTemp; }
@@ -159,6 +159,8 @@ private:
 
     // System info
     QString m_userName;
+    QString m_osName;
+    QString m_wmName;
 
     bool m_isMonitoring = false;
     bool m_hasCpuTemp = false;

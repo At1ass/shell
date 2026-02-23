@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import FuzzySearch
 
 // Сервис для работы с историей буфера обмена через cliphist
 Singleton {
@@ -130,54 +131,24 @@ Singleton {
         safeDeleteEntry(entry)
     }
 
-    // Простой fuzzy search
+    // Fuzzy search через C++ rapidfuzz
     function fuzzySearch(query) {
         if (!query || query.trim() === "") {
-            return preparedEntries.slice(0, 20) // Top 20 recent
+            return preparedEntries.slice(0, 20)
         }
 
-        const queryLower = query.toLowerCase()
+        const contents = preparedEntries.map(e => e.content)
+        const hits = FuzzySearch.match(query, contents, 20, 30.0)
         const results = []
-
-        for (let i = 0; i < preparedEntries.length; i++) {
-            const item = preparedEntries[i]
-            const contentLower = item.content.toLowerCase()
-
-            // Substring match или fuzzy match
-            if (contentLower.includes(queryLower)) {
-                // Exact substring - высокий score
-                const score = contentLower.startsWith(queryLower) ? 100 : 50
-                results.push({
-                    entry: item.entry,
-                    content: item.content,
-                    score: score
-                })
-            } else if (fuzzyMatch(contentLower, queryLower)) {
-                // Fuzzy match - низкий score
-                results.push({
-                    entry: item.entry,
-                    content: item.content,
-                    score: 10
-                })
-            }
+        for (let i = 0; i < hits.length; i++) {
+            const idx = hits[i].index
+            results.push({
+                entry: preparedEntries[idx].entry,
+                content: preparedEntries[idx].content,
+                score: hits[i].score
+            })
         }
-
-        // Сортируем по score (descending)
-        results.sort((a, b) => b.score - a.score)
-
-        // Ограничиваем до 20 результатов
-        return results.slice(0, 20)
-    }
-
-    // Fuzzy matching algorithm
-    function fuzzyMatch(text, query) {
-        let queryIndex = 0
-        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
-            if (text[i] === query[queryIndex]) {
-                queryIndex++
-            }
-        }
-        return queryIndex === query.length
+        return results
     }
 
     // Проверка, является ли запись изображением
