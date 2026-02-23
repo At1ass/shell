@@ -6,6 +6,7 @@ import Quickshell.Services.Notifications
 import qs.src.core.services
 import qs.src.core.config
 import qs.src.ui.base as Base
+import qs.src.ui.feedback
 
 Rectangle {
     id: root
@@ -101,7 +102,7 @@ Rectangle {
                     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                            ? Theme.onErrorContainer
                            : Theme.onSurface
-                    font.pixelSize: 12
+                    font.pixelSize: Tokens.typography.labelSmall.size
                 }
 
                 Label {
@@ -111,7 +112,7 @@ Rectangle {
                     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                            ? Theme.onErrorContainer
                            : Theme.onSurface
-                    font.pixelSize: 14
+                    font.pixelSize: Tokens.typography.bodyMedium.size
                 }
             }
 
@@ -128,31 +129,22 @@ Rectangle {
                     radius: width / 2
                     color: "transparent"
 
-                    // State layer
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? Theme.onErrorContainer
-                               : Theme.onSurface
-                        opacity: closeMouseArea.pressed ? Tokens.stateLayer.pressedOpacity :
-                                 closeMouseArea.containsMouse ? Tokens.stateLayer.hoverOpacity : 0.0
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: Tokens.motion.duration.short4
-                                easing.type: Tokens.motion.easing.standard
-                            }
-                        }
+                    StateLayer {
+                        layerColor: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
+                                    ? Theme.onErrorContainer
+                                    : Theme.onSurface
+                        hovered: closeMouseArea.containsMouse
+                        pressed: closeMouseArea.pressed
                     }
 
-                    Text {
+                    Base.MaterialIcon {
                         anchors.centerIn: parent
-                        text: "×"
-                        font.pixelSize: 20
-                        color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? Theme.onErrorContainer
-                               : Theme.onSurfaceVariant
+                        iconName: "close"
+                        fontSize: Tokens.typography.titleMedium.size
+                        iconColor: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
+                                   ? Theme.onErrorContainer
+                                   : Theme.onSurfaceVariant
+                        backgroundColor: "transparent"
                     }
                 }
 
@@ -178,7 +170,7 @@ Rectangle {
             color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                    ? Theme.onErrorContainer
                    : Theme.onSurfaceVariant
-            font.pixelSize: 12
+            font.pixelSize: Tokens.typography.bodySmall.size
         }
 
         Repeater {

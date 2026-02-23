@@ -42,22 +42,16 @@ Singleton {
         }
     }
 
-    // Monitor connected devices
+    // Monitor connected devices (only when Bluetooth is enabled)
     Timer {
         interval: 2000
-        running: true
+        running: root.enabled
         repeat: true
+        triggeredOnStart: true
 
         onTriggered: {
-            if (!adapter || !adapter.enabled) {
-                root.connected = false
-                root.connectedDeviceCount = 0
-                return
-            }
-
-            // Count connected devices
             let count = 0
-            const devices = adapter.devices || []
+            const devices = adapter?.devices || []
 
             for (let i = 0; i < devices.length; i++) {
                 if (devices[i] && devices[i].connected) {
@@ -67,6 +61,13 @@ Singleton {
 
             root.connected = count > 0
             root.connectedDeviceCount = count
+        }
+    }
+
+    onEnabledChanged: {
+        if (!enabled) {
+            root.connected = false
+            root.connectedDeviceCount = 0
         }
     }
 
