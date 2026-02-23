@@ -12,7 +12,6 @@ import qs.src.core.services
 BarElement {
     id: root
     hoverable: true
-    // clickable: widgetConfig?.clickAction ? true : false
     clickable: false
     minWidth: 48
 
@@ -25,40 +24,6 @@ BarElement {
     property int iconSize: widgetSettings.iconSize ?? 20
     property int itemSpacing: widgetSettings.spacing ?? Tokens.spacing.small
 
-    // clickHandler: function(mouse) {
-    //     if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
-    //         GlobalStates.handleClickAction(widgetConfig.clickAction)
-    //         mouse.accepted = true
-    //         return
-    //     }
-    //
-    //     mouse.accepted = false
-    // }
-
-    // nonVisualChildren: [
-    //     // Simple hover tooltip for track info
-    //     TooltipItem {
-    //         id: hoverTooltip
-    //         tooltip: root.tooltipManager
-    //         owner: root
-    //         isMenu: false
-    //         hoverable: true
-    //         show: root.hovered && (typeof MprisController !== 'undefined') && !!MprisController.activePlayer
-    //
-    //         MaterialText {
-    //             text: root.currentTrayItem
-    //                 // if (typeof MprisController === 'undefined' || !MprisController.activeTrack)
-    //                 //     return "Нет воспроизведения";
-    //                 // const title = MprisController.activeTrack.title || "Unknown Title";
-    //                 // const artist = MprisController.activeTrack.artist || "Unknown Artist";
-    //                 // return `${title} — ${artist}`;
-    //             //     visible: trayMouseArea.containsMouse
-    //             //     delay: 500
-    //             textStyle: "bodyMedium"
-    //             colorRole: "onSurface"
-    //         }
-    //     }
-    // ]
     RowLayout {
         spacing: root.itemSpacing
 
@@ -130,11 +95,6 @@ BarElement {
                     }
                 }
 
-                // ToolTip {
-                //     visible: trayMouseArea.containsMouse
-                //     text: trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id
-                //     delay: 500
-                // }
             }
         }
     }

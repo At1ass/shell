@@ -129,48 +129,6 @@ MaterialCard {
                             }
                         }
                     }
-                    // Canvas {
-                    //     id: progressCanvas
-                    //     anchors.fill: parent
-                    //
-                    //     property real progress: parent.parent.animatedProgress
-                    //     property color progressColor: {
-                    //         const percent = parent.parent.animatedProgress * 100
-                    //         if (percent < 50)
-                    //             return Theme.primary;
-                    //         if (percent < 80)
-                    //             return Theme.tertiary;
-                    //         return Theme.error;
-                    //     }
-                    //
-                    //     onProgressChanged: requestPaint()
-                    //     onProgressColorChanged: requestPaint()
-                    //
-                    //     onPaint: {
-                    //         var ctx = getContext("2d");
-                    //         var centerX = width / 2;
-                    //         var centerY = height / 2;
-                    //         var radius = 32;
-                    //         var lineWidth = 6;
-                    //
-                    //         ctx.clearRect(0, 0, width, height);
-                    //
-                    //         // Draw progress arc
-                    //         ctx.beginPath();
-                    //         ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + (progress * 2 * Math.PI), false);
-                    //         ctx.lineWidth = lineWidth;
-                    //         ctx.strokeStyle = progressColor;
-                    //         ctx.lineCap = "round";
-                    //         ctx.stroke();
-                    //     }
-                    //
-                    //     Behavior on progressColor {
-                    //         ColorAnimation {
-                    //             duration: Tokens.motion.duration.medium2
-                    //         }
-                    //     }
-                    // }
-
                     // Content inside circle
                     ColumnLayout {
                         anchors.centerIn: parent
@@ -202,7 +160,6 @@ MaterialCard {
                         width: 36
                         height: 18
                         radius: 9
-                        // color: progressCanvas.progressColor
                         color: ring.progressColor
 
                         Behavior on color {

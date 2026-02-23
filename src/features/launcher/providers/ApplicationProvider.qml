@@ -55,14 +55,16 @@ BaseProvider {
             return topApps
         }
 
-        // Собираем searchText для каждого видимого приложения
+        // Собираем два массива: имена (приоритет) и полный текст (fallback)
         const visibleApps = []
-        const searchTexts = []
+        const names = []
+        const fullTexts = []
         for (let i = 0; i < applications.length; i++) {
             const app = applications[i]
             if (app.noDisplay) continue
             visibleApps.push(app)
-            searchTexts.push([
+            names.push(app.name || "")
+            fullTexts.push([
                 app.name || "",
                 app.genericName || "",
                 app.comment || "",
@@ -70,12 +72,20 @@ BaseProvider {
             ].join(" "))
         }
 
-        // C++ rapidfuzz batch match
-        const hits = FuzzySearch.match(query, searchTexts, 10, 30.0)
+        // Взвешенный поиск: имя × 2.5, полный текст × 1.0
+        const hits = FuzzySearch.matchWeighted(query, names, fullTexts, 10, 30.0, 2.5)
         const results = []
         for (let i = 0; i < hits.length; i++) {
-            results.push(createResult(visibleApps[hits[i].index], hits[i].score))
+            const app = visibleApps[hits[i].index]
+            // Бонус за частоту запуска
+            let finalScore = hits[i].score
+            const freq = frequencyCache[app.id] || 0
+            if (freq > 0) finalScore += Math.min(freq * 5, 50)
+            results.push(createResult(app, finalScore))
         }
+
+        // Пересортировка с учётом frequency boost
+        results.sort((a, b) => b.score - a.score)
         return results
     }
 

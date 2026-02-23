@@ -7,18 +7,14 @@ Slider {
     id: control
 
     stepSize: 0.01
-    // from: orientation === Qt.Horizontal ? 0.0 : 1.0
-    // to: orientation === Qt.Horizontal ? 1.0 : 0.0
     from: 0.0
     to: 1.0
 
     implicitWidth: orientation === Qt.Horizontal ? 200 : 48
     implicitHeight: orientation === Qt.Horizontal ? 48 : 200
 
-    // property real trackHeight: 16
     property real trackHeight: 24
     property real thumbWidth: 4
-    // property real thumbHeight: 44
     property real thumbHeight: 48
     property real thumbTrackGap: 6
     property real trackCornerSize: 8
@@ -32,12 +28,10 @@ Slider {
         y: control.orientation === Qt.Horizontal
            ? control.topPadding + control.availableHeight / 2 - control.trackHeight / 2
            : control.topPadding
-        // implicitWidth: control.orientation === Qt.Horizontal ? 200 : control.trackHeight
-        // implicitHeight: control.orientation === Qt.Horizontal ? control.trackHeight : 200
         width: control.orientation === Qt.Horizontal ? control.availableWidth : control.trackHeight
         height: control.orientation === Qt.Horizontal ? control.trackHeight : control.availableHeight
 
-        // Inactive track (справа/сверху от handle с gap)
+        // Inactive track (right/top of handle with gap)
         Rectangle {
             x: control.orientation === Qt.Horizontal
                ? Math.min(control.visualPosition * parent.width + control.thumbWidth / 2 + control.thumbTrackGap, parent.width)
@@ -74,7 +68,7 @@ Slider {
             }
         }
 
-        // Active track (слева/снизу от handle с gap)
+        // Active track (left/bottom of handle with gap)
         Rectangle {
             x: 0
             y: control.orientation === Qt.Horizontal
@@ -130,7 +124,7 @@ Slider {
             }
         }
 
-        // Handle (thumb) - тонкий вертикальный для horizontal, горизонтальный для vertical
+        // Handle (thumb)
         Rectangle {
             anchors.centerIn: parent
             width: control.orientation === Qt.Horizontal ? control.thumbWidth : control.thumbHeight
@@ -139,7 +133,7 @@ Slider {
             color: control.enabled ? Theme.primary : Theme.onSurface
             opacity: control.enabled ? 1.0 : 0.38
 
-            // M3 elevation через subtle border (вместо DropShadow)
+            // M3 elevation via subtle border
             border.width: 0.5
             border.color: Qt.rgba(0, 0, 0, 0.1)
 
