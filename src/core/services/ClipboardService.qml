@@ -64,7 +64,7 @@ Singleton {
         }
     }
 
-    // Процесс удаления записи (безопасный: без shell interpolation)
+    // Delete entry via cliphist delete (stdin, no shell interpolation)
     Process {
         id: deleteProc
         property string pendingEntry: ""
@@ -73,12 +73,13 @@ Singleton {
         command: [root.cliphistBinary, "delete"]
 
         onStarted: {
-            // Отправляем entry через stdin - безопасно от injection
-            deleteProc.write(deleteProc.pendingEntry)
+            deleteProc.write(deleteProc.pendingEntry + "\n")
+            deleteProc.stdinEnabled = false
         }
 
         onExited: (exitCode, exitStatus) => {
             deleteProc.pendingEntry = ""
+            deleteProc.stdinEnabled = true
             root.refresh()
         }
     }
@@ -98,7 +99,7 @@ Singleton {
         readProc.running = true
     }
 
-    // Процесс копирования записи в clipboard (безопасный)
+    // Copy entry to clipboard via cliphist decode | wl-copy
     Process {
         id: copyProc
         property string pendingEntry: ""
@@ -107,12 +108,13 @@ Singleton {
         command: ["sh", "-c", root.cliphistBinary + " decode | wl-copy"]
 
         onStarted: {
-            // Отправляем entry через stdin - безопасно от injection
-            copyProc.write(copyProc.pendingEntry)
+            copyProc.write(copyProc.pendingEntry + "\n")
+            copyProc.stdinEnabled = false // close stdin → EOF for cliphist decode
         }
 
         onExited: {
             copyProc.pendingEntry = ""
+            copyProc.stdinEnabled = true // re-enable for next invocation
         }
     }
 

@@ -8,6 +8,7 @@ import qs.src.features.osd
 import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
 import qs.src.features.popouts as Popouts
+import qs.src.features.screenshot
 import qs.src.core.services
 
 ShellRoot {
@@ -82,5 +83,11 @@ ShellRoot {
     LazyLoader {
         loading: GlobalStates.notificationCenterOpen
         NotificationCenter {}
+    }
+
+    // Screenshot region selection overlay
+    LazyLoader {
+        loading: GlobalStates.screenshotOverlayActive
+        ScreenshotOverlay {}
     }
 }

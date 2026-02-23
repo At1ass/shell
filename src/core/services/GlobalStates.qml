@@ -20,6 +20,9 @@ Singleton {
     property bool launcherOpen: false
     property bool controlPanelLeftOpen: false
 
+    // Screenshot overlay
+    property bool screenshotOverlayActive: false
+
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
     property bool osdBrightnessOpen: false
@@ -74,6 +77,33 @@ Singleton {
     function closeAllOSD() {
         osdVolumeOpen = false
         osdBrightnessOpen = false
+    }
+
+    // Screenshot
+    property string _grimGeometry: ""
+
+    Process {
+        id: screenshotFullProc
+        command: ["sh", "-c", "sleep 0.2 && grim - | wl-copy"]
+    }
+
+    Process {
+        id: screenshotRegionProc
+        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
+    }
+
+    function takeScreenshot(fullScreen) {
+        root.dashboardOpen = false
+        if (fullScreen)
+            screenshotFullProc.running = true
+        else
+            root.screenshotOverlayActive = true
+    }
+
+    function captureRegion(geometry) {
+        root._grimGeometry = geometry
+        root.screenshotOverlayActive = false
+        screenshotRegionProc.running = true
     }
 
 

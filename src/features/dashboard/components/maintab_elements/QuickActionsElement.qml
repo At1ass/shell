@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtCore
-import Quickshell
 import Quickshell.Io
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -14,16 +13,6 @@ MaterialCard {
     id: quickActions
     color: Theme.surfaceContainerHigh
     radius: Tokens.shape.large
-
-    Process {
-        id: screenshotProc
-        command: ["sh", "-c", "grim -g \"$(slurp)\" - | wl-copy"]
-    }
-
-    Process {
-        id: fullScreenshotProc
-        command: ["sh", "-c", "grim - | wl-copy"]
-    }
 
     Process {
         id: settingsProc
@@ -89,13 +78,13 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot Area",
-                        action: () => screenshotProc.running = true
+                        action: () => GlobalStates.takeScreenshot(false)
                     },
                     {
                         icon: "screenshot",
                         active: () => false,
                         tooltip: "Screenshot Full Screen",
-                        action: () => fullScreenshotProc.running = true
+                        action: () => GlobalStates.takeScreenshot(true)
                     },
                     {
                         icon: "open_in_new",

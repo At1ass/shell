@@ -142,6 +142,7 @@ Singleton {
 
         var xhr = new XMLHttpRequest();
         xhr.open("GET", _url());
+        xhr.timeout = 15000;
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -156,9 +157,16 @@ Singleton {
                 } catch (e) {
                     _scheduleRetry("JSON parse error: " + e);
                 }
-            } else {
+            } else if (xhr.status === 401 || xhr.status === 403) {
+                errorString = "HTTP " + xhr.status + " — " + xhr.statusText;
+                failed(errorString);
+            } else if (xhr.status > 0) {
                 _scheduleRetry("HTTP " + xhr.status + " — " + xhr.statusText);
             }
+        };
+
+        xhr.ontimeout = function () {
+            _scheduleRetry("Request timeout");
         };
 
         xhr.onerror = function () {

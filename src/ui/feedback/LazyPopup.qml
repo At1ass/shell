@@ -36,13 +36,11 @@ LazyLoader {
 
         margins {
             left: {
-                // Simple positioning in center-ish area
-                return Math.max(100, (1920 / 2) - (popupBackground.implicitWidth / 2))
+                const sw = popupWindow.screen?.width ?? 1920
+                return Math.max(100, (sw / 2) - (popupBackground.implicitWidth / 2))
             }
-            top: {
-                // Position below the bar
-                return 60
-            }
+            top: AppConfig.barPosition === "top" ? AppConfig.barHeight + AppConfig.barMargin * 2 : 0
+            bottom: AppConfig.barPosition === "bottom" ? AppConfig.barHeight + AppConfig.barMargin * 2 : 0
         }
 
         WlrLayershell.namespace: "quickshell:popup"
