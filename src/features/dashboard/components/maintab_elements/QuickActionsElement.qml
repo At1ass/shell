@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtCore
-import Quickshell
 import Quickshell.Io
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -16,38 +15,8 @@ MaterialCard {
     radius: Tokens.shape.large
 
     Process {
-        id: screenshotProc
-        command: ["sh", "-c", "grim -g \"$(slurp)\" - | wl-copy"]
-    }
-
-    Process {
-        id: fullScreenshotProc
-        command: ["sh", "-c", "grim - | wl-copy"]
-    }
-
-    Process {
         id: settingsProc
         command: ["xdg-open", StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/shell/config.json"]
-    }
-
-    // Отложенный запуск скриншота после закрытия dashboard
-    Timer {
-        id: screenshotDelay
-        property bool fullScreen: false
-        interval: 200
-        repeat: false
-        onTriggered: {
-            if (fullScreen)
-                fullScreenshotProc.running = true
-            else
-                screenshotProc.running = true
-        }
-    }
-
-    function takeScreenshot(fullScreen) {
-        GlobalStates.dashboardOpen = false
-        screenshotDelay.fullScreen = fullScreen
-        screenshotDelay.restart()
     }
 
     ColumnLayout {
@@ -109,13 +78,13 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot Area",
-                        action: () => quickActions.takeScreenshot(false)
+                        action: () => GlobalStates.takeScreenshot(false)
                     },
                     {
                         icon: "screenshot",
                         active: () => false,
                         tooltip: "Screenshot Full Screen",
-                        action: () => quickActions.takeScreenshot(true)
+                        action: () => GlobalStates.takeScreenshot(true)
                     },
                     {
                         icon: "open_in_new",

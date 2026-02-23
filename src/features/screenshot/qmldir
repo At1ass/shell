@@ -1,0 +1,2 @@
+module qs.src.features.screenshot
+ScreenshotOverlay 1.0 ScreenshotOverlay.qml
