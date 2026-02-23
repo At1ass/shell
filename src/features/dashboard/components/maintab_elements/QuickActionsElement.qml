@@ -30,6 +30,26 @@ MaterialCard {
         command: ["xdg-open", StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/shell/config.json"]
     }
 
+    // Отложенный запуск скриншота после закрытия dashboard
+    Timer {
+        id: screenshotDelay
+        property bool fullScreen: false
+        interval: 200
+        repeat: false
+        onTriggered: {
+            if (fullScreen)
+                fullScreenshotProc.running = true
+            else
+                screenshotProc.running = true
+        }
+    }
+
+    function takeScreenshot(fullScreen) {
+        GlobalStates.dashboardOpen = false
+        screenshotDelay.fullScreen = fullScreen
+        screenshotDelay.restart()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.small
@@ -89,13 +109,13 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot Area",
-                        action: () => screenshotProc.running = true
+                        action: () => quickActions.takeScreenshot(false)
                     },
                     {
                         icon: "screenshot",
                         active: () => false,
                         tooltip: "Screenshot Full Screen",
-                        action: () => fullScreenshotProc.running = true
+                        action: () => quickActions.takeScreenshot(true)
                     },
                     {
                         icon: "open_in_new",
