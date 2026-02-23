@@ -1,6 +1,9 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtCore
+import Quickshell
+import Quickshell.Io
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -8,8 +11,24 @@ import qs.src.core.config
 import qs.src.core.services
 
 MaterialCard {
+    id: quickActions
     color: Theme.surfaceContainerHigh
     radius: Tokens.shape.large
+
+    Process {
+        id: screenshotProc
+        command: ["sh", "-c", "grim -g \"$(slurp)\" - | wl-copy"]
+    }
+
+    Process {
+        id: fullScreenshotProc
+        command: ["sh", "-c", "grim - | wl-copy"]
+    }
+
+    Process {
+        id: settingsProc
+        command: ["xdg-open", StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/shell/config.json"]
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -19,7 +38,6 @@ MaterialCard {
         GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // columns: 4
             columns: 2
             rows: 4
             columnSpacing: 4
@@ -63,27 +81,27 @@ MaterialCard {
                     // Row 2
                     {
                         icon: "do_not_disturb_on",
-                        active: () => false,  // Placeholder
-                        tooltip: "Do Not Disturb (Coming Soon)",
-                        action: () => console.log("DND toggle - not implemented yet")
+                        active: () => NotificationService.doNotDisturb,
+                        tooltip: () => NotificationService.doNotDisturb ? "Do Not Disturb Active" : "Do Not Disturb",
+                        action: () => NotificationService.doNotDisturb = !NotificationService.doNotDisturb
                     },
                     {
-                        icon: "nightlight",
-                        active: () => false,  // Placeholder
-                        tooltip: "Night Light (Coming Soon)",
-                        action: () => console.log("Night Light toggle - not implemented yet")
-                    },
-                    {
-                        icon: "videogame_asset",
-                        active: () => false,  // Placeholder
-                        tooltip: "Game Mode (Coming Soon)",
-                        action: () => console.log("Game Mode toggle - not implemented yet")
+                        icon: "screenshot_region",
+                        active: () => false,
+                        tooltip: "Screenshot Area",
+                        action: () => screenshotProc.running = true
                     },
                     {
                         icon: "screenshot",
-                        active: () => false,  // Placeholder
-                        tooltip: "Screenshot (Coming Soon)",
-                        action: () => console.log("Screenshot - not implemented yet")
+                        active: () => false,
+                        tooltip: "Screenshot Full Screen",
+                        action: () => fullScreenshotProc.running = true
+                    },
+                    {
+                        icon: "open_in_new",
+                        active: () => false,
+                        tooltip: "Open Settings File",
+                        action: () => settingsProc.running = true
                     }
                 ]
 

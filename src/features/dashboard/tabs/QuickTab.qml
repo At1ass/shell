@@ -17,31 +17,15 @@ Item {
         columnSpacing: Tokens.spacing.small
         rowSpacing: Tokens.spacing.small
 
-        // ===== ROW 0, COL 0: CLOCK =====
-        // ClockElement {
-        //     Layout.row: 1
-        //     Layout.column: 0
-        //     Layout.rowSpan: 2
-        //     Layout.columnSpan: 1
-        //     Layout.fillHeight: true
-        //     Layout.fillWidth: true
-        //     // Layout.preferredWidth: 80
-        // }
-
-        // ===== ROW 0-1, COL 1-4: USER INFO =====
         UserInfoElement {
             Layout.row: 0
             Layout.column: 1
             Layout.columnSpan: 1
             Layout.rowSpan: 1
-            // Layout.preferredWidth: 400
             Layout.fillWidth: true
             Layout.fillHeight: true
         }
 
-
-
-        // ===== ROW 3-4, COL 0-4: MEDIA PLAYER =====
         MediaPlayer {
             Layout.row: 1
             Layout.column: 0
@@ -49,7 +33,6 @@ Item {
             Layout.columnSpan: 2
             Layout.preferredWidth: 400
             Layout.preferredHeight: 250
-            // Layout.fillHeight: true
             Layout.fillWidth: true
         }
 
@@ -59,18 +42,15 @@ Item {
             Layout.rowSpan: 1
             Layout.columnSpan: 1
             Layout.fillHeight: true
-            // Layout.fillWidth: true
             Layout.preferredWidth: 240
         }
 
-        // ===== ROW 0-2, COL 5-7: QUICK ACTIONS =====
         QuickActionsElement {
             Layout.row: 2
             Layout.column: 2
             Layout.columnSpan: 2
             Layout.rowSpan: 2
             Layout.fillWidth: true
-            // Layout.preferredHeight: 100
             Layout.fillHeight: true
         }
 
@@ -83,17 +63,7 @@ Item {
             Layout.fillWidth: true
         }
 
-
-        // ===== ROW 3-4, COL 5-9: UPCOMING EVENTS =====
-        // SheduleElement {
-        //     Layout.row: 0
-        //     Layout.column: 5
-        //     Layout.rowSpan: 2
-        //     Layout.columnSpan: 3
-        //     Layout.fillWidth: true
-        //     Layout.fillHeight: true
-        // }
-        // ===== ROW 0-2, COL 8: BRIGHTNESS SLIDER =====
+        // Brightness slider
         MaterialCard {
             Layout.row: 0
             Layout.column: 2
@@ -129,8 +99,6 @@ Item {
                     to: 1
                     stepSize: 0.01
                     value: 0.8
-                    // value: AudioService.micVolume
-                    // onMoved: AudioService.setMicVolume(value)
                 }
 
                 Item {
@@ -140,8 +108,7 @@ Item {
             }
         }
 
-
-        // ===== ROW 0-2, COL 9: VOLUME SLIDER =====
+        // Volume slider
         MaterialCard {
             Layout.row: 0
             Layout.column: 3
@@ -169,9 +136,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: {
-                            AudioService.toggleMasterMute()
-                        }
+                        onClicked: AudioService.toggleMasterMute()
                     }
                 }
 

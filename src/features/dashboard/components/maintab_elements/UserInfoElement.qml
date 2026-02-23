@@ -14,12 +14,7 @@ MaterialCard {
         anchors.margins: Tokens.spacing.medium
         spacing: Tokens.spacing.medium
 
-        // Avatar + Username
-        // ColumnLayout {
-        //     spacing: Tokens.spacing.small
-        //     Layout.alignment: Qt.AlignTop
-
-            CircleAvatar {
+        CircleAvatar {
                 customSize: 100
                 imageSource: "file:///home/at1ass/.face"
                 fallbackIcon: "person"
@@ -27,16 +22,6 @@ MaterialCard {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            // MaterialText {
-            //     text: SystemMonitorService.userName || "User"
-            //     textStyle: "titleLarge"
-            //     colorRole: "onSurface"
-            //     font.weight: Font.Bold
-            //     Layout.alignment: Qt.AlignHCenter
-            // }
-        // }
-
-        // System Info
         ColumnLayout {
             spacing: Tokens.spacing.small
             Layout.fillWidth: true
@@ -67,42 +52,6 @@ MaterialCard {
                     colorRole: "onSurface"
                 }
             }
-
-            // CPU
-            // RowLayout {
-            //     spacing: Tokens.spacing.small
-            //
-            //     MaterialIcon {
-            //         iconName: "developer_board"
-            //         fontSize: Tokens.typography.titleMedium.size
-            //         iconColor: Theme.primary
-            //         backgroundColor: "transparent"
-            //     }
-            //
-            //     MaterialText {
-            //         text: SystemMonitorService.cpuModel || "CPU"
-            //         textStyle: "bodyLarge"
-            //         colorRole: "onSurface"
-            //     }
-            // }
-            //
-            // // GPU
-            // RowLayout {
-            //     spacing: Tokens.spacing.small
-            //
-            //     MaterialIcon {
-            //         iconName: "videogame_asset"
-            //         fontSize: Tokens.typography.titleMedium.size
-            //         iconColor: Theme.primary
-            //         backgroundColor: "transparent"
-            //     }
-            //
-            //     MaterialText {
-            //         text: SystemMonitorService.gpuModel || "GPU"
-            //         textStyle: "bodyLarge"
-            //         colorRole: "onSurface"
-            //     }
-            // }
 
             // Uptime
             RowLayout {
