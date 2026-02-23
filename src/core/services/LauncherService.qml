@@ -106,7 +106,19 @@ Singleton {
         let collectedResults = []
         let seenKeys = Object.create(null)
 
-        // Собираем результаты от всех подходящих провайдеров
+        // Check if a prefix-based provider matches — if so, skip generic providers
+        let hasPrefixMatch = false
+        if (!useDefaults) {
+            for (let i = 0; i < providers.length; i++) {
+                let p = providers[i]
+                if (p.prefixes && p.prefixes.length > 0 && p.canHandle(query)) {
+                    hasPrefixMatch = true
+                    break
+                }
+            }
+        }
+
+        // Collect results from matching providers
         for (let i = 0; i < providers.length; i++) {
             let provider = providers[i]
             let providerResults = []
@@ -116,6 +128,9 @@ Singleton {
                     providerResults = provider.defaultResults()
                 }
             } else if (provider.canHandle(query)) {
+                // Skip generic (no-prefix) providers when a prefix provider matched
+                if (hasPrefixMatch && (!provider.prefixes || provider.prefixes.length === 0))
+                    continue
                 providerResults = provider.search(query)
             }
 
