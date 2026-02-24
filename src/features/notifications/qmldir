@@ -4,3 +4,4 @@ NotificationPopup 1.0 NotificationPopup.qml
 NotificationItem 1.0 NotificationItem.qml
 NotificationCenter 1.0 NotificationCenter.qml
 NotificationHistoryItem 1.0 NotificationHistoryItem.qml
+NotificationGroupHeader 1.0 NotificationGroupHeader.qml

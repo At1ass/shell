@@ -41,7 +41,12 @@ Singleton {
     readonly property int notificationPanelWidth: data.notifications?.panel?.width ?? 400
     readonly property int notificationPopupWidth: data.notifications?.popup?.width ?? 360
     readonly property int notificationPopupTimeout: data.notifications?.popup?.timeout ?? 7000
+    readonly property int notificationTimeoutLow: data.notifications?.popup?.timeoutLow ?? 3000
+    readonly property int notificationTimeoutNormal: data.notifications?.popup?.timeoutNormal ?? 7000
+    readonly property int notificationTimeoutCritical: data.notifications?.popup?.timeoutCritical ?? 15000
     readonly property int notificationPopupMaxVisible: data.notifications?.popup?.maxVisible ?? 5
+    readonly property bool notificationGroupByApp: data.notifications?.panel?.groupByApp ?? true
+    readonly property string notificationPopupPosition: data.notifications?.popup?.position ?? "top-right"
 
     // Launcher
     readonly property int launcherMaxResults: data.launcher?.maxResults ?? 10

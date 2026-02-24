@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -15,7 +16,7 @@ Variants {
         color: "transparent"
 
         // Conditional visibility with grace period for exit animations
-        visible: NotificationService.activeList.count > 0 || hideDelayTimer.running
+        visible: NotificationService.activeList.length > 0 || hideDelayTimer.running
 
         Timer {
             id: hideDelayTimer
@@ -24,9 +25,9 @@ Variants {
         }
 
         Connections {
-            target: NotificationService.activeList
-            function onCountChanged() {
-                if (NotificationService.activeList.count === 0)
+            target: NotificationService
+            function onActiveListChanged() {
+                if (NotificationService.activeList.length === 0)
                     hideDelayTimer.restart()
             }
         }
@@ -59,23 +60,18 @@ Variants {
         ListView {
             id: notificationListView
             width: parent.width
-            height: contentHeight
+            implicitHeight: contentHeight
             interactive: false
-            spacing: 8
-            reuseItems: false
-            model: NotificationService.activeList
-            move: Transition {
-                NumberAnimation {
-                    property: "y"
-                    duration: Tokens.motion.duration.short3
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
+            spacing: Tokens.spacing.small
+            model: ScriptModel {
+                objectProp: "notificationId"
+                values: NotificationService.activeList
             }
+
             displaced: Transition {
                 NumberAnimation {
-                    property: "y"
-                    duration: Tokens.motion.duration.short3
+                    properties: "x,y"
+                    duration: Tokens.motion.duration.medium1   // 250ms
                     easing.type: Tokens.motion.easing.standard
                     easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
@@ -83,46 +79,8 @@ Variants {
 
             delegate: Item {
                 id: wrapper
+                required property var modelData
                 required property int index
-                required property string notificationId
-                required property string summary
-                required property string body
-                required property string appName
-                required property string appIcon
-                required property string image
-                required property var actions
-                required property int urgency
-                required property int timestamp
-                required property real progress
-                property var entry: ({})
-
-                function updateEntry() {
-                    entry = {
-                        "notificationId": notificationId || "",
-                        "summary": summary || "",
-                        "body": body || "",
-                        "appName": appName || "",
-                        "appIcon": appIcon || "",
-                        "image": image || "",
-                        "actions": actions || [],
-                        "urgency": urgency,
-                        "timestamp": timestamp || 0,
-                        "progress": isFinite(progress) ? progress : 1.0
-                    };
-                }
-
-                // Coalesce multiple property changes into single updateEntry call
-                Component.onCompleted: updateEntry()
-                onNotificationIdChanged: Qt.callLater(updateEntry)
-                onSummaryChanged: Qt.callLater(updateEntry)
-                onBodyChanged: Qt.callLater(updateEntry)
-                onAppNameChanged: Qt.callLater(updateEntry)
-                onAppIconChanged: Qt.callLater(updateEntry)
-                onImageChanged: Qt.callLater(updateEntry)
-                onActionsChanged: Qt.callLater(updateEntry)
-                onUrgencyChanged: Qt.callLater(updateEntry)
-                onTimestampChanged: Qt.callLater(updateEntry)
-                onProgressChanged: Qt.callLater(updateEntry)
 
                 width: notificationListView.width
                 implicitHeight: notifItem.implicitHeight
@@ -142,26 +100,35 @@ Variants {
                         property: "enabled"
                         value: false
                     }
-                    PropertyAction {
-                        target: wrapper
-                        property: "z"
-                        value: 1
+                    // If already swiped, skip visible slide-out
+                    ScriptAction {
+                        script: {
+                            if (notifItem._swiping || notifItem.x > 10) {
+                                wrapper.opacity = 0
+                            }
+                        }
                     }
-                    // Slide out to the right
-                    NumberAnimation {
-                        target: notifItem
-                        property: "x"
-                        to: notifItem.implicitWidth
-                        duration: Tokens.motion.duration.short3
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    // Parallel slide-out + fade (200ms)
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: wrapper; property: "x"
+                            to: wrapper.width
+                            duration: Tokens.motion.duration.short4   // 200ms
+                            easing.type: Tokens.motion.easing.emphasizedAccelerate
+                            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+                        }
+                        NumberAnimation {
+                            target: wrapper; property: "opacity"
+                            to: 0
+                            duration: Tokens.motion.duration.short3   // 150ms
+                        }
                     }
-                    // Collapse height smoothly so neighbours don't jump
+                    // Collapse height so neighbours fill the gap (150ms)
                     NumberAnimation {
                         target: wrapper
                         property: "implicitHeight"
                         to: 0
-                        duration: Tokens.motion.duration.short3
+                        duration: Tokens.motion.duration.short3   // 150ms
                         easing.type: Tokens.motion.easing.standard
                         easing.bezierCurve: Tokens.motion.easing.standardPoints
                     }
@@ -176,7 +143,7 @@ Variants {
 
                 NotificationItem {
                     id: notifItem
-                    notificationObject: entry
+                    notificationObject: wrapper.modelData
                     animatePopupExit: false
                     width: AppConfig.notificationPopupWidth
                     anchors.top: parent.top
