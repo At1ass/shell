@@ -13,6 +13,7 @@ Singleton {
 
     property bool _initialized: false
     property bool _suppressConfigReapply: false
+    property bool _stateApplied: false
 
     property string defaultWallpaperPath: ""
     property string primaryMonitor: ""
@@ -55,6 +56,12 @@ Singleton {
             if (wallpaperService._initialized && !wallpaperService._suppressConfigReapply)
                 initFromConfig()
             wallpaperService._suppressConfigReapply = false
+        }
+        function onStateDataChanged() {
+            // state.json loaded after initial loadState() — re-apply saved wallpapers
+            if (wallpaperService._initialized && !wallpaperService._stateApplied) {
+                wallpaperService.loadState()
+            }
         }
     }
 
@@ -208,15 +215,29 @@ Singleton {
         const state = AppConfig.wallpaperState
         if (!state || !state.monitors) return
 
+        const wallpapers = Object.assign({}, monitorWallpapers)
         const indices = {}
+        let wallpapersChanged = false
+
         for (let monitor in state.monitors) {
             const ms = state.monitors[monitor]
+            if (ms.current) {
+                wallpapers[monitor] = asUrl(ms.current)
+                wallpapersChanged = true
+            }
             if (ms.index !== undefined) {
                 const key = filesKeyForMonitor(monitor)
                 if (key) indices[key] = ms.index
             }
         }
+
+        if (wallpapersChanged) {
+            monitorWallpapers = wallpapers
+            if (wallpapers[primaryMonitor])
+                currentWallpaper = wallpapers[primaryMonitor]
+        }
         monitorIndices = indices
+        _stateApplied = true
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -301,6 +322,7 @@ Singleton {
                 const updatedIndices = Object.assign({}, monitorIndices)
                 updatedIndices[filesKey] = existingIndex
                 monitorIndices = updatedIndices
+                setWallpaper(monitor, explicit, false)
                 return
             }
         }

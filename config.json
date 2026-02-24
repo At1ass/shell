@@ -253,11 +253,11 @@
     },
     "monitors": {
       "DP-2": {
-        "directory": "/home/at1ass/wallpapers/3440x1440",
+        "directory": "/home/at1ass/wallpapers/1080x1920",
         "fillMode": 2
       },
       "DP-1": {
-        "directory": "/home/at1ass/wallpapers/1080x1920",
+        "directory": "/home/at1ass/wallpapers/3440x1440",
         "fillMode": 2
       }
     }

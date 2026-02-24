@@ -1,187 +1,174 @@
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.services
 import qs.src.core.config
 
-Variants {
-    model: Quickshell.screens
+PanelWindow {
+    id: popup
 
-    PanelWindow {
-        id: popupWindow
-        required property ShellScreen modelData
-        screen: modelData
-        color: "transparent"
+    required property var notificationData
+    required property var notificationObject
+    required property int screenY
+    property bool exiting: false
+    property bool _isDestroying: false
+    property bool _finalized: false
+    readonly property bool hasValidData: notificationData !== null
 
-        // Conditional visibility with grace period for exit animations
-        visible: NotificationService.activeList.count > 0 || hideDelayTimer.running
+    signal exitFinished()
 
-        Timer {
-            id: hideDelayTimer
-            interval: 500
-            repeat: false
+    visible: hasValidData && !_isDestroying
+    color: "transparent"
+
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "shell:notification-popup"
+    exclusiveZone: 0
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+    anchors {
+        top: true
+        right: true
+    }
+
+    margins {
+        top: screenY
+        right: AppConfig.barMargin
+    }
+
+    implicitWidth: AppConfig.notificationPopupWidth
+    implicitHeight: popupItem.implicitHeight
+
+    // No mask — each window IS the notification, fully interactive by default
+
+    // Smooth Y displacement when stack reorganizes
+    Behavior on screenY {
+        enabled: !popup.exiting && !popup._isDestroying
+        NumberAnimation {
+            duration: 200
+            easing.type: Easing.OutCubic
         }
+    }
 
-        Connections {
-            target: NotificationService.activeList
-            function onCountChanged() {
-                if (NotificationService.activeList.count === 0)
-                    hideDelayTimer.restart()
+    // Entrance animation state
+    property real _entranceX: AppConfig.notificationPopupWidth
+    property real _entranceOpacity: 0
+
+    ParallelAnimation {
+        id: entranceAnim
+        running: false
+        NumberAnimation {
+            target: popup; property: "_entranceX"; to: 0
+            duration: Tokens.motion.duration.medium2
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
+        }
+        NumberAnimation {
+            target: popup; property: "_entranceOpacity"; to: 1.0
+            duration: Tokens.motion.duration.short4
+        }
+    }
+
+    // Exit animation
+    property real _exitScale: 1.0
+
+    ParallelAnimation {
+        id: exitAnim
+        running: false
+        NumberAnimation {
+            target: popup; property: "_entranceX"
+            to: AppConfig.notificationPopupWidth * 0.5
+            duration: Tokens.motion.duration.short4
+            easing.type: Tokens.motion.easing.emphasizedAccelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+        }
+        NumberAnimation {
+            target: popup; property: "_entranceOpacity"
+            to: 0
+            duration: Tokens.motion.duration.short3
+        }
+        NumberAnimation {
+            target: popup; property: "_exitScale"
+            to: 0.95
+            duration: Tokens.motion.duration.short4
+            easing.type: Tokens.motion.easing.emphasizedAccelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+        }
+        onFinished: popup._finalizeExit()
+    }
+
+    // Watchdog: force-exit if animation hangs
+    Timer {
+        id: exitWatchdog
+        interval: 600
+        repeat: false
+        onTriggered: {
+            if (!popup._finalized) {
+                popup._finalizeExit()
             }
         }
+    }
 
-        // Window height tracks ListView contentHeight directly — no manual
-        // calcListHeight that can desync with actual delegate sizes.
-        implicitHeight: notificationListView.contentHeight
+    Component.onCompleted: entranceAnim.start()
 
-        anchors {
-            top: true
-            right: true
+    function startExit() {
+        if (exiting || _isDestroying) return
+        exiting = true
+        exitAnim.start()
+        exitWatchdog.start()
+    }
+
+    function forceExit() {
+        if (_isDestroying) return
+        _isDestroying = true
+        exitAnim.stop()
+        exitWatchdog.stop()
+        visible = false
+        _finalizeExit()
+    }
+
+    function _finalizeExit() {
+        if (_finalized) return
+        _finalized = true
+        _isDestroying = true
+        exitWatchdog.stop()
+        exitFinished()
+    }
+
+    function updateData(newData) {
+        notificationData = newData
+        popupItem.updateData(newData)
+    }
+
+    NotificationPopupItem {
+        id: popupItem
+        notificationData: popup.notificationData
+        duration: {
+            const meta = NotificationService.activeNotifications[popup.notificationData?.notificationId]
+            return meta ? meta.duration : 0
         }
 
-        margins {
-            top: AppConfig.barHeight
-            right: AppConfig.barMargin
+        transform: [
+            Translate { x: popup._entranceX },
+            Scale {
+                origin.x: popupItem.width / 2
+                origin.y: popupItem.height / 2
+                xScale: popup._exitScale
+                yScale: popup._exitScale
+            }
+        ]
+        opacity: popup._entranceOpacity
+
+        onSwipeDismissed: {
+            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
         }
-
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "shell:notification-popups"
-        exclusiveZone: 0
-
-        // Click-through mask: only notification content is interactive
-        mask: Region {
-            item: notificationListView.contentItem
+        onCloseClicked: {
+            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
         }
-
-        implicitWidth: AppConfig.notificationPopupWidth
-
-        ListView {
-            id: notificationListView
-            width: parent.width
-            height: contentHeight
-            interactive: false
-            spacing: 8
-            reuseItems: false
-            model: NotificationService.activeList
-            move: Transition {
-                NumberAnimation {
-                    property: "y"
-                    duration: Tokens.motion.duration.short3
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
-            displaced: Transition {
-                NumberAnimation {
-                    property: "y"
-                    duration: Tokens.motion.duration.short3
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
-
-            delegate: Item {
-                id: wrapper
-                required property int index
-                required property string notificationId
-                required property string summary
-                required property string body
-                required property string appName
-                required property string appIcon
-                required property string image
-                required property var actions
-                required property int urgency
-                required property int timestamp
-                required property real progress
-                property var entry: ({})
-
-                function updateEntry() {
-                    entry = {
-                        "notificationId": notificationId || "",
-                        "summary": summary || "",
-                        "body": body || "",
-                        "appName": appName || "",
-                        "appIcon": appIcon || "",
-                        "image": image || "",
-                        "actions": actions || [],
-                        "urgency": urgency,
-                        "timestamp": timestamp || 0,
-                        "progress": isFinite(progress) ? progress : 1.0
-                    };
-                }
-
-                // Coalesce multiple property changes into single updateEntry call
-                Component.onCompleted: updateEntry()
-                onNotificationIdChanged: Qt.callLater(updateEntry)
-                onSummaryChanged: Qt.callLater(updateEntry)
-                onBodyChanged: Qt.callLater(updateEntry)
-                onAppNameChanged: Qt.callLater(updateEntry)
-                onAppIconChanged: Qt.callLater(updateEntry)
-                onImageChanged: Qt.callLater(updateEntry)
-                onActionsChanged: Qt.callLater(updateEntry)
-                onUrgencyChanged: Qt.callLater(updateEntry)
-                onTimestampChanged: Qt.callLater(updateEntry)
-                onProgressChanged: Qt.callLater(updateEntry)
-
-                width: notificationListView.width
-                implicitHeight: notifItem.implicitHeight
-                height: implicitHeight
-                clip: true
-
-                // MD3 Collapse animation on removal
-                SequentialAnimation {
-                    id: removeAnimation
-                    PropertyAction {
-                        target: wrapper
-                        property: "ListView.delayRemove"
-                        value: true
-                    }
-                    PropertyAction {
-                        target: wrapper
-                        property: "enabled"
-                        value: false
-                    }
-                    PropertyAction {
-                        target: wrapper
-                        property: "z"
-                        value: 1
-                    }
-                    // Slide out to the right
-                    NumberAnimation {
-                        target: notifItem
-                        property: "x"
-                        to: notifItem.implicitWidth
-                        duration: Tokens.motion.duration.short3
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
-                    }
-                    // Collapse height smoothly so neighbours don't jump
-                    NumberAnimation {
-                        target: wrapper
-                        property: "implicitHeight"
-                        to: 0
-                        duration: Tokens.motion.duration.short3
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
-                    }
-                    PropertyAction {
-                        target: wrapper
-                        property: "ListView.delayRemove"
-                        value: false
-                    }
-                }
-
-                ListView.onRemove: removeAnimation.start()
-
-                NotificationItem {
-                    id: notifItem
-                    notificationObject: entry
-                    animatePopupExit: false
-                    width: AppConfig.notificationPopupWidth
-                    anchors.top: parent.top
-                }
-            }
+        onActionInvoked: (actionId) => {
+            NotificationService.attemptInvokeAction(popup.notificationData.notificationId, actionId)
+        }
+        onTimeoutExpired: {
+            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
         }
     }
 }

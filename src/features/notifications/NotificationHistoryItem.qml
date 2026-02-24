@@ -117,11 +117,29 @@ MaterialCard {
             Layout.minimumWidth: 0
         }
 
+        // Notification image
+        Rectangle {
+            visible: root.hasNotification && (notificationObject.image || "") !== ""
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? Math.min(historyNotifImage.implicitHeight, 180) : 0
+            radius: Tokens.shape.small
+            clip: true
+            color: "transparent"
+
+            Image {
+                id: historyNotifImage
+                anchors.fill: parent
+                source: root.hasNotification ? (notificationObject.image || "") : ""
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: true
+                sourceSize.width: parent.width
+            }
+        }
+
         ColumnLayout {
             spacing: Tokens.spacing.extraSmall
-            visible: root.hasNotification &&
-                     notificationObject.actions &&
-                     notificationObject.actions.length > 0
+            visible: root.hasNotification && (notificationObject.actions || []).length > 0
 
             Repeater {
                 model: root.hasNotification ? (notificationObject.actions || []) : []

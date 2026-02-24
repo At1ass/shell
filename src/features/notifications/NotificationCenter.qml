@@ -49,6 +49,7 @@ Scope {
 
         Item {
             id: panel
+            focus: true
             width: AppConfig.notificationPanelWidth
             anchors {
                 top: parent.top
@@ -57,6 +58,36 @@ Scope {
             }
             anchors.margins: Tokens.spacing.medium
             z: 1
+
+            // Keyboard navigation
+            Keys.onPressed: (event) => {
+                if (event.key === Qt.Key_Escape) {
+                    GlobalStates.notificationCenterOpen = false
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Up) {
+                    notifList.decrementCurrentIndex()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Down) {
+                    notifList.incrementCurrentIndex()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Delete) {
+                    if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
+                        const item = NotificationService.historyList.get(notifList.currentIndex)
+                        if (item && item.notificationId) {
+                            NotificationService.removeFromHistory(item.notificationId)
+                        }
+                    }
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
+                        const item = NotificationService.historyList.get(notifList.currentIndex)
+                        if (item && AppConfig.notificationGroupByApp) {
+                            NotificationService.toggleGroupExpanded(item.appName)
+                        }
+                    }
+                    event.accepted = true
+                }
+            }
 
             MaterialCard {
                 anchors.fill: parent
@@ -80,7 +111,7 @@ Scope {
                         }
 
                         MaterialText {
-                            text: "Уведомления"
+                            text: "Notifications"
                             textStyle: "titleLarge"
                             colorRole: "onSurface"
                             font.weight: Font.Medium
@@ -88,8 +119,15 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
+                        IconButton {
+                            iconName: NotificationService.doNotDisturb ? "notifications_off" : "do_not_disturb_on"
+                            iconSize: Tokens.iconSize.large
+                            variant: "standard"
+                            onClicked: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+                        }
+
                         MaterialButton {
-                            text: "Очистить"
+                            text: "Clear"
                             variant: "text"
                             enabled: NotificationService.historyList.count > 0
                             onClicked: NotificationService.clearHistory()
@@ -109,11 +147,37 @@ Scope {
                             anchors.fill: parent
                             spacing: Tokens.spacing.small
                             clip: true
+                            keyNavigationEnabled: true
+                            highlightFollowsCurrentItem: true
 
                             model: NotificationService.historyList
 
-                            delegate: NotificationHistoryItem {
+                            section.property: AppConfig.notificationGroupByApp ? "appName" : ""
+                            section.delegate: NotificationGroupHeader {
+                                required property string section
                                 width: notifList.width
+                                groupAppName: section
+                                groupCount: NotificationService.getGroupCount(section)
+                                groupAppIcon: NotificationService.getGroupIcon(section)
+                                expanded: NotificationService.isGroupExpanded(section)
+                                onToggleExpanded: NotificationService.toggleGroupExpanded(section)
+                            }
+
+                            delegate: NotificationHistoryItem {
+                                required property int index
+                                required property string notificationId
+                                required property string summary
+                                required property string body
+                                required property string appName
+                                required property string appIcon
+                                required property string image
+                                required property int urgency
+                                required property int timestamp
+
+                                width: notifList.width
+                                visible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
+                                height: visible ? implicitHeight : 0
+
                                 notificationObject: ({
                                     "notificationId": notificationId,
                                     "summary": summary,
@@ -121,7 +185,7 @@ Scope {
                                     "appName": appName,
                                     "appIcon": appIcon,
                                     "image": image,
-                                    "actions": actions,
+                                    "actions": [],
                                     "urgency": urgency,
                                     "timestamp": timestamp
                                 })
@@ -132,8 +196,8 @@ Scope {
                             anchors.fill: parent
                             visible: NotificationService.historyList.count === 0
                             iconName: "notifications_none"
-                            title: "Нет уведомлений"
-                            subtitle: "Новые уведомления появятся здесь"
+                            title: "No notifications"
+                            subtitle: "New notifications will appear here"
                         }
                     }
                 }
