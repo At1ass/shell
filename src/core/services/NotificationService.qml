@@ -18,13 +18,24 @@ Singleton {
 
     onDoNotDisturbChanged: AppConfig.updateState("notifications", { "doNotDisturb": doNotDisturb })
 
+    // Popup signals — consumed by NotificationPopupManager
+    signal popupRequested(var data, var notification)
+    signal popupReplaced(string notificationId, var data)
+    signal popupDismissRequested(string notificationId)
+
     // State
-    property var activeList: []
     property ListModel historyList: ListModel {}
 
-    property var activeNotifications: ({}) // notificationId -> { notification, watcher, timestamp, duration, hoverCount, pauseTime }
+    property var activeNotifications: ({}) // notificationId -> { notification, watcher, timestamp, duration, hoverCount, pauseTime, contentId }
     property var quickshellIdToInternalId: ({})
     property int _nextEntryId: 1
+
+    // Popup registration — managed by PopupManager
+    property var _activePopupIds: ({})
+
+    function registerPopup(id) { _activePopupIds[id] = true }
+    function unregisterPopup(id) { delete _activePopupIds[id] }
+    function hasActivePopup(id) { return !!_activePopupIds[id] }
 
     // Rate limiting: token bucket
     property int _maxIngressPerSecond: 20
@@ -67,25 +78,25 @@ Singleton {
             target: targetNotification
 
             function onSummaryChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onBodyChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onAppNameChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onUrgencyChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onAppIconChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onImageChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
             function onActionsChanged() {
-                root.updateNotificationFromObject(targetDataId)
+                root._updateNotificationFromObject(targetDataId)
             }
         }
     }
@@ -185,13 +196,14 @@ Singleton {
         const quickshellId = notification.id
         const existingInternalId = quickshellIdToInternalId[quickshellId]
         if (existingInternalId && activeNotifications[existingInternalId]) {
-            updateExistingNotification(existingInternalId, notification)
+            _updateExistingNotification(existingInternalId, notification)
             return
         }
 
-        const duplicateId = findDuplicateNotification(data.contentId)
+        const duplicateId = _findDuplicatePopup(data.contentId)
         if (duplicateId) {
-            removeNotification(duplicateId)
+            popupDismissRequested(duplicateId)
+            cleanupNotification(duplicateId)
         }
 
         _gateShow(quickshellId, notification, data)
@@ -201,7 +213,7 @@ Singleton {
         if (root._gateOpen) {
             root._gateOpen = false
             gateTimer.restart()
-            addNewNotification(quickshellId, notification, data)
+            _showNotification(quickshellId, notification, data)
         } else {
             root._gateQueue.push({ "quickshellId": quickshellId, "notification": notification, "data": data })
             root._gateQueue = root._gateQueue
@@ -214,15 +226,10 @@ Singleton {
         root._gateQueue = root._gateQueue
         root._gateOpen = false
         gateTimer.restart()
-        addNewNotification(item.quickshellId, item.notification, item.data)
+        _showNotification(item.quickshellId, item.notification, item.data)
     }
 
-    // Keep for backward compatibility
-    function handleNotification(notification) {
-        _ingestNotification(notification)
-    }
-
-    function addNewNotification(quickshellId, notification, data) {
+    function _showNotification(quickshellId, notification, data) {
         quickshellIdToInternalId[quickshellId] = data.notificationId
 
         const watcher = notificationWatcherComponent.createObject(root, {
@@ -236,30 +243,22 @@ Singleton {
             "timestamp": data.timestamp,
             "duration": calculateDuration(data),
             "hoverCount": 0,
-            "pauseTime": 0
+            "pauseTime": 0,
+            "contentId": data.contentId
         }
 
-        notification.closed.connect(() => removeNotification(data.notificationId))
+        notification.closed.connect(() => root._onNotificationClosed(data.notificationId))
 
-        activeList = [data].concat(activeList)
-
-        while (activeList.length > maxVisible) {
-            const last = activeList[activeList.length - 1]
-            dismissActiveNotification(last.notificationId)
-        }
+        popupRequested(data, notification)
     }
 
-    function updateExistingNotification(internalId, notification) {
-        const index = findNotificationIndex(internalId)
-        if (index < 0)
-            return
-
+    function _updateExistingNotification(internalId, notification) {
         const normalized = normalizeNotification(notification)
         const contentId = getContentId(normalized.summary, normalized.body, normalized.appName)
-        const existingProgress = activeList[index].progress ?? 1.0
 
-        let arr = activeList.slice()
-        arr[index] = Object.assign({}, arr[index], {
+        const updatedData = {
+            "notificationId": internalId,
+            "contentId": contentId,
             "summary": normalized.summary,
             "body": normalized.body,
             "appName": normalized.appName,
@@ -267,11 +266,8 @@ Singleton {
             "image": normalized.image,
             "actions": normalized.actions,
             "urgency": normalized.urgency,
-            "expireTimeout": normalized.expireTimeout,
-            "contentId": contentId,
-            "progress": existingProgress
-        })
-        activeList = arr
+            "expireTimeout": normalized.expireTimeout
+        }
 
         const notifData = activeNotifications[internalId]
         if (notifData) {
@@ -280,25 +276,34 @@ Singleton {
                 expireTimeout: normalized.expireTimeout,
                 urgency: normalized.urgency
             })
+            notifData.contentId = contentId
         }
+
+        popupReplaced(internalId, updatedData)
     }
 
-    function updateNotificationFromObject(internalId) {
+    function _updateNotificationFromObject(internalId) {
         const notifData = activeNotifications[internalId]
         if (!notifData || !notifData.notification)
             return
-
-        updateExistingNotification(internalId, notifData.notification)
+        _updateExistingNotification(internalId, notifData.notification)
     }
 
-    function removeNotification(id) {
-        const index = findNotificationIndex(id)
-        if (index >= 0) {
-            let arr = activeList.slice()
-            arr.splice(index, 1)
-            activeList = arr
+    function _onNotificationClosed(id) {
+        if (hasActivePopup(id)) {
+            popupDismissRequested(id)
         }
         cleanupNotification(id)
+    }
+
+    function _findDuplicatePopup(contentId) {
+        for (const id in root._activePopupIds) {
+            const meta = activeNotifications[id]
+            if (meta && meta.contentId === contentId) {
+                return id
+            }
+        }
+        return null
     }
 
     function cleanupNotification(id) {
@@ -314,24 +319,6 @@ Singleton {
                 break
             }
         }
-    }
-
-    function findNotificationIndex(internalId) {
-        for (var i = 0; i < activeList.length; i++) {
-            if (activeList[i].notificationId === internalId) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    function findDuplicateNotification(contentId) {
-        for (var i = 0; i < activeList.length; i++) {
-            if (activeList[i].contentId === contentId) {
-                return activeList[i].notificationId
-            }
-        }
-        return null
     }
 
     function calculateDuration(data) {
@@ -396,8 +383,7 @@ Singleton {
             "actions": normalized.actions,
             "urgency": normalized.urgency,
             "expireTimeout": normalized.expireTimeout,
-            "timestamp": timestamp,
-            "progress": 1.0
+            "timestamp": timestamp
         }
     }
 
@@ -413,48 +399,6 @@ Singleton {
             hash |= 0
         }
         return (hash >>> 0).toString(16)
-    }
-
-    // Adaptive timeout loop
-    Timer {
-        interval: activeList.length <= 1 ? 500 : 250
-        repeat: true
-        running: activeList.length > 0
-        onTriggered: root.updateAllTimeouts()
-    }
-
-    function updateAllTimeouts() {
-        const now = Date.now()
-        const expired = []
-        let arr = null
-
-        for (var i = 0; i < activeList.length; i++) {
-            const entry = activeList[i]
-            const meta = activeNotifications[entry.notificationId]
-            if (!meta)
-                continue
-            const duration = meta.duration
-            if (duration < 0)
-                continue
-            if (meta.hoverCount > 0)
-                continue
-            const elapsed = now - meta.timestamp
-            if (elapsed >= duration) {
-                expired.push(entry.notificationId)
-            } else {
-                const progress = Math.max(1.0 - (elapsed / duration), 0.0)
-                if (Math.abs(entry.progress - progress) > 0.005) {
-                    if (!arr) arr = activeList.slice()
-                    arr[i] = Object.assign({}, arr[i], {"progress": progress})
-                }
-            }
-        }
-
-        if (arr) activeList = arr
-
-        for (let i = 0; i < expired.length; i++) {
-            dismissActiveNotification(expired[i])
-        }
     }
 
     // Hover count API
@@ -617,9 +561,6 @@ Singleton {
 
     function _sortedInsertHistory(data) {
         const appName = data.appName || "Unknown"
-        // Find the first item with the same appName — insert before it
-        // so this new item is at the top of its group (newest first within group)
-        // Also move the whole group to the top if it isn't already there
         let groupStartIdx = -1
         let groupEndIdx = -1
         for (var i = 0; i < historyList.count; i++) {
@@ -633,17 +574,11 @@ Singleton {
         }
 
         if (groupStartIdx < 0) {
-            // No existing items for this app — insert at top
             historyList.insert(0, data)
         } else if (groupStartIdx === 0) {
-            // Group is already at the top — insert at position 0 (newest in group)
             historyList.insert(0, data)
         } else {
-            // Group exists but not at top — move group to top
-            // First insert the new item at position 0
             historyList.insert(0, data)
-            // Move existing group items right after the new item
-            // After insert, indices shifted by 1
             const count = groupEndIdx - groupStartIdx + 1
             for (let j = 0; j < count; j++) {
                 historyList.move(groupStartIdx + 1 + j, 1 + j, 1)
@@ -680,18 +615,15 @@ Singleton {
     // Public API
     function dismissActiveNotification(id) {
         const meta = activeNotifications[id]
-        if (meta && meta.notification && meta.notification.dismiss) {
+        if (meta?.notification?.dismiss) {
             meta.notification.dismiss()
         }
-        // Always remove immediately — don't depend on async closed signal
-        removeNotification(id)
+        cleanupNotification(id)
+        popupDismissRequested(id)
     }
 
     function dismissAllActive() {
-        const ids = []
-        for (var i = activeList.length - 1; i >= 0; i--) {
-            ids.push(activeList[i].notificationId)
-        }
+        const ids = Object.keys(root._activePopupIds)
         root._batchDismissQueue = ids
     }
 
@@ -708,11 +640,9 @@ Singleton {
 
     function clearHistory() {
         if (historyList.count <= 16) {
-            // Small enough to clear synchronously
             historyList.clear()
             saveHistory()
         } else {
-            // Batch removal from end to start
             const indices = []
             for (var i = historyList.count - 1; i >= 0; i--) {
                 indices.push(i)

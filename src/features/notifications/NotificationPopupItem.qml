@@ -10,64 +10,91 @@ import qs.src.ui.feedback
 
 Rectangle {
     id: root
-    required property var notificationObject
-    property bool animatePopupExit: true
-    readonly property bool hasNotification: notificationObject !== null && notificationObject !== undefined
-    readonly property bool isCritical: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-    readonly property real progressValue: (root.hasNotification && notificationObject.progress !== undefined)
-        ? notificationObject.progress
-        : 1.0
+
+    required property var notificationData
+    property int duration: 0
+    property string notifId: notificationData?.notificationId ?? ""
+
+    readonly property bool hasData: notificationData !== null && notificationData !== undefined
+    readonly property bool isCritical: hasData && notificationData.urgency === NotificationUrgency.Critical
+    readonly property bool hovered: mouseArea.containsMouse
+
+    // Decoupled signals
+    signal swipeDismissed()
+    signal closeClicked()
+    signal actionInvoked(string actionId)
+    signal timeoutExpired()
+
+    // Local progress tracking
+    property real _startTime: Date.now()
+    property real _pausedDuration: 0
+    property real _pauseStart: 0
+    property real progressValue: 1.0
+
+    Timer {
+        interval: 33  // ~30fps
+        repeat: true
+        running: root.duration > 0 && !root.hovered && root.visible
+        onTriggered: {
+            const elapsed = Date.now() - root._startTime - root._pausedDuration
+            root.progressValue = Math.max(0, 1.0 - elapsed / root.duration)
+        }
+    }
+
+    // Per-popup auto-dismiss timer
+    property real _remainingOnPause: 0
+
+    Timer {
+        id: autoDismissTimer
+        interval: root.duration > 0 ? root.duration : 0
+        repeat: false
+        running: root.duration > 0 && !root.hovered
+        onTriggered: root.timeoutExpired()
+    }
+
+    onHoveredChanged: {
+        if (hovered) {
+            _pauseStart = Date.now()
+            _remainingOnPause = Math.max(0, autoDismissTimer.interval - (Date.now() - _startTime - _pausedDuration))
+            autoDismissTimer.stop()
+            NotificationService.incrementHover(notifId)
+        } else {
+            _pausedDuration += Date.now() - _pauseStart
+            // Restart with remaining time
+            if (root.duration > 0 && _remainingOnPause > 0) {
+                autoDismissTimer.interval = _remainingOnPause
+                autoDismissTimer.restart()
+            }
+            NotificationService.decrementHover(notifId)
+        }
+    }
 
     // Swipe-to-dismiss state
     property real _dragStartX: 0
     property bool _swiping: false
-    property string _pendingDismissId: ""
 
-    implicitWidth: 336
+    implicitWidth: AppConfig.notificationPopupWidth
     readonly property real nonAnimHeight: column.implicitHeight + Tokens.spacing.medium * 2
     implicitHeight: nonAnimHeight
-    radius: Tokens.shape.extraSmall  // MD3: 4dp
+    radius: Tokens.shape.extraSmall
 
-    // MD3: errorContainer for critical, surfaceContainerHighest for normal
     color: isCritical ? Theme.errorContainer : Theme.surfaceContainerHighest
 
     border.width: isCritical ? 2 : 0
     border.color: isCritical ? Theme.error : "transparent"
-
-    // Initial state: off-screen right, invisible
-    x: implicitWidth
-    opacity: 0
-
-    // One-shot entrance animation (replaces Timer + Behavior)
-    ParallelAnimation {
-        id: entranceAnim
-        running: false
-        NumberAnimation {
-            target: root; property: "x"; to: 0
-            duration: Tokens.motion.duration.medium2   // 300ms
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
-        }
-        NumberAnimation {
-            target: root; property: "opacity"; to: 1.0
-            duration: Tokens.motion.duration.short4   // 200ms
-        }
-    }
-
-    Component.onCompleted: entranceAnim.start()
 
     // Snap-back animation for cancelled swipe
     ParallelAnimation {
         id: snapBackAnim
         NumberAnimation {
             target: root; property: "x"; to: 0
-            duration: Tokens.motion.duration.short4   // 200ms
+            duration: Tokens.motion.duration.short4
             easing.type: Tokens.motion.easing.standard
             easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
         NumberAnimation {
             target: root; property: "opacity"; to: 1.0
-            duration: Tokens.motion.duration.short3   // 150ms
+            duration: Tokens.motion.duration.short3
         }
     }
 
@@ -86,9 +113,7 @@ Rectangle {
         ScriptAction {
             script: {
                 root._swiping = false
-                if (root._pendingDismissId !== "")
-                    NotificationService.dismissActiveNotification(root._pendingDismissId)
-                root._pendingDismissId = ""
+                root.swipeDismissed()
             }
         }
     }
@@ -137,17 +162,9 @@ Rectangle {
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-
-        onEntered: {
-            if (root.hasNotification)
-                NotificationService.incrementHover(notificationObject.notificationId)
-        }
-        onExited: {
-            if (root.hasNotification)
-                NotificationService.decrementHover(notificationObject.notificationId)
-        }
 
         onPressed: (mouse) => {
             root._dragStartX = mouse.x
@@ -158,17 +175,14 @@ Rectangle {
             const dx = mouse.x - root._dragStartX
             if (Math.abs(dx) > 10) root._swiping = true
             if (root._swiping) {
-                root.x = Math.max(0, dx)  // only swipe right
+                root.x = Math.max(0, dx)
                 root.opacity = 1.0 - (root.x / root.implicitWidth) * 0.5
             }
         }
         onReleased: (mouse) => {
             if (root._swiping && root.x > 70) {
-                // Capture ID before animation — modelData binding may change during anim
-                root._pendingDismissId = root.hasNotification ? notificationObject.notificationId : ""
                 swipeDismissAnim.start()
             } else if (root._swiping) {
-                // Snap back with explicit animation
                 root._swiping = false
                 snapBackAnim.start()
             }
@@ -186,9 +200,9 @@ Rectangle {
             Layout.fillWidth: true
 
             Image {
-                visible: root.hasNotification && source !== ""
-                source: root.hasNotification && notificationObject.appIcon
-                        ? Quickshell.iconPath(notificationObject.appIcon)
+                visible: root.hasData && source !== ""
+                source: root.hasData && notificationData.appIcon
+                        ? Quickshell.iconPath(notificationData.appIcon)
                         : ""
                 Layout.preferredWidth: 32
                 Layout.preferredHeight: 32
@@ -202,7 +216,7 @@ Rectangle {
                 spacing: 4
 
                 Label {
-                    text: root.hasNotification ? (notificationObject.appName || "") : ""
+                    text: root.hasData ? (notificationData.appName || "") : ""
                     visible: text.length > 0
                     font.bold: true
                     color: isCritical ? Theme.onErrorContainer : Theme.onSurface
@@ -210,7 +224,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: root.hasNotification ? (notificationObject.summary || "") : ""
+                    text: root.hasData ? (notificationData.summary || "") : ""
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                     color: isCritical ? Theme.onErrorContainer : Theme.onSurface
@@ -251,17 +265,13 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (root.hasNotification) {
-                            NotificationService.dismissActiveNotification(notificationObject.notificationId)
-                        }
-                    }
+                    onClicked: root.closeClicked()
                 }
             }
         }
 
         Label {
-            text: root.hasNotification ? (notificationObject.body || "") : ""
+            text: root.hasData ? (notificationData.body || "") : ""
             visible: text.length > 0
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
@@ -271,7 +281,7 @@ Rectangle {
 
         // Notification image
         Rectangle {
-            visible: root.hasNotification && (notificationObject.image || "") !== ""
+            visible: root.hasData && (notificationData.image || "") !== ""
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? Math.min(notifImage.implicitHeight, 180) : 0
             radius: Tokens.shape.small
@@ -281,7 +291,7 @@ Rectangle {
             Image {
                 id: notifImage
                 anchors.fill: parent
-                source: root.hasNotification ? (notificationObject.image || "") : ""
+                source: root.hasData ? (notificationData.image || "") : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
@@ -290,21 +300,18 @@ Rectangle {
         }
 
         Repeater {
-            model: root.hasNotification ? (notificationObject.actions || []) : []
+            model: root.hasData ? (notificationData.actions || []) : []
 
             MaterialButton {
                 required property var modelData
                 text: modelData.text
                 variant: "text"
-                onClicked: {
-                    if (root.hasNotification) {
-                        NotificationService.attemptInvokeAction(notificationObject.notificationId, modelData.identifier)
-                    }
-                }
+                onClicked: root.actionInvoked(modelData.identifier)
             }
         }
     }
 
+    // Progress bar
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -312,6 +319,7 @@ Rectangle {
         height: 2
         color: Theme.surfaceContainerHighest
         opacity: 0.6
+        visible: root.duration > 0
 
         Rectangle {
             anchors.left: parent.left
@@ -327,6 +335,18 @@ Rectangle {
                     easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
+        }
+    }
+
+    function updateData(newData) {
+        notificationData = newData
+        // Reset timer on update
+        _startTime = Date.now()
+        _pausedDuration = 0
+        progressValue = 1.0
+        if (duration > 0) {
+            autoDismissTimer.interval = duration
+            autoDismissTimer.restart()
         }
     }
 }

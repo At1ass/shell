@@ -74,10 +74,7 @@ ShellRoot {
     }
 
     // Notification popups
-    LazyLoader {
-        loading: true
-        NotificationPopup {}
-    }
+    NotificationPopupManager {}
 
     // Notification center
     LazyLoader {
