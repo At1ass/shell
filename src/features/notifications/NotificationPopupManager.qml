@@ -13,14 +13,25 @@ Scope {
     readonly property int topMargin: AppConfig.barHeight + AppConfig.barMargin
     readonly property int popupSpacing: 8
 
-    function _getFocusedScreen() {
+    // Sticky screen: all popups go to the same screen while the stack is active.
+    // Only re-evaluate focused screen when no popups are visible.
+    property var _currentScreen: null
+
+    function _getTargetScreen() {
+        // If popups are active, keep them on the same screen
+        if (_currentScreen && popupWindows.length > 0) return _currentScreen
+
         const focused = Hyprland.focusedMonitor
         if (focused) {
             for (const screen of Quickshell.screens) {
-                if (screen.name === focused.name) return screen
+                if (screen.name === focused.name) {
+                    _currentScreen = screen
+                    return screen
+                }
             }
         }
-        return Quickshell.screens[0]
+        _currentScreen = Quickshell.screens[0]
+        return _currentScreen
     }
 
     property Component popupComponent: Component {
@@ -62,7 +73,7 @@ Scope {
             }
         }
 
-        const targetScreen = _getFocusedScreen()
+        const targetScreen = _getTargetScreen()
         const popup = popupComponent.createObject(manager, {
             "notificationData": data,
             "notificationObject": notification,
@@ -113,6 +124,9 @@ Scope {
         popupWindows = arr
 
         _recalculateStack()
+
+        // Reset sticky screen when stack is empty
+        if (popupWindows.length === 0) _currentScreen = null
 
         Qt.callLater(() => { popup.destroy() })
     }
