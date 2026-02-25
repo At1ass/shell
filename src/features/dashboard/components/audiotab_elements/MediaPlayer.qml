@@ -223,200 +223,56 @@ MaterialCard {
                 spacing: 4
 
                 // Shuffle
-                Rectangle {
-                    width: 40
-                    height: 40
-                    radius: 20
-                    color: MprisController.shuffle ? Theme.primaryContainer : "transparent"
-                    opacity: MprisController.shuffleSupported ? 1.0 : 0.38
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Tokens.motion.duration.short4
-                        }
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "shuffle"
-                        fontSize: 20
-                        iconColor: MprisController.shuffle ? Theme.onPrimaryContainer : Theme.onSurface
-                        backgroundColor: "transparent"
-
-                        Behavior on iconColor {
-                            ColorAnimation {
-                                duration: Tokens.motion.duration.short4
-                            }
-                        }
-                    }
-
-                    StateLayer {
-                        layerColor: MprisController.shuffle ? Theme.onPrimaryContainer : Theme.onSurface
-                        hovered: shuffleMouseArea.containsMouse
-                        pressed: shuffleMouseArea.pressed
-                    }
-
-                    MouseArea {
-                        id: shuffleMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: MprisController.shuffleSupported ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: MprisController.shuffleSupported && MprisController.canControl
-                        onClicked: MprisController.toggleShuffle()
-                    }
+                IconButton {
+                    iconName: "shuffle"
+                    iconSize: Tokens.iconSize.medium
+                    variant: MprisController.shuffle ? "tonal" : "standard"
+                    enabled: MprisController.shuffleSupported && MprisController.canControl
+                    onClicked: MprisController.toggleShuffle()
                 }
 
                 // Previous
-                Rectangle {
-                    width: 48
-                    height: 48
-                    radius: 24
-                    color: "transparent"
-                    opacity: MprisController.canGoPrevious ? 1.0 : 0.38
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "skip_previous"
-                        fontSize: 28
-                        iconColor: Theme.onSurface
-                        backgroundColor: "transparent"
-                    }
-
-                    StateLayer {
-                        layerColor: Theme.onSurface
-                        hovered: prevMouseArea.containsMouse
-                        pressed: prevMouseArea.pressed
-                    }
-
-                    MouseArea {
-                        id: prevMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: MprisController.canGoPrevious ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: MprisController.canGoPrevious
-                        onClicked: MprisController.previous()
-                    }
+                IconButton {
+                    iconName: "skip_previous"
+                    iconSize: 28
+                    containerSize: 48
+                    variant: "standard"
+                    enabled: MprisController.canGoPrevious
+                    onClicked: MprisController.previous()
                 }
 
                 // Play/Pause (FAB style)
-                Rectangle {
-                    width: 56
-                    height: 56
-                    radius: 28
-                    color: Theme.primaryContainer
-
-                    // M3 FAB elevation через surface tint (вместо DropShadow)
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        color: Theme.primary
-                        opacity: 0.08  // elevation level 1
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: MprisController.isPlaying ? "pause" : "play_arrow"
-                        fontSize: 32
-                        iconColor: Theme.onPrimaryContainer
-                        backgroundColor: "transparent"
-                    }
-
-                    StateLayer {
-                        layerColor: Theme.onPrimaryContainer
-                        hovered: playMouseArea.containsMouse
-                        pressed: playMouseArea.pressed
-                    }
-
-                    MouseArea {
-                        id: playMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: MprisController.canTogglePlaying ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: MprisController.canTogglePlaying
-                        onClicked: MprisController.togglePlaying()
-                    }
+                IconButton {
+                    iconName: MprisController.isPlaying ? "pause" : "play_arrow"
+                    iconSize: Tokens.iconSize.extraLarge
+                    containerSize: 56
+                    touchTargetSize: 56
+                    variant: "tonal"
+                    enabled: MprisController.canTogglePlaying
+                    onClicked: MprisController.togglePlaying()
                 }
 
                 // Next
-                Rectangle {
-                    width: 48
-                    height: 48
-                    radius: 24
-                    color: "transparent"
-                    opacity: MprisController.canGoNext ? 1.0 : 0.38
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "skip_next"
-                        fontSize: 28
-                        iconColor: Theme.onSurface
-                        backgroundColor: "transparent"
-                    }
-
-                    StateLayer {
-                        layerColor: Theme.onSurface
-                        hovered: nextMouseArea.containsMouse
-                        pressed: nextMouseArea.pressed
-                    }
-
-                    MouseArea {
-                        id: nextMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: MprisController.canGoNext ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: MprisController.canGoNext
-                        onClicked: MprisController.next()
-                    }
+                IconButton {
+                    iconName: "skip_next"
+                    iconSize: 28
+                    containerSize: 48
+                    variant: "standard"
+                    enabled: MprisController.canGoNext
+                    onClicked: MprisController.next()
                 }
 
                 // Loop
-                Rectangle {
-                    width: 40
-                    height: 40
-                    radius: 20
-                    color: MprisController.loopState !== MprisLoopState.None ? Theme.primaryContainer : "transparent"
-                    opacity: MprisController.loopSupported ? 1.0 : 0.38
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Tokens.motion.duration.short4
-                        }
+                IconButton {
+                    iconName: {
+                        if (MprisController.loopState === MprisLoopState.Track)
+                            return "repeat_one"
+                        return "repeat"
                     }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: {
-                            if (MprisController.loopState === MprisLoopState.Track)
-                                return "repeat_one";
-                            if (MprisController.loopState === MprisLoopState.Playlist)
-                                return "repeat";
-                            return "repeat";
-                        }
-                        fontSize: 20
-                        iconColor: MprisController.loopState !== MprisLoopState.None ? Theme.onPrimaryContainer : Theme.onSurface
-                        backgroundColor: "transparent"
-
-                        Behavior on iconColor {
-                            ColorAnimation {
-                                duration: Tokens.motion.duration.short4
-                            }
-                        }
-                    }
-
-                    StateLayer {
-                        layerColor: MprisController.loopState !== MprisLoopState.None ? Theme.onPrimaryContainer : Theme.onSurface
-                        hovered: loopMouseArea.containsMouse
-                        pressed: loopMouseArea.pressed
-                    }
-
-                    MouseArea {
-                        id: loopMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: MprisController.loopSupported ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: MprisController.loopSupported && MprisController.canControl
-                        onClicked: MprisController.toggleLoop()
-                    }
+                    iconSize: Tokens.iconSize.medium
+                    variant: MprisController.loopState !== MprisLoopState.None ? "tonal" : "standard"
+                    enabled: MprisController.loopSupported && MprisController.canControl
+                    onClicked: MprisController.toggleLoop()
                 }
             }
                 }
@@ -438,7 +294,7 @@ MaterialCard {
             anchors.margins: Tokens.spacing.large
             anchors.topMargin: Tokens.spacing.large + 40
             width: 200
-            height: Math.min(sourceMenuContent.implicitHeight, 300)
+            height: Math.min(sourceMenuContent.implicitHeight + Tokens.spacing.extraSmall * 2, 300)
             radius: Tokens.shape.medium
             color: Theme.surfaceContainerHigh
 
@@ -463,61 +319,26 @@ MaterialCard {
                 Repeater {
                     model: MprisController.availablePlayers
 
-                    delegate: Rectangle {
+                    delegate: ListItem {
                         required property var modelData
                         required property int index
                         property var player: modelData
                         property bool isActive: player === MprisController.activePlayer
 
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 48
+                        implicitHeight: 48
                         radius: Tokens.shape.extraSmall
-                        color: isActive ? Theme.secondaryContainer : (playerMouseArea.containsMouse ? Theme.surfaceContainerHighest : "transparent")
+                        color: isActive ? Theme.secondaryContainer : "transparent"
+                        headline: player.identity || "Unknown Player"
+                        leadingIcon: player.isPlaying ? "play_circle" : "music_note"
+                        leadingIconColor: isActive ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
+                        trailingIcon: isActive ? "check" : ""
+                        trailingIconColor: Theme.primary
+                        margin: Tokens.spacing.small
 
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: Tokens.motion.duration.short4
-                            }
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: Tokens.spacing.small
-                            spacing: Tokens.spacing.small
-
-                            MaterialIcon {
-                                iconName: player.isPlaying ? "play_circle" : "music_note"
-                                fontSize: 24
-                                iconColor: isActive ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
-                                backgroundColor: "transparent"
-                            }
-
-                            MaterialText {
-                                Layout.fillWidth: true
-                                text: player.identity || "Unknown Player"
-                                textStyle: "bodyMedium"
-                                colorRole: isActive ? "onSecondaryContainer" : "onSurface"
-                                elide: Text.ElideRight
-                            }
-
-                            MaterialIcon {
-                                iconName: "check"
-                                fontSize: 20
-                                iconColor: Theme.primary
-                                backgroundColor: "transparent"
-                                visible: isActive
-                            }
-                        }
-
-                        MouseArea {
-                            id: playerMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                MprisController.switchToPlayer(index);
-                                sourceMenu.visible = false;
-                            }
+                        onClicked: {
+                            MprisController.switchToPlayer(index)
+                            sourceMenu.visible = false
                         }
                     }
                 }

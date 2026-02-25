@@ -302,42 +302,16 @@ Item {
                                         horizontalAlignment: Text.AlignRight
                                     }
 
-                                    // Mute button (MD3 IconButton style)
-                                    Rectangle {
-                                        width: 48
-                                        height: 48
-                                        radius: 24
-                                        color: (stream && stream.audio && stream.audio.muted) ?
-                                               Theme.errorContainer :
-                                               (muteMouseArea.containsMouse ? Theme.surfaceContainerHighest : "transparent")
-
-                                        Behavior on color {
-                                            ColorAnimation { duration: Tokens.motion.duration.short4 }
-                                        }
-
-                                        MaterialIcon {
-                                            anchors.centerIn: parent
-                                            iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
-                                            fontSize: Tokens.typography.titleLarge.size
-                                            iconColor: (stream && stream.audio && stream.audio.muted) ?
-                                                      Theme.onErrorContainer :
-                                                      Theme.onSurfaceVariant
-                                            backgroundColor: "transparent"
-
-                                            Behavior on iconColor {
-                                                ColorAnimation { duration: Tokens.motion.duration.short4 }
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            id: muteMouseArea
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            enabled: !!(stream && stream.audio)
-                                            onClicked: if (stream && stream.audio)
-                                                stream.audio.muted = !stream.audio.muted
-                                        }
+                                    IconButton {
+                                        iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
+                                        iconSize: Tokens.typography.titleLarge.size
+                                        iconColor: (stream && stream.audio && stream.audio.muted) ?
+                                                  Theme.onErrorContainer : Theme.onSurfaceVariant
+                                        containerSize: 48
+                                        variant: "standard"
+                                        enabled: !!(stream && stream.audio)
+                                        onClicked: if (stream && stream.audio)
+                                            stream.audio.muted = !stream.audio.muted
                                     }
                                 }
                             }
