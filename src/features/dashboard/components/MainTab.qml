@@ -139,7 +139,7 @@ Item {
             Layout.rowSpan: 1
             Layout.columnSpan: 7
             Layout.fillWidth: true
-            Layout.preferredHeight:90
+            Layout.preferredHeight: 48
         }
 
         // ===== ROW 2, COL 0-5: MEDIA PLAYER =====

@@ -279,6 +279,156 @@ Item {
             Layout.preferredWidth: 1
             spacing: Tokens.spacing.small
 
+            // ===== SYSTEM MONITOR CARD =====
+            MaterialCard {
+                Layout.fillWidth: true
+                Layout.preferredHeight: monitorColumn.implicitHeight + Tokens.spacing.medium * 2
+                color: Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
+
+                ColumnLayout {
+                    id: monitorColumn
+                    anchors.fill: parent
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.small
+
+                    SectionHeader {
+                        Layout.fillWidth: true
+                        title: "System Monitor"
+                        icon: "monitor_heart"
+                    }
+
+                    Repeater {
+                        model: [
+                            { label: "CPU",  icon: "developer_board",  type: "cpu" },
+                            { label: "GPU",  icon: "videogame_asset",  type: "gpu" },
+                            { label: "RAM",  icon: "memory",           type: "ram" },
+                            { label: "Disk", icon: "storage",          type: "disk" }
+                        ]
+
+                        delegate: ColumnLayout {
+                            required property var modelData
+
+                            visible: modelData.type !== "gpu" || SystemMonitorService.hasGpuStats
+                            Layout.fillWidth: true
+                            spacing: Tokens.spacing.extraSmall
+
+                            property real currentPercent: {
+                                switch (modelData.type) {
+                                    case "cpu":  return SystemMonitorService.cpuUsage;
+                                    case "gpu":  return SystemMonitorService.gpuUsage;
+                                    case "ram":  return SystemMonitorService.ramUsage;
+                                    case "disk": return SystemMonitorService.diskUsage;
+                                }
+                            }
+
+                            property string currentExtra: {
+                                switch (modelData.type) {
+                                    case "cpu":  return SystemMonitorService.cpuTemp + "°";
+                                    case "gpu":  return SystemMonitorService.gpuTemp + "°";
+                                    case "ram":  return SystemMonitorService.ramUsed + "G";
+                                    case "disk": return SystemMonitorService.diskUsed;
+                                }
+                            }
+
+                            property string subtitle: {
+                                switch (modelData.type) {
+                                    case "cpu":  return SystemMonitorService.cpuModel;
+                                    case "gpu":  return SystemMonitorService.gpuModel;
+                                    case "ram":  return SystemMonitorService.ramTotal + "G";
+                                    case "disk": return "/";
+                                }
+                            }
+
+                            property real animatedProgress: currentPercent / 100
+                            property color thresholdColor: {
+                                if (animatedProgress < 0.5) return Theme.primary;
+                                if (animatedProgress < 0.8) return Theme.tertiary;
+                                return Theme.error;
+                            }
+
+                            Behavior on animatedProgress {
+                                NumberAnimation {
+                                    duration: Tokens.motion.duration.long2
+                                    easing.type: Tokens.motion.easing.emphasizedDecelerate
+                                }
+                            }
+
+                            Behavior on thresholdColor {
+                                ColorAnimation { duration: Tokens.motion.duration.medium2 }
+                            }
+
+                            // Header row: icon + label + spacer + percent + extra
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Tokens.spacing.small
+
+                                MaterialIcon {
+                                    iconName: modelData.icon
+                                    fontSize: 16
+                                    iconColor: Theme.onSurfaceVariant
+                                    backgroundColor: "transparent"
+                                }
+
+                                MaterialText {
+                                    text: modelData.label
+                                    textStyle: "labelMedium"
+                                    colorRole: "onSurfaceVariant"
+                                }
+
+                                MaterialText {
+                                    visible: subtitle !== ""
+                                    text: subtitle
+                                    textStyle: "labelSmall"
+                                    colorRole: "onSurfaceVariant"
+                                    opacity: 0.7
+                                    elide: Text.ElideMiddle
+                                    Layout.fillWidth: true
+                                }
+
+                                MaterialText {
+                                    text: Math.round(currentPercent) + "%"
+                                    textStyle: "labelLarge"
+                                    colorRole: "onSurface"
+                                    font.weight: Font.Bold
+                                }
+
+                                MaterialText {
+                                    text: currentExtra
+                                    textStyle: "labelSmall"
+                                    colorRole: "onSurfaceVariant"
+                                }
+                            }
+
+                            // Progress bar
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 6
+                                radius: 3
+                                color: Theme.surfaceContainerHighest
+
+                                Rectangle {
+                                    width: parent.parent.animatedProgress * parent.width
+                                    height: parent.height
+                                    radius: 3
+                                    color: parent.parent.thresholdColor
+
+                                    Behavior on width {
+                                        NumberAnimation {
+                                            duration: Tokens.motion.duration.long2
+                                            easing.type: Tokens.motion.easing.emphasizedDecelerate
+                                        }
+                                    }
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: Tokens.motion.duration.medium2 }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             ScrollableList {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -613,6 +763,7 @@ Item {
                     }
                 }
             }
+
         }
     }
 
