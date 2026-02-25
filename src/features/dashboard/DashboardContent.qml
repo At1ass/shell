@@ -92,7 +92,7 @@ Item {
                     } else if (currentIndex === 2) {
                         root.requestHeightChange(AppConfig.dashboardHeight - 40);  // CalendarTab
                     } else if (currentIndex === 3) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 60);  // SystemTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 100);  // SystemTab
                     }
                 }
 

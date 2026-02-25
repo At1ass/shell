@@ -53,6 +53,7 @@ Singleton {
 
     // Group expansion state (appName -> bool)
     property var _expandedGroups: ({})
+    property int _groupVersion: 0
 
     // Persistent history
     readonly property string historyFile: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/notification-history.json"
@@ -588,12 +589,14 @@ Singleton {
 
     // Grouping state for ListView sections
     function isGroupExpanded(appName) {
-        return root._expandedGroups[appName] !== false
+        // _groupVersion >= 0 is always true, but reading it creates a
+        // binding dependency so callers re-evaluate when it increments.
+        return root._groupVersion >= 0 && root._expandedGroups[appName] !== false
     }
 
     function toggleGroupExpanded(appName) {
-        root._expandedGroups[appName] = !isGroupExpanded(appName)
-        root._expandedGroups = root._expandedGroups // trigger change signal
+        root._expandedGroups[appName] = !(root._expandedGroups[appName] !== false)
+        root._groupVersion++
     }
 
     function getGroupCount(appName) {
@@ -650,6 +653,7 @@ Singleton {
             root._batchHistoryClearQueue = indices
         }
         root._expandedGroups = ({})
+        root._groupVersion++
     }
 
     // Compatibility with existing UI
