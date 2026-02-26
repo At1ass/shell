@@ -168,6 +168,15 @@ Singleton {
         }
     }
 
+    GlobalShortcut {
+        name: "screenshot"
+        description: "Take a screenshot (area)"
+
+        onPressed: {
+            root.takeScreenshot(false)
+        }
+    }
+
     // IPC Commands для внешнего управления
     IpcHandler {
         target: "globalstates"
@@ -222,6 +231,10 @@ Singleton {
 
         function closeNotificationCenter(): void {
             root.notificationCenterOpen = false
+        }
+
+        function screenshot(fullScreen: bool): void {
+            root.takeScreenshot(fullScreen)
         }
     }
 }
