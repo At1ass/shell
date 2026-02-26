@@ -138,10 +138,9 @@ StackView {
                                 active: item.modelData.icon !== ""
                                 asynchronous: true
 
-                                sourceComponent: MaterialIcon {
-                                    iconName: item.modelData.icon
-                                    iconColor: item.modelData.enabled ? "onSurface" : "outline"
-                                    fontSize: Tokens.typography.titleMedium.size
+                                sourceComponent: IconImage {
+                                    implicitSize: label.implicitHeight
+                                    source: item.modelData.icon
                                 }
                             }
 
