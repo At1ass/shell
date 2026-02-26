@@ -102,12 +102,13 @@ Rectangle {
         id: swipeDismissAnim
         NumberAnimation {
             target: root; property: "x"
-            to: root.implicitWidth; duration: 150
-            easing.type: Easing.OutCubic
+            to: root.implicitWidth; duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
         NumberAnimation {
             target: root; property: "opacity"
-            to: 0; duration: 50
+            to: 0; duration: Tokens.motion.duration.short1
         }
         ScriptAction {
             script: {
@@ -148,13 +149,13 @@ Rectangle {
             NumberAnimation {
                 target: criticalPulse; property: "opacity"
                 from: 0; to: 0.12
-                duration: 300
+                duration: Tokens.motion.duration.medium2
                 easing.type: Easing.InOutQuad
             }
             NumberAnimation {
                 target: criticalPulse; property: "opacity"
                 from: 0.12; to: 0
-                duration: 300
+                duration: Tokens.motion.duration.medium2
                 easing.type: Easing.InOutQuad
             }
         }

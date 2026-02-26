@@ -78,13 +78,13 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot Area",
-                        action: () => GlobalStates.takeScreenshot(false)
+                        action: () => GlobalStates.takeScreenshot()
                     },
                     {
-                        icon: "screenshot",
-                        active: () => false,
-                        tooltip: "Screenshot Full Screen",
-                        action: () => GlobalStates.takeScreenshot(true)
+                        icon: "sports_esports",
+                        active: () => GlobalStates.gamingModeActive,
+                        tooltip: () => GlobalStates.gamingModeActive ? "Gaming Mode Active" : "Gaming Mode",
+                        action: () => GlobalStates.toggleGamingMode()
                     },
                     {
                         icon: "open_in_new",

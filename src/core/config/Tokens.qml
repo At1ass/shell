@@ -134,26 +134,29 @@ Singleton {
         }
     }
 
+    // Animation duration scale (0 = instant, 1 = normal)
+    property real durationScale: 1.0
+
     // Material Motion specification
     readonly property QtObject motion: QtObject {
-        // Duration tokens (milliseconds)
+        // Duration tokens (milliseconds) — scaled by durationScale
         readonly property QtObject duration: QtObject {
-            readonly property int short1: 50
-            readonly property int short2: 100
-            readonly property int short3: 150
-            readonly property int short4: 200
-            readonly property int medium1: 250
-            readonly property int medium2: 300
-            readonly property int medium3: 350
-            readonly property int medium4: 400
-            readonly property int long1: 450
-            readonly property int long2: 500
-            readonly property int long3: 550
-            readonly property int long4: 600
-            readonly property int extraLong1: 700
-            readonly property int extraLong2: 800
-            readonly property int extraLong3: 900
-            readonly property int extraLong4: 1000
+            readonly property int short1: Math.round(50 * root.durationScale)
+            readonly property int short2: Math.round(100 * root.durationScale)
+            readonly property int short3: Math.round(150 * root.durationScale)
+            readonly property int short4: Math.round(200 * root.durationScale)
+            readonly property int medium1: Math.round(250 * root.durationScale)
+            readonly property int medium2: Math.round(300 * root.durationScale)
+            readonly property int medium3: Math.round(350 * root.durationScale)
+            readonly property int medium4: Math.round(400 * root.durationScale)
+            readonly property int long1: Math.round(450 * root.durationScale)
+            readonly property int long2: Math.round(500 * root.durationScale)
+            readonly property int long3: Math.round(550 * root.durationScale)
+            readonly property int long4: Math.round(600 * root.durationScale)
+            readonly property int extraLong1: Math.round(700 * root.durationScale)
+            readonly property int extraLong2: Math.round(800 * root.durationScale)
+            readonly property int extraLong3: Math.round(900 * root.durationScale)
+            readonly property int extraLong4: Math.round(1000 * root.durationScale)
         }
 
         // Easing curves (Material Design 3)

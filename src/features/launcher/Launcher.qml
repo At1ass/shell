@@ -42,9 +42,9 @@ Scope {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 400  // MD3 normal duration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard curve
+                    duration: Tokens.motion.duration.medium4
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -75,17 +75,17 @@ Scope {
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 400  // MD3 normal duration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1]  // MD3 emphasized decelerate
+                        duration: Tokens.motion.duration.medium4
+                        easing.type: Tokens.motion.easing.emphasizedDecelerate
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
                     }
                 }
 
                 Behavior on y {
                     NumberAnimation {
-                        duration: 400  // MD3 normal duration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1]  // MD3 emphasized decelerate
+                        duration: Tokens.motion.duration.medium4
+                        easing.type: Tokens.motion.easing.emphasizedDecelerate
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
                     }
                 }
 

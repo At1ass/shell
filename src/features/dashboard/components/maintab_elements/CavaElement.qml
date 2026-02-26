@@ -18,7 +18,7 @@ MaterialCard {
     radius: Tokens.shape.large
 
     // Анимации работают только когда dashboard виден
-    readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible
+    readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible && !GlobalStates.gamingModeActive
 
     ColumnLayout {
         anchors.fill: parent
@@ -78,7 +78,7 @@ MaterialCard {
                             }
 
                             PauseAnimation {
-                                duration: 50
+                                duration: Tokens.motion.duration.short1
                             }
                         }
                     }

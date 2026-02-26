@@ -239,8 +239,27 @@
     "showClock": true
   },
 
+  "powerMenu": {
+    "enabled": true,
+    "confirmActions": true,
+    "actions": ["lock", "suspend", "reboot", "shutdown", "logout"]
+  },
+
+  "gamingMode": {
+    "disableAnimations": true,
+    "disableWeather": true,
+    "disableWallpaperChange": true,
+    "hyprland": {
+      "disableAnimations": true,
+      "disableBlur": true,
+      "disableShadows": true,
+      "gaps": 0,
+      "rounding": 0
+    }
+  },
+
   "wallpaper": {
-    "primaryMonitor": "DP-2",
+    "primaryMonitor": "DP-1",
     "defaultWallpaper": "/home/at1ass/wallpapers/Anime Girl Sky Sunset 4k Wallpaper iPhone HD Phone 3201m.jpg",
     "postSetScript": "",
     "global": {
