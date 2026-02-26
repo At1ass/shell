@@ -53,6 +53,20 @@ Item {
             return
         }
 
+        // Vi-like tab switching: H/L (shifted) when NOT on calendar tab
+        if (tabView.currentIndex !== 2) {
+            if (event.key === Qt.Key_H || event.key === Qt.Key_Left) {
+                tabView.currentIndex = Math.max(0, tabView.currentIndex - 1)
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_L || event.key === Qt.Key_Right) {
+                tabView.currentIndex = Math.min(3, tabView.currentIndex + 1)
+                event.accepted = true
+                return
+            }
+        }
+
         // Route to active tab
         if (tabView.currentIndex === 2) _handleCalendarKey(event)
     }
@@ -60,18 +74,40 @@ Item {
     function _handleCalendarKey(event) {
         const cal = calendarLoader.item
         if (!cal) return
+        const shift = !!(event.modifiers & Qt.ShiftModifier)
+
+        // Shift+key: month nav / jump to last
+        if (shift) {
+            if (event.key === Qt.Key_H) { cal.goToPrevMonth(); event.accepted = true }
+            else if (event.key === Qt.Key_L) { cal.goToNextMonth(); event.accepted = true }
+            else if (event.key === Qt.Key_G) { cal.goToLastDay(); event.accepted = true }
+            return
+        }
 
         switch (event.key) {
-            case Qt.Key_Left:    cal.moveFocusBy(-1); event.accepted = true; break
-            case Qt.Key_Right:   cal.moveFocusBy(1); event.accepted = true; break
-            case Qt.Key_Up:      cal.moveFocusBy(-7); event.accepted = true; break
-            case Qt.Key_Down:    cal.moveFocusBy(7); event.accepted = true; break
+            // Arrows + vi h/j/k/l
+            case Qt.Key_Left:
+            case Qt.Key_H:       cal.moveFocusBy(-1); event.accepted = true; break
+            case Qt.Key_Right:
+            case Qt.Key_L:       cal.moveFocusBy(1); event.accepted = true; break
+            case Qt.Key_Up:
+            case Qt.Key_K:       cal.moveFocusBy(-7); event.accepted = true; break
+            case Qt.Key_Down:
+            case Qt.Key_J:       cal.moveFocusBy(7); event.accepted = true; break
+
             case Qt.Key_Return:
             case Qt.Key_Enter:   cal.selectFocused(); event.accepted = true; break
+
+            // Month navigation
             case Qt.Key_PageUp:  cal.goToPrevMonth(); event.accepted = true; break
             case Qt.Key_PageDown: cal.goToNextMonth(); event.accepted = true; break
+
+            // First/last day
             case Qt.Key_Home:    cal.goToFirstDay(); event.accepted = true; break
             case Qt.Key_End:     cal.goToLastDay(); event.accepted = true; break
+
+            // g = first day (G handled above with shift)
+            case Qt.Key_G:       cal.goToFirstDay(); event.accepted = true; break
         }
     }
 
