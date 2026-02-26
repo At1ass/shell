@@ -10,9 +10,70 @@ import qs.src.features.dashboard.tabs
 
 Item {
     id: root
+    focus: true
 
     // Сигнал для изменения высоты окна
     signal requestHeightChange(int newHeight)
+
+    // ═══════════════════════════════════════════════════════════════
+    // KEYBOARD NAVIGATION
+    // ═══════════════════════════════════════════════════════════════
+
+    Keys.onTabPressed: (event) => {
+        tabView.currentIndex = (tabView.currentIndex + 1) % 4
+        event.accepted = true
+    }
+
+    Keys.onBacktabPressed: (event) => {
+        tabView.currentIndex = (tabView.currentIndex + 3) % 4
+        event.accepted = true
+    }
+
+    Keys.onPressed: (event) => {
+        // Direct tab jump (1-4)
+        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_4) {
+            tabView.currentIndex = event.key - Qt.Key_1
+            event.accepted = true
+            return
+        }
+
+        // Escape closes dashboard
+        if (event.key === Qt.Key_Escape) {
+            GlobalStates.dashboardOpen = false
+            event.accepted = true
+            return
+        }
+
+        // Space — media play/pause (any tab)
+        if (event.key === Qt.Key_Space) {
+            if (typeof MprisController !== "undefined" && MprisController.canTogglePlaying) {
+                MprisController.togglePlaying()
+                event.accepted = true
+            }
+            return
+        }
+
+        // Route to active tab
+        if (tabView.currentIndex === 2) _handleCalendarKey(event)
+    }
+
+    function _handleCalendarKey(event) {
+        const cal = calendarLoader.item
+        if (!cal) return
+
+        switch (event.key) {
+            case Qt.Key_Left:    cal.moveFocusBy(-1); event.accepted = true; break
+            case Qt.Key_Right:   cal.moveFocusBy(1); event.accepted = true; break
+            case Qt.Key_Up:      cal.moveFocusBy(-7); event.accepted = true; break
+            case Qt.Key_Down:    cal.moveFocusBy(7); event.accepted = true; break
+            case Qt.Key_Return:
+            case Qt.Key_Enter:   cal.selectFocused(); event.accepted = true; break
+            case Qt.Key_PageUp:  cal.goToPrevMonth(); event.accepted = true; break
+            case Qt.Key_PageDown: cal.goToNextMonth(); event.accepted = true; break
+            case Qt.Key_Home:    cal.goToFirstDay(); event.accepted = true; break
+            case Qt.Key_End:     cal.goToLastDay(); event.accepted = true; break
+        }
+    }
 
     MaterialCard {
         anchors.fill: parent
@@ -97,24 +158,28 @@ Item {
                 }
 
                 Loader {
+                    id: quickLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 0
                     sourceComponent: Component { QuickTab {} }
                 }
                 Loader {
+                    id: weatherLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 1
                     sourceComponent: Component { WeatherTab {} }
                 }
                 Loader {
+                    id: calendarLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 2
                     sourceComponent: Component { CalendarTab {} }
                 }
                 Loader {
+                    id: systemLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 3
