@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import qs.src.core.config
 
 Item {
     id: root
@@ -37,7 +38,7 @@ Item {
 
     SequentialAnimation {
         id: anim
-        running: root.overflow
+        running: root.overflow && Tokens.durationScale > 0
         loops: Animation.Infinite
 
         PauseAnimation {

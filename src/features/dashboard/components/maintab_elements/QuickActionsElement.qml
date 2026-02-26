@@ -81,6 +81,12 @@ MaterialCard {
                         action: () => GlobalStates.takeScreenshot()
                     },
                     {
+                        icon: "sports_esports",
+                        active: () => GlobalStates.gamingModeActive,
+                        tooltip: () => GlobalStates.gamingModeActive ? "Gaming Mode Active" : "Gaming Mode",
+                        action: () => GlobalStates.toggleGamingMode()
+                    },
+                    {
                         icon: "open_in_new",
                         active: () => false,
                         tooltip: "Open Settings File",

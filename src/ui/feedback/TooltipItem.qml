@@ -38,7 +38,7 @@ Item {
         id: opacityAnimation
         SmoothedAnimation {
             velocity: 6
-            duration: 250
+            duration: Tokens.motion.duration.medium1
         }
     }
 

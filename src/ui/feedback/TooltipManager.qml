@@ -73,7 +73,7 @@ Scope {
     Behavior on scaleMul {
         SmoothedAnimation {
             velocity: 6
-            duration: 200
+            duration: Tokens.motion.duration.short4
         }
     }
 
@@ -196,14 +196,14 @@ Scope {
                     id: widthAnim
                     to: tooltipItem.targetWidth
                     velocity: 800
-                    duration: (shownItem?.animateSize ?? true) ? 200 : 0
+                    duration: (shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
                 }
 
                 SmoothedAnimation on height {
                     id: heightAnim
                     to: tooltipItem.targetHeight
                     velocity: 800
-                    duration: (shownItem?.animateSize ?? true) ? 200 : 0
+                    duration: (shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
                 }
 
                 onTargetWidthChanged: {

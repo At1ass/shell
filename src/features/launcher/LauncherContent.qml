@@ -192,17 +192,17 @@ Item {
 
                     Behavior on y {
                         NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard
+                            duration: Tokens.motion.duration.short4
+                            easing.type: Tokens.motion.easing.standard
+                            easing.bezierCurve: Tokens.motion.easing.standardPoints
                         }
                     }
 
                     Behavior on height {
                         NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard
+                            duration: Tokens.motion.duration.short4
+                            easing.type: Tokens.motion.easing.standard
+                            easing.bezierCurve: Tokens.motion.easing.standardPoints
                         }
                     }
                 }
@@ -312,9 +312,9 @@ Item {
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: [0.2, 0, 0, 1, 1, 1]  // MD3 standard
+                            duration: Tokens.motion.duration.short4
+                            easing.type: Tokens.motion.easing.standard
+                            easing.bezierCurve: Tokens.motion.easing.standardPoints
                         }
                     }
                 }

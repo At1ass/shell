@@ -252,7 +252,9 @@ Singleton {
                     const parsed = JSON.parse(text)
                     const key = hyprGetProc._keys[hyprGetProc._index]
                     let saved = Object.assign({}, root._savedHyprState)
-                    if (parsed.int !== undefined)
+                    if (parsed.custom !== undefined)
+                        saved[key] = parsed.custom
+                    else if (parsed.int !== undefined)
                         saved[key] = parsed.int
                     else if (parsed.set !== undefined)
                         saved[key] = parsed.set ? 1 : 0
@@ -262,16 +264,14 @@ Singleton {
                 } catch (e) {
                     console.warn("Gaming mode: failed to parse hyprctl output:", e)
                 }
-            }
-        }
 
-        onExited: {
-            hyprGetProc._index++
-            if (hyprGetProc._index < hyprGetProc._keys.length) {
-                hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
-                hyprGetProc.running = true
-            } else {
-                root._applyHyprlandGaming()
+                hyprGetProc._index++
+                if (hyprGetProc._index < hyprGetProc._keys.length) {
+                    hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
+                    hyprGetProc.running = true
+                } else {
+                    root._applyHyprlandGaming()
+                }
             }
         }
     }
@@ -290,11 +290,13 @@ Singleton {
     function enableGamingMode() {
         closeAllPanels()
         _saveAndApplyHyprland()
+        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
         gamingModeActive = true
     }
 
     function disableGamingMode() {
         _restoreHyprland()
+        Tokens.durationScale = 1.0
         gamingModeActive = false
     }
 

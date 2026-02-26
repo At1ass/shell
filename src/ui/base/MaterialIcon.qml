@@ -53,8 +53,9 @@ Rectangle {
 
         Behavior on color {
             ColorAnimation {
-                duration: 200
-                easing.type: Easing.OutCubic
+                duration: Tokens.motion.duration.short4
+                easing.type: Tokens.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standardPoints
             }
         }
     }
