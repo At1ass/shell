@@ -1,58 +1,74 @@
 import QtQuick
-import QtQuick.Shapes
 import QtQuick.Layouts
-import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
 
-MaterialCard {
-    color: Theme.surfaceContainerHigh
-    radius: Tokens.shape.large
-
+Item {
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Tokens.spacing.medium
-        spacing: Tokens.spacing.medium
+        spacing: Tokens.spacing.small
 
         Repeater {
             model: [
-                {
-                    label: "CPU",
-                    icon: "developer_board",
-                    temp: SystemMonitorService.cpuTemp + "°",
-                    percent: SystemMonitorService.cpuUsage,
-                    value: Math.round(SystemMonitorService.cpuUsage) + "%"
-                },
-                {
-                    label: "GPU",
-                    icon: "videogame_asset",
-                    temp: SystemMonitorService.gpuTemp + "°",
-                    percent: SystemMonitorService.gpuUsage,
-                    value: Math.round(SystemMonitorService.gpuUsage) + "%"
-                },
-                {
-                    label: "RAM",
-                    icon: "memory",
-                    temp: SystemMonitorService.ramUsed + "G",
-                    percent: SystemMonitorService.ramUsage,
-                    value: Math.round(SystemMonitorService.ramUsage) + "%"
-                },
-                {
-                    label: "Disk",
-                    icon: "storage",
-                    temp: SystemMonitorService.diskUsed,
-                    percent: SystemMonitorService.diskUsage,
-                    value: Math.round(SystemMonitorService.diskUsage) + "%"
-                }
+                { icon: "developer_board", type: "cpu" },
+                { icon: "videogame_asset", type: "gpu" },
+                { icon: "memory",          type: "ram" },
+                { icon: "storage",         type: "disk" }
             ]
 
-            delegate: Item {
+            delegate: Rectangle {
+                required property var modelData
+
+                visible: modelData.type !== "gpu" || SystemMonitorService.hasGpuStats
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                radius: Tokens.shape.small
+                color: Theme.surfaceContainerHighest
+                clip: true
 
-                // Animated progress value
-                property real animatedProgress: modelData.percent / 100
+                property real currentPercent: {
+                    switch (modelData.type) {
+                        case "cpu":  return SystemMonitorService.cpuUsage;
+                        case "gpu":  return SystemMonitorService.gpuUsage;
+                        case "ram":  return SystemMonitorService.ramUsage;
+                        case "disk": return SystemMonitorService.diskUsage;
+                    }
+                }
+
+                property string currentExtra: {
+                    switch (modelData.type) {
+                        case "cpu":  return SystemMonitorService.cpuTemp + "\u00B0";
+                        case "gpu":  return SystemMonitorService.gpuTemp + "\u00B0";
+                        case "ram":  return SystemMonitorService.ramUsed + "G";
+                        case "disk": return SystemMonitorService.diskUsed;
+                    }
+                }
+
+                property string subtitle: {
+                    switch (modelData.type) {
+                        case "cpu":  return SystemMonitorService.cpuModel;
+                        case "gpu":  return SystemMonitorService.gpuModel;
+                        case "ram":  return SystemMonitorService.ramTotal + "G";
+                        case "disk": return SystemMonitorService.diskTotal;
+                    }
+                }
+
+                property var historyValues: {
+                    switch (modelData.type) {
+                        case "cpu":  return SystemMonitorService.cpuHistory;
+                        case "gpu":  return SystemMonitorService.gpuHistory;
+                        case "ram":  return SystemMonitorService.ramHistory;
+                        case "disk": return [];
+                    }
+                }
+
+                property real animatedProgress: currentPercent / 100
+                property color thresholdColor: {
+                    if (animatedProgress < 0.5) return Theme.primary;
+                    if (animatedProgress < 0.8) return Theme.tertiary;
+                    return Theme.error;
+                }
 
                 Behavior on animatedProgress {
                     NumberAnimation {
@@ -61,120 +77,77 @@ MaterialCard {
                     }
                 }
 
-                // Circular progress
-                Item {
-                    width: 70
-                    height: 70
-                    anchors.centerIn: parent
+                Behavior on thresholdColor {
+                    ColorAnimation { duration: Tokens.motion.duration.medium2 }
+                }
 
-                    // Background circle
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 70
-                        height: 70
-                        radius: 35
-                        color: Theme.surfaceContainerHighest
-                    }
+                // Sparkline background — fills bottom portion
+                Sparkline {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: parent.height * 0.55
+                    values: historyValues
+                    lineColor: Qt.rgba(thresholdColor.r, thresholdColor.g, thresholdColor.b, 0.3)
+                    fillColor: Qt.rgba(thresholdColor.r, thresholdColor.g, thresholdColor.b, 0.08)
+                    lineWidth: 1
+                    visible: historyValues.length > 1
+                }
 
-                    // Progress ring
-                    Shape {
-                        id: ring
-                        anchors.fill: parent
-                        antialiasing: true
-                        preferredRendererType: Shape.CurveRenderer   // обычно даёт более гладкую дугу
+                // Color-coded left border
+                Rectangle {
+                    width: 3
+                    height: parent.height
+                    radius: Tokens.shape.small
+                    color: parent.thresholdColor
+                    anchors.left: parent.left
+                }
 
-                        // Усиленное сглаживание (MSAA) для всего элемента
-                        layer.enabled: true
-                        layer.samples: 4
+                // Two-line content
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Tokens.spacing.medium
+                    anchors.rightMargin: Tokens.spacing.small
+                    anchors.topMargin: Tokens.spacing.small
+                    anchors.bottomMargin: Tokens.spacing.small
+                    spacing: 2
 
-                        // Те же данные, что и раньше
-                        property real progress: parent.parent.animatedProgress   // 0..1
-                        property real stroke: 6
-                        property real radius: Math.floor((Math.min(width, height) - stroke) / 2)  // вписываем дугу внутрь
-                        // половинные пиксели уменьшают «лесенку» на чётных толщ. линий
-                        property real cx: Math.round(width / 2) + 0.5
-                        property real cy: Math.round(height / 2) + 0.5
-
-                        property color progressColor: {
-                            const percent = progress * 100;
-                            if (percent < 50)
-                                return Theme.primary;
-                            if (percent < 80)
-                                return Theme.tertiary;
-                            return Theme.error;
-                        }
-
-                        Behavior on progressColor {
-                            ColorAnimation {
-                                duration: Tokens.motion.duration.medium2
-                            }
-                        }
-
-                        ShapePath {
-                            strokeColor: ring.progressColor
-                            strokeWidth: ring.stroke
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-                            fillColor: "transparent"
-
-                            // дуга сверху по часовой
-                            PathAngleArc {
-                                centerX: ring.cx
-                                centerY: ring.cy
-                                radiusX: ring.radius
-                                radiusY: ring.radius
-                                startAngle: -90
-                                // маленький минимум, чтобы не терять AA на очень маленьких значениях
-                                sweepAngle: Math.max(0.0001, ring.progress * 360)
-                            }
-                        }
-                    }
-                    // Content inside circle
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: 0
+                    // Line 1: icon + label + percent + extra
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             iconName: modelData.icon
-                            fontSize: Tokens.typography.titleMedium.size
-                            iconColor: Theme.primary
+                            fontSize: 16
+                            iconColor: Theme.onSurfaceVariant
                             backgroundColor: "transparent"
-                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        MaterialText {
+                            text: Math.round(currentPercent) + "%"
+                            textStyle: "titleMedium"
+                            colorRole: "onSurface"
+                            font.weight: Font.Bold
                         }
 
                         MaterialText {
-                            text: modelData.temp
-                            textStyle: "labelLarge"
-                            colorRole: "onSurface"
-                            font.weight: Font.Bold
-                            Layout.alignment: Qt.AlignHCenter
+                            text: currentExtra
+                            textStyle: "labelMedium"
+                            colorRole: "onSurfaceVariant"
                         }
                     }
 
-                    // Percentage badge (top right corner)
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.rightMargin: -4
-                        anchors.topMargin: -4
-                        width: 36
-                        height: 18
-                        radius: 9
-                        color: ring.progressColor
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: Tokens.motion.duration.medium2
-                            }
-                        }
-
-                        MaterialText {
-                            anchors.centerIn: parent
-                            text: modelData.value
-                            textStyle: "labelSmall"
-                            colorRole: "onPrimary"
-                            font.weight: Font.Medium
-                        }
+                    // Line 2: subtitle (model name / total)
+                    MaterialText {
+                        Layout.fillWidth: true
+                        text: subtitle
+                        textStyle: "labelSmall"
+                        colorRole: "onSurfaceVariant"
+                        opacity: 0.7
+                        elide: Text.ElideMiddle
                     }
                 }
             }

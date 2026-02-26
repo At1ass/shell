@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -61,92 +60,52 @@ Dialog {
                 spacing: Tokens.spacing.small
 
                 Repeater {
-                        model: root.devices
+                    model: root.devices
 
-                        delegate: Rectangle {
-                            required property var modelData
-                            property var device: modelData
+                    delegate: ListItem {
+                        required property var modelData
+                        property var device: modelData
+                        property bool isSelected: device.id === root.selectedDevice?.id
 
-                            Layout.fillWidth: true
-                            height: 64
-                            radius: Tokens.shape.medium
-                            color: deviceMouseArea.containsMouse ? Theme.surfaceContainerHighest :
-                                   device.id === root.selectedDevice?.id ? Theme.secondaryContainer : "transparent"
+                        Layout.fillWidth: true
+                        radius: Tokens.shape.medium
+                        color: isSelected ? Theme.secondaryContainer : "transparent"
+                        headline: device.description || device.name || "Unknown Device"
+                        supportingText: isSelected ? "Active" : ""
+                        trailingIcon: isSelected ? "check" : ""
+                        trailingIconColor: Theme.primary
 
-                            Behavior on color {
-                                ColorAnimation { duration: Tokens.motion.duration.short4 }
-                            }
+                        leadingContent: [
+                            // Radio indicator
+                            Rectangle {
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: "transparent"
+                                border.width: 2
+                                border.color: isSelected ? Theme.primary : Theme.outline
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: Tokens.spacing.medium
-                                spacing: Tokens.spacing.medium
-
-                                // Radio indicator
                                 Rectangle {
-                                    width: 20
-                                    height: 20
-                                    radius: 10
-                                    color: "transparent"
-                                    border.width: 2
-                                    border.color: device.id === root.selectedDevice?.id ? Theme.primary : Theme.outline
-
-                                    Rectangle {
-                                        anchors.centerIn: parent
-                                        width: 10
-                                        height: 10
-                                        radius: 5
-                                        color: Theme.primary
-                                        visible: device.id === root.selectedDevice?.id
-                                    }
-
-                                    Behavior on border.color {
-                                        ColorAnimation { duration: Tokens.motion.duration.short4 }
-                                    }
+                                    anchors.centerIn: parent
+                                    width: 10
+                                    height: 10
+                                    radius: 5
+                                    color: Theme.primary
+                                    visible: isSelected
                                 }
 
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    MaterialText {
-                                        text: device.description || device.name || "Unknown Device"
-                                        textStyle: "bodyLarge"
-                                        colorRole: "onSurface"
-                                        font.weight: device.id === root.selectedDevice?.id ? Font.Medium : Font.Normal
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-
-                                    MaterialText {
-                                        visible: device.id === root.selectedDevice?.id
-                                        text: "Active"
-                                        textStyle: "labelSmall"
-                                        colorRole: "primary"
-                                    }
-                                }
-
-                                MaterialIcon {
-                                    visible: device.id === root.selectedDevice?.id
-                                    iconName: "check"
-                                    fontSize: Tokens.typography.titleMedium.size
-                                    iconColor: Theme.primary
-                                    backgroundColor: "transparent"
+                                Behavior on border.color {
+                                    ColorAnimation { duration: Tokens.motion.duration.short4 }
                                 }
                             }
+                        ]
 
-                            MouseArea {
-                                id: deviceMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.deviceSelected(device)
-                                    root.close()
-                                }
-                            }
+                        onClicked: {
+                            root.deviceSelected(device)
+                            root.close()
                         }
                     }
+                }
 
                 // Empty state
                 EmptyState {

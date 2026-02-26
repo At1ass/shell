@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -285,44 +284,11 @@ Item {
                     }
                 }
 
-                Rectangle {
+                MaterialButton {
                     Layout.fillWidth: true
-                    height: 48
-                    radius: Tokens.shape.medium
-                    color: addButtonMouseArea.containsMouse ? Theme.primary : Theme.primaryContainer
-
-                    RowLayout {
-                        anchors.centerIn: parent
-                        spacing: Tokens.spacing.small
-
-                        MaterialIcon {
-                            iconName: "add"
-                            fontSize: Tokens.typography.titleMedium.size
-                            iconColor: addButtonMouseArea.containsMouse ? Theme.onPrimary : Theme.onPrimaryContainer
-                            backgroundColor: "transparent"
-                        }
-
-                        MaterialText {
-                            text: "Add Event"
-                            textStyle: "labelLarge"
-                            colorRole: addButtonMouseArea.containsMouse ? "onPrimary" : "onPrimaryContainer"
-                        }
-                    }
-
-                    Behavior on color {
-                        ColorAnimation { duration: Tokens.motion.duration.short4 }
-                    }
-
-                    MouseArea {
-                        id: addButtonMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-
-                        onClicked: {
-                            eventDialog.openDialog(false, null, root.selectedDate)
-                        }
-                    }
+                    text: "Add Event"
+                    variant: "tonal"
+                    onClicked: eventDialog.openDialog(false, null, root.selectedDate)
                 }
             }
         }

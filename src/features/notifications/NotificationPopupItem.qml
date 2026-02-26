@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.src.core.services
@@ -215,68 +214,41 @@ Rectangle {
                 Layout.fillWidth: true
                 spacing: 4
 
-                Label {
+                MaterialText {
                     text: root.hasData ? (notificationData.appName || "") : ""
                     visible: text.length > 0
-                    font.bold: true
+                    textStyle: "labelSmall"
+                    font.weight: Font.Bold
                     color: isCritical ? Theme.onErrorContainer : Theme.onSurface
-                    font.pixelSize: Tokens.typography.labelSmall.size
                 }
 
-                Label {
+                MaterialText {
                     text: root.hasData ? (notificationData.summary || "") : ""
+                    textStyle: "bodyMedium"
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                     color: isCritical ? Theme.onErrorContainer : Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyMedium.size
                 }
             }
 
-            // MD3 Close button
-            Item {
-                implicitWidth: 40
-                implicitHeight: 40
-
-                Rectangle {
-                    id: closeButton
-                    anchors.centerIn: parent
-                    width: 32
-                    height: 32
-                    radius: width / 2
-                    color: "transparent"
-
-                    StateLayer {
-                        layerColor: isCritical ? Theme.onErrorContainer : Theme.onSurface
-                        hovered: closeMouseArea.containsMouse
-                        pressed: closeMouseArea.pressed
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: "close"
-                        fontSize: Tokens.typography.titleMedium.size
-                        iconColor: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
-                        backgroundColor: "transparent"
-                    }
-                }
-
-                MouseArea {
-                    id: closeMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.closeClicked()
-                }
+            IconButton {
+                iconName: "close"
+                iconSize: Tokens.typography.titleMedium.size
+                iconColor: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
+                containerSize: 32
+                touchTargetSize: 40
+                variant: "standard"
+                onClicked: root.closeClicked()
             }
         }
 
-        Label {
+        MaterialText {
             text: root.hasData ? (notificationData.body || "") : ""
             visible: text.length > 0
+            textStyle: "bodySmall"
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             color: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
-            font.pixelSize: Tokens.typography.bodySmall.size
         }
 
         // Notification image

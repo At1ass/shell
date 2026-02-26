@@ -10,3 +10,4 @@ AnimatedProperty 1.0 AnimatedProperty.qml
 MaterialIndicator 1.0 MaterialIndicator.qml
 SectionHeader 1.0 SectionHeader.qml
 CircleAvatar 1.0 CircleAvatar.qml
+Sparkline 1.0 Sparkline.qml

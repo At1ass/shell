@@ -60,8 +60,7 @@ Scope {
 
             visible: GlobalStates.screenshotOverlayActive
             color: "transparent"
-            exclusiveZone: 0
-            exclusionMode: ExclusionMode.Ignore
+            exclusiveZone: -1
             focusable: true
 
             anchors {
