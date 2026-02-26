@@ -28,6 +28,9 @@ Singleton {
     property bool lockscreenActive: false
     property bool powerMenuOpen: false
 
+    // Cheatsheet
+    property bool cheatsheetOpen: false
+
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
     property bool osdBrightnessOpen: false
@@ -38,6 +41,7 @@ Singleton {
         dashboardOpen = false
         launcherOpen = false
         notificationCenterOpen = false
+        cheatsheetOpen = false
     }
 
     // Открыть Dashboard на конкретной вкладке
@@ -151,6 +155,7 @@ Singleton {
             dashboardOpen = false
             launcherOpen = false
             notificationCenterOpen = false
+            cheatsheetOpen = false
         }
     }
 
@@ -159,6 +164,7 @@ Singleton {
             controlPanelOpen = false
             launcherOpen = false
             notificationCenterOpen = false
+            cheatsheetOpen = false
         }
     }
 
@@ -167,6 +173,7 @@ Singleton {
             controlPanelOpen = false
             dashboardOpen = false
             notificationCenterOpen = false
+            cheatsheetOpen = false
         }
     }
 
@@ -175,11 +182,22 @@ Singleton {
             controlPanelOpen = false
             dashboardOpen = false
             launcherOpen = false
+            cheatsheetOpen = false
         }
     }
 
     onPowerMenuOpenChanged: {
         if (powerMenuOpen) {
+            controlPanelOpen = false
+            dashboardOpen = false
+            launcherOpen = false
+            notificationCenterOpen = false
+            cheatsheetOpen = false
+        }
+    }
+
+    onCheatsheetOpenChanged: {
+        if (cheatsheetOpen) {
             controlPanelOpen = false
             dashboardOpen = false
             launcherOpen = false
@@ -230,6 +248,15 @@ Singleton {
 
         onPressed: {
             root.powerMenuOpen = !root.powerMenuOpen
+        }
+    }
+
+    GlobalShortcut {
+        name: "cheatsheetToggle"
+        description: "Toggle cheatsheet overlay"
+
+        onPressed: {
+            root.cheatsheetOpen = !root.cheatsheetOpen
         }
     }
 
@@ -447,6 +474,18 @@ Singleton {
 
         function lockScreen(): void {
             root.lockSession()
+        }
+
+        function toggleCheatsheet(): void {
+            root.cheatsheetOpen = !root.cheatsheetOpen
+        }
+
+        function openCheatsheet(): void {
+            root.cheatsheetOpen = true
+        }
+
+        function closeCheatsheet(): void {
+            root.cheatsheetOpen = false
         }
     }
 }

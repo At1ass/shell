@@ -18,6 +18,81 @@ Item {
     property date today: new Date()
     property var selectedDayEvents: CalendarService.todayEvents
 
+    // ═══════════════════════════════════════════════════════════════
+    // KEYBOARD NAVIGATION
+    // ═══════════════════════════════════════════════════════════════
+
+    property int focusedCellIndex: -1
+
+    function moveFocusBy(delta) {
+        if (focusedCellIndex < 0) _initFocusedCell()
+        const newIndex = focusedCellIndex + delta
+        if (newIndex >= 0 && newIndex < calendarDays.count) {
+            focusedCellIndex = newIndex
+        }
+    }
+
+    function selectFocused() {
+        if (focusedCellIndex >= 0 && focusedCellIndex < calendarDays.count) {
+            const item = calendarDays.get(focusedCellIndex)
+            selectedDate = item.date
+            CalendarService.loadEventsByDate(Qt.formatDate(item.date, "yyyy-MM-dd"))
+        }
+    }
+
+    function goToPrevMonth() {
+        if (currentMonth === 0) {
+            currentMonth = 11
+            currentYear--
+        } else {
+            currentMonth--
+        }
+        updateCalendar()
+        _initFocusedCell()
+    }
+
+    function goToNextMonth() {
+        if (currentMonth === 11) {
+            currentMonth = 0
+            currentYear++
+        } else {
+            currentMonth++
+        }
+        updateCalendar()
+        _initFocusedCell()
+    }
+
+    function goToFirstDay() {
+        for (let i = 0; i < calendarDays.count; i++) {
+            if (calendarDays.get(i).isCurrentMonth) {
+                focusedCellIndex = i
+                return
+            }
+        }
+    }
+
+    function goToLastDay() {
+        for (let i = calendarDays.count - 1; i >= 0; i--) {
+            if (calendarDays.get(i).isCurrentMonth) {
+                focusedCellIndex = i
+                return
+            }
+        }
+    }
+
+    function _initFocusedCell() {
+        // Try to focus today's cell
+        for (let i = 0; i < calendarDays.count; i++) {
+            const item = calendarDays.get(i)
+            if (item.isCurrentMonth && isSameDate(item.date, today)) {
+                focusedCellIndex = i
+                return
+            }
+        }
+        // Fallback to first day of current month
+        goToFirstDay()
+    }
+
     ListModel {
         id: calendarDays
     }
@@ -79,7 +154,10 @@ Item {
                date1.getDate() === date2.getDate()
     }
 
-    Component.onCompleted: updateCalendar()
+    Component.onCompleted: {
+        updateCalendar()
+        _initFocusedCell()
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -104,15 +182,7 @@ Item {
                         variant: "standard"
                         iconName: "chevron_left"
                         iconSize: Tokens.iconSize.large
-                        onClicked: {
-                            if (root.currentMonth === 0) {
-                                root.currentMonth = 11
-                                root.currentYear--
-                            } else {
-                                root.currentMonth--
-                            }
-                            root.updateCalendar()
-                        }
+                        onClicked: root.goToPrevMonth()
                     }
 
                     Item { Layout.fillWidth: true }
@@ -131,15 +201,7 @@ Item {
                         variant: "standard"
                         iconName: "chevron_right"
                         iconSize: Tokens.iconSize.large
-                        onClicked: {
-                            if (root.currentMonth === 11) {
-                                root.currentMonth = 0
-                                root.currentYear++
-                            } else {
-                                root.currentMonth++
-                            }
-                            root.updateCalendar()
-                        }
+                        onClicked: root.goToNextMonth()
                     }
                 }
 
@@ -174,16 +236,18 @@ Item {
 
                             property bool isToday: root.isSameDate(model.date, root.today)
                             property bool isSelected: root.isSameDate(model.date, root.selectedDate)
+                            property bool isFocused: index === root.focusedCellIndex
 
                             color: {
                                 if (isToday) return Theme.primary
+                                if (isFocused && !isSelected) return Theme.tertiaryContainer
                                 if (isSelected) return Theme.secondaryContainer
                                 if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
                                 return "transparent"
                             }
 
-                            border.width: isSelected && !isToday ? 2 : 0
-                            border.color: Theme.primary
+                            border.width: (isFocused || (isSelected && !isToday)) ? 2 : 0
+                            border.color: isFocused ? Theme.tertiary : Theme.primary
 
                             Behavior on color {
                                 ColorAnimation { duration: Tokens.motion.duration.short4 }

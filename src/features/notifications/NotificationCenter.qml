@@ -59,18 +59,18 @@ Scope {
             anchors.margins: Tokens.spacing.medium
             z: 1
 
-            // Keyboard navigation
+            // Keyboard navigation (arrows + vi j/k/x/gg/G)
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Escape) {
                     GlobalStates.notificationCenterOpen = false
                     event.accepted = true
-                } else if (event.key === Qt.Key_Up) {
+                } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
                     notifList.decrementCurrentIndex()
                     event.accepted = true
-                } else if (event.key === Qt.Key_Down) {
+                } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
                     notifList.incrementCurrentIndex()
                     event.accepted = true
-                } else if (event.key === Qt.Key_Delete) {
+                } else if (event.key === Qt.Key_Delete || event.key === Qt.Key_X) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
                         const item = NotificationService.historyList.get(notifList.currentIndex)
                         if (item && item.notificationId) {
@@ -84,6 +84,15 @@ Scope {
                         if (item && AppConfig.notificationGroupByApp) {
                             NotificationService.toggleGroupExpanded(item.appName)
                         }
+                    }
+                    event.accepted = true
+                } else if (event.key === Qt.Key_G) {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        // G — jump to last
+                        notifList.currentIndex = notifList.count - 1
+                    } else {
+                        // g — jump to first
+                        notifList.currentIndex = 0
                     }
                     event.accepted = true
                 }

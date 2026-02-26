@@ -9,6 +9,9 @@ import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
 import qs.src.features.popouts as Popouts
 import qs.src.features.screenshot
+import qs.src.features.lockscreen
+import qs.src.features.powermenu
+import qs.src.features.cheatsheet
 import qs.src.core.services
 
 ShellRoot {
@@ -86,5 +89,23 @@ ShellRoot {
     LazyLoader {
         loading: GlobalStates.screenshotOverlayActive
         ScreenshotOverlay {}
+    }
+
+    // Lockscreen (WlSessionLock creates surfaces for each screen internally)
+    LazyLoader {
+        loading: GlobalStates.lockscreenActive
+        Lockscreen {}
+    }
+
+    // Power menu
+    LazyLoader {
+        loading: GlobalStates.powerMenuOpen
+        PowerMenu {}
+    }
+
+    // Cheatsheet overlay
+    LazyLoader {
+        loading: GlobalStates.cheatsheetOpen
+        Cheatsheet {}
     }
 }
