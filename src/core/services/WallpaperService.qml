@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.src.core.config
+import qs.src.core.services
 
 Singleton {
     id: wallpaperService
@@ -72,7 +73,9 @@ Singleton {
     Timer {
         id: changeTimer
         interval: wallpaperService.changeInterval
-        running: wallpaperService.autoChange && wallpaperService.directoryMode
+        running: wallpaperService.autoChange
+                 && wallpaperService.directoryMode
+                 && !(GlobalStates.gamingModeActive && AppConfig.gmDisableWallpaperChange)
         repeat: true
         onTriggered: wallpaperService.nextWallpaper(undefined, false)
     }

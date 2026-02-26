@@ -67,6 +67,26 @@ Singleton {
     readonly property bool osdEnabled: data.osd?.enabled ?? true
     readonly property int osdTimeout: data.osd?.timeout ?? 2000
 
+    // Lockscreen
+    readonly property bool lockscreenEnabled: data.lockscreen?.enabled ?? false
+    readonly property bool lockscreenBlurWallpaper: data.lockscreen?.blurWallpaper ?? true
+    readonly property bool lockscreenShowClock: data.lockscreen?.showClock ?? true
+
+    // Power Menu
+    readonly property bool powerMenuEnabled: data.powerMenu?.enabled ?? true
+    readonly property bool powerMenuConfirmActions: data.powerMenu?.confirmActions ?? true
+    readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown"]
+
+    // Gaming Mode
+    readonly property bool gmDisableAnimations: data.gamingMode?.disableAnimations ?? true
+    readonly property bool gmDisableWeather: data.gamingMode?.disableWeather ?? true
+    readonly property bool gmDisableWallpaperChange: data.gamingMode?.disableWallpaperChange ?? true
+    readonly property bool gmHyprDisableAnimations: data.gamingMode?.hyprland?.disableAnimations ?? true
+    readonly property bool gmHyprDisableBlur: data.gamingMode?.hyprland?.disableBlur ?? true
+    readonly property bool gmHyprDisableShadows: data.gamingMode?.hyprland?.disableShadows ?? true
+    readonly property int  gmHyprGaps: data.gamingMode?.hyprland?.gaps ?? 0
+    readonly property int  gmHyprRounding: data.gamingMode?.hyprland?.rounding ?? 0
+
     // Hyprland
     readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 

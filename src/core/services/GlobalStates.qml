@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import qs.src.core.config
 
 pragma Singleton
 pragma ComponentBehavior: Bound
@@ -22,6 +23,10 @@ Singleton {
 
     // Screenshot overlay
     property bool screenshotOverlayActive: false
+
+    // Lockscreen & Power Menu
+    property bool lockscreenActive: false
+    property bool powerMenuOpen: false
 
     // OSD элементы (для будущего расширения)
     property bool osdVolumeOpen: false
@@ -79,25 +84,58 @@ Singleton {
         osdBrightnessOpen = false
     }
 
+    // Lock/Unlock
+    function lockSession() {
+        closeAllPanels()
+        powerMenuOpen = false
+        lockscreenActive = true
+    }
+
+    function unlockSession() {
+        lockscreenActive = false
+    }
+
+    // Power actions
+    Process { id: powerProc }
+
+    function executePowerAction(action) {
+        powerMenuOpen = false
+        switch (action) {
+            case "lock":     lockSession(); return
+            case "suspend":  powerProc.command = ["systemctl", "suspend"]; break
+            case "reboot":   powerProc.command = ["systemctl", "reboot"]; break
+            case "shutdown": powerProc.command = ["systemctl", "poweroff"]; break
+            case "logout":   powerProc.command = ["hyprctl", "dispatch", "exit"]; break
+            default: return
+        }
+        powerProc.running = true
+    }
+
+    // DBus lock signal listener (loginctl lock-session)
+    Process {
+        id: lockListenerProc
+        command: ["gdbus", "monitor", "--system",
+                  "--dest", "org.freedesktop.login1",
+                  "--object-path", "/org/freedesktop/login1/session/auto"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                if (data.includes("Lock")) root.lockSession()
+            }
+        }
+    }
+
     // Screenshot
     property string _grimGeometry: ""
-
-    Process {
-        id: screenshotFullProc
-        command: ["sh", "-c", "sleep 0.2 && grim - | wl-copy"]
-    }
 
     Process {
         id: screenshotRegionProc
         command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
     }
 
-    function takeScreenshot(fullScreen) {
+    function takeScreenshot() {
         root.dashboardOpen = false
-        if (fullScreen)
-            screenshotFullProc.running = true
-        else
-            root.screenshotOverlayActive = true
+        root.screenshotOverlayActive = true
     }
 
     function captureRegion(geometry) {
@@ -140,6 +178,15 @@ Singleton {
         }
     }
 
+    onPowerMenuOpenChanged: {
+        if (powerMenuOpen) {
+            controlPanelOpen = false
+            dashboardOpen = false
+            launcherOpen = false
+            notificationCenterOpen = false
+        }
+    }
+
     // Глобальные хоткеи
     GlobalShortcut {
         name: "controlPanelToggle"
@@ -173,7 +220,142 @@ Singleton {
         description: "Take a screenshot (area)"
 
         onPressed: {
-            root.takeScreenshot(false)
+            root.takeScreenshot()
+        }
+    }
+
+    GlobalShortcut {
+        name: "powerMenuToggle"
+        description: "Toggle power menu"
+
+        onPressed: {
+            root.powerMenuOpen = !root.powerMenuOpen
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // GAMING MODE
+    // ═══════════════════════════════════════════════════════════════
+
+    property bool gamingModeActive: false
+    property var _savedHyprState: ({})
+
+    Process {
+        id: hyprGetProc
+        property var _keys: []
+        property int _index: 0
+
+        stdout: StdioCollector {
+            id: hyprGetCollector
+            onStreamFinished: {
+                try {
+                    const parsed = JSON.parse(text)
+                    const key = hyprGetProc._keys[hyprGetProc._index]
+                    let saved = Object.assign({}, root._savedHyprState)
+                    if (parsed.int !== undefined)
+                        saved[key] = parsed.int
+                    else if (parsed.set !== undefined)
+                        saved[key] = parsed.set ? 1 : 0
+                    else
+                        saved[key] = parsed.str || ""
+                    root._savedHyprState = saved
+                } catch (e) {
+                    console.warn("Gaming mode: failed to parse hyprctl output:", e)
+                }
+            }
+        }
+
+        onExited: {
+            hyprGetProc._index++
+            if (hyprGetProc._index < hyprGetProc._keys.length) {
+                hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
+                hyprGetProc.running = true
+            } else {
+                root._applyHyprlandGaming()
+            }
+        }
+    }
+
+    Process {
+        id: hyprBatchProc
+    }
+
+    function toggleGamingMode() {
+        if (gamingModeActive)
+            disableGamingMode()
+        else
+            enableGamingMode()
+    }
+
+    function enableGamingMode() {
+        closeAllPanels()
+        _saveAndApplyHyprland()
+        gamingModeActive = true
+    }
+
+    function disableGamingMode() {
+        _restoreHyprland()
+        gamingModeActive = false
+    }
+
+    function _saveAndApplyHyprland() {
+        const keys = []
+        if (AppConfig.gmHyprDisableAnimations) keys.push("animations:enabled")
+        if (AppConfig.gmHyprDisableBlur)       keys.push("decoration:blur:enabled")
+        if (AppConfig.gmHyprDisableShadows)    keys.push("decoration:shadow:enabled")
+        if (AppConfig.gmHyprGaps === 0)        { keys.push("general:gaps_in"); keys.push("general:gaps_out") }
+        if (AppConfig.gmHyprRounding === 0)    keys.push("decoration:rounding")
+
+        if (keys.length === 0) {
+            gamingModeActive = true
+            return
+        }
+
+        _savedHyprState = ({})
+        hyprGetProc._keys = keys
+        hyprGetProc._index = 0
+        hyprGetProc.command = ["hyprctl", "-j", "getoption", keys[0]]
+        hyprGetProc.running = true
+    }
+
+    function _applyHyprlandGaming() {
+        const parts = []
+        if (AppConfig.gmHyprDisableAnimations) parts.push("keyword animations:enabled false")
+        if (AppConfig.gmHyprDisableBlur)       parts.push("keyword decoration:blur:enabled false")
+        if (AppConfig.gmHyprDisableShadows)    parts.push("keyword decoration:shadow:enabled false")
+        if (AppConfig.gmHyprGaps === 0)        { parts.push("keyword general:gaps_in 0"); parts.push("keyword general:gaps_out 0") }
+        if (AppConfig.gmHyprRounding === 0)    parts.push("keyword decoration:rounding 0")
+
+        if (parts.length > 0) {
+            hyprBatchProc.command = ["hyprctl", "--batch", parts.join(";")]
+            hyprBatchProc.running = true
+        }
+    }
+
+    function _restoreHyprland() {
+        const saved = _savedHyprState
+        if (!saved || Object.keys(saved).length === 0)
+            return
+
+        const parts = []
+        for (const key in saved) {
+            parts.push(`keyword ${key} ${saved[key]}`)
+        }
+
+        if (parts.length > 0) {
+            hyprBatchProc.command = ["hyprctl", "--batch", parts.join(";")]
+            hyprBatchProc.running = true
+        }
+
+        _savedHyprState = ({})
+    }
+
+    GlobalShortcut {
+        name: "gamingModeToggle"
+        description: "Toggle gaming mode"
+
+        onPressed: {
+            root.toggleGamingMode()
         }
     }
 
@@ -233,8 +415,36 @@ Singleton {
             root.notificationCenterOpen = false
         }
 
-        function screenshot(fullScreen: bool): void {
-            root.takeScreenshot(fullScreen)
+        function screenshot(): void {
+            root.takeScreenshot()
+        }
+
+        function toggleGamingMode(): void {
+            root.toggleGamingMode()
+        }
+
+        function enableGamingMode(): void {
+            root.enableGamingMode()
+        }
+
+        function disableGamingMode(): void {
+            root.disableGamingMode()
+        }
+
+        function togglePowerMenu(): void {
+            root.powerMenuOpen = !root.powerMenuOpen
+        }
+
+        function openPowerMenu(): void {
+            root.powerMenuOpen = true
+        }
+
+        function closePowerMenu(): void {
+            root.powerMenuOpen = false
+        }
+
+        function lockScreen(): void {
+            root.lockSession()
         }
     }
 }

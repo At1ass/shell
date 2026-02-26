@@ -78,13 +78,7 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot Area",
-                        action: () => GlobalStates.takeScreenshot(false)
-                    },
-                    {
-                        icon: "screenshot",
-                        active: () => false,
-                        tooltip: "Screenshot Full Screen",
-                        action: () => GlobalStates.takeScreenshot(true)
+                        action: () => GlobalStates.takeScreenshot()
                     },
                     {
                         icon: "open_in_new",
