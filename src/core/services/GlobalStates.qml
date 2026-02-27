@@ -145,9 +145,8 @@ Singleton {
     Process {
         id: screenshotSwappyProc
         command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | swappy -f -`]
-        onExited: (exitCode) => {
-            if (exitCode !== 0) ToastService.error("Screenshot annotation failed")
-        }
+        // No exit handler — swappy manages its own save/cancel feedback;
+        // closing the window is a normal action and should not show an error.
     }
 
     function takeScreenshot() {

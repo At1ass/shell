@@ -27,7 +27,8 @@ Scope {
     property real cursorX: 0
     property real cursorY: 0
     readonly property int kbStepSmall: 4
-    readonly property int kbStepLarge: 20
+    readonly property int kbStepRepeat: 16
+    readonly property int kbStepLarge: 40
 
     function cancel() {
         GlobalStates.screenshotOverlayActive = false
@@ -277,7 +278,9 @@ Scope {
 
                 Keys.onPressed: event => {
                     const shift = !!(event.modifiers & Qt.ShiftModifier)
-                    const step = shift ? root.kbStepLarge : root.kbStepSmall
+                    const step = shift ? root.kbStepLarge
+                                      : event.isAutoRepeat ? root.kbStepRepeat
+                                      : root.kbStepSmall
                     const maxX = content.width - 1
                     const maxY = content.height - 1
 
