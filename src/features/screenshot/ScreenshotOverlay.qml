@@ -284,6 +284,17 @@ Scope {
                     const maxX = content.width - 1
                     const maxY = content.height - 1
 
+                    // Normalize hjkl to Qt key codes using evdev scan codes so
+                    // navigation works regardless of the active keyboard layout.
+                    // Evdev: h=35, j=36, k=37, l=38 (constant on all layouts).
+                    let key = event.key
+                    switch (event.nativeScanCode) {
+                        case 35: key = Qt.Key_H; break
+                        case 36: key = Qt.Key_J; break
+                        case 37: key = Qt.Key_K; break
+                        case 38: key = Qt.Key_L; break
+                    }
+
                     function initKeyboard() {
                         if (!root.keyboardMode) {
                             root.activeScreen = overlayWindow.modelData
@@ -300,7 +311,7 @@ Scope {
                         }
                     }
 
-                    switch (event.key) {
+                    switch (key) {
                     case Qt.Key_Escape:
                         root.cancel()
                         event.accepted = true
