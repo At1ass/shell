@@ -13,7 +13,7 @@ Scope {
     id: root
 
     property bool osdVisible: false
-    property real currentBrightness: BrightnessService.brightness
+    property real currentBrightness: 0.5
 
     Timer {
         id: hideTimer
@@ -24,7 +24,7 @@ Scope {
 
     Connections {
         target: BrightnessService
-        function onBrightnessChanged(value) {
+        function onBrightnessAdjusted(value) {
             root.currentBrightness = value
             root.osdVisible = true
             hideTimer.restart()

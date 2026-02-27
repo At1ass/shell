@@ -23,7 +23,8 @@ Singleton {
 
     readonly property bool available: monitors.length > 0
 
-    signal brightnessChanged(real value)
+    // Emitted when brightness is actively changed by the user (not on initial read)
+    signal brightnessAdjusted(real value)
 
     // --- Detect monitors via ddcutil at startup ---
     Process {
@@ -115,7 +116,7 @@ Singleton {
                            current: Math.round(clamped * updated[i].max),
                            max: updated[i].max }
         monitors = updated
-        brightnessChanged(clamped)
+        brightnessAdjusted(clamped)
         _setPending = Math.round(clamped * 100)
         _setIndex = 0
         _doSetNext()
