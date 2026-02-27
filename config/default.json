@@ -27,6 +27,16 @@
         }
       },
       {
+        "type": "activewindow",
+        "enabled": true,
+        "section": "left",
+        "monitors": "all",
+        "settings": {
+          "maxWidth": 300,
+          "showIcon": true
+        }
+      },
+      {
         "type": "weather",
         "enabled": true,
         "section": "left",

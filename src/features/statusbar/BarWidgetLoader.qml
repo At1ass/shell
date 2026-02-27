@@ -34,6 +34,8 @@ Item {
             switch (root.widgetType) {
             case "workspaces":
                 return workspacesComponent;
+            case "activewindow":
+                return activeWindowComponent;
             case "media":
                 return mprisComponent;
             case "tray":
@@ -69,6 +71,14 @@ Item {
     }
 
     // Widget components
+    Component {
+        id: activeWindowComponent
+        ActiveWindowWidget {
+            widgetConfig: root.widgetConfig
+            tooltipManager: root.tooltipManager
+        }
+    }
+
     Component {
         id: workspacesComponent
         WorkspaceWidget {

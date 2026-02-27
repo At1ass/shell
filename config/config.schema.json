@@ -75,7 +75,7 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["workspaces", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray"],
+                "enum": ["workspaces", "activewindow", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray"],
                 "description": "Widget type."
               },
               "enabled": {
@@ -124,7 +124,7 @@
                   },
                   "showIcon": {
                     "type": "boolean",
-                    "description": "[weather, media, battery, network] Show an icon.",
+                    "description": "[activewindow, weather, media, battery, network] Show an icon.",
                     "default": true
                   },
                   "showTemperature": {
@@ -154,7 +154,7 @@
                   },
                   "maxWidth": {
                     "type": "integer",
-                    "description": "[media] Maximum width of the media widget in pixels.",
+                    "description": "[activewindow, media] Maximum width of the widget text in pixels.",
                     "default": 120
                   },
                   "showCount": {
