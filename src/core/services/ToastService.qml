@@ -6,26 +6,27 @@ import Quickshell
 Singleton {
     id: root
 
-    readonly property int Info: 0
-    readonly property int Success: 1
-    readonly property int Warning: 2
-    readonly property int Error: 3
+    // Level constants (lowercase — QML doesn't allow uppercase property names)
+    readonly property int levelInfo: 0
+    readonly property int levelSuccess: 1
+    readonly property int levelWarning: 2
+    readonly property int levelError: 3
 
     signal toastRequested(string message, string icon, int level, int duration)
 
     function info(message, duration) {
-        toastRequested(message, "info", Info, duration || 3000)
+        toastRequested(message, "info", levelInfo, duration || 3000)
     }
 
     function success(message, duration) {
-        toastRequested(message, "check_circle", Success, duration || 3000)
+        toastRequested(message, "check_circle", levelSuccess, duration || 3000)
     }
 
     function warning(message, duration) {
-        toastRequested(message, "warning", Warning, duration || 4000)
+        toastRequested(message, "warning", levelWarning, duration || 4000)
     }
 
     function error(message, duration) {
-        toastRequested(message, "error", Error, duration || 5000)
+        toastRequested(message, "error", levelError, duration || 5000)
     }
 }

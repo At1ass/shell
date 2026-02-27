@@ -16,7 +16,7 @@ Scope {
     property bool _visible: false
     property string _message: ""
     property string _icon: "info"
-    property int _level: ToastService.Info
+    property int _level: ToastService.levelInfo
 
     Connections {
         target: ToastService
@@ -50,19 +50,19 @@ Scope {
 
     function _bgColor(level) {
         switch (level) {
-            case ToastService.Success: return Theme.primaryContainer
-            case ToastService.Warning: return Theme.tertiaryContainer
-            case ToastService.Error:   return Theme.errorContainer
-            default:                   return Theme.surfaceContainerHigh
+            case ToastService.levelSuccess: return Theme.primaryContainer
+            case ToastService.levelWarning: return Theme.tertiaryContainer
+            case ToastService.levelError:   return Theme.errorContainer
+            default:                        return Theme.surfaceContainerHigh
         }
     }
 
     function _fgColor(level) {
         switch (level) {
-            case ToastService.Success: return Theme.onPrimaryContainer
-            case ToastService.Warning: return Theme.onTertiaryContainer
-            case ToastService.Error:   return Theme.onErrorContainer
-            default:                   return Theme.onSurface
+            case ToastService.levelSuccess: return Theme.onPrimaryContainer
+            case ToastService.levelWarning: return Theme.onTertiaryContainer
+            case ToastService.levelError:   return Theme.onErrorContainer
+            default:                        return Theme.onSurface
         }
     }
 
