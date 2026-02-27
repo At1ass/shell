@@ -47,6 +47,7 @@ Singleton {
     readonly property int notificationPopupMaxVisible: data.notifications?.popup?.maxVisible ?? 5
     readonly property bool notificationGroupByApp: data.notifications?.panel?.groupByApp ?? true
     readonly property string notificationPopupPosition: data.notifications?.popup?.position ?? "top-right"
+    readonly property int notificationHistoryTTLDays: data.notifications?.historyTTLDays ?? 30
 
     // Launcher
     readonly property int launcherMaxResults: data.launcher?.maxResults ?? 10
@@ -60,6 +61,9 @@ Singleton {
     readonly property real weatherLatitude: data.services?.weather?.latitude ?? 53.2
     readonly property real weatherLongitude: data.services?.weather?.longitude ?? 45.0
     readonly property int weatherRefreshMinutes: data.services?.weather?.refreshMinutes ?? 15
+    readonly property string weatherUnits: data.services?.weather?.units ?? "metric"
+    readonly property bool calendarRemindersEnabled: data.services?.calendar?.reminders?.enabled ?? true
+    readonly property int calendarReminderMinutes: data.services?.calendar?.reminders?.minutesBefore ?? 15
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 
@@ -168,6 +172,7 @@ Singleton {
     property var stateData: ({})
 
     property bool _stateLoaded: false
+    readonly property bool stateReady: _stateLoaded
 
     FileView {
         id: stateFile

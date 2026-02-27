@@ -49,7 +49,7 @@ BarElement {
 
         MaterialText {
             visible: root.showTemp
-            text: Math.round(Weather.tempC) + "°C"
+            text: Math.round(Weather.tempC) + Weather.tempUnit
             textStyle: "bodyMedium"
             colorRole: root.hovered ? "primary" : "onSurface"
         }

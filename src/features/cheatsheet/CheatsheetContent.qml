@@ -19,18 +19,24 @@ Item {
     // DATA — Shell binds (static)
     // ═══════════════════════════════════════════════════════════════
 
-    readonly property var _shellBinds: [
-        { type: "shell", action: "controlPanelToggle", description: "Toggle control panel", category: "Shell" },
-        { type: "shell", action: "closeAllPanels", description: "Close all open panels", category: "Shell" },
-        { type: "shell", action: "launcherToggle", description: "Toggle application launcher", category: "Shell" },
-        { type: "shell", action: "screenshot", description: "Take area screenshot", category: "Shell" },
-        { type: "shell", action: "powerMenuToggle", description: "Toggle power menu", category: "Shell" },
-        { type: "shell", action: "gamingModeToggle", description: "Toggle gaming mode", category: "Shell" },
-        { type: "shell", action: "cheatsheetToggle", description: "Toggle cheatsheet overlay", category: "Shell" },
-        { type: "shell", action: "audioVolumeUp", description: "Increase audio volume", category: "Shell" },
-        { type: "shell", action: "audioVolumeDown", description: "Decrease audio volume", category: "Shell" },
-        { type: "shell", action: "audioVolumeMute", description: "Toggle audio mute", category: "Shell" }
-    ]
+    // Fallback descriptions for shell binds (used when hyprctl description is empty)
+    readonly property var _shellDescriptions: ({
+        "controlPanelToggle":  "Toggle control panel",
+        "closeAllPanels":      "Close all open panels",
+        "launcherToggle":      "Toggle application launcher",
+        "screenshot":          "Take area screenshot",
+        "screenshotSwappy":    "Take annotated screenshot (swappy)",
+        "powerMenuToggle":     "Toggle power menu",
+        "gamingModeToggle":    "Toggle gaming mode",
+        "cheatsheetToggle":    "Toggle cheatsheet overlay",
+        "brightnessUp":        "Increase screen brightness",
+        "brightnessDown":      "Decrease screen brightness",
+        "audioVolumeUp":       "Increase audio volume",
+        "audioVolumeDown":     "Decrease audio volume",
+        "audioVolumeMute":     "Toggle audio mute"
+    })
+
+    property var _shellBindsComputed: []
 
     // ═══════════════════════════════════════════════════════════════
     // DATA — IPC reference (static)
@@ -206,7 +212,22 @@ Item {
         try {
             const parsed = JSON.parse(jsonText)
             const binds = []
+            const shellBinds = []
             for (const b of parsed) {
+                if (b.dispatcher === "global") {
+                    // b.arg format: "quickshell:actionName"
+                    const parts = (b.arg || "").split(":")
+                    const action = parts.length > 1 ? parts[1] : b.arg
+                    shellBinds.push({
+                        type: "shell",
+                        modifiers: decodeModmask(b.modmask),
+                        key: b.key || ("keycode:" + b.keycode),
+                        description: b.description || root._shellDescriptions[action] || action,
+                        action: action,
+                        category: "Shell"
+                    })
+                    continue
+                }
                 binds.push({
                     type: "hyprland",
                     modifiers: decodeModmask(b.modmask),
@@ -219,16 +240,18 @@ Item {
                 })
             }
             _hyprlandBinds = binds
+            _shellBindsComputed = shellBinds
         } catch (e) {
             console.warn("Cheatsheet: failed to parse hyprctl binds:", e)
             _hyprlandBinds = []
+            _shellBindsComputed = []
         }
         _applyFilter()
     }
 
     function _applyFilter() {
         const query = searchField.text.toLowerCase().trim()
-        const allBinds = _hyprlandBinds.concat(_shellBinds)
+        const allBinds = _hyprlandBinds.concat(_shellBindsComputed)
 
         // Filter binds
         const filtered = query.length === 0 ? allBinds : allBinds.filter(b => {

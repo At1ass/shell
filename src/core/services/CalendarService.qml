@@ -2,6 +2,8 @@ pragma Singleton
 import QtQuick
 import QtQuick.LocalStorage
 import Quickshell
+import Quickshell.Io
+import qs.src.core.config
 
 Singleton {
     id: root
@@ -12,6 +14,72 @@ Singleton {
     property string lastLoadedDate: Qt.formatDate(new Date(), "yyyy-MM-dd")
 
     signal eventsChanged()
+
+    // ── Reminders ──────────────────────────────────────────────────
+    property var _remindedIds: ({})
+    property string _lastReminderDate: ""
+
+    Process {
+        id: reminderProc
+    }
+
+    Timer {
+        id: reminderTimer
+        interval: 60 * 1000
+        repeat: true
+        running: AppConfig.calendarRemindersEnabled
+        triggeredOnStart: true
+        onTriggered: root._checkReminders()
+    }
+
+    function _checkReminders() {
+        if (!AppConfig.calendarRemindersEnabled) return
+        const now = new Date()
+        const todayStr = Qt.formatDate(now, "yyyy-MM-dd")
+
+        // Reset daily
+        if (todayStr !== root._lastReminderDate) {
+            root._remindedIds = {}
+            root._lastReminderDate = todayStr
+        }
+
+        const lookaheadMs = AppConfig.calendarReminderMinutes * 60 * 1000
+        const nowMs = now.getTime()
+
+        var db = getDatabase()
+        db.transaction(tx => {
+            var result = tx.executeSql(
+                'SELECT * FROM events WHERE date = ? ORDER BY start_time',
+                [todayStr]
+            )
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i)
+                const key = String(row.id)
+                if (root._remindedIds[key]) continue
+
+                const parts = (row.start_time || "00:00").split(":")
+                const eventDate = new Date(now)
+                eventDate.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, 0, 0)
+                const delta = eventDate.getTime() - nowMs
+
+                if (delta > 0 && delta <= lookaheadMs) {
+                    const minutes = Math.round(delta / 60000)
+                    root._remindedIds = Object.assign({}, root._remindedIds, { [key]: true })
+                    reminderProc.command = [
+                        "notify-send",
+                        "--urgency=normal",
+                        "--app-name=Calendar",
+                        "--icon=calendar",
+                        "Upcoming: " + row.title,
+                        "Starting at " + row.start_time + " (in " + minutes + " min)"
+                    ]
+                    reminderProc.running = true
+                }
+            }
+        })
+    }
+
+    // ───────────────────────────────────────────────────────────────
 
     Component.onCompleted: {
         initDatabase()

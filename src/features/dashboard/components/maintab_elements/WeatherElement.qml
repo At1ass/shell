@@ -33,7 +33,7 @@ MaterialCard {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 MaterialText {
-                    text: Math.round(Weather.tempC) + "°C"
+                    text: Math.round(Weather.tempC) + Weather.tempUnit
                     textStyle: "headlineMedium"
                     colorRole: "onSurface"
                     font.weight: Font.Bold

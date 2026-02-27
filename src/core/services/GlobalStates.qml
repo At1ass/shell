@@ -131,21 +131,46 @@ Singleton {
 
     // Screenshot
     property string _grimGeometry: ""
+    property bool _useSwappy: false
 
     Process {
         id: screenshotRegionProc
         command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
+        onExited: (exitCode) => {
+            if (exitCode === 0) ToastService.success("Screenshot copied to clipboard")
+            else ToastService.error("Screenshot failed (grim exited " + exitCode + ")")
+        }
+    }
+
+    Process {
+        id: screenshotSwappyProc
+        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | swappy -f -`]
+        onExited: (exitCode) => {
+            if (exitCode !== 0) ToastService.error("Screenshot annotation failed")
+        }
     }
 
     function takeScreenshot() {
         root.dashboardOpen = false
+        root._useSwappy = false
+        root.screenshotOverlayActive = true
+    }
+
+    function takeScreenshotSwappy() {
+        root.dashboardOpen = false
+        root._useSwappy = true
         root.screenshotOverlayActive = true
     }
 
     function captureRegion(geometry) {
         root._grimGeometry = geometry
         root.screenshotOverlayActive = false
-        screenshotRegionProc.running = true
+        if (root._useSwappy) {
+            root._useSwappy = false
+            screenshotSwappyProc.running = true
+        } else {
+            screenshotRegionProc.running = true
+        }
     }
 
 
@@ -243,6 +268,15 @@ Singleton {
     }
 
     GlobalShortcut {
+        name: "screenshotSwappy"
+        description: "Take annotated screenshot (swappy)"
+
+        onPressed: {
+            root.takeScreenshotSwappy()
+        }
+    }
+
+    GlobalShortcut {
         name: "powerMenuToggle"
         description: "Toggle power menu"
 
@@ -266,6 +300,27 @@ Singleton {
 
     property bool gamingModeActive: false
     property var _savedHyprState: ({})
+    property bool _gamingModeRestored: false
+
+    Connections {
+        target: AppConfig
+        function onStateReadyChanged() { root._tryRestoreGamingMode() }
+        function onReadyChanged()      { root._tryRestoreGamingMode() }
+    }
+
+    function _tryRestoreGamingMode() {
+        if (!AppConfig.stateReady || !AppConfig.ready) return
+        if (root._gamingModeRestored) return
+        root._gamingModeRestored = true
+
+        const gmState = AppConfig.stateData?.gamingMode
+        if (!gmState?.active) return
+
+        root._savedHyprState = gmState.savedState || {}
+        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
+        root._applyHyprlandGaming()
+        root.gamingModeActive = true
+    }
 
     Process {
         id: hyprGetProc
@@ -319,12 +374,15 @@ Singleton {
         _saveAndApplyHyprland()
         if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
         gamingModeActive = true
+        ToastService.info("Gaming mode enabled", 2000)
     }
 
     function disableGamingMode() {
         _restoreHyprland()
         Tokens.durationScale = 1.0
         gamingModeActive = false
+        AppConfig.updateState("gamingMode", { active: false, savedState: {} })
+        ToastService.info("Gaming mode disabled", 2000)
     }
 
     function _saveAndApplyHyprland() {
@@ -337,6 +395,7 @@ Singleton {
 
         if (keys.length === 0) {
             gamingModeActive = true
+            AppConfig.updateState("gamingMode", { active: true, savedState: {} })
             return
         }
 
@@ -359,6 +418,7 @@ Singleton {
             hyprBatchProc.command = ["hyprctl", "--batch", parts.join(";")]
             hyprBatchProc.running = true
         }
+        AppConfig.updateState("gamingMode", { active: true, savedState: root._savedHyprState })
     }
 
     function _restoreHyprland() {
@@ -386,6 +446,18 @@ Singleton {
         onPressed: {
             root.toggleGamingMode()
         }
+    }
+
+    GlobalShortcut {
+        name: "brightnessUp"
+        description: "Increase screen brightness"
+        onPressed: BrightnessService.increase(0.05)
+    }
+
+    GlobalShortcut {
+        name: "brightnessDown"
+        description: "Decrease screen brightness"
+        onPressed: BrightnessService.decrease(0.05)
     }
 
     // IPC Commands для внешнего управления
@@ -446,6 +518,10 @@ Singleton {
 
         function screenshot(): void {
             root.takeScreenshot()
+        }
+
+        function screenshotSwappy(): void {
+            root.takeScreenshotSwappy()
         }
 
         function toggleGamingMode(): void {

@@ -94,11 +94,12 @@ Item {
                 MaterialSlider {
                     Layout.alignment: Qt.AlignHCenter
                     orientation: Qt.Vertical
-                    enabled: true
+                    enabled: BrightnessService.available
                     from: 0
                     to: 1
                     stepSize: 0.01
-                    value: 0.8
+                    value: BrightnessService.brightness
+                    onMoved: BrightnessService.setBrightness(value)
                 }
 
                 Item {

@@ -21,6 +21,13 @@ Singleton {
     property date lastAttemptAt: new Date(0)
     property int _retryMs: 0
 
+    // === Units ===
+    readonly property bool isImperial: AppConfig.weatherUnits === "imperial"
+    readonly property string tempUnit: isImperial ? "°F" : "°C"
+    readonly property string windUnit: isImperial ? "mph" : "km/h"
+
+    onIsImperialChanged: store.fetchNow()
+
     // === Current Weather ===
     readonly property real tempC: data?.current?.temperature_2m ?? 0
     readonly property real feelsLikeC: data?.current?.apparent_temperature ?? 0
@@ -69,6 +76,10 @@ Singleton {
             "timezone=auto",
             "forecast_days=7"
         ];
+        if (isImperial) {
+            params.push("temperature_unit=fahrenheit");
+            params.push("wind_speed_unit=mph");
+        }
         return base + "?" + params.join("&");
     }
 
@@ -178,6 +189,7 @@ Singleton {
     function _scheduleRetry(msg) {
         errorString = msg;
         failed(msg);
+        if (_retryMs === 0) ToastService.warning("Weather unavailable: " + msg)
         // 5s → 10s → 20s → … до 5 минут
         _retryMs = Math.min(_retryMs > 0 ? _retryMs * 2 : 5000, 5 * 60 * 1000);
         if (!retryTimer.running)

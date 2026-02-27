@@ -21,10 +21,20 @@ Scope {
     readonly property real selW: Math.abs(endX - startX)
     readonly property real selH: Math.abs(endY - startY)
 
+    // Keyboard navigation state
+    property bool keyboardMode: false
+    property bool anchorPlaced: false
+    property real cursorX: 0
+    property real cursorY: 0
+    readonly property int kbStepSmall: 4
+    readonly property int kbStepLarge: 20
+
     function cancel() {
         GlobalStates.screenshotOverlayActive = false
         selecting = false
         activeScreen = null
+        keyboardMode = false
+        anchorPlaced = false
     }
 
     function capture() {
@@ -46,7 +56,8 @@ Scope {
 
         selecting = false
         activeScreen = null
-        // Delegate to GlobalStates — it hides overlay first, then runs grim with delay
+        keyboardMode = false
+        anchorPlaced = false
         GlobalStates.captureRegion(`${gx},${gy} ${gw}x${gh}`)
     }
 
@@ -157,9 +168,9 @@ Scope {
                     }
                 }
 
-                // Crosshair cursor lines (when not yet selecting)
+                // Mouse crosshair (when hovering without selecting)
                 Rectangle {
-                    visible: mouseArea.containsMouse && !root.selecting
+                    visible: mouseArea.containsMouse && !root.selecting && !root.keyboardMode
                     x: 0
                     y: mouseArea.mouseY
                     width: parent.width
@@ -167,12 +178,64 @@ Scope {
                     color: Qt.alpha(Theme.primary, 0.5)
                 }
                 Rectangle {
-                    visible: mouseArea.containsMouse && !root.selecting
+                    visible: mouseArea.containsMouse && !root.selecting && !root.keyboardMode
                     x: mouseArea.mouseX
                     y: 0
                     width: 1
                     height: parent.height
                     color: Qt.alpha(Theme.primary, 0.5)
+                }
+
+                // --- Keyboard crosshair ---
+                Rectangle {
+                    visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
+                    x: 0
+                    y: root.cursorY
+                    width: parent.width
+                    height: 1
+                    color: Qt.alpha(Theme.tertiary, 0.9)
+                }
+                Rectangle {
+                    visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
+                    x: root.cursorX
+                    y: 0
+                    width: 1
+                    height: parent.height
+                    color: Qt.alpha(Theme.tertiary, 0.9)
+                }
+
+                // Anchor marker dot
+                Rectangle {
+                    visible: root.anchorPlaced && root.activeScreen === overlayWindow.modelData
+                    x: root.startX - 4
+                    y: root.startY - 4
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.tertiary
+                }
+
+                // Keyboard mode hint
+                Rectangle {
+                    visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottomMargin: 24
+                    width: hintText.implicitWidth + 24
+                    height: hintText.implicitHeight + 12
+                    radius: Tokens.shape.full
+                    color: Theme.inverseSurface
+                    opacity: 0.85
+
+                    Text {
+                        id: hintText
+                        anchors.centerIn: parent
+                        text: root.anchorPlaced
+                              ? "h/j/k/l · Space or Enter: capture · Esc: cancel"
+                              : "h/j/k/l · Space: place anchor · Esc: cancel"
+                        color: Theme.inverseOnSurface
+                        font.pixelSize: Tokens.typography.labelSmall.size
+                    }
                 }
 
                 MouseArea {
@@ -187,6 +250,9 @@ Scope {
                             root.cancel()
                             return
                         }
+                        // Mouse takes over from keyboard mode
+                        root.keyboardMode = false
+                        root.anchorPlaced = false
                         root.activeScreen = overlayWindow.modelData
                         root.startX = mouse.x
                         root.startY = mouse.y
@@ -209,7 +275,93 @@ Scope {
                     }
                 }
 
-                Keys.onEscapePressed: root.cancel()
+                Keys.onPressed: event => {
+                    const shift = !!(event.modifiers & Qt.ShiftModifier)
+                    const step = shift ? root.kbStepLarge : root.kbStepSmall
+                    const maxX = content.width - 1
+                    const maxY = content.height - 1
+
+                    function initKeyboard() {
+                        if (!root.keyboardMode) {
+                            root.activeScreen = overlayWindow.modelData
+                            root.cursorX = content.width / 2
+                            root.cursorY = content.height / 2
+                            root.keyboardMode = true
+                        }
+                    }
+
+                    function updateSelection() {
+                        if (root.anchorPlaced) {
+                            root.endX = root.cursorX
+                            root.endY = root.cursorY
+                        }
+                    }
+
+                    switch (event.key) {
+                    case Qt.Key_Escape:
+                        root.cancel()
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_H: case Qt.Key_Left:
+                        initKeyboard()
+                        if (root.activeScreen === overlayWindow.modelData) {
+                            root.cursorX = Math.max(0, root.cursorX - step)
+                            updateSelection()
+                        }
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_L: case Qt.Key_Right:
+                        initKeyboard()
+                        if (root.activeScreen === overlayWindow.modelData) {
+                            root.cursorX = Math.min(maxX, root.cursorX + step)
+                            updateSelection()
+                        }
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_K: case Qt.Key_Up:
+                        initKeyboard()
+                        if (root.activeScreen === overlayWindow.modelData) {
+                            root.cursorY = Math.max(0, root.cursorY - step)
+                            updateSelection()
+                        }
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_J: case Qt.Key_Down:
+                        initKeyboard()
+                        if (root.activeScreen === overlayWindow.modelData) {
+                            root.cursorY = Math.min(maxY, root.cursorY + step)
+                            updateSelection()
+                        }
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_Space:
+                        if (root.keyboardMode && root.activeScreen === overlayWindow.modelData) {
+                            if (!root.anchorPlaced) {
+                                root.anchorPlaced = true
+                                root.startX = root.cursorX
+                                root.startY = root.cursorY
+                                root.endX = root.cursorX
+                                root.endY = root.cursorY
+                                root.selecting = true
+                            } else {
+                                root.capture()
+                            }
+                        }
+                        event.accepted = true
+                        break
+
+                    case Qt.Key_Return: case Qt.Key_Enter:
+                        if (root.anchorPlaced && root.activeScreen === overlayWindow.modelData)
+                            root.capture()
+                        event.accepted = true
+                        break
+                    }
+                }
             }
         }
     }

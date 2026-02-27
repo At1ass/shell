@@ -191,6 +191,7 @@
   "notifications": {
     "enabled": true,
     "monitors": "all",
+    "historyTTLDays": 30,
     "panel": {
       "enabled": true,
       "position": "right",
@@ -265,7 +266,11 @@
     },
     "calendar": {
       "enabled": true,
-      "upcomingEventsCount": 2
+      "upcomingEventsCount": 2,
+      "reminders": {
+        "enabled": true,
+        "minutesBefore": 15
+      }
     },
     "vpn": {
       "enabled": false,
