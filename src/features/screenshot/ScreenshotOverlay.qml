@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.core.services
+import qs.src.ui.base
 
 Scope {
     id: root
@@ -31,7 +32,7 @@ Scope {
     readonly property int kbStepLarge: 40
 
     function cancel() {
-        GlobalStates.screenshotOverlayActive = false
+        ScreenshotService.screenshotOverlayActive = false
         selecting = false
         activeScreen = null
         keyboardMode = false
@@ -59,7 +60,7 @@ Scope {
         activeScreen = null
         keyboardMode = false
         anchorPlaced = false
-        GlobalStates.captureRegion(`${gx},${gy} ${gw}x${gh}`)
+        ScreenshotService.captureRegion(`${gx},${gy} ${gw}x${gh}`)
     }
 
     Variants {
@@ -70,7 +71,7 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: GlobalStates.screenshotOverlayActive
+            visible: ScreenshotService.screenshotOverlayActive
             color: "transparent"
             exclusiveZone: -1
             focusable: true
@@ -105,7 +106,7 @@ Scope {
                     x: 0; y: 0
                     width: parent.width
                     height: content.hasSelection ? Math.max(0, content.sy) : parent.height
-                    color: "#50000000"
+                    color: Qt.alpha(Theme.scrim, 0.31)
                 }
 
                 // Bottom
@@ -115,7 +116,7 @@ Scope {
                     y: content.sy + content.sh
                     width: parent.width
                     height: Math.max(0, parent.height - content.sy - content.sh)
-                    color: "#50000000"
+                    color: Qt.alpha(Theme.scrim, 0.31)
                 }
 
                 // Left
@@ -125,7 +126,7 @@ Scope {
                     y: content.sy
                     width: Math.max(0, content.sx)
                     height: content.sh
-                    color: "#50000000"
+                    color: Qt.alpha(Theme.scrim, 0.31)
                 }
 
                 // Right
@@ -135,7 +136,7 @@ Scope {
                     y: content.sy
                     width: Math.max(0, parent.width - content.sx - content.sw)
                     height: content.sh
-                    color: "#50000000"
+                    color: Qt.alpha(Theme.scrim, 0.31)
                 }
 
                 // Selection border
@@ -160,12 +161,12 @@ Scope {
                     radius: Tokens.shape.extraSmall
                     color: Theme.inverseSurface
 
-                    Text {
+                    MaterialText {
                         id: dimText
                         anchors.centerIn: parent
                         text: `${Math.round(content.sw)} x ${Math.round(content.sh)}`
-                        color: Theme.inverseOnSurface
-                        font.pixelSize: Tokens.typography.labelSmall.size
+                        textStyle: "labelSmall"
+                        colorRole: "inverseOnSurface"
                     }
                 }
 
@@ -228,14 +229,14 @@ Scope {
                     color: Theme.inverseSurface
                     opacity: 0.85
 
-                    Text {
+                    MaterialText {
                         id: hintText
                         anchors.centerIn: parent
                         text: root.anchorPlaced
                               ? "h/j/k/l · Space or Enter: capture · Esc: cancel"
                               : "h/j/k/l · Space: place anchor · Esc: cancel"
-                        color: Theme.inverseOnSurface
-                        font.pixelSize: Tokens.typography.labelSmall.size
+                        textStyle: "labelSmall"
+                        colorRole: "inverseOnSurface"
                     }
                 }
 
@@ -298,7 +299,7 @@ Scope {
                         if (!root.keyboardMode) {
                             // Find the screen that was focused when the screenshot
                             // was triggered, captured before the overlay stole focus.
-                            const targetName = GlobalStates.screenshotTargetMonitor
+                            const targetName = ScreenshotService.screenshotTargetMonitor
                             let targetScreen = null
                             for (let i = 0; i < Quickshell.screens.length; i++) {
                                 if (Quickshell.screens[i].name === targetName) {

@@ -66,6 +66,8 @@ Singleton {
     property color neutralVariantPaletteKeyColor
     property color shadow
     property color scrim
+    // M3 не определяет цвет текста поверх скрима; скрим всегда тёмный
+    readonly property color scrimForeground: "#FFFFFF"
     property color surfaceTint
     property color primaryFixed
     property color primaryFixedDim

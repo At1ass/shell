@@ -232,7 +232,7 @@ Item {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 40
-                            radius: 20
+                            radius: Tokens.shape.full
 
                             property bool isToday: root.isSameDate(model.date, root.today)
                             property bool isSelected: root.isSameDate(model.date, root.selectedDate)

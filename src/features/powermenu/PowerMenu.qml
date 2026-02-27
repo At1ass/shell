@@ -93,7 +93,7 @@ Scope {
         // Scrim
         Rectangle {
             anchors.fill: parent
-            color: "#000000"
+            color: Theme.scrim
             opacity: GlobalStates.powerMenuOpen ? 0.5 : 0.0
 
             Behavior on opacity {
@@ -212,7 +212,7 @@ Scope {
                                         iconColor: {
                                             if (actionDelegate.confirming) return Theme.onPrimary
                                             if (actionDelegate.focused) return Theme.onSecondaryContainer
-                                            return Qt.alpha("#FFFFFF", 0.8)
+                                            return Qt.alpha(Theme.scrimForeground, 0.8)
                                         }
                                         backgroundColor: "transparent"
 
@@ -230,8 +230,8 @@ Scope {
                                     textStyle: "titleSmall"
                                     color: {
                                         if (actionDelegate.confirming) return Theme.primary
-                                        if (actionDelegate.focused) return "#FFFFFF"
-                                        return Qt.alpha("#FFFFFF", 0.7)
+                                        if (actionDelegate.focused) return Theme.scrimForeground
+                                        return Qt.alpha(Theme.scrimForeground, 0.7)
                                     }
 
                                     Behavior on color {
@@ -245,7 +245,7 @@ Scope {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: actionDelegate.modelData.key
                                     textStyle: "labelSmall"
-                                    color: actionDelegate.focused ? Qt.alpha("#FFFFFF", 0.5) : Qt.alpha("#FFFFFF", 0.25)
+                                    color: actionDelegate.focused ? Qt.alpha(Theme.scrimForeground, 0.5) : Qt.alpha(Theme.scrimForeground, 0.25)
 
                                     Behavior on color {
                                         ColorAnimation { duration: Tokens.motion.duration.short4 }

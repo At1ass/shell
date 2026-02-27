@@ -123,7 +123,7 @@ Rectangle {
         anchors.fill: parent
         radius: parent.radius
         color: Theme.primary
-        opacity: 0.08
+        opacity: Tokens.stateLayer.hoverOpacity
     }
 
     Rectangle {

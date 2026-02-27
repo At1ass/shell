@@ -99,6 +99,13 @@ Singleton {
                 if (err) console.warn("NetworkService: nmcli connect error:", err)
             }
         }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                ToastService.success("Connected to network")
+            else
+                ToastService.error("Failed to connect to network")
+        }
     }
 
     // Find the first WiFi device

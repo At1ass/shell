@@ -75,7 +75,7 @@ Singleton {
         interval: wallpaperService.changeInterval
         running: wallpaperService.autoChange
                  && wallpaperService.directoryMode
-                 && !(GlobalStates.gamingModeActive && AppConfig.gmDisableWallpaperChange)
+                 && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWallpaperChange)
         repeat: true
         onTriggered: wallpaperService.nextWallpaper(undefined, false)
     }
@@ -109,7 +109,10 @@ Singleton {
         stdout: StdioCollector {}
 
         stderr: StdioCollector {
-            onStreamFinished: console.warn(`Wallpaper post-script stderr: ${text}`)
+            onStreamFinished: {
+                const err = text.trim()
+                if (err) ToastService.warning("Wallpaper post-script: " + err)
+            }
         }
     }
 

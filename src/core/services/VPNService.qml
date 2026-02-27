@@ -71,6 +71,11 @@ Singleton {
                 root.activeVPN = vpnName
             }
         }
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("VPNService: failed to query VPN state (exit " + exitCode + ")")
+        }
     }
 
     // Get list of all VPN connections
@@ -95,6 +100,11 @@ Singleton {
                 root.availableVPNs = vpns
             }
         }
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("VPNService: failed to list VPN connections (exit " + exitCode + ")")
+        }
     }
 
     // Connect to primary VPN
@@ -108,6 +118,14 @@ Singleton {
                 vpnStateProc.running = true
             }
         }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                ToastService.success("VPN connected: " + root.primaryVPN)
+            else
+                ToastService.error("VPN connection failed (exit " + exitCode + ")")
+            vpnStateProc.running = true
+        }
     }
 
     // Connect to specific VPN
@@ -119,6 +137,14 @@ Singleton {
                 // Refresh state after connection attempt
                 vpnStateProc.running = true
             }
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                ToastService.success("VPN connected")
+            else
+                ToastService.error("VPN connection failed (exit " + exitCode + ")")
+            vpnStateProc.running = true
         }
     }
 
@@ -132,6 +158,14 @@ Singleton {
                 // Refresh state after disconnection
                 vpnStateProc.running = true
             }
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                ToastService.success("VPN disconnected")
+            else
+                ToastService.error("VPN disconnect failed (exit " + exitCode + ")")
+            vpnStateProc.running = true
         }
     }
 

@@ -78,13 +78,13 @@ MaterialCard {
                         icon: "screenshot_region",
                         active: () => false,
                         tooltip: "Screenshot (Annotate)",
-                        action: () => GlobalStates.takeScreenshotSwappy()
+                        action: () => ScreenshotService.takeScreenshotSwappy()
                     },
                     {
                         icon: "sports_esports",
-                        active: () => GlobalStates.gamingModeActive,
-                        tooltip: () => GlobalStates.gamingModeActive ? "Gaming Mode Active" : "Gaming Mode",
-                        action: () => GlobalStates.toggleGamingMode()
+                        active: () => GamingModeService.gamingModeActive,
+                        tooltip: () => GamingModeService.gamingModeActive ? "Gaming Mode Active" : "Gaming Mode",
+                        action: () => GamingModeService.toggleGamingMode()
                     },
                     {
                         icon: "open_in_new",
@@ -146,7 +146,7 @@ MaterialCard {
                         }
                     }
 
-                    // Tooltip (optional - если есть компонент)
+                    // QtQuick.Controls ToolTip — no tooltipManager available
                     ToolTip {
                         visible: actionMouseArea.containsMouse && parent.tooltipText !== ""
                         text: parent.tooltipText

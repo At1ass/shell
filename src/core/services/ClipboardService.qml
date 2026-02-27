@@ -78,6 +78,8 @@ Singleton {
         }
 
         onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                console.warn("[ClipboardService] Delete failed with code", exitCode)
             deleteProc.pendingEntry = ""
             deleteProc.stdinEnabled = true
             root.refresh()
@@ -112,7 +114,9 @@ Singleton {
             copyProc.stdinEnabled = false // close stdin → EOF for cliphist decode
         }
 
-        onExited: {
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                ToastService.error("Failed to copy to clipboard")
             copyProc.pendingEntry = ""
             copyProc.stdinEnabled = true // re-enable for next invocation
         }

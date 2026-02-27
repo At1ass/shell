@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pam
 import qs.src.core.config
@@ -19,12 +18,6 @@ Item {
     property string _errorMessage: ""
     property string _pendingPassword: ""
     property bool _showPassword: false
-
-    // Keyboard layout tracking
-    property string layoutCode: ""
-    property var layoutCodes: []
-    property var cachedLayoutCodes: ({})
-    property string layoutName: ""
 
     // PAM authentication
     PamContext {
@@ -51,76 +44,12 @@ Item {
         }
     }
 
-    // --- Keyboard layout ---
-    Process {
-        id: fetchLayoutsProc
-        command: ["hyprctl", "-j", "devices"]
-        stdout: StdioCollector {
-            id: devicesCollector
-            onStreamFinished: {
-                try {
-                    const parsed = JSON.parse(devicesCollector.text)
-                    const kb = parsed["keyboards"].find(k => k.main === true)
-                    if (kb) {
-                        root.layoutCodes = kb["layout"].split(",")
-                        root.layoutName = kb["active_keymap"]
-                    }
-                } catch (e) {}
-            }
-        }
-    }
-
-    Process {
-        id: getLayoutCodeProc
-        command: ["cat", "/usr/share/X11/xkb/rules/base.lst"]
-        stdout: StdioCollector {
-            id: layoutCollector
-            onStreamFinished: {
-                const lines = layoutCollector.text.split("\n")
-                const target = root.layoutName
-                lines.find(line => {
-                    if (!line.trim() || line.trim().startsWith('!')) return false
-                    const m = line.match(/^\s*(\S+)\s+(.+)$/)
-                    if (m && m[2] === target) {
-                        root.cachedLayoutCodes[m[2]] = m[1]
-                        root.layoutCode = m[1]
-                        return true
-                    }
-                    const mv = line.match(/^\s*(\S+)\s+(\S+)\s+(.+)$/)
-                    if (mv && mv[3] === target) {
-                        root.cachedLayoutCodes[mv[3]] = mv[2] + mv[1]
-                        root.layoutCode = mv[2] + mv[1]
-                        return true
-                    }
-                    return false
-                })
-            }
-        }
-    }
-
-    Connections {
-        target: Hyprland
-        function onRawEvent(event) {
-            if (event.name === "activelayout") {
-                root.layoutName = event.data.split(",")[1]
-            }
-        }
-    }
-
-    onLayoutNameChanged: {
-        if (cachedLayoutCodes.hasOwnProperty(layoutName)) {
-            layoutCode = cachedLayoutCodes[layoutName]
-        } else if (!getLayoutCodeProc.running) {
-            getLayoutCodeProc.running = true
-        }
-    }
-
     // --- Background: wallpaper + blur ---
     Image {
         id: wallpaperSource
         anchors.fill: parent
-        source: WallpaperService.getWallpaper(root.screen.name)
-        fillMode: WallpaperService.getFillMode(root.screen.name)
+        source: root.screen ? WallpaperService.getWallpaper(root.screen.name) : ""
+        fillMode: root.screen ? WallpaperService.getFillMode(root.screen.name) : Image.PreserveAspectCrop
         visible: false
         cache: true
 
@@ -150,7 +79,7 @@ Item {
     // Scrim overlay
     Rectangle {
         anchors.fill: parent
-        color: Qt.alpha("#000000", 0.35)
+        color: Qt.alpha(Theme.scrim, 0.35)
     }
 
     // --- Center content ---
@@ -169,7 +98,7 @@ Item {
             font.pointSize: 72
             font.weight: Font.Light
             font.letterSpacing: -1.5
-            color: "#FFFFFF"
+            color: Theme.scrimForeground
             renderType: Text.NativeRendering
             visible: AppConfig.lockscreenShowClock
         }
@@ -180,7 +109,7 @@ Item {
             Layout.topMargin: Tokens.spacing.extraSmall
             text: Qt.formatDate(new Date(), "dddd, d MMMM")
             textStyle: "titleLarge"
-            color: Qt.alpha("#FFFFFF", 0.8)
+            color: Qt.alpha(Theme.scrimForeground, 0.8)
             visible: AppConfig.lockscreenShowClock
         }
 
@@ -193,27 +122,27 @@ Item {
 
             MaterialIcon {
                 iconName: Weather.icon
-                fontSize: 18
-                iconColor: Qt.alpha("#FFFFFF", 0.7)
+                fontSize: Tokens.iconSize.medium
+                iconColor: Qt.alpha(Theme.scrimForeground, 0.7)
                 backgroundColor: "transparent"
             }
 
             MaterialText {
                 text: Math.round(Weather.tempC) + "°"
                 textStyle: "titleMedium"
-                color: Qt.alpha("#FFFFFF", 0.8)
+                color: Qt.alpha(Theme.scrimForeground, 0.8)
             }
 
             Rectangle {
                 Layout.preferredWidth: 1
                 Layout.preferredHeight: 16
-                color: Qt.alpha("#FFFFFF", 0.3)
+                color: Qt.alpha(Theme.scrimForeground, 0.3)
             }
 
             MaterialText {
                 text: Weather.weatherDesc
                 textStyle: "bodyMedium"
-                color: Qt.alpha("#FFFFFF", 0.6)
+                color: Qt.alpha(Theme.scrimForeground, 0.6)
             }
         }
 
@@ -234,7 +163,7 @@ Item {
             Layout.topMargin: Tokens.spacing.medium
             text: Quickshell.env("USER") || ""
             textStyle: "titleMedium"
-            color: Qt.alpha("#FFFFFF", 0.8)
+            color: Qt.alpha(Theme.scrimForeground, 0.8)
         }
 
         // Spacer
@@ -251,7 +180,7 @@ Item {
             border.color: {
                 if (root._authFailed) return Theme.error
                 if (passwordField.activeFocus) return Theme.primary
-                return Qt.alpha("#FFFFFF", 0.2)
+                return Qt.alpha(Theme.scrimForeground, 0.2)
             }
             border.width: passwordField.activeFocus || root._authFailed ? 2 : 1
 
@@ -268,8 +197,8 @@ Item {
                 // Lock icon
                 MaterialIcon {
                     iconName: "lock"
-                    fontSize: 18
-                    iconColor: Qt.alpha("#FFFFFF", 0.4)
+                    fontSize: Tokens.iconSize.medium
+                    iconColor: Qt.alpha(Theme.scrimForeground, 0.4)
                     backgroundColor: "transparent"
                 }
 
@@ -283,14 +212,14 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Password"
                         textStyle: "bodyLarge"
-                        color: Qt.alpha("#FFFFFF", 0.35)
+                        color: Qt.alpha(Theme.scrimForeground, 0.35)
                     }
 
                     TextInput {
                         id: passwordField
                         anchors.fill: parent
                         echoMode: root._showPassword ? TextInput.Normal : TextInput.Password
-                        color: "#FFFFFF"
+                        color: Theme.scrimForeground
                         selectedTextColor: Theme.onPrimary
                         selectionColor: Theme.primary
                         verticalAlignment: TextInput.AlignVCenter
@@ -326,26 +255,21 @@ Item {
                     Layout.preferredWidth: layoutLabel.implicitWidth + Tokens.spacing.medium
                     Layout.preferredHeight: 24
                     radius: Tokens.shape.small
-                    color: Qt.alpha("#FFFFFF", 0.1)
-                    visible: root.layoutCodes.length > 1
+                    color: Qt.alpha(Theme.scrimForeground, 0.1)
+                    visible: KeyboardLayoutService.layoutCodes.length > 1
 
                     MaterialText {
                         id: layoutLabel
                         anchors.centerIn: parent
-                        text: root.layoutCode.toUpperCase() || "EN"
+                        text: KeyboardLayoutService.currentLayoutCode.toUpperCase() || "EN"
                         textStyle: "labelSmall"
-                        color: Qt.alpha("#FFFFFF", 0.6)
+                        color: Qt.alpha(Theme.scrimForeground, 0.6)
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (!switchLayoutProc.running) {
-                                switchLayoutProc.command = ["hyprctl", "switchxkblayout", "main", "next"]
-                                switchLayoutProc.running = true
-                            }
-                        }
+                        onClicked: KeyboardLayoutService.switchLayout()
                     }
                 }
 
@@ -356,7 +280,7 @@ Item {
                     iconSize: 18
                     containerSize: 32
                     touchTargetSize: 36
-                    iconColor: Qt.alpha("#FFFFFF", 0.5)
+                    iconColor: Qt.alpha(Theme.scrimForeground, 0.5)
 
                     onClicked: {
                         root._showPassword = !root._showPassword
@@ -393,9 +317,6 @@ Item {
         NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50 }
     }
 
-    // Layout switch process
-    Process { id: switchLayoutProc }
-
     // Timer for clock updates
     Timer {
         interval: 1000
@@ -406,11 +327,10 @@ Item {
         }
     }
 
-    // Start PAM + fetch layout on surface appear
+    // Start PAM on surface appear
     Component.onCompleted: {
         pam.start()
         passwordField.forceActiveFocus()
-        fetchLayoutsProc.running = true
     }
 
     Component.onDestruction: {

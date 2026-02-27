@@ -19,7 +19,7 @@ BarElement {
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property var tooltipManager: null
     readonly property var currentTrayItem: null
-    property var popouts: null
+    readonly property var popouts: PopoutsState.popoutsInstance
 
     property int iconSize: widgetSettings.iconSize ?? 20
     property int itemSpacing: widgetSettings.spacing ?? Tokens.spacing.small

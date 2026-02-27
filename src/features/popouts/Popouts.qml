@@ -161,7 +161,7 @@ PanelWindow {
                 anchors.margins: 1
                 radius: parent.radius - 1
                 color: Theme.primary
-                opacity: 0.08
+                opacity: Tokens.stateLayer.hoverOpacity
                 // z: -1
             }
 

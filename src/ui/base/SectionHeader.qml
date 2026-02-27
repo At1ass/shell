@@ -48,7 +48,7 @@ RowLayout {
         visible: root.badgeText !== ""
         implicitWidth: badgeLabel.width + Tokens.spacing.medium
         implicitHeight: 24
-        radius: 12
+        radius: Tokens.shape.medium
         color: root.badgeBackground
 
         MaterialText {

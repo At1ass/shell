@@ -52,7 +52,7 @@ Item {
                         Rectangle {
                             width: 40
                             height: 40
-                            radius: 20
+                            radius: Tokens.shape.full
                             color: sinkMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.primaryContainer
                             Behavior on color {
                                 ColorAnimation {
@@ -125,7 +125,7 @@ Item {
                         Rectangle {
                             width: 40
                             height: 40
-                            radius: 20
+                            radius: Tokens.shape.full
                             color: sourceMouseArea.containsMouse ? Theme.onSecondaryContainer : Theme.tertiaryContainer
                             Behavior on color {
                                 ColorAnimation {
@@ -422,7 +422,7 @@ Item {
 
                                 MaterialIcon {
                                     iconName: modelData.icon
-                                    fontSize: 16
+                                    fontSize: Tokens.iconSize.small
                                     iconColor: Theme.onSurfaceVariant
                                     backgroundColor: "transparent"
                                 }
@@ -463,13 +463,13 @@ Item {
                                 visible: hasProgress
                                 Layout.fillWidth: true
                                 height: 6
-                                radius: 3
+                                radius: Tokens.shape.extraSmall
                                 color: Theme.surfaceContainerHighest
 
                                 Rectangle {
                                     width: parent.parent.animatedProgress * parent.width
                                     height: parent.height
-                                    radius: 3
+                                    radius: Tokens.shape.extraSmall
                                     color: parent.parent.thresholdColor
 
                                     Behavior on width {

@@ -180,7 +180,7 @@ Scope {
                         border.color: Theme.outline
                         border.width: 1
                         radius: parent.radius
-                        opacity: 0.12
+                        opacity: Tokens.stateLayer.focusOpacity
                     }
 
                     // Primary tint
@@ -188,7 +188,7 @@ Scope {
                         anchors.fill: parent
                         color: Theme.primary
                         radius: parent.radius
-                        opacity: 0.08
+                        opacity: Tokens.stateLayer.hoverOpacity
                     }
                 }
 

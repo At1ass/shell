@@ -9,7 +9,6 @@ Item {
     required property var widgetConfig
     required property var tooltipManager
     property string screenName
-    property var popouts: null
 
     property string widgetType: (widgetConfig && (widgetConfig.type || widgetConfig["type"])) || ""
     property bool widgetEnabled: !(widgetConfig && (widgetConfig.enabled === false || widgetConfig["enabled"] === false))
@@ -99,7 +98,6 @@ Item {
         TrayWidget {
             widgetConfig: root.widgetConfig
             tooltipManager: root.tooltipManager
-            popouts: root.popouts
         }
     }
 

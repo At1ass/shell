@@ -18,7 +18,7 @@ MaterialCard {
     radius: Tokens.shape.large
 
     // Анимации работают только когда dashboard виден
-    readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible && !GlobalStates.gamingModeActive
+    readonly property bool animationsEnabled: GlobalStates.dashboardOpen && visible && !GamingModeService.gamingModeActive
 
     ColumnLayout {
         anchors.fill: parent

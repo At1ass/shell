@@ -122,7 +122,7 @@ Singleton {
         id: periodic
         interval: store.refreshMinutes * 60 * 1000
         repeat: true
-        running: !(GlobalStates.gamingModeActive && AppConfig.gmDisableWeather)
+        running: !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
         triggeredOnStart: true
         onTriggered: store.fetchIfStale()
     }

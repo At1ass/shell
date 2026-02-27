@@ -21,9 +21,6 @@ Singleton {
     property bool launcherOpen: false
     property bool controlPanelLeftOpen: false
 
-    // Screenshot overlay
-    property bool screenshotOverlayActive: false
-
     // Lockscreen & Power Menu
     property bool lockscreenActive: false
     property bool powerMenuOpen: false
@@ -100,7 +97,13 @@ Singleton {
     }
 
     // Power actions
-    Process { id: powerProc }
+    Process {
+        id: powerProc
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                ToastService.error("Power action failed (exit " + exitCode + ")")
+        }
+    }
 
     function executePowerAction(action) {
         powerMenuOpen = false
@@ -128,53 +131,6 @@ Singleton {
             }
         }
     }
-
-    // Screenshot
-    property string _grimGeometry: ""
-    property bool _useSwappy: false
-    property string screenshotTargetMonitor: ""
-
-    Process {
-        id: screenshotRegionProc
-        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
-        onExited: (exitCode) => {
-            if (exitCode === 0) ToastService.success("Screenshot copied to clipboard")
-            else ToastService.error("Screenshot failed (grim exited " + exitCode + ")")
-        }
-    }
-
-    Process {
-        id: screenshotSwappyProc
-        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | swappy -f -`]
-        // No exit handler — swappy manages its own save/cancel feedback;
-        // closing the window is a normal action and should not show an error.
-    }
-
-    function takeScreenshot() {
-        root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
-        root.dashboardOpen = false
-        root._useSwappy = false
-        root.screenshotOverlayActive = true
-    }
-
-    function takeScreenshotSwappy() {
-        root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
-        root.dashboardOpen = false
-        root._useSwappy = true
-        root.screenshotOverlayActive = true
-    }
-
-    function captureRegion(geometry) {
-        root._grimGeometry = geometry
-        root.screenshotOverlayActive = false
-        if (root._useSwappy) {
-            root._useSwappy = false
-            screenshotSwappyProc.running = true
-        } else {
-            screenshotRegionProc.running = true
-        }
-    }
-
 
     // Автозакрытие панелей при открытии другой
     onControlPanelOpenChanged: {
@@ -236,218 +192,31 @@ Singleton {
     GlobalShortcut {
         name: "controlPanelToggle"
         description: "Toggle control panel"
-
-        onPressed: {
-            root.controlPanelOpen = !root.controlPanelOpen
-        }
+        onPressed: root.controlPanelOpen = !root.controlPanelOpen
     }
 
     GlobalShortcut {
         name: "closeAllPanels"
         description: "Close all open panels"
-
-        onPressed: {
-            root.closeAllPanels()
-        }
+        onPressed: root.closeAllPanels()
     }
 
     GlobalShortcut {
         name: "launcherToggle"
         description: "Toggle launcher"
-
-        onPressed: {
-            root.launcherOpen = !root.launcherOpen
-        }
-    }
-
-    GlobalShortcut {
-        name: "screenshot"
-        description: "Take a screenshot (area)"
-
-        onPressed: {
-            root.takeScreenshot()
-        }
-    }
-
-    GlobalShortcut {
-        name: "screenshotSwappy"
-        description: "Take annotated screenshot (swappy)"
-
-        onPressed: {
-            root.takeScreenshotSwappy()
-        }
+        onPressed: root.launcherOpen = !root.launcherOpen
     }
 
     GlobalShortcut {
         name: "powerMenuToggle"
         description: "Toggle power menu"
-
-        onPressed: {
-            root.powerMenuOpen = !root.powerMenuOpen
-        }
+        onPressed: root.powerMenuOpen = !root.powerMenuOpen
     }
 
     GlobalShortcut {
         name: "cheatsheetToggle"
         description: "Toggle cheatsheet overlay"
-
-        onPressed: {
-            root.cheatsheetOpen = !root.cheatsheetOpen
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // GAMING MODE
-    // ═══════════════════════════════════════════════════════════════
-
-    property bool gamingModeActive: false
-    property var _savedHyprState: ({})
-    property bool _gamingModeRestored: false
-
-    Connections {
-        target: AppConfig
-        function onStateReadyChanged() { root._tryRestoreGamingMode() }
-        function onReadyChanged()      { root._tryRestoreGamingMode() }
-    }
-
-    function _tryRestoreGamingMode() {
-        if (!AppConfig.stateReady || !AppConfig.ready) return
-        if (root._gamingModeRestored) return
-        root._gamingModeRestored = true
-
-        const gmState = AppConfig.stateData?.gamingMode
-        if (!gmState?.active) return
-
-        root._savedHyprState = gmState.savedState || {}
-        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
-        root._applyHyprlandGaming()
-        root.gamingModeActive = true
-    }
-
-    Process {
-        id: hyprGetProc
-        property var _keys: []
-        property int _index: 0
-
-        stdout: StdioCollector {
-            id: hyprGetCollector
-            onStreamFinished: {
-                try {
-                    const parsed = JSON.parse(text)
-                    const key = hyprGetProc._keys[hyprGetProc._index]
-                    let saved = Object.assign({}, root._savedHyprState)
-                    if (parsed.custom !== undefined)
-                        saved[key] = parsed.custom
-                    else if (parsed.int !== undefined)
-                        saved[key] = parsed.int
-                    else if (parsed.set !== undefined)
-                        saved[key] = parsed.set ? 1 : 0
-                    else
-                        saved[key] = parsed.str || ""
-                    root._savedHyprState = saved
-                } catch (e) {
-                    console.warn("Gaming mode: failed to parse hyprctl output:", e)
-                }
-
-                hyprGetProc._index++
-                if (hyprGetProc._index < hyprGetProc._keys.length) {
-                    hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
-                    hyprGetProc.running = true
-                } else {
-                    root._applyHyprlandGaming()
-                }
-            }
-        }
-    }
-
-    Process {
-        id: hyprBatchProc
-    }
-
-    function toggleGamingMode() {
-        if (gamingModeActive)
-            disableGamingMode()
-        else
-            enableGamingMode()
-    }
-
-    function enableGamingMode() {
-        closeAllPanels()
-        _saveAndApplyHyprland()
-        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
-        gamingModeActive = true
-        ToastService.info("Gaming mode enabled", 2000)
-    }
-
-    function disableGamingMode() {
-        _restoreHyprland()
-        Tokens.durationScale = 1.0
-        gamingModeActive = false
-        AppConfig.updateState("gamingMode", { active: false, savedState: {} })
-        ToastService.info("Gaming mode disabled", 2000)
-    }
-
-    function _saveAndApplyHyprland() {
-        const keys = []
-        if (AppConfig.gmHyprDisableAnimations) keys.push("animations:enabled")
-        if (AppConfig.gmHyprDisableBlur)       keys.push("decoration:blur:enabled")
-        if (AppConfig.gmHyprDisableShadows)    keys.push("decoration:shadow:enabled")
-        if (AppConfig.gmHyprGaps === 0)        { keys.push("general:gaps_in"); keys.push("general:gaps_out") }
-        if (AppConfig.gmHyprRounding === 0)    keys.push("decoration:rounding")
-
-        if (keys.length === 0) {
-            gamingModeActive = true
-            AppConfig.updateState("gamingMode", { active: true, savedState: {} })
-            return
-        }
-
-        _savedHyprState = ({})
-        hyprGetProc._keys = keys
-        hyprGetProc._index = 0
-        hyprGetProc.command = ["hyprctl", "-j", "getoption", keys[0]]
-        hyprGetProc.running = true
-    }
-
-    function _applyHyprlandGaming() {
-        const parts = []
-        if (AppConfig.gmHyprDisableAnimations) parts.push("keyword animations:enabled false")
-        if (AppConfig.gmHyprDisableBlur)       parts.push("keyword decoration:blur:enabled false")
-        if (AppConfig.gmHyprDisableShadows)    parts.push("keyword decoration:shadow:enabled false")
-        if (AppConfig.gmHyprGaps === 0)        { parts.push("keyword general:gaps_in 0"); parts.push("keyword general:gaps_out 0") }
-        if (AppConfig.gmHyprRounding === 0)    parts.push("keyword decoration:rounding 0")
-
-        if (parts.length > 0) {
-            hyprBatchProc.command = ["hyprctl", "--batch", parts.join(";")]
-            hyprBatchProc.running = true
-        }
-        AppConfig.updateState("gamingMode", { active: true, savedState: root._savedHyprState })
-    }
-
-    function _restoreHyprland() {
-        const saved = _savedHyprState
-        if (!saved || Object.keys(saved).length === 0)
-            return
-
-        const parts = []
-        for (const key in saved) {
-            parts.push(`keyword ${key} ${saved[key]}`)
-        }
-
-        if (parts.length > 0) {
-            hyprBatchProc.command = ["hyprctl", "--batch", parts.join(";")]
-            hyprBatchProc.running = true
-        }
-
-        _savedHyprState = ({})
-    }
-
-    GlobalShortcut {
-        name: "gamingModeToggle"
-        description: "Toggle gaming mode"
-
-        onPressed: {
-            root.toggleGamingMode()
-        }
+        onPressed: root.cheatsheetOpen = !root.cheatsheetOpen
     }
 
     GlobalShortcut {
@@ -460,6 +229,24 @@ Singleton {
         name: "brightnessDown"
         description: "Decrease screen brightness"
         onPressed: BrightnessService.decrease(0.05)
+    }
+
+    GlobalShortcut {
+        name: "screenshot"
+        description: "Take a screenshot (area)"
+        onPressed: ScreenshotService.takeScreenshot()
+    }
+
+    GlobalShortcut {
+        name: "screenshotSwappy"
+        description: "Take annotated screenshot (swappy)"
+        onPressed: ScreenshotService.takeScreenshotSwappy()
+    }
+
+    GlobalShortcut {
+        name: "gamingModeToggle"
+        description: "Toggle gaming mode"
+        onPressed: GamingModeService.toggleGamingMode()
     }
 
     // IPC Commands для внешнего управления
@@ -519,23 +306,23 @@ Singleton {
         }
 
         function screenshot(): void {
-            root.takeScreenshot()
+            ScreenshotService.takeScreenshot()
         }
 
         function screenshotSwappy(): void {
-            root.takeScreenshotSwappy()
+            ScreenshotService.takeScreenshotSwappy()
         }
 
         function toggleGamingMode(): void {
-            root.toggleGamingMode()
+            GamingModeService.toggleGamingMode()
         }
 
         function enableGamingMode(): void {
-            root.enableGamingMode()
+            GamingModeService.enableGamingMode()
         }
 
         function disableGamingMode(): void {
-            root.disableGamingMode()
+            GamingModeService.disableGamingMode()
         }
 
         function togglePowerMenu(): void {

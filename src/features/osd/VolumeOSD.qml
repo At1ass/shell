@@ -100,7 +100,7 @@ Scope {
                         anchors.fill: parent
                         radius: osdCard.radius
                         color: Theme.primary
-                        opacity: 0.08
+                        opacity: Tokens.stateLayer.hoverOpacity
                     }
                     // Optional outline
                     Rectangle {
@@ -135,7 +135,7 @@ Scope {
                                     if (v < 0.34) return "volume_down"
                                     return "volume_up"
                                 }
-                                fontSize: 32
+                                fontSize: Tokens.iconSize.extraLarge
                                 iconColor: root.currentMuted ? Theme.onErrorContainer : Theme.onPrimaryContainer
                                 backgroundColor: "transparent"
 
