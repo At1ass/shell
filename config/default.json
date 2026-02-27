@@ -6,34 +6,14 @@
       "source": "wallpaper",
       "variant": "vibrant",
       "darkMode": true
-    },
-    "spacing": {
-      "scale": 1.0
-    },
-    "rounding": {
-      "scale": 1.0
-    },
-    "animations": {
-      "enabled": true,
-      "durationScale": 1.0
-    },
-    "colors": {
-      "transparency": {
-        "enabled": true,
-        "default": 0.85,
-        "cards": 0.80,
-        "dialogs": 0.90
-      }
     }
   },
 
   "bar": {
     "enabled": true,
-    "monitors": "all",
     "position": "top",
     "height": 48,
     "margin": 16,
-    "transparent": false,
     "widgets": [
       {
         "type": "workspaces",
@@ -51,7 +31,7 @@
         "enabled": true,
         "section": "left",
         "clickAction": "dashboard-weather",
-        "monitors": "DP-2",
+        "monitors": "all",
         "settings": {
           "showIcon": true,
           "showTemperature": true,
@@ -73,7 +53,6 @@
         "enabled": true,
         "section": "right",
         "clickAction": "dashboard-quick",
-        "monitors": "DP-2",
         "settings": {
           "compact": true,
           "showIcon": true,
@@ -85,7 +64,6 @@
         "enabled": true,
         "section": "right",
         "clickAction": "notification-center",
-        "monitors": "DP-2",
         "settings": {
           "showCount": true
         }
@@ -138,106 +116,63 @@
 
   "dashboard": {
     "enabled": true,
-    "monitors": "all",
     "width": 900,
-    "height": 640,
-    "defaultTab": "quick",
-    "tabs": [
-      {
-        "id": "quick",
-        "name": "Quick",
-        "icon": "dashboard",
-        "keybind": "Super+D",
-        "widgets": [
-          "volume-slider",
-          "brightness-slider",
-          "network-quick-toggle",
-          "bluetooth-quick-toggle",
-          "night-light-toggle",
-          "upcoming-events"
-        ]
-      },
-      {
-        "id": "media",
-        "name": "Media",
-        "icon": "music_note",
-        "widgets": [
-          "media-player",
-          "media-device-selector"
-        ]
-      },
-      {
-        "id": "calendar",
-        "name": "Calendar",
-        "icon": "calendar_month",
-        "widgets": [
-          "calendar-month-view",
-          "event-list"
-        ]
-      },
-      {
-        "id": "system",
-        "name": "System",
-        "icon": "settings",
-        "widgets": [
-          "weather-detailed",
-          "system-monitor",
-          "audio-advanced"
-        ]
-      }
-    ]
+    "height": 640
   },
 
   "notifications": {
-    "enabled": true,
-    "monitors": "all",
     "historyTTLDays": 30,
     "panel": {
-      "enabled": true,
-      "position": "right",
       "width": 400,
-      "height": 600,
-      "maxVisible": 10,
-      "groupByApp": true,
-      "showActions": true
+      "groupByApp": true
     },
     "popup": {
-      "enabled": true,
-      "position": "top-right",
       "width": 360,
+      "position": "top-right",
       "timeout": 7000,
+      "timeoutLow": 3000,
+      "timeoutNormal": 7000,
+      "timeoutCritical": 15000,
       "maxVisible": 5
     }
   },
 
   "launcher": {
-    "enabled": true,
-    "monitors": "all",
-    "fuzzy": false,
     "maxResults": 10,
     "width": 600,
     "listMaxHeight": 400,
     "topMargin": 56,
-    "providers": [
-      "applications",
-      "calculator",
-      "clipboard"
-    ],
+    "providers": ["applications", "calculator", "clipboard"],
     "hiddenApps": []
   },
 
   "osd": {
     "enabled": true,
-    "monitors": "all",
-    "position": "center",
-    "timeout": 2000,
-    "types": ["volume", "brightness", "microphone"]
+    "timeout": 2000
   },
 
   "lockscreen": {
     "enabled": false,
     "blurWallpaper": true,
     "showClock": true
+  },
+
+  "powerMenu": {
+    "confirmActions": true,
+    "actions": ["lock", "suspend", "reboot", "shutdown", "logout"]
+  },
+
+  "gamingMode": {
+    "disableAnimations": true,
+    "disableWeather": true,
+    "disableWallpaperChange": true,
+    "hyprland": {
+      "disableAnimations": true,
+      "disableBlur": true,
+      "disableShadows": true,
+      "gaps": 0,
+      "rounding": 0
+    }
   },
 
   "wallpaper": {
@@ -258,15 +193,13 @@
   "services": {
     "weather": {
       "enabled": true,
-      "location": "Penza",
-      "latitude": 53.2,
-      "longitude": 45.0,
+      "location": "London",
+      "latitude": 51.5,
+      "longitude": -0.12,
       "units": "metric",
       "refreshMinutes": 15
     },
     "calendar": {
-      "enabled": true,
-      "upcomingEventsCount": 2,
       "reminders": {
         "enabled": true,
         "minutesBefore": 15
@@ -279,7 +212,6 @@
   },
 
   "hyprland": {
-    "workspaceCount": 10,
-    "perMonitor": true
+    "workspaceCount": 10
   }
 }

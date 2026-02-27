@@ -1,0 +1,606 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "quickshell-shell-config",
+  "title": "Quickshell Shell Configuration",
+  "description": "Configuration schema for the Quickshell Hyprland shell. Place your config at ~/.config/quickshell/shell/config.json. Hot-reload is supported — the file is watched and changes apply immediately.",
+  "type": "object",
+  "properties": {
+
+    "version": {
+      "type": "integer",
+      "description": "Config schema version. Currently 1.",
+      "default": 1
+    },
+
+    "appearance": {
+      "type": "object",
+      "description": "Visual theme settings.",
+      "properties": {
+        "theme": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": ["wallpaper", "custom"],
+              "default": "wallpaper",
+              "description": "'wallpaper' — generate Material You colors from the current wallpaper. 'custom' — use a fixed seed color (not yet implemented)."
+            },
+            "variant": {
+              "type": "string",
+              "enum": ["tonalspot", "vibrant", "expressive", "fidelity", "neutral", "monochrome"],
+              "default": "vibrant",
+              "description": "Material color scheme variant. 'vibrant' and 'tonalspot' are the most commonly used. Controls how saturated the generated palette is."
+            },
+            "darkMode": {
+              "type": "boolean",
+              "default": true,
+              "description": "Dark (true) or light (false) color scheme."
+            }
+          }
+        }
+      }
+    },
+
+    "bar": {
+      "type": "object",
+      "description": "Top status bar configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the status bar."
+        },
+        "position": {
+          "type": "string",
+          "enum": ["top"],
+          "default": "top",
+          "description": "Bar position. Currently only 'top' is supported."
+        },
+        "height": {
+          "type": "integer",
+          "default": 48,
+          "description": "Bar height in logical pixels."
+        },
+        "margin": {
+          "type": "integer",
+          "default": 16,
+          "description": "Gap between bar and screen edge in logical pixels."
+        },
+        "widgets": {
+          "type": "array",
+          "description": "Ordered list of bar widgets. Rendered left-to-right within each section.",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["workspaces", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray"],
+                "description": "Widget type."
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this widget instance is active."
+              },
+              "section": {
+                "type": "string",
+                "enum": ["left", "center", "right"],
+                "default": "left",
+                "description": "Bar section where this widget appears."
+              },
+              "monitors": {
+                "oneOf": [
+                  {"type": "string"},
+                  {"type": "array", "items": {"type": "string"}}
+                ],
+                "default": "all",
+                "description": "Monitors to show this widget on. 'all' or a monitor name (e.g. 'DP-2') or an array of monitor names."
+              },
+              "clickAction": {
+                "type": "string",
+                "enum": ["dashboard-quick", "dashboard-weather", "dashboard-calendar", "dashboard-system", "notification-center", "launcher", "control-panel"],
+                "description": "What to open when the widget is left-clicked."
+              },
+              "settings": {
+                "type": "object",
+                "description": "Widget-specific settings. See per-type documentation below.",
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "description": "[workspaces] Number of workspaces to show.",
+                    "default": 10
+                  },
+                  "showWindows": {
+                    "type": "boolean",
+                    "description": "[workspaces] Show window dots inside workspace chips.",
+                    "default": true
+                  },
+                  "activeIndicator": {
+                    "type": "string",
+                    "enum": ["pill", "dot"],
+                    "description": "[workspaces] Active workspace indicator style.",
+                    "default": "pill"
+                  },
+                  "showIcon": {
+                    "type": "boolean",
+                    "description": "[weather, media, battery, network] Show an icon.",
+                    "default": true
+                  },
+                  "showTemperature": {
+                    "type": "boolean",
+                    "description": "[weather] Show current temperature.",
+                    "default": true
+                  },
+                  "showLocation": {
+                    "type": "boolean",
+                    "description": "[weather] Show location name.",
+                    "default": false
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "[clock] Qt date/time format string, e.g. 'HH:mm' or 'HH:mm:ss'.",
+                    "default": "HH:mm"
+                  },
+                  "showDate": {
+                    "type": "boolean",
+                    "description": "[clock] Show abbreviated date below the time.",
+                    "default": false
+                  },
+                  "compact": {
+                    "type": "boolean",
+                    "description": "[media] Compact mode — show icon and truncated title only.",
+                    "default": true
+                  },
+                  "maxWidth": {
+                    "type": "integer",
+                    "description": "[media] Maximum width of the media widget in pixels.",
+                    "default": 120
+                  },
+                  "showCount": {
+                    "type": "boolean",
+                    "description": "[notifications] Show unread count badge.",
+                    "default": true
+                  },
+                  "scrollable": {
+                    "type": "boolean",
+                    "description": "[volume] Allow changing volume by scrolling on the widget.",
+                    "default": true
+                  },
+                  "showPercentage": {
+                    "type": "boolean",
+                    "description": "[volume, battery] Show numeric percentage label.",
+                    "default": true
+                  },
+                  "iconSize": {
+                    "type": "integer",
+                    "description": "[tray] System tray icon size in pixels.",
+                    "default": 20
+                  },
+                  "spacing": {
+                    "type": "integer",
+                    "description": "[tray] Spacing between tray icons in pixels.",
+                    "default": 8
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "dashboard": {
+      "type": "object",
+      "description": "Dashboard panel (4-tab control center). Toggle with the configured hotkey or by clicking clock/widgets in the bar.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the dashboard feature."
+        },
+        "width": {
+          "type": "integer",
+          "default": 900,
+          "description": "Dashboard panel width in logical pixels."
+        },
+        "height": {
+          "type": "integer",
+          "default": 640,
+          "description": "Dashboard panel height in logical pixels."
+        }
+      }
+    },
+
+    "notifications": {
+      "type": "object",
+      "description": "Notification center and popup settings.",
+      "properties": {
+        "historyTTLDays": {
+          "type": "integer",
+          "default": 30,
+          "description": "Automatically delete notification history entries older than this many days. Set to 0 to disable pruning."
+        },
+        "panel": {
+          "type": "object",
+          "description": "Notification center sidebar (opened via bell icon or IPC).",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "default": 400,
+              "description": "Width of the notification center panel in pixels."
+            },
+            "groupByApp": {
+              "type": "boolean",
+              "default": true,
+              "description": "Group notifications by application in the notification center."
+            }
+          }
+        },
+        "popup": {
+          "type": "object",
+          "description": "Transient notification popups that appear when a notification arrives.",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "default": 360,
+              "description": "Popup notification width in pixels."
+            },
+            "position": {
+              "type": "string",
+              "enum": ["top-right", "top-left", "bottom-right", "bottom-left"],
+              "default": "top-right",
+              "description": "Screen corner where popups appear."
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 7000,
+              "description": "Default popup auto-dismiss timeout in milliseconds (used when urgency-specific timeout does not apply)."
+            },
+            "timeoutLow": {
+              "type": "integer",
+              "default": 3000,
+              "description": "Auto-dismiss timeout for low-urgency notifications (ms)."
+            },
+            "timeoutNormal": {
+              "type": "integer",
+              "default": 7000,
+              "description": "Auto-dismiss timeout for normal-urgency notifications (ms)."
+            },
+            "timeoutCritical": {
+              "type": "integer",
+              "default": 15000,
+              "description": "Auto-dismiss timeout for critical notifications (ms). Set to 0 to never auto-dismiss critical notifications."
+            },
+            "maxVisible": {
+              "type": "integer",
+              "default": 5,
+              "description": "Maximum number of notification popups shown simultaneously."
+            }
+          }
+        }
+      }
+    },
+
+    "launcher": {
+      "type": "object",
+      "description": "Application launcher with fuzzy search, calculator, and clipboard history.",
+      "properties": {
+        "maxResults": {
+          "type": "integer",
+          "default": 10,
+          "description": "Maximum number of results shown per provider."
+        },
+        "width": {
+          "type": "integer",
+          "default": 600,
+          "description": "Launcher popup width in pixels."
+        },
+        "listMaxHeight": {
+          "type": "integer",
+          "default": 400,
+          "description": "Maximum height of the results list before scrolling (pixels)."
+        },
+        "topMargin": {
+          "type": "integer",
+          "default": 56,
+          "description": "Distance from the top of the screen to the launcher in pixels."
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["applications", "calculator", "clipboard"]
+          },
+          "default": ["applications", "calculator", "clipboard"],
+          "description": "Active search providers. 'applications' — installed apps. 'calculator' — inline math (requires qalculate-glib). 'clipboard' — clipboard history (requires cliphist)."
+        },
+        "hiddenApps": {
+          "type": "array",
+          "items": {"type": "string"},
+          "default": [],
+          "description": "Application desktop file IDs to hide from search results, e.g. ['org.kde.dolphin.desktop']."
+        }
+      }
+    },
+
+    "osd": {
+      "type": "object",
+      "description": "On-screen display overlays shown when volume or brightness changes.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable OSD overlays."
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 2000,
+          "description": "Time in milliseconds before the OSD auto-hides after the last change."
+        }
+      }
+    },
+
+    "lockscreen": {
+      "type": "object",
+      "description": "WlSessionLock-based lockscreen. Activated by lockScreen() IPC or loginctl lock-session.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the built-in lockscreen. When false, lock actions will still work if an external locker intercepts the session lock signal."
+        },
+        "blurWallpaper": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply blur to the wallpaper behind the lock UI."
+        },
+        "showClock": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a large clock on the lockscreen."
+        }
+      }
+    },
+
+    "powerMenu": {
+      "type": "object",
+      "description": "Power actions overlay.",
+      "properties": {
+        "confirmActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a confirmation step before executing destructive actions (reboot, shutdown, logout)."
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["lock", "suspend", "reboot", "shutdown", "logout"]
+          },
+          "default": ["lock", "suspend", "reboot", "shutdown", "logout"],
+          "description": "Which actions to show in the power menu. Order is preserved."
+        }
+      }
+    },
+
+    "gamingMode": {
+      "type": "object",
+      "description": "Gaming mode temporarily disables visual effects for better performance. State persists across restarts — previously saved Hyprland settings are restored when disabled.",
+      "properties": {
+        "disableAnimations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Disable shell animations (sets Tokens.durationScale = 0)."
+        },
+        "disableWeather": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pause weather API refreshes while gaming mode is active."
+        },
+        "disableWallpaperChange": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pause wallpaper auto-cycling while gaming mode is active."
+        },
+        "hyprland": {
+          "type": "object",
+          "description": "Hyprland compositor settings to override via hyprctl when gaming mode is enabled. Previous values are saved and restored on disable.",
+          "properties": {
+            "disableAnimations": {
+              "type": "boolean",
+              "default": true,
+              "description": "Set animations:enabled false in Hyprland."
+            },
+            "disableBlur": {
+              "type": "boolean",
+              "default": true,
+              "description": "Set decoration:blur:enabled false in Hyprland."
+            },
+            "disableShadows": {
+              "type": "boolean",
+              "default": true,
+              "description": "Set decoration:shadow:enabled false in Hyprland."
+            },
+            "gaps": {
+              "type": "integer",
+              "default": 0,
+              "description": "Override general:gaps_in and general:gaps_out to this value. Use -1 to leave gaps unchanged."
+            },
+            "rounding": {
+              "type": "integer",
+              "default": 0,
+              "description": "Override decoration:rounding to this value. Use -1 to leave rounding unchanged."
+            }
+          }
+        }
+      }
+    },
+
+    "wallpaper": {
+      "type": "object",
+      "description": "Multi-monitor wallpaper management. Wallpapers are applied via swww or a custom script.",
+      "properties": {
+        "primaryMonitor": {
+          "type": "string",
+          "default": "",
+          "description": "Monitor name (e.g. 'DP-1') whose wallpaper is used to generate the Material You color palette. Empty string uses the first monitor."
+        },
+        "defaultWallpaper": {
+          "type": "string",
+          "default": "",
+          "description": "Fallback wallpaper path used when no per-monitor path is configured."
+        },
+        "postSetScript": {
+          "type": "string",
+          "default": "",
+          "description": "Shell command executed after each wallpaper change. The new path is available as $WALLPAPER_PATH."
+        },
+        "global": {
+          "type": "object",
+          "description": "Global wallpaper cycling settings applied to all monitors without per-monitor overrides.",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "default": "",
+              "description": "Directory to cycle wallpapers from. Leave empty to disable cycling."
+            },
+            "randomOrder": {
+              "type": "boolean",
+              "default": true,
+              "description": "Cycle wallpapers in random order. False = alphabetical."
+            },
+            "autoChange": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Automatically cycle wallpapers on a timer."
+                },
+                "intervalMs": {
+                  "type": "integer",
+                  "default": 300000,
+                  "description": "Wallpaper cycle interval in milliseconds. Default is 5 minutes (300000)."
+                }
+              }
+            }
+          }
+        },
+        "monitors": {
+          "type": "object",
+          "default": {},
+          "description": "Per-monitor wallpaper overrides. Keys are monitor names (e.g. 'DP-1', 'HDMI-A-1'). Each value is an object with optional 'path' and 'directory' fields.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Static wallpaper path for this monitor."
+              },
+              "directory": {
+                "type": "string",
+                "description": "Wallpaper cycling directory override for this monitor."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "services": {
+      "type": "object",
+      "description": "External service integrations.",
+      "properties": {
+        "weather": {
+          "type": "object",
+          "description": "Weather data via Open-Meteo API (no API key required).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable weather fetching and widgets."
+            },
+            "location": {
+              "type": "string",
+              "default": "London",
+              "description": "Location display name shown in weather widgets."
+            },
+            "latitude": {
+              "type": "number",
+              "default": 51.5,
+              "description": "Latitude for weather API requests."
+            },
+            "longitude": {
+              "type": "number",
+              "default": -0.12,
+              "description": "Longitude for weather API requests."
+            },
+            "units": {
+              "type": "string",
+              "enum": ["metric", "imperial"],
+              "default": "metric",
+              "description": "'metric' — °C and km/h. 'imperial' — °F and mph."
+            },
+            "refreshMinutes": {
+              "type": "integer",
+              "default": 15,
+              "description": "How often to refresh weather data, in minutes."
+            }
+          }
+        },
+        "calendar": {
+          "type": "object",
+          "description": "Local calendar integration (reads GNOME/Evolution calendar SQLite databases).",
+          "properties": {
+            "reminders": {
+              "type": "object",
+              "description": "Desktop notification reminders for upcoming calendar events.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Send a desktop notification (via notify-send) before calendar events."
+                },
+                "minutesBefore": {
+                  "type": "integer",
+                  "default": 15,
+                  "description": "How many minutes before an event to send the reminder notification."
+                }
+              }
+            }
+          }
+        },
+        "vpn": {
+          "type": "object",
+          "description": "VPN status via NetworkManager.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable VPN status tracking and quick-toggle in the dashboard."
+            },
+            "name": {
+              "type": "string",
+              "default": "",
+              "description": "NetworkManager VPN connection name to monitor and toggle."
+            }
+          }
+        }
+      }
+    },
+
+    "hyprland": {
+      "type": "object",
+      "description": "Hyprland-specific settings.",
+      "properties": {
+        "workspaceCount": {
+          "type": "integer",
+          "default": 10,
+          "description": "Number of workspaces displayed in the workspaces bar widget."
+        }
+      }
+    }
+
+  }
+}
