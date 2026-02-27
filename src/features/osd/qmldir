@@ -1,3 +1,5 @@
 module qs.src.features.osd
 
 VolumeOSD 1.0 VolumeOSD.qml
+BrightnessOSD 1.0 BrightnessOSD.qml
+ToastOverlay 1.0 ToastOverlay.qml

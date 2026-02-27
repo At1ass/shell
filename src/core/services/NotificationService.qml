@@ -484,10 +484,34 @@ Singleton {
         }
     }
 
+    function pruneHistory() {
+        const ttl = AppConfig.notificationHistoryTTLDays
+        if (ttl <= 0) return
+        const cutoff = Date.now() - (ttl * 24 * 60 * 60 * 1000)
+        let removed = false
+        for (let i = historyList.count - 1; i >= 0; i--) {
+            if ((historyList.get(i).timestamp || 0) < cutoff) {
+                historyList.remove(i)
+                removed = true
+            }
+        }
+        if (removed) saveHistory()
+    }
+
+    Timer {
+        interval: 60 * 60 * 1000
+        repeat: true
+        running: true
+        onTriggered: root.pruneHistory()
+    }
+
     function loadHistory() {
         try {
             historyList.clear()
-            const items = historyAdapter.notifications || []
+            const ttl = AppConfig.notificationHistoryTTLDays
+            const cutoff = ttl > 0 ? Date.now() - (ttl * 24 * 60 * 60 * 1000) : 0
+            const allItems = historyAdapter.notifications || []
+            const items = cutoff > 0 ? allItems.filter(i => (i.timestamp || 0) >= cutoff) : allItems
 
             if (AppConfig.notificationGroupByApp) {
                 // Build grouped structure for sorted insertion

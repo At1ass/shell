@@ -77,8 +77,8 @@ MaterialCard {
                     {
                         icon: "screenshot_region",
                         active: () => false,
-                        tooltip: "Screenshot Area",
-                        action: () => GlobalStates.takeScreenshot()
+                        tooltip: "Screenshot (Annotate)",
+                        action: () => GlobalStates.takeScreenshotSwappy()
                     },
                     {
                         icon: "sports_esports",

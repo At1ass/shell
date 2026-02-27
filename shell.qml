@@ -70,6 +70,15 @@ ShellRoot {
         VolumeOSD {}
     }
 
+    // Brightness OSD
+    LazyLoader {
+        loading: true
+        BrightnessOSD {}
+    }
+
+    // Toast notifications
+    ToastOverlay {}
+
     // Launcher
     LazyLoader {
         loading: GlobalStates.launcherOpen

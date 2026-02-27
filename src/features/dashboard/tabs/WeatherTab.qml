@@ -152,7 +152,7 @@ Item {
                         }
 
                         MaterialText {
-                            text: "°C"
+                            text: Weather.tempUnit
                             textStyle: "displaySmall"
                             colorRole: "onSurfaceVariant"
                             Layout.alignment: Qt.AlignTop
@@ -190,7 +190,7 @@ Item {
                 Layout.fillWidth: true
                 iconName: "thermostat"
                 label: "Feels Like"
-                value: Math.round(Weather.feelsLikeC) + "°C"
+                value: Math.round(Weather.feelsLikeC) + Weather.tempUnit
                 iconColor: Theme.primary
             }
 
@@ -199,7 +199,7 @@ Item {
                 Layout.fillWidth: true
                 iconName: "air"
                 label: "Wind"
-                value: Math.round(Weather.windSpeed) + " km/h"
+                value: Math.round(Weather.windSpeed) + " " + Weather.windUnit
                 iconColor: Theme.tertiary
             }
 
