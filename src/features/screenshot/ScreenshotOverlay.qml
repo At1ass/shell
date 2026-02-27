@@ -284,15 +284,16 @@ Scope {
                     const maxX = content.width - 1
                     const maxY = content.height - 1
 
-                    // Normalize hjkl to Qt key codes using evdev scan codes so
+                    // Normalize hjkl to Qt key codes using XKB scan codes so
                     // navigation works regardless of the active keyboard layout.
-                    // Evdev: h=35, j=36, k=37, l=38 (constant on all layouts).
+                    // Qt Wayland stores nativeScanCode as XKB keycode = evdev + 8.
+                    // h=43, j=44, k=45, l=46 on all standard keyboards.
                     let key = event.key
                     switch (event.nativeScanCode) {
-                        case 35: key = Qt.Key_H; break
-                        case 36: key = Qt.Key_J; break
-                        case 37: key = Qt.Key_K; break
-                        case 38: key = Qt.Key_L; break
+                        case 43: key = Qt.Key_H; break
+                        case 44: key = Qt.Key_J; break
+                        case 45: key = Qt.Key_K; break
+                        case 46: key = Qt.Key_L; break
                     }
 
                     function initKeyboard() {
