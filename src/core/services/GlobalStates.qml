@@ -132,6 +132,7 @@ Singleton {
     // Screenshot
     property string _grimGeometry: ""
     property bool _useSwappy: false
+    property string screenshotTargetMonitor: ""
 
     Process {
         id: screenshotRegionProc
@@ -150,12 +151,14 @@ Singleton {
     }
 
     function takeScreenshot() {
+        root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
         root.dashboardOpen = false
         root._useSwappy = false
         root.screenshotOverlayActive = true
     }
 
     function takeScreenshotSwappy() {
+        root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
         root.dashboardOpen = false
         root._useSwappy = true
         root.screenshotOverlayActive = true

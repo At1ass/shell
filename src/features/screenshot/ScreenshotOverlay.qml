@@ -281,8 +281,6 @@ Scope {
                     const step = shift ? root.kbStepLarge
                                       : event.isAutoRepeat ? root.kbStepRepeat
                                       : root.kbStepSmall
-                    const maxX = content.width - 1
-                    const maxY = content.height - 1
 
                     // Normalize hjkl to Qt key codes using XKB scan codes so
                     // navigation works regardless of the active keyboard layout.
@@ -298,9 +296,19 @@ Scope {
 
                     function initKeyboard() {
                         if (!root.keyboardMode) {
-                            root.activeScreen = overlayWindow.modelData
-                            root.cursorX = content.width / 2
-                            root.cursorY = content.height / 2
+                            // Find the screen that was focused when the screenshot
+                            // was triggered, captured before the overlay stole focus.
+                            const targetName = GlobalStates.screenshotTargetMonitor
+                            let targetScreen = null
+                            for (let i = 0; i < Quickshell.screens.length; i++) {
+                                if (Quickshell.screens[i].name === targetName) {
+                                    targetScreen = Quickshell.screens[i]
+                                    break
+                                }
+                            }
+                            root.activeScreen = targetScreen || overlayWindow.modelData
+                            root.cursorX = root.activeScreen.width / 2
+                            root.cursorY = root.activeScreen.height / 2
                             root.keyboardMode = true
                         }
                     }
@@ -312,6 +320,9 @@ Scope {
                         }
                     }
 
+                    // Bounds use the active screen's dimensions (set by initKeyboard).
+                    // Key events arrive at one window only; the activeScreen check is
+                    // not needed for movement — only the per-screen visuals use it.
                     switch (key) {
                     case Qt.Key_Escape:
                         root.cancel()
@@ -320,42 +331,34 @@ Scope {
 
                     case Qt.Key_H: case Qt.Key_Left:
                         initKeyboard()
-                        if (root.activeScreen === overlayWindow.modelData) {
-                            root.cursorX = Math.max(0, root.cursorX - step)
-                            updateSelection()
-                        }
+                        root.cursorX = Math.max(0, root.cursorX - step)
+                        updateSelection()
                         event.accepted = true
                         break
 
                     case Qt.Key_L: case Qt.Key_Right:
                         initKeyboard()
-                        if (root.activeScreen === overlayWindow.modelData) {
-                            root.cursorX = Math.min(maxX, root.cursorX + step)
-                            updateSelection()
-                        }
+                        root.cursorX = Math.min(root.activeScreen.width - 1, root.cursorX + step)
+                        updateSelection()
                         event.accepted = true
                         break
 
                     case Qt.Key_K: case Qt.Key_Up:
                         initKeyboard()
-                        if (root.activeScreen === overlayWindow.modelData) {
-                            root.cursorY = Math.max(0, root.cursorY - step)
-                            updateSelection()
-                        }
+                        root.cursorY = Math.max(0, root.cursorY - step)
+                        updateSelection()
                         event.accepted = true
                         break
 
                     case Qt.Key_J: case Qt.Key_Down:
                         initKeyboard()
-                        if (root.activeScreen === overlayWindow.modelData) {
-                            root.cursorY = Math.min(maxY, root.cursorY + step)
-                            updateSelection()
-                        }
+                        root.cursorY = Math.min(root.activeScreen.height - 1, root.cursorY + step)
+                        updateSelection()
                         event.accepted = true
                         break
 
                     case Qt.Key_Space:
-                        if (root.keyboardMode && root.activeScreen === overlayWindow.modelData) {
+                        if (root.keyboardMode) {
                             if (!root.anchorPlaced) {
                                 root.anchorPlaced = true
                                 root.startX = root.cursorX
@@ -371,7 +374,7 @@ Scope {
                         break
 
                     case Qt.Key_Return: case Qt.Key_Enter:
-                        if (root.anchorPlaced && root.activeScreen === overlayWindow.modelData)
+                        if (root.anchorPlaced)
                             root.capture()
                         event.accepted = true
                         break
