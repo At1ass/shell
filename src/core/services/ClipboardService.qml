@@ -138,6 +138,7 @@ Singleton {
     }
 
     // Fuzzy search через C++ rapidfuzz
+    // Фильтрует записи, но сохраняет порядок cliphist (по времени, свежие первые)
     function fuzzySearch(query) {
         if (!query || query.trim() === "") {
             return preparedEntries.slice(0, 20)
@@ -145,13 +146,21 @@ Singleton {
 
         const contents = preparedEntries.map(e => e.content)
         const hits = FuzzySearch.match(query, contents, 20, 30.0)
-        const results = []
+
+        // Собираем совпавшие индексы и сортируем по оригинальной позиции
+        const matched = []
         for (let i = 0; i < hits.length; i++) {
-            const idx = hits[i].index
+            matched.push({ originalIndex: hits[i].index, score: hits[i].score })
+        }
+        matched.sort((a, b) => a.originalIndex - b.originalIndex)
+
+        const results = []
+        for (let i = 0; i < matched.length; i++) {
+            const idx = matched[i].originalIndex
             results.push({
                 entry: preparedEntries[idx].entry,
                 content: preparedEntries[idx].content,
-                score: hits[i].score
+                score: matched[i].score
             })
         }
         return results
@@ -160,6 +169,68 @@ Singleton {
     // Проверка, является ли запись изображением
     function entryIsImage(entry) {
         return /^\d+\t\[\[.*binary data.*\d+x\d+.*\]\]$/.test(entry)
+    }
+
+    // Извлечение ID из записи cliphist (формат: "ID\tCONTENT")
+    function _extractEntryId(entry) {
+        const match = entry.match(/^(\d+)\t/)
+        return match ? match[1] : ""
+    }
+
+    // === Thumbnail cache для изображений ===
+    readonly property string _thumbnailDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/quickshell-clipboard-thumbs"
+    property var _thumbnailCache: ({})
+    property int _thumbnailVersion: 0
+    property var _thumbQueue: []
+
+    function thumbnailFor(entry) {
+        const id = _extractEntryId(entry)
+        return _thumbnailCache[id] || ""
+    }
+
+    function requestThumbnail(entry) {
+        const id = _extractEntryId(entry)
+        if (!id || _thumbnailCache[id]) return
+        // Не добавлять дубли в очередь
+        for (let i = 0; i < _thumbQueue.length; i++) {
+            if (_thumbQueue[i].id === id) return
+        }
+        _thumbQueue.push({ id: id, entry: entry })
+        _processNextThumb()
+    }
+
+    function _processNextThumb() {
+        if (thumbDecodeProc.running || _thumbQueue.length === 0) return
+        const item = _thumbQueue.shift()
+        thumbDecodeProc._entryId = item.id
+        thumbDecodeProc._entry = item.entry
+        thumbDecodeProc._outPath = root._thumbnailDir + "/" + item.id
+        thumbDecodeProc.command = ["sh", "-c", "mkdir -p '" + root._thumbnailDir + "' && " + root.cliphistBinary + " decode > '" + thumbDecodeProc._outPath + "'"]
+        thumbDecodeProc.running = true
+    }
+
+    Process {
+        id: thumbDecodeProc
+        property string _entryId: ""
+        property string _entry: ""
+        property string _outPath: ""
+        stdinEnabled: true
+
+        onStarted: {
+            thumbDecodeProc.write(thumbDecodeProc._entry + "\n")
+            thumbDecodeProc.stdinEnabled = false
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0 && thumbDecodeProc._entryId) {
+                let cache = Object.assign({}, root._thumbnailCache)
+                cache[thumbDecodeProc._entryId] = thumbDecodeProc._outPath
+                root._thumbnailCache = cache
+                root._thumbnailVersion++
+            }
+            thumbDecodeProc.stdinEnabled = true
+            root._processNextThumb()
+        }
     }
 
     // Инициализация при старте
