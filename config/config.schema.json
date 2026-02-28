@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "quickshell-shell-config",
   "title": "Quickshell Shell Configuration",
-  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/shell/config.json. Hot-reload is supported — changes apply immediately.",
+  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported — changes apply immediately.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version"],

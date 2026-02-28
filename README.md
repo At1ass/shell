@@ -61,14 +61,13 @@
 ### 1. Клонировать / скопировать
 
 ```bash
-git clone <repo> ~/.config/quickshell/shell
-# или просто скопировать директорию shell в ~/.config/quickshell/
+git clone <repo> ~/.config/quickshell
 ```
 
 ### 2. Собрать C++ плагины
 
 ```bash
-cd ~/.config/quickshell/shell/src/plugins
+cd ~/.config/quickshell/src/plugins
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
@@ -78,11 +77,11 @@ cmake --build build
 ### 3. Создать конфиг пользователя
 
 ```bash
-cp ~/.config/quickshell/shell/config/default.json \
-   ~/.config/quickshell/shell/config.json
+cp ~/.config/quickshell/config/default.json \
+   ~/.config/quickshell/config.json
 ```
 
-Конфиг также читается из `~/.config/quickshell/shell/config.json`. При отсутствии используется `config/default.json` как fallback.
+Конфиг читается из `~/.config/quickshell/config.json`. При отсутствии используется `config/default.json` как fallback.
 
 ### 4. Настроить конфиг
 
@@ -129,20 +128,20 @@ bind = SUPER ALT, G, global, quickshell:gamingModeToggle
 ### 6. Запустить
 
 ```bash
-quickshell -c shell
+quickshell
 ```
 
 Или добавить в автозапуск Hyprland:
 
 ```conf
-exec-once = quickshell -c shell
+exec-once = quickshell
 ```
 
 ---
 
 ## Конфигурация
 
-Файл: `~/.config/quickshell/shell/config.json`
+Файл: `~/.config/quickshell/config.json`
 
 **Hot-reload**: конфиг отслеживается — изменения применяются без перезапуска.
 

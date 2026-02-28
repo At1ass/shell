@@ -9,7 +9,7 @@ Singleton {
 
     // Config file paths
     readonly property string configDir: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
-    readonly property string configPath: configDir + "/quickshell/shell/config.json"
+    readonly property string configPath: configDir + "/quickshell/config.json"
     readonly property string defaultConfigPath: Qt.resolvedUrl("../../../config/default.json").toString().replace("file://", "")
 
     // Ready flag
