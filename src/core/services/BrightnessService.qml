@@ -70,6 +70,10 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: root._parseBrightness(text)
         }
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("BrightnessService: ddcutil getvcp failed (exit " + exitCode + ")")
+        }
     }
 
     function _readBrightness(index) {
@@ -103,6 +107,8 @@ Singleton {
     Process {
         id: setProc
         onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                console.warn("BrightnessService: ddcutil setvcp failed (exit " + exitCode + ")")
             root._setIndex++
             root._doSetNext()
         }

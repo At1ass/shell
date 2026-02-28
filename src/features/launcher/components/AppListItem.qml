@@ -6,6 +6,7 @@ import Quickshell.Widgets
 import qs.src.ui.base
 import qs.src.ui.feedback
 import qs.src.core.config
+import qs.src.core.services
 
 Item {
     id: root
@@ -54,12 +55,46 @@ Item {
         anchors.rightMargin: Tokens.spacing.medium
         spacing: Tokens.spacing.medium
 
-        // App Icon
+        // Clipboard image thumbnail
+        Image {
+            id: clipboardThumb
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: 40
+            Layout.preferredHeight: 40
+            visible: _thumbSource !== ""
+
+            readonly property string _thumbSource: {
+                if (modelData?.data?.isImage !== true) return ""
+                // Depend on version to re-evaluate when new thumbnails arrive
+                let v = ClipboardService._thumbnailVersion
+                void(v)
+                return ClipboardService.thumbnailFor(modelData.data.entry) || ""
+            }
+
+            source: _thumbSource ? "file://" + _thumbSource : ""
+            sourceSize.width: 40
+            sourceSize.height: 40
+            fillMode: Image.PreserveAspectCrop
+            smooth: true
+            cache: false
+            asynchronous: true
+
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                radius: Tokens.shape.small
+                border.width: 1
+                border.color: Qt.alpha(Theme.outline, 0.2)
+            }
+        }
+
+        // App Icon (hidden when thumbnail is shown)
         Image {
             id: appIcon
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredWidth: 40
             Layout.preferredHeight: 40
+            visible: !clipboardThumb.visible
 
             source: {
                 let iconName = modelData?.icon || "application-x-executable"

@@ -7,6 +7,7 @@ pragma ComponentBehavior: Bound
 Singleton {
     id: root
 
+    property var popoutsInstance: null
     property bool open: false
     property string name: ""
     property string screenName: ""

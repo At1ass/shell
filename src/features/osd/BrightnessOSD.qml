@@ -86,7 +86,7 @@ Scope {
                         anchors.fill: parent
                         radius: osdCard.radius
                         color: Theme.primary
-                        opacity: 0.08
+                        opacity: Tokens.stateLayer.hoverOpacity
                     }
 
                     Rectangle {
@@ -116,7 +116,7 @@ Scope {
                                     if (b < 0.67) return "brightness_medium"
                                     return "brightness_high"
                                 }
-                                fontSize: 32
+                                fontSize: Tokens.iconSize.extraLarge
                                 iconColor: Theme.onPrimaryContainer
                                 backgroundColor: "transparent"
                             }

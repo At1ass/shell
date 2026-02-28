@@ -37,7 +37,7 @@ Scope {
         Rectangle {
             id: scrim
             anchors.fill: parent
-            color: "#000000"
+            color: Theme.scrim
             opacity: GlobalStates.launcherOpen ? 0.32 : 0.0
 
             Behavior on opacity {

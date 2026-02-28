@@ -18,6 +18,7 @@ ShellRoot {
     readonly property var _hws: HyprlandWindowService
     Popouts.Popouts {
         id: globalPopouts
+        Component.onCompleted: PopoutsState.popoutsInstance = globalPopouts
     }
 
     Variants {
@@ -29,7 +30,6 @@ ShellRoot {
             Bar.StatusBar {
                 id: statusBar
                 screen: screenScope.modelData
-                popouts: globalPopouts
             }
 
             // Popouts.PopoutsScrim {
@@ -96,7 +96,7 @@ ShellRoot {
 
     // Screenshot region selection overlay
     LazyLoader {
-        loading: GlobalStates.screenshotOverlayActive
+        loading: ScreenshotService.screenshotOverlayActive
         ScreenshotOverlay {}
     }
 

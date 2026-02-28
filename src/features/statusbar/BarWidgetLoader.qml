@@ -9,7 +9,6 @@ Item {
     required property var widgetConfig
     required property var tooltipManager
     property string screenName
-    property var popouts: null
 
     property string widgetType: (widgetConfig && (widgetConfig.type || widgetConfig["type"])) || ""
     property bool widgetEnabled: !(widgetConfig && (widgetConfig.enabled === false || widgetConfig["enabled"] === false))
@@ -34,6 +33,8 @@ Item {
             switch (root.widgetType) {
             case "workspaces":
                 return workspacesComponent;
+            case "activewindow":
+                return activeWindowComponent;
             case "media":
                 return mprisComponent;
             case "tray":
@@ -70,6 +71,14 @@ Item {
 
     // Widget components
     Component {
+        id: activeWindowComponent
+        ActiveWindowWidget {
+            widgetConfig: root.widgetConfig
+            tooltipManager: root.tooltipManager
+        }
+    }
+
+    Component {
         id: workspacesComponent
         WorkspaceWidget {
             widgetConfig: root.widgetConfig
@@ -89,7 +98,6 @@ Item {
         TrayWidget {
             widgetConfig: root.widgetConfig
             tooltipManager: root.tooltipManager
-            popouts: root.popouts
         }
     }
 

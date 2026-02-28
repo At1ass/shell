@@ -4,7 +4,6 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
-import qs.src.features.dashboard
 import qs.src.features.statusbar
 import qs.src.ui.containers
 import qs.src.ui.feedback
@@ -17,7 +16,6 @@ PanelWindow {
     readonly property var barWidgets: AppConfig.ready ? (AppConfig.barWidgets || []) : []
     readonly property string screenName: screen ? screen.name : ""
     // property ShellScreen screen: null
-    property var popouts: null
 
     implicitHeight: AppConfig.barHeight
     color: "transparent"
@@ -40,12 +38,12 @@ PanelWindow {
         id: barBackground
 
         anchors.fill: parent
-        color: Qt.alpha(Theme.surfaceContainer, 0.90)
-        // Primary surface tint - more visible
+        color: AppConfig.barTransparent ? "transparent" : Qt.alpha(Theme.surfaceContainer, 0.90)
+        // Primary surface tint
         Rectangle {
             anchors.fill: parent
             color: Theme.primary
-            opacity: 0.12  // Increased from 0.08 to 0.12
+            opacity: AppConfig.barTransparent ? 0 : 0.12
             radius: parent.radius
         }
 
@@ -76,7 +74,6 @@ PanelWindow {
                         screenName: statusBar.screenName
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        popouts: statusBar.popouts
                     }
                 }
             }
@@ -103,7 +100,6 @@ PanelWindow {
                         screenName: statusBar.screenName
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        popouts: statusBar.popouts
                     }
                 }
             }
@@ -134,7 +130,6 @@ PanelWindow {
 
                         widgetConfig: modelData
                         tooltipManager: statusBar.tooltip
-                        popouts: statusBar.popouts
                     }
                 }
             }

@@ -29,24 +29,26 @@ BaseProvider {
             const item = searchResults[i]
             const entry = item.entry
             const content = item.content
-            const score = item.score
+            const isImage = ClipboardService.entryIsImage(entry)
 
             // Ограничиваем длину отображаемого текста
-            let displayText = content
+            let displayText = isImage ? "[Image]" : content
             if (displayText.length > 80) {
                 displayText = displayText.substring(0, 80) + "..."
             }
 
             // Первые 150 символов для описания
-            let description = content
+            let description = isImage ? "" : content
             if (description.length > 150) {
                 description = description.substring(0, 150) + "..."
             }
 
             // Определяем иконку
             let icon = "edit-paste"
-            if (ClipboardService.entryIsImage(entry)) {
+            if (isImage) {
                 icon = "image-x-generic"
+                // Запрашиваем генерацию миниатюры
+                ClipboardService.requestThumbnail(entry)
             } else if (content.startsWith("http://") || content.startsWith("https://")) {
                 icon = "internet-web-browser"
             } else if (content.match(/^[\d\s\+\-\*\/\(\)\.]+$/)) {
@@ -55,14 +57,15 @@ BaseProvider {
 
             const capturedEntry = entry
 
+            // Score убывает с позицией — сохраняет порядок cliphist в LauncherService
             results.push({
                 id: "clipboard:" + i + ":" + content.substring(0, 20),
                 text: displayText,
                 description: description,
                 icon: icon,
                 type: "clipboard",
-                score: score,
-                data: { entry: capturedEntry, content: content },
+                score: searchResults.length - i,
+                data: { entry: capturedEntry, content: content, isImage: isImage },
                 action: function() {
                     ClipboardService.copy(capturedEntry)
                 }

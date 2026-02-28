@@ -74,7 +74,7 @@ MaterialCard {
                 Rectangle {
                     width: 40
                     height: 40
-                    radius: 20
+                    radius: Tokens.shape.full
                     color: Theme.primaryContainer
 
                     MaterialIcon {
@@ -113,7 +113,7 @@ MaterialCard {
                     visible: section.toggleEnabled
                     width: 52
                     height: 32
-                    radius: 16
+                    radius: Tokens.shape.large
                     color: section.toggleChecked ? Theme.primary : Theme.surfaceContainerHighest
                     border.width: section.toggleChecked ? 0 : 2
                     border.color: Theme.outline

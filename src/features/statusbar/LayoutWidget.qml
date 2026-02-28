@@ -5,8 +5,6 @@ import qs.src.ui.inputs
 import qs.src.ui.feedback
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Hyprland
-import Quickshell.Io
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
@@ -17,13 +15,6 @@ BarElement {
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
 
-    property string currentLayoutName: ""
-    property string currentLayoutCode: ""
-    property var layoutCodes: []
-    property var cachedLayoutCodes: ({})
-    property bool capsLockEnabled: false
-    property bool numLockEnabled: false
-
     // BarElement configuration
     clickable: true
     hoverable: true
@@ -31,12 +22,12 @@ BarElement {
     expandOnHover: false
     animated: true
 
-    // Показывать только если есть несколько раскладок
-    visible: layoutCodes.length > 1
+    // Show only if multiple layouts available
+    visible: KeyboardLayoutService.layoutCodes.length > 1
 
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
-            layoutWidget.switchLayout()
+            KeyboardLayoutService.switchLayout()
             mouse.accepted = true
             return
         }
@@ -50,144 +41,11 @@ BarElement {
         mouse.accepted = false
     }
 
-    // Получение текущих раскладок при инициализации
-    nonVisualChildren: [
-        Process {
-            id: fetchLayoutsProcess
-            running: false
-            command: ["hyprctl", "-j", "devices"]
-
-            stdout: StdioCollector {
-                id: devicesCollector
-                onStreamFinished: {
-                    try {
-                        const parsedOutput = JSON.parse(devicesCollector.text)
-                        const hyprlandKeyboard = parsedOutput["keyboards"].find(kb => kb.main === true)
-                        if (hyprlandKeyboard) {
-                            layoutWidget.layoutCodes = hyprlandKeyboard["layout"].split(",")
-                            layoutWidget.currentLayoutName = hyprlandKeyboard["active_keymap"]
-                            layoutWidget.capsLockEnabled = hyprlandKeyboard["capsLock"] || false
-                            layoutWidget.numLockEnabled = hyprlandKeyboard["numLock"] || false
-                        }
-                    } catch (e) {
-                        console.warn("LayoutWidget: Ошибка парсинга devices:", e)
-                    }
-                }
-            }
-        },
-
-        Process {
-            id: getLayoutCodeProcess
-            command: ["cat", "/usr/share/X11/xkb/rules/base.lst"]
-
-            stdout: StdioCollector {
-                id: layoutCollector
-                onStreamFinished: {
-                    const lines = layoutCollector.text.split("\n")
-                    const targetDescription = layoutWidget.currentLayoutName
-                    const foundLine = lines.find(line => {
-                        if (!line.trim() || line.trim().startsWith('!'))
-                            return false
-
-                        const matchLayout = line.match(/^\s*(\S+)\s+(.+)$/)
-                        if (matchLayout && matchLayout[2] === targetDescription) {
-                            layoutWidget.cachedLayoutCodes[matchLayout[2]] = matchLayout[1]
-                            layoutWidget.currentLayoutCode = matchLayout[1]
-                            return true
-                        }
-
-                        const matchVariant = line.match(/^\s*(\S+)\s+(\S+)\s+(.+)$/)
-                        if (matchVariant && matchVariant[3] === targetDescription) {
-                            const complexLayout = matchVariant[2] + matchVariant[1]
-                            layoutWidget.cachedLayoutCodes[matchVariant[3]] = complexLayout
-                            layoutWidget.currentLayoutCode = complexLayout
-                            return true
-                        }
-
-                        return false
-                    })
-                }
-            }
-        },
-
-        Connections {
-            target: Hyprland
-            function onRawEvent(event) {
-                if (event.name === "activelayout") {
-                    if (layoutWidget.layoutCodes.length <= 1) return
-
-                    const dataString = event.data
-                    layoutWidget.currentLayoutName = dataString.split(",")[1]
-                }
-            }
-        },
-
-        Process {
-            id: switchProcess
-            running: false
-        },
-
-        // Периодическое обновление состояния клавиатуры (CapsLock/NumLock)
-        // Раскладка обновляется через события Hyprland, поэтому polling редкий
-        Timer {
-            id: keyboardStateTimer
-            interval: 5000  // 5 секунд вместо 1 - снижает нагрузку
-            running: true
-            repeat: true
-            triggeredOnStart: false
-
-            onTriggered: {
-                if (!fetchLayoutsProcess.running) {
-                    fetchLayoutsProcess.running = true
-                }
-            }
-        }
-    ]
-
-    Component.onCompleted: {
-        // Initial fetch
-        if (!fetchLayoutsProcess.running) {
-            fetchLayoutsProcess.running = true
-        }
-    }
-
-    // Обновление кода раскладки при изменении имени
-    onCurrentLayoutNameChanged: updateLayoutCode()
-
-    function updateLayoutCode() {
-        if (cachedLayoutCodes.hasOwnProperty(currentLayoutName)) {
-            currentLayoutCode = cachedLayoutCodes[currentLayoutName]
-        } else {
-            if (!getLayoutCodeProcess.running) {
-                getLayoutCodeProcess.running = true
-            }
-        }
-    }
-
-    // Функция переключения раскладки через hyprctl
-    function switchLayout() {
-        if (layoutCodes.length <= 1) return
-
-        const currentIndex = layoutCodes.findIndex(layout => layout === currentLayoutCode)
-        const nextIndex = (currentIndex + 1) % layoutCodes.length
-        const nextLayout = layoutCodes[nextIndex]
-
-        // Переключение через hyprctl
-        if (!switchProcess.running) {
-            switchProcess.command = ["hyprctl", "switchxkblayout", "main", "next"]
-            switchProcess.running = true
-        }
-
-        // console.log(`Переключение раскладки: ${currentLayoutCode} -> ${nextLayout}`)
-    }
-
     Column {
-        // anchors.centerIn: parent
         spacing: 2
 
-        // Отображение текущей раскладки
         MaterialText {
-            text: layoutWidget.currentLayoutCode.toUpperCase() || "EN"
+            text: KeyboardLayoutService.currentLayoutCode.toUpperCase() || "EN"
             textStyle: "titleMedium"
             colorRole: layoutWidget.hovered ? "primary" : "onSurface"
             anchors.horizontalCenter: parent.horizontalCenter
@@ -200,24 +58,24 @@ BarElement {
             }
         }
 
-        // Индикаторы Caps/NumLock
+        // CapsLock / NumLock indicators
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 2
 
-            // CapsLock индикатор
             MaterialIndicator {
                 id: capsIndicator
                 size: "extraSmall"
-                colorRole: layoutWidget.capsLockEnabled ? "primary" : "outline"
+                colorRole: KeyboardLayoutService.capsLockEnabled ? "primary" : "outline"
                 shape: "rounded"
-                visible: layoutWidget.capsLockEnabled
+                visible: KeyboardLayoutService.capsLockEnabled
 
                 MouseArea {
                     id: capsMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
 
+                    // QtQuick.Controls ToolTip — no tooltipManager available
                     ToolTip {
                         text: "Caps Lock"
                         visible: capsMouseArea.containsMouse
@@ -226,19 +84,19 @@ BarElement {
                 }
             }
 
-            // NumLock индикатор
             MaterialIndicator {
                 id: numIndicator
                 size: "extraSmall"
-                colorRole: layoutWidget.numLockEnabled ? "secondary" : "outline"
+                colorRole: KeyboardLayoutService.numLockEnabled ? "secondary" : "outline"
                 shape: "rounded"
-                visible: layoutWidget.numLockEnabled
+                visible: KeyboardLayoutService.numLockEnabled
 
                 MouseArea {
                     id: numMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
 
+                    // QtQuick.Controls ToolTip — no tooltipManager available
                     ToolTip {
                         text: "Num Lock"
                         visible: numMouseArea.containsMouse

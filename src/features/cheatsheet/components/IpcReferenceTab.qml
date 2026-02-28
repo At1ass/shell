@@ -44,12 +44,12 @@ Item {
                         iconColor: Theme.onPrimaryContainer
                     }
 
-                    Text {
+                    MaterialText {
                         Layout.fillWidth: true
                         text: "qs ipc call <handler> <function> [args]"
+                        textStyle: "bodyMedium"
+                        colorRole: "onPrimaryContainer"
                         font.family: "monospace"
-                        font.pixelSize: Tokens.typography.bodyMedium.size
-                        color: Theme.onPrimaryContainer
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -92,12 +92,12 @@ Item {
                             iconColor: Theme.onSurfaceVariant
                         }
 
-                        Text {
+                        MaterialText {
                             text: handlerDelegate.handler.name
+                            textStyle: "titleSmall"
+                            colorRole: "primary"
                             font.family: "monospace"
-                            font.pixelSize: Tokens.typography.titleSmall.size
                             font.weight: Font.Medium
-                            color: Theme.primary
                         }
 
                         // Badge with count

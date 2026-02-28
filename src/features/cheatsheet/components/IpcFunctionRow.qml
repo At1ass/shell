@@ -40,25 +40,25 @@ Item {
             spacing: Tokens.spacing.medium
 
             // Function name (monospace, primary)
-            Text {
+            MaterialText {
                 Layout.preferredWidth: 200
                 Layout.fillHeight: true
                 text: root.modelData.name || ""
+                textStyle: "bodyMedium"
+                colorRole: "primary"
                 font.family: "monospace"
-                font.pixelSize: Tokens.typography.bodyMedium.size
-                color: Theme.primary
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
 
             // Params (monospace, onSurfaceVariant)
-            Text {
+            MaterialText {
                 Layout.preferredWidth: 180
                 Layout.fillHeight: true
                 text: root.modelData.params ? "(" + root.modelData.params + ")" : "()"
+                textStyle: "bodySmall"
+                colorRole: "onSurfaceVariant"
                 font.family: "monospace"
-                font.pixelSize: Tokens.typography.bodySmall.size
-                color: Theme.onSurfaceVariant
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
