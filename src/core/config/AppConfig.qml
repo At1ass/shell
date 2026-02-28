@@ -24,12 +24,14 @@ Singleton {
     readonly property string themeSource: data.appearance?.theme?.source ?? "wallpaper"
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
+    readonly property real fontScale: data.appearance?.fontScale ?? 1.0
 
     // Bar
     readonly property bool barEnabled: data.bar?.enabled ?? true
     readonly property string barPosition: data.bar?.position ?? "top"
     readonly property int barHeight: data.bar?.height ?? 48
     readonly property int barMargin: data.bar?.margin ?? 16
+    readonly property bool barTransparent: data.bar?.transparent ?? false
     readonly property var barWidgets: data.bar?.widgets || []
 
     // Dashboard

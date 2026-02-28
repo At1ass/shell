@@ -38,12 +38,12 @@ PanelWindow {
         id: barBackground
 
         anchors.fill: parent
-        color: Qt.alpha(Theme.surfaceContainer, 0.90)
-        // Primary surface tint - more visible
+        color: AppConfig.barTransparent ? "transparent" : Qt.alpha(Theme.surfaceContainer, 0.90)
+        // Primary surface tint
         Rectangle {
             anchors.fill: parent
             color: Theme.primary
-            opacity: 0.12  // Increased from 0.08 to 0.12
+            opacity: AppConfig.barTransparent ? 0 : 0.12
             radius: parent.radius
         }
 

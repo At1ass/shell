@@ -29,106 +29,109 @@ Singleton {
         readonly property int full: 999
     }
 
-    // Typography following Material Design 3
+    // Font scale (0.5–2.0, 1.0 = normal)
+    property real fontScale: AppConfig.fontScale
+
+    // Typography following Material Design 3 — sizes scaled by fontScale
     readonly property QtObject typography: QtObject {
         readonly property string fontFamily: "Roboto"
 
         // Display styles
         readonly property QtObject displayLarge: QtObject {
-            readonly property int size: 57
-            readonly property int lineHeight: 64
+            readonly property int size: Math.round(57 * root.fontScale)
+            readonly property int lineHeight: Math.round(64 * root.fontScale)
             readonly property int weight: Font.Light
             readonly property real letterSpacing: -0.25
         }
         readonly property QtObject displayMedium: QtObject {
-            readonly property int size: 45
-            readonly property int lineHeight: 52
+            readonly property int size: Math.round(45 * root.fontScale)
+            readonly property int lineHeight: Math.round(52 * root.fontScale)
             readonly property int weight: Font.Light
             readonly property real letterSpacing: 0
         }
         readonly property QtObject displaySmall: QtObject {
-            readonly property int size: 36
-            readonly property int lineHeight: 44
+            readonly property int size: Math.round(36 * root.fontScale)
+            readonly property int lineHeight: Math.round(44 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0
         }
 
         // Headline styles
         readonly property QtObject headlineLarge: QtObject {
-            readonly property int size: 32
-            readonly property int lineHeight: 40
+            readonly property int size: Math.round(32 * root.fontScale)
+            readonly property int lineHeight: Math.round(40 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0
         }
         readonly property QtObject headlineMedium: QtObject {
-            readonly property int size: 28
-            readonly property int lineHeight: 36
+            readonly property int size: Math.round(28 * root.fontScale)
+            readonly property int lineHeight: Math.round(36 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0
         }
         readonly property QtObject headlineSmall: QtObject {
-            readonly property int size: 24
-            readonly property int lineHeight: 32
+            readonly property int size: Math.round(24 * root.fontScale)
+            readonly property int lineHeight: Math.round(32 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0
         }
 
         // Title styles
         readonly property QtObject titleLarge: QtObject {
-            readonly property int size: 22
-            readonly property int lineHeight: 28
+            readonly property int size: Math.round(22 * root.fontScale)
+            readonly property int lineHeight: Math.round(28 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0
         }
         readonly property QtObject titleMedium: QtObject {
-            readonly property int size: 16
-            readonly property int lineHeight: 24
+            readonly property int size: Math.round(16 * root.fontScale)
+            readonly property int lineHeight: Math.round(24 * root.fontScale)
             readonly property int weight: Font.Medium
             readonly property real letterSpacing: 0.15
         }
         readonly property QtObject titleSmall: QtObject {
-            readonly property int size: 14
-            readonly property int lineHeight: 20
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
             readonly property int weight: Font.Medium
             readonly property real letterSpacing: 0.1
         }
 
         // Label styles
         readonly property QtObject labelLarge: QtObject {
-            readonly property int size: 14
-            readonly property int lineHeight: 20
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
             readonly property int weight: Font.Medium
             readonly property real letterSpacing: 0.1
         }
         readonly property QtObject labelMedium: QtObject {
-            readonly property int size: 12
-            readonly property int lineHeight: 16
+            readonly property int size: Math.round(12 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
             readonly property int weight: Font.Medium
             readonly property real letterSpacing: 0.5
         }
         readonly property QtObject labelSmall: QtObject {
-            readonly property int size: 11
-            readonly property int lineHeight: 16
+            readonly property int size: Math.round(11 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
             readonly property int weight: Font.Medium
             readonly property real letterSpacing: 0.5
         }
 
         // Body styles
         readonly property QtObject bodyLarge: QtObject {
-            readonly property int size: 16
-            readonly property int lineHeight: 24
+            readonly property int size: Math.round(16 * root.fontScale)
+            readonly property int lineHeight: Math.round(24 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0.15
         }
         readonly property QtObject bodyMedium: QtObject {
-            readonly property int size: 14
-            readonly property int lineHeight: 20
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0.25
         }
         readonly property QtObject bodySmall: QtObject {
-            readonly property int size: 12
-            readonly property int lineHeight: 16
+            readonly property int size: Math.round(12 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
             readonly property int weight: Font.Normal
             readonly property real letterSpacing: 0.4
         }

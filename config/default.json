@@ -6,7 +6,8 @@
       "source": "wallpaper",
       "variant": "vibrant",
       "darkMode": true
-    }
+    },
+    "fontScale": 1.0
   },
 
   "bar": {
@@ -14,6 +15,7 @@
     "position": "top",
     "height": 48,
     "margin": 16,
+    "transparent": false,
     "widgets": [
       {
         "type": "workspaces",

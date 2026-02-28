@@ -47,6 +47,13 @@
               "description": "Dark (true) or light (false) color scheme."
             }
           }
+        },
+        "fontScale": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "description": "Global font size multiplier applied to all Material typography tokens. 1.0 = default M3 sizes, 0.8 = 80%, 1.2 = 120%. Supports hot-reload."
         }
       }
     },
@@ -80,6 +87,11 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Gap between bar and screen edge in logical pixels."
+        },
+        "transparent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fully transparent bar background. When true, the surface container and primary tint layers are hidden, showing only the widgets floating over the desktop."
         },
         "widgets": {
           "type": "array",
