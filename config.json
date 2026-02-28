@@ -1,4 +1,5 @@
 {
+  "$schema": "file://home/at1ass/.config/quickshell/shell/config/config.schema.json",
   "version": 1,
 
   "appearance": {
@@ -6,34 +7,14 @@
       "source": "wallpaper",
       "variant": "vibrant",
       "darkMode": true
-    },
-    "spacing": {
-      "scale": 1.0
-    },
-    "rounding": {
-      "scale": 1.0
-    },
-    "animations": {
-      "enabled": true,
-      "durationScale": 1.0
-    },
-    "colors": {
-      "transparency": {
-        "enabled": true,
-        "default": 0.85,
-        "cards": 0.80,
-        "dialogs": 0.90
-      }
     }
   },
 
   "bar": {
     "enabled": true,
-    "monitors": "all",
     "position": "top",
     "height": 48,
     "margin": 16,
-    "transparent": false,
     "widgets": [
       {
         "type": "workspaces",
@@ -47,6 +28,16 @@
         }
       },
       {
+        "type": "activewindow",
+        "enabled": true,
+        "section": "left",
+        "monitors": "DP-1",
+        "settings": {
+          "maxWidth": 300,
+          "showIcon": true
+        }
+      },
+      {
         "type": "weather",
         "enabled": true,
         "section": "left",
@@ -54,7 +45,7 @@
         "monitors": "DP-1",
         "settings": {
           "showIcon": true,
-          "showTemperature": true,
+          "showTemp": true,
           "showLocation": false
         }
       },
@@ -138,70 +129,17 @@
 
   "dashboard": {
     "enabled": true,
-    "monitors": "all",
     "width": 900,
-    "height": 640,
-    "defaultTab": "quick",
-    "tabs": [
-      {
-        "id": "quick",
-        "name": "Quick",
-        "icon": "dashboard",
-        "keybind": "Super+D",
-        "widgets": [
-          "volume-slider",
-          "brightness-slider",
-          "network-quick-toggle",
-          "bluetooth-quick-toggle",
-          "night-light-toggle",
-          "upcoming-events"
-        ]
-      },
-      {
-        "id": "media",
-        "name": "Media",
-        "icon": "music_note",
-        "widgets": [
-          "media-player",
-          "media-device-selector"
-        ]
-      },
-      {
-        "id": "calendar",
-        "name": "Calendar",
-        "icon": "calendar_month",
-        "widgets": [
-          "calendar-month-view",
-          "event-list"
-        ]
-      },
-      {
-        "id": "system",
-        "name": "System",
-        "icon": "settings",
-        "widgets": [
-          "weather-detailed",
-          "system-monitor",
-          "audio-advanced"
-        ]
-      }
-    ]
+    "height": 640
   },
 
   "notifications": {
-    "enabled": true,
-    "monitors": "all",
+    "historyTTLDays": 30,
     "panel": {
-      "enabled": true,
-      "position": "right",
       "width": 400,
-      "height": 600,
-      "maxVisible": 10,
-      "groupByApp": true,
-      "showActions": true
+      "groupByApp": true
     },
     "popup": {
-      "enabled": true,
       "position": "top-right",
       "width": 360,
       "timeout": 7000,
@@ -210,9 +148,6 @@
   },
 
   "launcher": {
-    "enabled": true,
-    "monitors": "all",
-    "fuzzy": false,
     "maxResults": 10,
     "width": 600,
     "listMaxHeight": 400,
@@ -227,10 +162,7 @@
 
   "osd": {
     "enabled": true,
-    "monitors": "all",
-    "position": "center",
-    "timeout": 2000,
-    "types": ["volume", "brightness", "microphone"]
+    "timeout": 2000
   },
 
   "lockscreen": {
@@ -292,8 +224,10 @@
       "refreshMinutes": 15
     },
     "calendar": {
-      "enabled": true,
-      "upcomingEventsCount": 2
+      "reminders": {
+        "enabled": true,
+        "minutesBefore": 15
+      }
     },
     "vpn": {
       "enabled": false,
@@ -302,7 +236,6 @@
   },
 
   "hyprland": {
-    "workspaceCount": 10,
-    "perMonitor": true
+    "workspaceCount": 10
   }
 }

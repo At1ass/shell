@@ -44,7 +44,7 @@
         "monitors": "all",
         "settings": {
           "showIcon": true,
-          "showTemperature": true,
+          "showTemp": true,
           "showLocation": false
         }
       },
