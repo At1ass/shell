@@ -7,7 +7,7 @@
 | Компонент | Описание |
 |-----------|----------|
 | **Status Bar** | Настраиваемые виджеты: воркспейсы, активное окно, часы, погода, медиа, уведомления, громкость, сеть, батарея, раскладка, трей |
-| **Dashboard** | 4-вкладочный центр управления: Quick, Media, Calendar, System |
+| **Dashboard** | 4-вкладочный центр управления: Quick, Weather, Calendar, System |
 | **Launcher** | Поиск приложений с fuzzy matching + калькулятор + история буфера обмена |
 | **Notification Center** | Панель уведомлений с историей, группировкой по приложениям, DND |
 | **OSD** | Оверлеи громкости и яркости |
@@ -154,7 +154,9 @@ exec-once = quickshell -c shell
 
 ```
 appearance.theme         — тема (source, variant, darkMode)
+appearance.fontScale     — масштаб шрифтов (0.5–2.0)
 bar                      — панель и виджеты
+bar.transparent          — прозрачный фон бара
 dashboard                — размеры центра управления
 notifications            — попапы и центр уведомлений
 launcher                 — поиск и провайдеры
@@ -187,6 +189,7 @@ hyprland.workspaceCount  — количество воркспейсов
 | Тип | Описание |
 |-----|----------|
 | `workspaces` | Воркспейсы Hyprland с индикаторами окон |
+| `activewindow` | Заголовок и иконка активного окна |
 | `weather` | Текущая погода |
 | `clock` | Дата / время (настраиваемый формат) |
 | `media` | Текущий трек (MPRIS) |
@@ -202,7 +205,7 @@ hyprland.workspaceCount  — количество воркспейсов
 | Значение | Действие |
 |----------|----------|
 | `dashboard-quick` | Открыть Dashboard на вкладке Quick |
-| `dashboard-weather` | Открыть Dashboard на вкладке Weather/System |
+| `dashboard-weather` | Открыть Dashboard на вкладке Weather |
 | `dashboard-calendar` | Открыть Dashboard на вкладке Calendar |
 | `dashboard-system` | Открыть Dashboard на вкладке System |
 | `notification-center` | Открыть/закрыть центр уведомлений |
@@ -224,7 +227,14 @@ qs ipc call <handler> <function> [аргумент]
 ```bash
 # Dashboard
 qs ipc call globalstates toggleDashboard
-qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Media 2=Calendar 3=System
+qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar 3=System
+
+# Control Panel (правая панель)
+qs ipc call globalstates toggleControlPanel
+qs ipc call globalstates openControlPanel
+qs ipc call globalstates closeControlPanel
+qs ipc call globalstates openControlPanelLeft
+qs ipc call globalstates closeControlPanelLeft
 
 # Launcher
 qs ipc call globalstates toggleLauncher
@@ -242,6 +252,8 @@ qs ipc call globalstates screenshotSwappy    # область → swappy
 
 # Power
 qs ipc call globalstates togglePowerMenu
+qs ipc call globalstates openPowerMenu
+qs ipc call globalstates closePowerMenu
 qs ipc call globalstates lockScreen
 
 # Gaming Mode
@@ -249,8 +261,12 @@ qs ipc call globalstates toggleGamingMode
 qs ipc call globalstates enableGamingMode
 qs ipc call globalstates disableGamingMode
 
-# Прочее
+# Cheatsheet
 qs ipc call globalstates toggleCheatsheet
+qs ipc call globalstates openCheatsheet
+qs ipc call globalstates closeCheatsheet
+
+# Прочее
 qs ipc call globalstates closeAll
 ```
 
@@ -268,27 +284,58 @@ qs ipc call audio isMuted
 ### `mpris`
 
 ```bash
+# Воспроизведение
+qs ipc call mpris play
+qs ipc call mpris pause
+qs ipc call mpris stop
 qs ipc call mpris togglePlaying
 qs ipc call mpris next
 qs ipc call mpris previous
 qs ipc call mpris seek 10             # перемотка на 10 секунд
+qs ipc call mpris setPosition 30      # перейти к позиции (секунды)
+
+# Громкость плеера
 qs ipc call mpris setVolume 0.8
+qs ipc call mpris volumeUp
+qs ipc call mpris volumeDown
+qs ipc call mpris getVolume
+
+# Режимы
 qs ipc call mpris toggleShuffle
 qs ipc call mpris toggleLoop
+
+# Информация
 qs ipc call mpris getCurrentTrack
 qs ipc call mpris isPlaying
+qs ipc call mpris getPosition         # текущая позиция (секунды)
+qs ipc call mpris getLength           # длительность трека (секунды)
+
+# Управление плеером
+qs ipc call mpris raise               # показать окно плеера
+qs ipc call mpris quit                # закрыть плеер
 ```
 
 ### `wallpaper`
 
 ```bash
+# Установка обоев
 qs ipc call wallpaper set DP-1 /path/to/image.jpg
 qs ipc call wallpaper setAll /path/to/image.jpg
+
+# Навигация
 qs ipc call wallpaper next            # следующие обои на всех мониторах
 qs ipc call wallpaper next DP-1       # следующие обои на конкретном мониторе
 qs ipc call wallpaper previous
+
+# Настройки
 qs ipc call wallpaper setDirectory /path/to/wallpapers
 qs ipc call wallpaper setAutoChange true 300000
+qs ipc call wallpaper setRandom true
+qs ipc call wallpaper setFillMode DP-1 2      # Qt Image.FillMode (2=PreserveAspectCrop)
+qs ipc call wallpaper setFillModeAll 2
+
+# Информация
+qs ipc call wallpaper status          # текущее состояние всех мониторов (JSON)
 ```
 
 ---
@@ -337,6 +384,7 @@ shell/
 │   │   ├── cheatsheet/          # Справочник горячих клавиш
 │   │   ├── lockscreen/          # Экран блокировки
 │   │   ├── powermenu/           # Меню питания
+│   │   ├── popouts/            # Popouts (трей-меню, контекстные панели)
 │   │   └── background/          # Обои
 │   ├── plugins/
 │   │   └── src/                 # C++ плагины (требуют сборки)

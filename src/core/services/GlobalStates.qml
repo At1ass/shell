@@ -42,7 +42,7 @@ Singleton {
     }
 
     // Открыть Dashboard на конкретной вкладке
-    // tabIndex: 0 = Quick, 1 = Media, 2 = Calendar, 3 = System
+    // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = System
     function openDashboardTab(tabIndex) {
         dashboardOpenIndex = tabIndex
         dashboardOpen = true
