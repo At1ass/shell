@@ -37,12 +37,11 @@ Rectangle {
         font.family: root.fontFamily
         font.pointSize: root.fontSize
         textFormat: Text.PlainText
-
         font.variableAxes: ({
-            FILL: root.fill.toFixed(1),
+            FILL: root.fill,
             GRAD: root.grade,
-            opsz: fontInfo.pixelSize,
-            wght: fontInfo.weight
+            opsz: Math.min(Math.max(root.fontSize, 20), 48),
+            wght: 400
         })
 
         Behavior on color {

@@ -190,6 +190,8 @@ Scope {
                                     border.color: Theme.primary
 
                                     scale: actionDelegate.focused ? 1.08 : 1.0
+                                    layer.enabled: scale !== 1.0
+                                    layer.smooth: true
 
                                     Behavior on color {
                                         ColorAnimation { duration: Tokens.motion.duration.short4 }
