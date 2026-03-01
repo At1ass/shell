@@ -1,0 +1,9 @@
+module qs.ui
+
+singleton Tokens 1.0 Tokens.qml
+MaterialText 1.0 MaterialText.qml
+MaterialIcon 1.0 MaterialIcon.qml
+MaterialButton 1.0 MaterialButton.qml
+IconButton 1.0 IconButton.qml
+CircleAvatar 1.0 CircleAvatar.qml
+StateLayer 1.0 StateLayer.qml

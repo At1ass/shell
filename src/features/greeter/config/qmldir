@@ -1,0 +1,6 @@
+module qs.config
+
+singleton GreeterConfig 1.0 GreeterConfig.qml
+singleton GreeterTheme 1.0 GreeterTheme.qml
+singleton SessionModel 1.0 SessionModel.qml
+singleton UserModel 1.0 UserModel.qml

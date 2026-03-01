@@ -1,0 +1,182 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+
+Singleton {
+    id: root
+
+    readonly property QtObject spacing: QtObject {
+        readonly property int none: 0
+        readonly property int extraSmall: 4
+        readonly property int small: 8
+        readonly property int medium: 16
+        readonly property int large: 24
+        readonly property int extraLarge: 32
+        readonly property int huge: 40
+        readonly property int extraHuge: 48
+    }
+
+    readonly property QtObject shape: QtObject {
+        readonly property int none: 0
+        readonly property int extraSmall: 4
+        readonly property int small: 8
+        readonly property int medium: 12
+        readonly property int large: 16
+        readonly property int extraLarge: 28
+        readonly property int full: 999
+    }
+
+    property real fontScale: 1.0
+
+    readonly property QtObject typography: QtObject {
+        readonly property string fontFamily: "Roboto"
+
+        readonly property QtObject displayLarge: QtObject {
+            readonly property int size: Math.round(57 * root.fontScale)
+            readonly property int lineHeight: Math.round(64 * root.fontScale)
+            readonly property int weight: Font.Light
+            readonly property real letterSpacing: -0.25
+        }
+        readonly property QtObject displayMedium: QtObject {
+            readonly property int size: Math.round(45 * root.fontScale)
+            readonly property int lineHeight: Math.round(52 * root.fontScale)
+            readonly property int weight: Font.Light
+            readonly property real letterSpacing: 0
+        }
+        readonly property QtObject displaySmall: QtObject {
+            readonly property int size: Math.round(36 * root.fontScale)
+            readonly property int lineHeight: Math.round(44 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0
+        }
+
+        readonly property QtObject headlineLarge: QtObject {
+            readonly property int size: Math.round(32 * root.fontScale)
+            readonly property int lineHeight: Math.round(40 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0
+        }
+        readonly property QtObject headlineMedium: QtObject {
+            readonly property int size: Math.round(28 * root.fontScale)
+            readonly property int lineHeight: Math.round(36 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0
+        }
+        readonly property QtObject headlineSmall: QtObject {
+            readonly property int size: Math.round(24 * root.fontScale)
+            readonly property int lineHeight: Math.round(32 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0
+        }
+
+        readonly property QtObject titleLarge: QtObject {
+            readonly property int size: Math.round(22 * root.fontScale)
+            readonly property int lineHeight: Math.round(28 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0
+        }
+        readonly property QtObject titleMedium: QtObject {
+            readonly property int size: Math.round(16 * root.fontScale)
+            readonly property int lineHeight: Math.round(24 * root.fontScale)
+            readonly property int weight: Font.Medium
+            readonly property real letterSpacing: 0.15
+        }
+        readonly property QtObject titleSmall: QtObject {
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
+            readonly property int weight: Font.Medium
+            readonly property real letterSpacing: 0.1
+        }
+
+        readonly property QtObject labelLarge: QtObject {
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
+            readonly property int weight: Font.Medium
+            readonly property real letterSpacing: 0.1
+        }
+        readonly property QtObject labelMedium: QtObject {
+            readonly property int size: Math.round(12 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
+            readonly property int weight: Font.Medium
+            readonly property real letterSpacing: 0.5
+        }
+        readonly property QtObject labelSmall: QtObject {
+            readonly property int size: Math.round(11 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
+            readonly property int weight: Font.Medium
+            readonly property real letterSpacing: 0.5
+        }
+
+        readonly property QtObject bodyLarge: QtObject {
+            readonly property int size: Math.round(16 * root.fontScale)
+            readonly property int lineHeight: Math.round(24 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0.15
+        }
+        readonly property QtObject bodyMedium: QtObject {
+            readonly property int size: Math.round(14 * root.fontScale)
+            readonly property int lineHeight: Math.round(20 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0.25
+        }
+        readonly property QtObject bodySmall: QtObject {
+            readonly property int size: Math.round(12 * root.fontScale)
+            readonly property int lineHeight: Math.round(16 * root.fontScale)
+            readonly property int weight: Font.Normal
+            readonly property real letterSpacing: 0.4
+        }
+    }
+
+    property real durationScale: 1.0
+
+    readonly property QtObject motion: QtObject {
+        readonly property QtObject duration: QtObject {
+            readonly property int short1: Math.round(50 * root.durationScale)
+            readonly property int short2: Math.round(100 * root.durationScale)
+            readonly property int short3: Math.round(150 * root.durationScale)
+            readonly property int short4: Math.round(200 * root.durationScale)
+            readonly property int medium1: Math.round(250 * root.durationScale)
+            readonly property int medium2: Math.round(300 * root.durationScale)
+            readonly property int medium3: Math.round(350 * root.durationScale)
+            readonly property int medium4: Math.round(400 * root.durationScale)
+            readonly property int long1: Math.round(450 * root.durationScale)
+            readonly property int long2: Math.round(500 * root.durationScale)
+            readonly property int long3: Math.round(550 * root.durationScale)
+            readonly property int long4: Math.round(600 * root.durationScale)
+            readonly property int extraLong1: Math.round(700 * root.durationScale)
+            readonly property int extraLong2: Math.round(800 * root.durationScale)
+            readonly property int extraLong3: Math.round(900 * root.durationScale)
+            readonly property int extraLong4: Math.round(1000 * root.durationScale)
+        }
+
+        readonly property QtObject easing: QtObject {
+            readonly property int emphasized: Easing.BezierSpline
+            readonly property var emphasizedPoints: [0.2, 0.0, 0, 1.0]
+            readonly property int standard: Easing.BezierSpline
+            readonly property var standardPoints: [0.2, 0.0, 0, 1.0]
+            readonly property int emphasizedDecelerate: Easing.BezierSpline
+            readonly property var emphasizedDeceleratePoints: [0.05, 0.7, 0.1, 1.0]
+            readonly property int emphasizedAccelerate: Easing.BezierSpline
+            readonly property var emphasizedAcceleratePoints: [0.3, 0.0, 0.8, 0.15]
+        }
+    }
+
+    readonly property QtObject stateLayer: QtObject {
+        readonly property real hoverOpacity: 0.08
+        readonly property real pressedOpacity: 0.12
+        readonly property real focusOpacity: 0.12
+        readonly property real draggedOpacity: 0.16
+    }
+
+    readonly property QtObject iconSize: QtObject {
+        readonly property int small: 16
+        readonly property int medium: 20
+        readonly property int large: 24
+        readonly property int extraLarge: 32
+    }
+
+    readonly property QtObject touchTarget: QtObject {
+        readonly property int minimum: 48
+    }
+}
