@@ -66,6 +66,9 @@ Singleton {
     readonly property string weatherUnits: data.services?.weather?.units ?? "metric"
     readonly property bool calendarRemindersEnabled: data.services?.calendar?.reminders?.enabled ?? true
     readonly property int calendarReminderMinutes: data.services?.calendar?.reminders?.minutesBefore ?? 15
+    readonly property int calendarUpcomingCount: data.services?.calendar?.upcoming?.count ?? 4
+    readonly property int calendarUpcomingDays: data.services?.calendar?.upcoming?.days ?? 7
+    readonly property int calendarDayViewHourHeight: data.services?.calendar?.dayView?.hourHeight ?? 60
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 

@@ -27,32 +27,49 @@ MaterialCard {
                 implicitHeight: 48
 
                 headline: modelData.title
-                supportingText: Qt.formatDate(modelData.date, "dd MMM") + "\n" +  modelData.time
+                supportingText: {
+                    const dateStr = _formatRelativeDate(modelData.startDate)
+                    const time = modelData.allDay ? "All day" : (modelData.startTime || "")
+                    return dateStr + (time ? ", " + time : "")
+                }
 
                 leadingContent: Rectangle {
                     width: 3
                     height: 48
                     radius: 1.5
-                    color: {
-                        if (modelData.color === 'primary') return Theme.primary
-                        if (modelData.color === 'secondary') return Theme.secondary
-                        if (modelData.color === 'tertiary') return Theme.tertiary
-                        return Theme.primary
-                    }
+                    color: Theme.primary
                 }
             }
         }
 
-        // Empty state
         EmptyState {
             visible: CalendarService.upcomingEvents.length === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
 
             iconName: "event_available"
-            title: "No events today"
+            title: "No upcoming events"
             iconContainerSize: 64
             iconSize: 40
         }
+    }
+
+    function _formatRelativeDate(khalDate) {
+        if (!khalDate) return ""
+        // khalDate is "dd.MM." or "dd.MM.yyyy"
+        const parts = khalDate.replace(/\.$/, "").split(".")
+        if (parts.length < 2) return khalDate
+        const day = parseInt(parts[0])
+        const month = parseInt(parts[1]) - 1
+        const year = parts.length >= 3 && parts[2] ? parseInt(parts[2]) : new Date().getFullYear()
+        const eventDate = new Date(year, month, day)
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const diffDays = Math.round((eventDate - today) / (24 * 60 * 60 * 1000))
+
+        if (diffDays === 0) return "Today"
+        if (diffDays === 1) return "Tomorrow"
+        if (diffDays < 7) return Qt.formatDate(eventDate, "dddd")
+        return Qt.formatDate(eventDate, "MMM d")
     }
 }

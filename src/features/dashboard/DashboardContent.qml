@@ -108,6 +108,9 @@ Item {
 
             // g = first day (G handled above with shift)
             case Qt.Key_G:       cal.goToFirstDay(); event.accepted = true; break
+
+            // N = new event
+            case Qt.Key_N:       cal.openNewEvent(); event.accepted = true; break
         }
     }
 
@@ -187,7 +190,7 @@ Item {
                     } else if (currentIndex === 1) {
                         root.requestHeightChange(AppConfig.dashboardHeight + 20);  // WeatherTab
                     } else if (currentIndex === 2) {
-                        root.requestHeightChange(AppConfig.dashboardHeight - 40);  // CalendarTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 60);  // CalendarTab
                     } else if (currentIndex === 3) {
                         root.requestHeightChange(AppConfig.dashboardHeight + 100);  // SystemTab
                     }
