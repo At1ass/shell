@@ -93,6 +93,16 @@ Singleton {
     readonly property int  gmHyprGaps: data.gamingMode?.hyprland?.gaps ?? 0
     readonly property int  gmHyprRounding: data.gamingMode?.hyprland?.rounding ?? 0
 
+    // Dock
+    readonly property bool dockEnabled: data.dock?.enabled ?? false
+    readonly property bool dockAutoHide: data.dock?.autoHide ?? true
+    readonly property bool dockExclusive: data.dock?.exclusive ?? false
+    readonly property int dockIconSize: data.dock?.iconSize ?? 48
+    readonly property var dockPinnedApps: data.dock?.pinnedApps ?? []
+
+    // Night Light
+    readonly property int nightLightTemperature: data.services?.nightLight?.temperature ?? 4500
+
     // Hyprland
     readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 

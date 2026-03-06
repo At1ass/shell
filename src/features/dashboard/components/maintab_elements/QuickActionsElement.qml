@@ -1,8 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtCore
-import Quickshell.Io
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -13,11 +11,6 @@ MaterialCard {
     id: quickActions
     color: Theme.surfaceContainerHigh
     radius: Tokens.shape.large
-
-    Process {
-        id: settingsProc
-        command: ["xdg-open", StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/shell/config.json"]
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -87,10 +80,10 @@ MaterialCard {
                         action: () => GamingModeService.toggleGamingMode()
                     },
                     {
-                        icon: "open_in_new",
-                        active: () => false,
-                        tooltip: "Open Settings File",
-                        action: () => settingsProc.running = true
+                        icon: "nightlight",
+                        active: () => NightLightService.enabled,
+                        tooltip: () => NightLightService.enabled ? "Night Light Active" : "Night Light",
+                        action: () => NightLightService.toggle()
                     }
                 ]
 
