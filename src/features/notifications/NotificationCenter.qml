@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -34,22 +35,28 @@ Scope {
             onCleared: GlobalStates.notificationCenterOpen = false
         }
 
-        MouseArea {
+        // Scrim overlay
+        Rectangle {
             anchors.fill: parent
-            onClicked: (mouse) => {
-                const insidePanel = mouse.x >= panel.x &&
-                                    mouse.x <= panel.x + panel.width &&
-                                    mouse.y >= panel.y &&
-                                    mouse.y <= panel.y + panel.height
-                if (!insidePanel) {
-                    GlobalStates.notificationCenterOpen = false
+            color: "black"
+            opacity: panelSlide.visible ? 0.32 : 0
+            visible: GlobalStates.notificationCenterOpen
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Tokens.motion.duration.medium2
+                    easing.type: Tokens.motion.easing.standard
                 }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: GlobalStates.notificationCenterOpen = false
             }
         }
 
         Item {
-            id: panel
-            focus: true
+            id: panelSlide
             width: AppConfig.notificationPanelWidth
             anchors {
                 top: parent.top
@@ -58,8 +65,33 @@ Scope {
             }
             anchors.margins: Tokens.spacing.medium
             z: 1
+            visible: GlobalStates.notificationCenterOpen
 
-            // Keyboard navigation (arrows + vi j/k/x/gg/G)
+            // Slide-in animation
+            property real _slideX: visible ? 0 : panelSlide.width + Tokens.spacing.medium
+            property real _slideOpacity: visible ? 1.0 : 0
+
+            transform: Translate { x: panelSlide._slideX }
+            opacity: panelSlide._slideOpacity
+
+            Behavior on _slideX {
+                NumberAnimation {
+                    duration: Tokens.motion.duration.medium2
+                    easing.type: Tokens.motion.easing.emphasizedDecelerate
+                    easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                }
+            }
+
+            Behavior on _slideOpacity {
+                NumberAnimation {
+                    duration: Tokens.motion.duration.medium1
+                    easing.type: Tokens.motion.easing.standard
+                }
+            }
+
+            focus: true
+
+            // Keyboard navigation
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Escape) {
                     GlobalStates.notificationCenterOpen = false
@@ -88,10 +120,8 @@ Scope {
                     event.accepted = true
                 } else if (event.key === Qt.Key_G) {
                     if (event.modifiers & Qt.ShiftModifier) {
-                        // G — jump to last
                         notifList.currentIndex = notifList.count - 1
                     } else {
-                        // g — jump to first
                         notifList.currentIndex = 0
                     }
                     event.accepted = true
@@ -108,6 +138,7 @@ Scope {
                     anchors.margins: Tokens.spacing.medium
                     spacing: Tokens.spacing.small
 
+                    // Header
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Tokens.spacing.small
@@ -128,25 +159,52 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
+                        // DND toggle
                         IconButton {
                             iconName: NotificationService.doNotDisturb ? "notifications_off" : "do_not_disturb_on"
                             iconSize: Tokens.iconSize.large
                             variant: "standard"
                             onClicked: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: Tokens.shape.full
+                                color: NotificationService.doNotDisturb ? Theme.errorContainer : "transparent"
+                                opacity: NotificationService.doNotDisturb ? 0.3 : 0
+                                z: -1
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: Tokens.motion.duration.short3 }
+                                }
+                            }
                         }
 
                         MaterialButton {
-                            text: "Clear"
+                            text: "Clear all"
                             variant: "text"
                             enabled: NotificationService.historyList.count > 0
                             onClicked: NotificationService.clearHistory()
                         }
                     }
 
+                    // Count indicator
+                    MaterialText {
+                        text: {
+                            const count = NotificationService.historyList.count
+                            if (count === 0) return ""
+                            return count + (count === 1 ? " notification" : " notifications")
+                        }
+                        visible: text.length > 0
+                        textStyle: "labelMedium"
+                        colorRole: "onSurfaceVariant"
+                        Layout.fillWidth: true
+                    }
+
                     Divider {
                         Layout.fillWidth: true
                     }
 
+                    // Notification list
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -154,7 +212,7 @@ Scope {
                         ListView {
                             id: notifList
                             anchors.fill: parent
-                            spacing: Tokens.spacing.small
+                            spacing: 0
                             clip: true
                             keyNavigationEnabled: true
                             highlightFollowsCurrentItem: true
@@ -165,6 +223,7 @@ Scope {
                             section.delegate: NotificationGroupHeader {
                                 required property string section
                                 width: notifList.width
+                                height: implicitHeight + Tokens.spacing.small
                                 groupAppName: section
                                 groupCount: NotificationService.getGroupCount(section)
                                 groupAppIcon: NotificationService.getGroupIcon(section)
@@ -172,7 +231,7 @@ Scope {
                                 onToggleExpanded: NotificationService.toggleGroupExpanded(section)
                             }
 
-                            delegate: NotificationHistoryItem {
+                            delegate: Column {
                                 required property int index
                                 required property string notificationId
                                 required property string summary
@@ -183,21 +242,50 @@ Scope {
                                 required property int urgency
                                 required property int timestamp
 
-                                width: notifList.width
-                                visible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
-                                height: visible ? implicitHeight : 0
+                                readonly property bool itemVisible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
 
-                                notificationObject: ({
-                                    "notificationId": notificationId,
-                                    "summary": summary,
-                                    "body": body,
-                                    "appName": appName,
-                                    "appIcon": appIcon,
-                                    "image": image,
-                                    "actions": [],
-                                    "urgency": urgency,
-                                    "timestamp": timestamp
-                                })
+                                width: notifList.width
+                                height: itemVisible ? implicitHeight : 0
+                                visible: itemVisible
+
+                                NotificationHistoryItem {
+                                    width: parent.width
+                                    notificationObject: ({
+                                        "notificationId": notificationId,
+                                        "summary": summary,
+                                        "body": body,
+                                        "appName": appName,
+                                        "appIcon": appIcon,
+                                        "image": image,
+                                        "actions": [],
+                                        "urgency": urgency,
+                                        "timestamp": timestamp
+                                    })
+                                }
+
+                                Item {
+                                    width: 1
+                                    height: Tokens.spacing.small
+                                }
+                            }
+
+                            // Smooth scroll
+                            ScrollBar.vertical: ScrollBar {
+                                active: notifList.moving || hovered
+                                policy: ScrollBar.AsNeeded
+                            }
+
+                            add: Transition {
+                                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Tokens.motion.duration.short4 }
+                                NumberAnimation { property: "scale"; from: 0.95; to: 1; duration: Tokens.motion.duration.short4 }
+                            }
+
+                            remove: Transition {
+                                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Tokens.motion.duration.short3 }
+                            }
+
+                            displaced: Transition {
+                                NumberAnimation { properties: "y"; duration: Tokens.motion.duration.medium1; easing.type: Tokens.motion.easing.standard }
                             }
                         }
 

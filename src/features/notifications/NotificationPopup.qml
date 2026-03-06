@@ -15,6 +15,11 @@ PanelWindow {
     property bool _finalized: false
     readonly property bool hasValidData: notificationData !== null
 
+    // Position config
+    readonly property string position: AppConfig.notificationPopupPosition
+    readonly property bool isTop: position.startsWith("top")
+    readonly property bool isRight: position.endsWith("right")
+
     signal exitFinished()
 
     visible: hasValidData && !_isDestroying
@@ -26,46 +31,56 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors {
-        top: true
-        right: true
+        top: popup.isTop
+        bottom: !popup.isTop
+        right: popup.isRight
+        left: !popup.isRight
     }
 
     margins {
-        top: screenY
-        right: AppConfig.barMargin
+        top: popup.isTop ? screenY : 0
+        bottom: !popup.isTop ? screenY : 0
+        right: popup.isRight ? AppConfig.barMargin : 0
+        left: !popup.isRight ? AppConfig.barMargin : 0
     }
 
     implicitWidth: AppConfig.notificationPopupWidth
     implicitHeight: popupItem.implicitHeight
 
-    // No mask — each window IS the notification, fully interactive by default
-
     // Smooth Y displacement when stack reorganizes
     Behavior on screenY {
         enabled: !popup.exiting && !popup._isDestroying
         NumberAnimation {
-            duration: Tokens.motion.duration.short4
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            duration: Tokens.motion.duration.medium1
+            easing.type: Tokens.motion.easing.emphasizedDecelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
     }
 
-    // Entrance animation state
-    property real _entranceX: AppConfig.notificationPopupWidth
+    // Entrance animation state — slide up/down + fade
+    property real _entranceTranslateY: popup.isTop ? -40 : 40
     property real _entranceOpacity: 0
+    property real _entranceScale: 0.92
 
     ParallelAnimation {
         id: entranceAnim
         running: false
         NumberAnimation {
-            target: popup; property: "_entranceX"; to: 0
+            target: popup; property: "_entranceTranslateY"; to: 0
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            easing.type: Tokens.motion.easing.emphasizedDecelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
         NumberAnimation {
             target: popup; property: "_entranceOpacity"; to: 1.0
-            duration: Tokens.motion.duration.short4
+            duration: Tokens.motion.duration.medium1
+            easing.type: Tokens.motion.easing.standard
+        }
+        NumberAnimation {
+            target: popup; property: "_entranceScale"; to: 1.0
+            duration: Tokens.motion.duration.medium2
+            easing.type: Tokens.motion.easing.emphasizedDecelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
     }
 
@@ -76,8 +91,8 @@ PanelWindow {
         id: exitAnim
         running: false
         NumberAnimation {
-            target: popup; property: "_entranceX"
-            to: AppConfig.notificationPopupWidth * 0.5
+            target: popup; property: "_entranceTranslateY"
+            to: popup.isTop ? -20 : 20
             duration: Tokens.motion.duration.short4
             easing.type: Tokens.motion.easing.emphasizedAccelerate
             easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
@@ -86,10 +101,11 @@ PanelWindow {
             target: popup; property: "_entranceOpacity"
             to: 0
             duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.emphasizedAccelerate
         }
         NumberAnimation {
             target: popup; property: "_exitScale"
-            to: 0.95
+            to: 0.92
             duration: Tokens.motion.duration.short4
             easing.type: Tokens.motion.easing.emphasizedAccelerate
             easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
@@ -149,12 +165,12 @@ PanelWindow {
         }
 
         transform: [
-            Translate { x: popup._entranceX },
+            Translate { y: popup._entranceTranslateY },
             Scale {
                 origin.x: popupItem.width / 2
-                origin.y: popupItem.height / 2
-                xScale: popup._exitScale
-                yScale: popup._exitScale
+                origin.y: popup.isTop ? 0 : popupItem.height
+                xScale: popup._exitScale * popup._entranceScale
+                yScale: popup._exitScale * popup._entranceScale
             }
         ]
         opacity: popup._entranceOpacity

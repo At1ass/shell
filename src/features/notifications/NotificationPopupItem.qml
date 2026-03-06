@@ -18,7 +18,6 @@ Rectangle {
     readonly property bool isCritical: hasData && notificationData.urgency === NotificationUrgency.Critical
     readonly property bool hovered: mouseArea.containsMouse
 
-    // Decoupled signals
     signal swipeDismissed()
     signal closeClicked()
     signal actionInvoked(string actionId)
@@ -31,7 +30,7 @@ Rectangle {
     property real progressValue: 1.0
 
     Timer {
-        interval: 33  // ~30fps
+        interval: 33
         repeat: true
         running: root.duration > 0 && !root.hovered && root.visible
         onTriggered: {
@@ -59,7 +58,6 @@ Rectangle {
             NotificationService.incrementHover(notifId)
         } else {
             _pausedDuration += Date.now() - _pauseStart
-            // Restart with remaining time
             if (root.duration > 0 && _remainingOnPause > 0) {
                 autoDismissTimer.interval = _remainingOnPause
                 autoDismissTimer.restart()
@@ -71,13 +69,14 @@ Rectangle {
     // Swipe-to-dismiss state
     property real _dragStartX: 0
     property bool _swiping: false
+    property real _swipeDirection: 0
 
     implicitWidth: AppConfig.notificationPopupWidth
     readonly property real nonAnimHeight: column.implicitHeight + Tokens.spacing.medium * 2
     implicitHeight: nonAnimHeight
-    radius: Tokens.shape.extraSmall
+    radius: Tokens.shape.medium
 
-    color: isCritical ? Theme.errorContainer : Theme.surfaceContainerHighest
+    color: isCritical ? Theme.errorContainer : Theme.surfaceContainerHigh
 
     border.width: isCritical ? 2 : 0
     border.color: isCritical ? Theme.error : "transparent"
@@ -100,11 +99,13 @@ Rectangle {
     // Swipe dismiss animation
     SequentialAnimation {
         id: swipeDismissAnim
+        property real targetX: root.implicitWidth
         NumberAnimation {
             target: root; property: "x"
-            to: root.implicitWidth; duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            to: swipeDismissAnim.targetX
+            duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.emphasizedAccelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
         }
         NumberAnimation {
             target: root; property: "opacity"
@@ -161,6 +162,20 @@ Rectangle {
         }
     }
 
+    // Hover state layer
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: isCritical ? Theme.onErrorContainer : Theme.onSurface
+        opacity: root.hovered ? Tokens.stateLayer.hoverOpacity : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Tokens.motion.duration.short3
+            }
+        }
+    }
+
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -169,18 +184,23 @@ Rectangle {
         onPressed: (mouse) => {
             root._dragStartX = mouse.x
             root._swiping = false
+            root._swipeDirection = 0
         }
         onPositionChanged: (mouse) => {
             if (!pressed) return
             const dx = mouse.x - root._dragStartX
-            if (Math.abs(dx) > 10) root._swiping = true
+            if (Math.abs(dx) > 10) {
+                root._swiping = true
+                root._swipeDirection = dx > 0 ? 1 : -1
+            }
             if (root._swiping) {
-                root.x = Math.max(0, dx)
-                root.opacity = 1.0 - (root.x / root.implicitWidth) * 0.5
+                root.x = dx
+                root.opacity = 1.0 - (Math.abs(root.x) / root.implicitWidth) * 0.5
             }
         }
         onReleased: (mouse) => {
-            if (root._swiping && root.x > 70) {
+            if (root._swiping && Math.abs(root.x) > 50) {
+                swipeDismissAnim.targetX = root._swipeDirection > 0 ? root.implicitWidth : -root.implicitWidth
                 swipeDismissAnim.start()
             } else if (root._swiping) {
                 root._swiping = false
@@ -204,50 +224,54 @@ Rectangle {
                 source: root.hasData && notificationData.appIcon
                         ? Quickshell.iconPath(notificationData.appIcon)
                         : ""
-                Layout.preferredWidth: 32
-                Layout.preferredHeight: 32
+                Layout.preferredWidth: 24
+                Layout.preferredHeight: 24
                 fillMode: Image.PreserveAspectFit
-                sourceSize.width: 48
-                sourceSize.height: 48
+                sourceSize.width: 24
+                sourceSize.height: 24
+                smooth: true
             }
 
-            ColumnLayout {
+            MaterialText {
+                text: root.hasData ? (notificationData.appName || "") : ""
+                visible: text.length > 0
+                textStyle: "labelMedium"
+                font.weight: Font.Bold
+                color: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
+                elide: Text.ElideRight
                 Layout.fillWidth: true
-                spacing: 4
-
-                MaterialText {
-                    text: root.hasData ? (notificationData.appName || "") : ""
-                    visible: text.length > 0
-                    textStyle: "labelSmall"
-                    font.weight: Font.Bold
-                    color: isCritical ? Theme.onErrorContainer : Theme.onSurface
-                }
-
-                MaterialText {
-                    text: root.hasData ? (notificationData.summary || "") : ""
-                    textStyle: "bodyMedium"
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                    color: isCritical ? Theme.onErrorContainer : Theme.onSurface
-                }
+                Layout.minimumWidth: 0
             }
 
             IconButton {
                 iconName: "close"
-                iconSize: Tokens.typography.titleMedium.size
+                iconSize: Tokens.iconSize.small
                 iconColor: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
-                containerSize: 32
-                touchTargetSize: 40
+                containerSize: 28
+                touchTargetSize: 32
                 variant: "standard"
                 onClicked: root.closeClicked()
             }
         }
 
         MaterialText {
+            text: root.hasData ? (notificationData.summary || "") : ""
+            visible: text.length > 0
+            textStyle: "titleSmall"
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
+            Layout.fillWidth: true
+            color: isCritical ? Theme.onErrorContainer : Theme.onSurface
+        }
+
+        MaterialText {
             text: root.hasData ? (notificationData.body || "") : ""
             visible: text.length > 0
-            textStyle: "bodySmall"
+            textStyle: "bodyMedium"
             wrapMode: Text.WordWrap
+            maximumLineCount: 4
+            elide: Text.ElideRight
             Layout.fillWidth: true
             color: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
         }
@@ -272,40 +296,58 @@ Rectangle {
             }
         }
 
-        Repeater {
-            model: root.hasData ? (notificationData.actions || []) : []
+        // Action buttons — horizontal flow
+        Flow {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
+            visible: root.hasData && (notificationData.actions || []).length > 0
 
-            MaterialButton {
-                required property var modelData
-                text: modelData.text
-                variant: "text"
-                onClicked: root.actionInvoked(modelData.identifier)
+            Repeater {
+                model: root.hasData ? (notificationData.actions || []) : []
+
+                MaterialButton {
+                    required property var modelData
+                    text: modelData.text
+                    variant: "tonal"
+                    onClicked: root.actionInvoked(modelData.identifier)
+                }
             }
         }
     }
 
-    // Progress bar
+    // Progress bar — inset to respect rounded corners
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 2
-        color: Theme.surfaceContainerHighest
-        opacity: 0.6
+        anchors.leftMargin: root.radius
+        anchors.rightMargin: root.radius
+        anchors.bottomMargin: 4
+        height: 3
+        radius: 2
+        color: isCritical ? Theme.error : Theme.surfaceContainerHighest
+        opacity: 0.4
         visible: root.duration > 0
 
         Rectangle {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
+            radius: parent.radius
             width: parent.width * Math.max(0, Math.min(1, root.progressValue))
-            color: Theme.primary
+            color: isCritical ? Theme.error : Theme.primary
+            opacity: root.hovered ? 0.5 : 1.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Tokens.motion.duration.short3
+                }
+            }
 
             Behavior on width {
                 NumberAnimation {
-                    duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    duration: 50
+                    easing.type: Easing.Linear
                 }
             }
         }
@@ -313,7 +355,6 @@ Rectangle {
 
     function updateData(newData) {
         notificationData = newData
-        // Reset timer on update
         _startTime = Date.now()
         _pausedDuration = 0
         progressValue = 1.0

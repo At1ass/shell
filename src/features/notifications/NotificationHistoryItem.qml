@@ -11,13 +11,94 @@ MaterialCard {
     id: root
     property var notificationObject: null
     readonly property bool hasNotification: notificationObject !== null && notificationObject !== undefined
-    property bool expanded: false
+    property bool expanded: true
     implicitHeight: contentLayout.implicitHeight + (Tokens.spacing.medium * 2)
 
     color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
            ? Theme.errorContainer
            : Theme.surfaceContainerHigh
-    radius: Tokens.shape.large
+    radius: Tokens.shape.medium
+
+    // Swipe-to-dismiss
+    property real _dragStartX: 0
+    property bool _swiping: false
+
+    ParallelAnimation {
+        id: snapBack
+        NumberAnimation { target: root; property: "x"; to: 0; duration: Tokens.motion.duration.short4; easing.type: Tokens.motion.easing.standard }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.motion.duration.short3 }
+    }
+
+    SequentialAnimation {
+        id: swipeDismiss
+        property real targetX: root.width
+        NumberAnimation { target: root; property: "x"; to: swipeDismiss.targetX; duration: Tokens.motion.duration.short3; easing.type: Tokens.motion.easing.emphasizedAccelerate }
+        NumberAnimation { target: root; property: "opacity"; to: 0; duration: Tokens.motion.duration.short1 }
+        ScriptAction {
+            script: {
+                root._swiping = false
+                if (root.hasNotification)
+                    NotificationService.removeFromHistory(notificationObject.notificationId)
+            }
+        }
+    }
+
+    MouseArea {
+        id: historyMouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+
+        onPressed: (mouse) => {
+            root._dragStartX = mouse.x
+            root._swiping = false
+        }
+        onPositionChanged: (mouse) => {
+            if (!pressed) return
+            const dx = mouse.x - root._dragStartX
+            if (Math.abs(dx) > 10) root._swiping = true
+            if (root._swiping) {
+                root.x = dx
+                root.opacity = 1.0 - (Math.abs(root.x) / root.width) * 0.5
+            }
+        }
+        onReleased: (mouse) => {
+            root._finishSwipe()
+        }
+        onCanceled: {
+            root._finishSwipe()
+        }
+    }
+
+    function _finishSwipe() {
+        if (_swiping && Math.abs(x) > 50) {
+            swipeDismiss.targetX = x > 0 ? width : -width
+            swipeDismiss.start()
+        } else if (_swiping || x !== 0) {
+            _swiping = false
+            snapBack.start()
+        }
+    }
+
+    // Hover state layer
+    Rectangle {
+        anchors.fill: parent
+        radius: root.radius
+        color: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
+               ? Theme.onErrorContainer : Theme.onSurface
+        opacity: historyMouseArea.containsMouse ? Tokens.stateLayer.hoverOpacity : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: Tokens.motion.duration.short3 }
+        }
+    }
+
+    // Surface tint
+    Rectangle {
+        anchors.fill: parent
+        radius: root.radius
+        color: Theme.primary
+        opacity: Tokens.stateLayer.hoverOpacity
+    }
 
     ColumnLayout {
         id: contentLayout
@@ -34,48 +115,28 @@ MaterialCard {
                 source: root.hasNotification && notificationObject.appIcon
                         ? Quickshell.iconPath(notificationObject.appIcon)
                         : ""
-                Layout.preferredWidth: 28
-                Layout.preferredHeight: 28
+                Layout.preferredWidth: 24
+                Layout.preferredHeight: 24
                 fillMode: Image.PreserveAspectFit
-                sourceSize.width: 28
-                sourceSize.height: 28
+                sourceSize.width: 24
+                sourceSize.height: 24
                 smooth: true
             }
 
-            ColumnLayout {
+            MaterialText {
+                text: root.hasNotification ? (notificationObject.appName || "") : ""
+                textStyle: "labelMedium"
+                colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
+                           ? "onErrorContainer"
+                           : "onSurfaceVariant"
+                visible: text.length > 0
+                elide: Text.ElideRight
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                spacing: 2
-
-                MaterialText {
-                    text: root.hasNotification ? (notificationObject.appName || "") : ""
-                    textStyle: "labelLarge"
-                    colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? "onErrorContainer"
-                               : "onSurface"
-                    visible: text.length > 0
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
-
-                MaterialText {
-                    text: root.hasNotification ? (notificationObject.summary || "") : ""
-                    textStyle: "titleSmall"
-                    colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
-                               ? "onErrorContainer"
-                               : "onSurface"
-                    visible: text.length > 0
-                    elide: Text.ElideRight
-                    maximumLineCount: 2
-                    wrapMode: Text.WrapAnywhere
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
             }
 
             MaterialText {
-                text: root.hasNotification ? root.formatTime(notificationObject.timestamp) : ""
+                text: root.hasNotification ? root.formatRelativeTime(notificationObject.timestamp) : ""
                 textStyle: "labelSmall"
                 colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                            ? "onErrorContainer"
@@ -85,15 +146,19 @@ MaterialCard {
 
             IconButton {
                 iconName: root.expanded ? "expand_less" : "expand_more"
-                iconSize: Tokens.iconSize.medium
+                iconSize: Tokens.iconSize.small
+                containerSize: 28
+                touchTargetSize: 32
                 variant: "standard"
-                visible: root.hasNotification && !!notificationObject.body
+                visible: root.hasNotification && (!!notificationObject.body || !!notificationObject.image)
                 onClicked: root.expanded = !root.expanded
             }
 
             IconButton {
                 iconName: "close"
-                iconSize: Tokens.iconSize.medium
+                iconSize: Tokens.iconSize.small
+                containerSize: 28
+                touchTargetSize: 32
                 variant: "standard"
                 onClicked: {
                     if (root.hasNotification) {
@@ -104,22 +169,34 @@ MaterialCard {
         }
 
         MaterialText {
+            text: root.hasNotification ? (notificationObject.summary || "") : ""
+            textStyle: "titleSmall"
+            colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
+                       ? "onErrorContainer"
+                       : "onSurface"
+            visible: text.length > 0
+            elide: Text.ElideRight
+            maximumLineCount: root.expanded ? 2 : 1
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+        }
+
+        MaterialText {
             text: root.hasNotification ? (notificationObject.body || "") : ""
-            textStyle: "bodySmall"
+            textStyle: "bodyMedium"
             colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                        ? "onErrorContainer"
                        : "onSurfaceVariant"
-            visible: text.length > 0
-            wrapMode: Text.WrapAnywhere
-            maximumLineCount: root.expanded ? 0 : 3
-            elide: root.expanded ? Text.ElideNone : Text.ElideRight
+            visible: root.expanded && text.length > 0
+            wrapMode: Text.WordWrap
             Layout.fillWidth: true
             Layout.minimumWidth: 0
         }
 
         // Notification image
         Rectangle {
-            visible: root.hasNotification && (notificationObject.image || "") !== ""
+            visible: root.expanded && root.hasNotification && (notificationObject.image || "") !== ""
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? Math.min(historyNotifImage.implicitHeight, 180) : 0
             radius: Tokens.shape.small
@@ -137,9 +214,11 @@ MaterialCard {
             }
         }
 
-        ColumnLayout {
-            spacing: Tokens.spacing.extraSmall
-            visible: root.hasNotification && (notificationObject.actions || []).length > 0
+        // Action buttons — horizontal flow
+        Flow {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
+            visible: root.expanded && root.hasNotification && (notificationObject.actions || []).length > 0
 
             Repeater {
                 model: root.hasNotification ? (notificationObject.actions || []) : []
@@ -147,7 +226,7 @@ MaterialCard {
                 MaterialButton {
                     required property var modelData
                     text: modelData.text
-                    variant: "text"
+                    variant: "tonal"
                     onClicked: {
                         if (root.hasNotification) {
                             NotificationService.attemptInvokeAction(
@@ -161,9 +240,22 @@ MaterialCard {
         }
     }
 
-    function formatTime(timestamp) {
+    // Relative time formatting
+    function formatRelativeTime(timestamp) {
         if (!timestamp) return ""
+        const now = Date.now()
+        const diffMs = now - timestamp
+        const diffSec = Math.floor(diffMs / 1000)
+        const diffMin = Math.floor(diffSec / 60)
+        const diffHour = Math.floor(diffMin / 60)
+        const diffDay = Math.floor(diffHour / 24)
+
+        if (diffSec < 60) return "now"
+        if (diffMin < 60) return diffMin + "m"
+        if (diffHour < 24) return diffHour + "h"
+        if (diffDay < 7) return diffDay + "d"
+
         const date = new Date(timestamp)
-        return Qt.formatDateTime(date, "hh:mm")
+        return Qt.formatDateTime(date, "MMM d")
     }
 }
