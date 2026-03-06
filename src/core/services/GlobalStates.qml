@@ -19,7 +19,6 @@ Singleton {
     property bool darkMode: true
     property bool inhibit: false
     property bool launcherOpen: false
-    property bool controlPanelLeftOpen: false
 
     // Lockscreen & Power Menu
     property bool lockscreenActive: false
@@ -285,14 +284,6 @@ Singleton {
 
         function closeLauncher(): void {
             root.launcherOpen = false
-        }
-
-        function openControlPanelLeft(): void {
-            root.controlPanelLeftOpen = true
-        }
-
-        function closeControlPanelLeft(): void {
-            root.controlPanelLeftOpen = false
         }
 
         function closeAll(): void {

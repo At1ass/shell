@@ -223,6 +223,13 @@
       "reminders": {
         "enabled": true,
         "minutesBefore": 15
+      },
+      "upcoming": {
+        "count": 4,
+        "days": 7
+      },
+      "dayView": {
+        "hourHeight": 60
       }
     },
     "vpn": {

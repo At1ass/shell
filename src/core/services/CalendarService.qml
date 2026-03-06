@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.src.core.config
+import qs.src.core.services
 
 Singleton {
     id: root
@@ -105,7 +106,7 @@ Singleton {
             if (exitCode !== 0 && newProc._errLines.length > 0) {
                 root.lastError = newProc._errLines.join("\n")
                 root.errorOccurred(root.lastError)
-                console.warn("CalendarService: addEvent failed:", root.lastError)
+                ToastService.error("Failed to add event: " + root.lastError)
             } else {
                 root.lastError = ""
             }
@@ -119,7 +120,7 @@ Singleton {
         id: deleteProc
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
-                console.warn("CalendarService: delete failed with exit code", exitCode)
+                ToastService.error("Failed to delete event")
             }
             root._refreshAll()
             _syncTimer.start()
@@ -169,7 +170,7 @@ Singleton {
         command: ["vdirsyncer", "sync"]
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
-                console.warn("CalendarService: vdirsyncer sync failed with exit code", exitCode)
+                ToastService.warning("Calendar sync failed")
             } else {
                 root._refreshAll()
             }

@@ -5,8 +5,6 @@ MaterialText 1.0 MaterialText.qml
 MaterialMarqueeText 1.0 MaterialMarqueeText.qml
 MaterialButton 1.0 MaterialButton.qml
 IconButton 1.0 IconButton.qml
-ClickableIcon 1.0 ClickableIcon.qml
-AnimatedProperty 1.0 AnimatedProperty.qml
 MaterialIndicator 1.0 MaterialIndicator.qml
 SectionHeader 1.0 SectionHeader.qml
 CircleAvatar 1.0 CircleAvatar.qml

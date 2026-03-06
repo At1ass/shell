@@ -562,7 +562,7 @@
         },
         "calendar": {
           "type": "object",
-          "description": "Local calendar integration (GNOME/Evolution SQLite databases).",
+          "description": "Calendar integration via khal CLI with optional CalDAV sync (vdirsyncer).",
           "additionalProperties": false,
           "properties": {
             "reminders": {
@@ -581,6 +581,41 @@
                   "minimum": 1,
                   "maximum": 1440,
                   "description": "Minutes before an event to trigger the reminder."
+                }
+              }
+            },
+            "upcoming": {
+              "type": "object",
+              "description": "Upcoming events shown on the Quick tab.",
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "default": 4,
+                  "minimum": 1,
+                  "maximum": 20,
+                  "description": "Maximum number of upcoming events to display."
+                },
+                "days": {
+                  "type": "integer",
+                  "default": 7,
+                  "minimum": 1,
+                  "maximum": 90,
+                  "description": "Lookahead window in days for upcoming events."
+                }
+              }
+            },
+            "dayView": {
+              "type": "object",
+              "description": "Timeline day view in the Calendar tab.",
+              "additionalProperties": false,
+              "properties": {
+                "hourHeight": {
+                  "type": "integer",
+                  "default": 60,
+                  "minimum": 30,
+                  "maximum": 120,
+                  "description": "Height of one hour slot in the timeline view (pixels)."
                 }
               }
             }

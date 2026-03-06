@@ -34,10 +34,6 @@ ShellRoot {
                 screen: screenScope.modelData
             }
 
-            // Popouts.PopoutsScrim {
-            //     screen: screenScope.modelData
-            // }
-
             // Dock (per screen)
             DockFeature.Dock {
                 screen: screenScope.modelData
