@@ -7,11 +7,13 @@ import qs.src.features.launcher
 import qs.src.features.osd
 import qs.src.features.notifications
 import qs.src.features.statusbar as Bar
+import qs.src.features.dock as DockFeature
 import qs.src.features.popouts as Popouts
 import qs.src.features.screenshot
 import qs.src.features.lockscreen
 import qs.src.features.powermenu
 import qs.src.features.cheatsheet
+import qs.src.core.config
 import qs.src.core.services
 
 ShellRoot {
@@ -35,6 +37,11 @@ ShellRoot {
             // Popouts.PopoutsScrim {
             //     screen: screenScope.modelData
             // }
+
+            // Dock (per screen)
+            DockFeature.Dock {
+                screen: screenScope.modelData
+            }
 
             PanelWindow {
                 id: wallpaperPanel

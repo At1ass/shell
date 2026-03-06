@@ -126,6 +126,14 @@
     ]
   },
 
+  "dock": {
+    "enabled": false,
+    "autoHide": true,
+    "exclusive": false,
+    "iconSize": 48,
+    "pinnedApps": []
+  },
+
   "dashboard": {
     "enabled": true,
     "width": 900,
@@ -220,6 +228,9 @@
     "vpn": {
       "enabled": false,
       "name": ""
+    },
+    "nightLight": {
+      "temperature": 4500
     }
   },
 

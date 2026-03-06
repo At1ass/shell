@@ -3,7 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
 
 Singleton {
     id: root
@@ -19,32 +18,18 @@ Singleton {
                 root.windowClass = sep >= 0 ? event.data.substring(0, sep) : ""
                 root.windowTitle = sep >= 0 ? event.data.substring(sep + 1) : ""
             } else if (event.name === "windowtitle") {
-                if (!refetchProc.running)
-                    refetchProc.running = true
-            }
-        }
-    }
-
-    Process {
-        id: refetchProc
-        command: ["hyprctl", "-j", "activewindow"]
-
-        stdout: StdioCollector {
-            id: refetchCollector
-            onStreamFinished: {
-                try {
-                    const obj = JSON.parse(refetchCollector.text)
-                    root.windowTitle = obj.title ?? ""
-                    root.windowClass = obj.class ?? root.windowClass
-                } catch (e) {
-                    console.warn("ActiveWindowService: failed to parse active window:", e)
-                }
+                // activeToplevel.title is updated by Quickshell before the event fires
+                const tl = Hyprland.activeToplevel
+                if (tl) root.windowTitle = tl.title ?? ""
             }
         }
     }
 
     Component.onCompleted: {
-        if (!refetchProc.running)
-            refetchProc.running = true
+        const tl = Hyprland.activeToplevel
+        if (tl) {
+            root.windowTitle = tl.title ?? ""
+            root.windowClass = tl.lastIpcObject?.class ?? ""
+        }
     }
 }

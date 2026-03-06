@@ -101,6 +101,42 @@
       }
     },
 
+    "dock": {
+      "type": "object",
+      "description": "Application dock at the bottom of the screen. Shows pinned and running applications with auto-hide support.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the application dock."
+        },
+        "autoHide": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-hide the dock. When true, dock is only visible when hovering the bottom screen edge."
+        },
+        "exclusive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reserve screen space for the dock (exclusive zone). When false, windows can overlap the dock area."
+        },
+        "iconSize": {
+          "type": "integer",
+          "default": 48,
+          "minimum": 24,
+          "maximum": 96,
+          "description": "Application icon size in logical pixels."
+        },
+        "pinnedApps": {
+          "type": "array",
+          "default": [],
+          "description": "List of pinned application IDs (window class names). These always appear in the dock, in order.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
     "dashboard": {
       "type": "object",
       "description": "Dashboard panel (4-tab control center). Toggle via hotkey or by clicking bar widgets.",
@@ -564,6 +600,20 @@
               "type": "string",
               "default": "",
               "description": "NetworkManager VPN connection name to monitor and toggle."
+            }
+          }
+        },
+        "nightLight": {
+          "type": "object",
+          "description": "Night light (color temperature) via hyprsunset.",
+          "additionalProperties": false,
+          "properties": {
+            "temperature": {
+              "type": "integer",
+              "default": 4500,
+              "minimum": 1000,
+              "maximum": 6500,
+              "description": "Color temperature in Kelvin. Lower = warmer (more orange). Default 6500K = no change."
             }
           }
         }

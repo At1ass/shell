@@ -249,6 +249,12 @@ Singleton {
         onPressed: GamingModeService.toggleGamingMode()
     }
 
+    GlobalShortcut {
+        name: "nightLightToggle"
+        description: "Toggle night light"
+        onPressed: NightLightService.toggle()
+    }
+
     // IPC Commands для внешнего управления
     IpcHandler {
         target: "globalstates"
@@ -351,6 +357,14 @@ Singleton {
 
         function closeCheatsheet(): void {
             root.cheatsheetOpen = false
+        }
+
+        function toggleNightLight(): void {
+            NightLightService.toggle()
+        }
+
+        function setNightLightTemperature(temp: int): void {
+            NightLightService.setTemperature(temp)
         }
     }
 }
