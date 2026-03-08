@@ -41,7 +41,7 @@ Singleton {
     }
 
     // Открыть Dashboard на конкретной вкладке
-    // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = System
+    // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
     function openDashboardTab(tabIndex) {
         dashboardOpenIndex = tabIndex
         dashboardOpen = true
@@ -63,7 +63,11 @@ Singleton {
                 openDashboardTab(2)
                 return
             case "dashboard-system":
+            case "dashboard-audio":
                 openDashboardTab(3)
+                return
+            case "dashboard-network":
+                openDashboardTab(4)
                 return
             case "notification-center":
                 notificationCenterOpen = !notificationCenterOpen

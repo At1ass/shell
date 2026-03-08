@@ -20,18 +20,18 @@ Item {
     // ═══════════════════════════════════════════════════════════════
 
     Keys.onTabPressed: (event) => {
-        tabView.currentIndex = (tabView.currentIndex + 1) % 4
+        tabView.currentIndex = (tabView.currentIndex + 1) % 5
         event.accepted = true
     }
 
     Keys.onBacktabPressed: (event) => {
-        tabView.currentIndex = (tabView.currentIndex + 3) % 4
+        tabView.currentIndex = (tabView.currentIndex + 4) % 5
         event.accepted = true
     }
 
     Keys.onPressed: (event) => {
         // Direct tab jump (1-4)
-        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_4) {
+        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
             tabView.currentIndex = event.key - Qt.Key_1
             event.accepted = true
             return
@@ -61,7 +61,7 @@ Item {
                 return
             }
             if (event.key === Qt.Key_L || event.key === Qt.Key_Right) {
-                tabView.currentIndex = Math.min(3, tabView.currentIndex + 1)
+                tabView.currentIndex = Math.min(4, tabView.currentIndex + 1)
                 event.accepted = true
                 return
             }
@@ -138,22 +138,11 @@ Item {
 
                     Repeater {
                         model: [
-                            {
-                                icon: "dashboard",
-                                label: "Quick"
-                            },
-                            {
-                                icon: "partly_cloudy_day",
-                                label: "Weather"
-                            },
-                            {
-                                icon: "calendar_month",
-                                label: "Calendar"
-                            },
-                            {
-                                icon: "settings",
-                                label: "System"
-                            }
+                            { icon: "dashboard",         label: "Quick" },
+                            { icon: "partly_cloudy_day", label: "Weather" },
+                            { icon: "calendar_month",    label: "Calendar" },
+                            { icon: "graphic_eq",        label: "Audio" },
+                            { icon: "wifi",              label: "Network" }
                         ]
 
                         delegate: TabButton {
@@ -186,13 +175,15 @@ Item {
                 onCurrentIndexChanged: {
                     // Изменяем высоту окна в зависимости от вкладки
                     if (currentIndex === 0) {
-                        root.requestHeightChange(AppConfig.dashboardHeight);       // QuickTab
+                        root.requestHeightChange(AppConfig.dashboardHeight)        // QuickTab
                     } else if (currentIndex === 1) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 20);  // WeatherTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 20)   // WeatherTab
                     } else if (currentIndex === 2) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 60);  // CalendarTab
+                        root.requestHeightChange(AppConfig.dashboardHeight + 60)   // CalendarTab
                     } else if (currentIndex === 3) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 100);  // SystemTab
+                        root.requestHeightChange(AppConfig.dashboardHeight)        // AudioTab
+                    } else if (currentIndex === 4) {
+                        root.requestHeightChange(AppConfig.dashboardHeight)        // NetworkTab
                     }
                 }
 
@@ -218,11 +209,18 @@ Item {
                     sourceComponent: Component { CalendarTab {} }
                 }
                 Loader {
-                    id: systemLoader
+                    id: audioLoader
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 3
-                    sourceComponent: Component { SystemTab {} }
+                    sourceComponent: Component { AudioTab {} }
+                }
+                Loader {
+                    id: networkLoader
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: tabView.currentIndex === 4
+                    sourceComponent: Component { NetworkTab {} }
                 }
             }
         }

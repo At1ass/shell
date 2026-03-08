@@ -9,6 +9,8 @@ Singleton {
 
     // VPN state
     property bool connected: false
+    property string busyVPN: ""
+    readonly property bool busy: busyVPN !== ""
     property string activeVPN: ""
     property list<string> availableVPNs: []
 
@@ -20,23 +22,27 @@ Singleton {
 
     // Toggle primary VPN
     function toggle() {
+        if (busy) return
         if (connected && activeVPN === primaryVPN) {
-            // Disconnect
-            disconnectProc.running = true
+            disconnect()
         } else {
-            // Connect to primary VPN
-            connectProc.running = true
+            connect(primaryVPN)
         }
     }
 
     // Connect to specific VPN
     function connect(vpnName) {
+        if (busy) return
+        busyVPN = vpnName
         specificConnectProc.command = ["nmcli", "connection", "up", vpnName]
         specificConnectProc.running = true
     }
 
     // Disconnect active VPN
     function disconnect() {
+        if (busy) return
+        busyVPN = root.activeVPN
+        disconnectProc.command = ["nmcli", "connection", "down", root.activeVPN]
         disconnectProc.running = true
     }
 
@@ -107,39 +113,12 @@ Singleton {
         }
     }
 
-    // Connect to primary VPN
-    Process {
-        id: connectProc
-        command: ["nmcli", "connection", "up", root.primaryVPN]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // Refresh state after connection attempt
-                vpnStateProc.running = true
-            }
-        }
-
-        onExited: (exitCode) => {
-            if (exitCode === 0)
-                ToastService.success("VPN connected: " + root.primaryVPN)
-            else
-                ToastService.error("VPN connection failed (exit " + exitCode + ")")
-            vpnStateProc.running = true
-        }
-    }
-
     // Connect to specific VPN
     Process {
         id: specificConnectProc
 
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // Refresh state after connection attempt
-                vpnStateProc.running = true
-            }
-        }
-
         onExited: (exitCode) => {
+            root.busyVPN = ""
             if (exitCode === 0)
                 ToastService.success("VPN connected")
             else
@@ -151,16 +130,9 @@ Singleton {
     // Disconnect VPN
     Process {
         id: disconnectProc
-        command: ["nmcli", "connection", "down", root.activeVPN]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // Refresh state after disconnection
-                vpnStateProc.running = true
-            }
-        }
 
         onExited: (exitCode) => {
+            root.busyVPN = ""
             if (exitCode === 0)
                 ToastService.success("VPN disconnected")
             else

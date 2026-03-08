@@ -3,4 +3,5 @@ module qs.src.features.dashboard.tabs
 QuickTab 1.0 QuickTab.qml
 WeatherTab 1.0 WeatherTab.qml
 CalendarTab 1.0 CalendarTab.qml
-SystemTab 1.0 SystemTab.qml
+AudioTab 1.0 AudioTab.qml
+NetworkTab 1.0 NetworkTab.qml
