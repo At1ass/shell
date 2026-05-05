@@ -529,7 +529,7 @@
               },
               "query": {
                 "type": "string",
-                "description": "For type=wallhaven: search query (free text)."
+                "description": "For type=wallhaven: search query. Supports tags (id:1234), users (@username), like (like:wallpaperId), and free text. See https://wallhaven.cc/help/api"
               },
               "categories": {
                 "type": "string",
@@ -541,12 +541,57 @@
                 "type": "string",
                 "default": "100",
                 "pattern": "^[01]{3}$",
-                "description": "For type=wallhaven: bitmask of 100=sfw, 010=sketchy, 001=nsfw. Default '100' (SFW)."
+                "description": "For type=wallhaven: bitmask of 100=sfw, 010=sketchy, 001=nsfw. Default '100' (SFW). NSFW requires API key."
+              },
+              "sorting": {
+                "type": "string",
+                "enum": ["date_added", "relevance", "random", "views", "favorites", "toplist", "hot"],
+                "default": "date_added",
+                "description": "For type=wallhaven: result ordering."
+              },
+              "order": {
+                "type": "string",
+                "enum": ["desc", "asc"],
+                "default": "desc",
+                "description": "For type=wallhaven: ascending or descending."
+              },
+              "topRange": {
+                "type": "string",
+                "enum": ["1d", "3d", "1w", "1M", "3M", "6M", "1y"],
+                "default": "1M",
+                "description": "For type=wallhaven: time window — only used when sorting='toplist'."
+              },
+              "atleast": {
+                "type": "string",
+                "default": "",
+                "pattern": "^(\\d+x\\d+)?$",
+                "description": "For type=wallhaven: minimum resolution as WIDTHxHEIGHT (e.g. '1920x1080'). Empty = no minimum."
+              },
+              "resolutions": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: exact resolutions, comma-separated (e.g. '1920x1080,2560x1440'). Empty = any."
+              },
+              "ratios": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: aspect ratios, comma-separated (e.g. '16x9,16x10'). Empty = any."
+              },
+              "colors": {
+                "type": "string",
+                "default": "",
+                "pattern": "^([0-9a-fA-F]{6})?$",
+                "description": "For type=wallhaven: 6-digit hex color (no leading #). Wallhaven returns wallpapers with that color present. Single value only per API."
+              },
+              "seed": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: seed for sorting='random' to keep order stable across requests/restarts."
               },
               "apiKeyEnvVar": {
                 "type": "string",
                 "default": "WALLHAVEN_API_KEY",
-                "description": "For type=wallhaven: name of environment variable holding the Wallhaven API key. Never store the key in this config file."
+                "description": "For type=wallhaven: name of environment variable holding the Wallhaven API key. Without a key, only SFW results are accessible. Never store the key in this config file."
               }
             }
           }

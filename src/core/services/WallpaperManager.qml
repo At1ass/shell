@@ -482,6 +482,25 @@ Singleton {
             return `${monitor} → source ${sourceId}`
         }
 
+        // For paginated remote sources (Wallhaven): fetch the next page
+        // and append items. No-op for local sources.
+        function loadMore(sourceId: string): string {
+            const source = WallpaperSourceRegistry.getSource(sourceId)
+            if (!source) return `Unknown source: ${sourceId}`
+            if (typeof source.loadMore !== "function")
+                return `Source ${sourceId} doesn't support pagination`
+            source.loadMore()
+            return `Loading next page from ${sourceId}`
+        }
+
+        // Re-fetch items for a source (Wallhaven: re-runs the query).
+        function refreshSource(sourceId: string): string {
+            const source = WallpaperSourceRegistry.getSource(sourceId)
+            if (!source) return `Unknown source: ${sourceId}`
+            source.refresh()
+            return `Refreshing ${sourceId}`
+        }
+
         function setFillMode(monitor: string, fillModeValue: string): string {
             manager.setFillMode(monitor, parseInt(fillModeValue))
             return `FillMode set for ${monitor}: ${fillModeValue}`

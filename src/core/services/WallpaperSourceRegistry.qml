@@ -93,6 +93,14 @@ Singleton {
                     "query":        cfg.query || "",
                     "categories":   cfg.categories || "111",
                     "purity":       cfg.purity || "100",
+                    "sorting":      cfg.sorting || "date_added",
+                    "order":        cfg.order || "desc",
+                    "topRange":     cfg.topRange || "1M",
+                    "atleast":      cfg.atleast || "",
+                    "resolutions":  cfg.resolutions || "",
+                    "ratios":       cfg.ratios || "",
+                    "colors":       cfg.colors || "",
+                    "seed":         cfg.seed || "",
                     "apiKeyEnvVar": cfg.apiKeyEnvVar || "WALLHAVEN_API_KEY"
                 })
         }
@@ -105,9 +113,20 @@ Singleton {
             const path = cfg.path || ""
             if (source.directoryPath !== path) source.directoryPath = path
         } else if (cfg.type === "wallhaven") {
-            if (source.query      !== (cfg.query || ""))           source.query      = cfg.query || ""
-            if (source.categories !== (cfg.categories || "111"))   source.categories = cfg.categories || "111"
-            if (source.purity     !== (cfg.purity || "100"))       source.purity     = cfg.purity || "100"
+            const pairs = [
+                ["query",       cfg.query || ""],
+                ["categories",  cfg.categories || "111"],
+                ["purity",      cfg.purity || "100"],
+                ["sorting",     cfg.sorting || "date_added"],
+                ["order",       cfg.order || "desc"],
+                ["topRange",    cfg.topRange || "1M"],
+                ["atleast",     cfg.atleast || ""],
+                ["resolutions", cfg.resolutions || ""],
+                ["ratios",      cfg.ratios || ""],
+                ["colors",      cfg.colors || ""],
+                ["seed",        cfg.seed || ""]
+            ]
+            for (const [k, v] of pairs) if (source[k] !== v) source[k] = v
         }
     }
 }

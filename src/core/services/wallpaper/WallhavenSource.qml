@@ -27,18 +27,47 @@ BaseWallpaperSource {
     iconName: "image"
 
     // ── Config (set by Registry from per-source object) ───────────
-    property string query:        ""
-    property string categories:   "111"   // default: all three
-    property string purity:       "100"   // default: SFW only
+    // /api/v1/search parameters per Wallhaven API docs:
+    // https://wallhaven.cc/help/api
+    property string query:        ""           // q=
+    property string categories:   "111"        // bitmask 100 anime / 010 anime / 001 people
+    property string purity:       "100"        // bitmask sfw/sketchy/nsfw (default: SFW only)
+    property string sorting:      "date_added" // date_added|relevance|random|views|favorites|toplist|hot
+    property string order:        "desc"       // desc|asc
+    property string topRange:     "1M"         // 1d|3d|1w|1M|3M|6M|1y — used when sorting=toplist
+    property string atleast:      ""           // minimum resolution, e.g. "1920x1080"
+    property string resolutions:  ""           // exact resolutions list, e.g. "1920x1080,2560x1440"
+    property string ratios:       ""           // aspect ratios list, e.g. "16x9,16x10"
+    property string colors:       ""           // hex (6 chars, no #), e.g. "660000"
+    property string seed:         ""           // random seed (when sorting=random)
     property string apiKeyEnvVar: "WALLHAVEN_API_KEY"
-    property int    maxItems:     24
+    property int    maxItems:     24           // page size (Wallhaven returns 24 per page)
 
-    onQueryChanged:      _scheduleRefresh()
-    onCategoriesChanged: _scheduleRefresh()
-    onPurityChanged:     _scheduleRefresh()
+    // Pagination state (not user-config — driven by loadMore())
+    property int    _page:                1
+    property bool   _appendOnNextRefresh: false
 
-    // Debounce config changes — multiple property setters during init
-    // would otherwise fire several refreshes back-to-back.
+    // Any user-config change resets pagination and re-runs the search.
+    onQueryChanged:       _onConfigChanged()
+    onCategoriesChanged:  _onConfigChanged()
+    onPurityChanged:      _onConfigChanged()
+    onSortingChanged:     _onConfigChanged()
+    onOrderChanged:       _onConfigChanged()
+    onTopRangeChanged:    _onConfigChanged()
+    onAtleastChanged:     _onConfigChanged()
+    onResolutionsChanged: _onConfigChanged()
+    onRatiosChanged:      _onConfigChanged()
+    onColorsChanged:      _onConfigChanged()
+    onSeedChanged:        _onConfigChanged()
+
+    function _onConfigChanged() {
+        _page = 1
+        _appendOnNextRefresh = false
+        _scheduleRefresh()
+    }
+
+    // Debounce — multiple property setters during init would otherwise
+    // fire several refreshes back-to-back.
     property Timer _refreshTimer: Timer {
         interval: 100
         repeat: false
@@ -46,16 +75,36 @@ BaseWallpaperSource {
     }
     function _scheduleRefresh() { _refreshTimer.restart() }
 
+    // Append the next page to existing items. Useful when the user
+    // exhausted a query's first page during long auto-rotation.
+    function loadMore() {
+        if (loading) return
+        _appendOnNextRefresh = true
+        _page = _page + 1
+        refresh()
+    }
+
     // ── Refresh: GET /api/v1/search → populate items ──────────────
     function refresh() {
         if (loading) return
         loading = true
         const apiKey = Quickshell.env(apiKeyEnvVar) || ""
         const params = []
-        if (query.length > 0)      params.push("q=" + encodeURIComponent(query))
-        if (categories.length > 0) params.push("categories=" + categories)
-        if (purity.length > 0)     params.push("purity=" + purity)
-        if (apiKey.length > 0)     params.push("apikey=" + apiKey)
+        if (query.length > 0)       params.push("q=" + encodeURIComponent(query))
+        if (categories.length > 0)  params.push("categories=" + categories)
+        if (purity.length > 0)      params.push("purity=" + purity)
+        if (sorting.length > 0)     params.push("sorting=" + sorting)
+        if (order.length > 0)       params.push("order=" + order)
+        if (sorting === "toplist" && topRange.length > 0)
+            params.push("topRange=" + topRange)
+        if (atleast.length > 0)     params.push("atleast=" + atleast)
+        if (resolutions.length > 0) params.push("resolutions=" + encodeURIComponent(resolutions))
+        if (ratios.length > 0)      params.push("ratios=" + encodeURIComponent(ratios))
+        if (colors.length > 0)      params.push("colors=" + colors)
+        if (sorting === "random" && seed.length > 0)
+            params.push("seed=" + encodeURIComponent(seed))
+        if (_page > 1)              params.push("page=" + _page)
+        if (apiKey.length > 0)      params.push("apikey=" + apiKey)
         const url = "https://wallhaven.cc/api/v1/search?" + params.join("&")
 
         const xhr = new XMLHttpRequest()
@@ -85,7 +134,7 @@ BaseWallpaperSource {
 
     function _populate(json) {
         const data = json.data || []
-        const newItems = data.slice(0, maxItems).map(w => ({
+        const fresh = data.slice(0, maxItems).map(w => ({
             "id":        String(w.id),
             "name":      String(w.id),
             "url":       w.path,
@@ -101,7 +150,18 @@ BaseWallpaperSource {
                 "url":         w.url || ""
             }
         }))
-        items = newItems
+
+        if (_appendOnNextRefresh) {
+            // Dedupe by id while concatenating
+            const seen = {}
+            for (const it of items) seen[it.id] = true
+            const merged = items.slice()
+            for (const it of fresh) if (!seen[it.id]) merged.push(it)
+            items = merged
+            _appendOnNextRefresh = false
+        } else {
+            items = fresh
+        }
         ready = true
         loading = false
         lastError = ""
