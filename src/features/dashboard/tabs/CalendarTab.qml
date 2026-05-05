@@ -2,11 +2,11 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
+import Calendar
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
 import qs.src.core.config
-import qs.src.core.services
 import qs.src.features.dashboard.components
 
 
@@ -17,7 +17,14 @@ Item {
     property int currentYear: new Date().getFullYear()
     property date selectedDate: new Date()
     property date today: new Date()
-    property var selectedDayEvents: CalendarService.dayEvents
+    property var selectedDayEvents: CalendarBackend.dayEvents
+
+    // Day-header labels rotated to start from AppConfig.calendarFirstDayOfWeek.
+    property var _dayNames: {
+        const all = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        const start = AppConfig.calendarFirstDayOfWeek
+        return all.slice(start).concat(all.slice(0, start))
+    }
 
     // Keyboard navigation
     property int focusedCellIndex: -1
@@ -34,7 +41,7 @@ Item {
         if (focusedCellIndex >= 0 && focusedCellIndex < calendarDays.count) {
             const item = calendarDays.get(focusedCellIndex)
             selectedDate = item.date
-            CalendarService.loadEventsForDate(Qt.formatDate(item.date, "yyyy-MM-dd"))
+            CalendarBackend.loadEventsForDate(item.date)
         }
     }
 
@@ -42,14 +49,12 @@ Item {
         if (currentMonth === 0) { currentMonth = 11; currentYear-- }
         else currentMonth--
         updateCalendar()
-        _initFocusedCell()
     }
 
     function goToNextMonth() {
         if (currentMonth === 11) { currentMonth = 0; currentYear++ }
         else currentMonth++
         updateCalendar()
-        _initFocusedCell()
     }
 
     function goToFirstDay() {
@@ -83,12 +88,9 @@ Item {
     }
 
     Connections {
-        target: CalendarService
+        target: CalendarBackend
         function onDayEventsChanged() {
-            root.selectedDayEvents = CalendarService.dayEvents
-        }
-        function onEventsChanged() {
-            // Grid indicators updated via CalendarService.eventsByDate binding
+            root.selectedDayEvents = CalendarBackend.dayEvents
         }
     }
 
@@ -99,11 +101,13 @@ Item {
         const lastDay = new Date(currentYear, currentMonth + 1, 0)
         const daysInMonth = lastDay.getDate()
 
-        let firstDayOfWeek = firstDay.getDay()
-        firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
+        // Offset of the first cell from the configured first weekday.
+        // JS getDay(): 0=Sunday..6=Saturday. We want the column index of the
+        // 1st of the month under a week starting at AppConfig.calendarFirstDayOfWeek.
+        const offset = (firstDay.getDay() - AppConfig.calendarFirstDayOfWeek + 7) % 7
 
         const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate()
-        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        for (let i = offset - 1; i >= 0; i--) {
             calendarDays.append({
                 day: prevMonthLastDay - i,
                 isCurrentMonth: false,
@@ -133,13 +137,18 @@ Item {
         const date = new Date(currentYear, currentMonth, 1)
         monthText.text = Qt.formatDate(date, "MMMM yyyy")
         generateCalendar()
+        _initFocusedCell()
 
-        // Load events for the entire grid range (6 weeks)
+        // Sync selectedDate with focused cell so the day pane follows
+        // month navigation (lands on today if visible, else day 1).
+        if (focusedCellIndex >= 0 && focusedCellIndex < calendarDays.count) {
+            selectedDate = calendarDays.get(focusedCellIndex).date
+        }
+
         const firstDate = calendarDays.get(0).date
         const lastDate = calendarDays.get(calendarDays.count - 1).date
-        CalendarService.loadEventsForRange(firstDate, lastDate)
-
-        CalendarService.loadEventsForDate(Qt.formatDate(selectedDate, "yyyy-MM-dd"))
+        CalendarBackend.loadEventsForRange(firstDate, lastDate)
+        CalendarBackend.loadEventsForDate(selectedDate)
     }
 
     function isSameDate(date1, date2) {
@@ -148,10 +157,7 @@ Item {
                date1.getDate() === date2.getDate()
     }
 
-    Component.onCompleted: {
-        updateCalendar()
-        _initFocusedCell()
-    }
+    Component.onCompleted: updateCalendar()
 
     RowLayout {
         anchors.fill: parent
@@ -211,7 +217,7 @@ Item {
                     uniformCellHeights: true
 
                     Repeater {
-                        model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                        model: root._dayNames
                         MaterialText {
                             text: modelData
                             textStyle: "labelSmall"
@@ -234,19 +240,21 @@ Item {
                             property bool isToday: root.isSameDate(model.date, root.today)
                             property bool isSelected: root.isSameDate(model.date, root.selectedDate)
                             property bool isFocused: index === root.focusedCellIndex
-                            property string dateStr: Qt.formatDate(model.date, "yyyy-MM-dd")
-                            property int eventCount: CalendarService.eventCountOnDate(dateStr)
+                            // Reading eventsByDate makes this binding reactive
+                            property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(model.date, "yyyy-MM-dd")] || []
+                            property int eventCount: dayList.length
 
+                            // Today wins fill; selection layers an outline on top of today;
+                            // focus always shows as a tertiary outline (overrides selection outline).
                             color: {
                                 if (isToday) return Theme.primary
-                                if (isFocused && !isSelected) return Theme.tertiaryContainer
                                 if (isSelected) return Theme.secondaryContainer
                                 if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
                                 return "transparent"
                             }
 
-                            border.width: (isFocused || (isSelected && !isToday)) ? 2 : 0
-                            border.color: isFocused ? Theme.tertiary : Theme.primary
+                            border.width: isFocused ? 2 : (isSelected && isToday ? 2 : 0)
+                            border.color: isFocused ? Theme.tertiary : Theme.onPrimary
 
                             Behavior on color {
                                 ColorAnimation { duration: Tokens.motion.duration.short4 }
@@ -262,6 +270,7 @@ Item {
                                     textStyle: "bodyMedium"
                                     colorRole: {
                                         if (isToday) return "onPrimary"
+                                        if (isSelected) return "onSecondaryContainer"
                                         if (!model.isCurrentMonth) return "onSurfaceVariant"
                                         return "onSurface"
                                     }
@@ -282,7 +291,9 @@ Item {
                                             width: 4
                                             height: 4
                                             radius: 2
-                                            color: isToday ? Theme.onPrimary : Theme.primary
+                                            color: isToday ? Theme.onPrimary
+                                                : isSelected ? Theme.onSecondaryContainer
+                                                : Theme.primary
                                             opacity: model.isCurrentMonth ? 1.0 : 0.5
                                         }
                                     }
@@ -298,7 +309,7 @@ Item {
                                 onClicked: {
                                     root.selectedDate = model.date
                                     root.focusedCellIndex = index
-                                    CalendarService.loadEventsForDate(Qt.formatDate(model.date, "yyyy-MM-dd"))
+                                    CalendarBackend.loadEventsForDate(model.date)
                                 }
                             }
                         }
@@ -330,6 +341,7 @@ Item {
 
                 // All-day events section
                 Flow {
+                    id: flow
                     Layout.fillWidth: true
                     spacing: Tokens.spacing.extraSmall
                     visible: _allDayEvents.length > 0
@@ -340,8 +352,13 @@ Item {
                         model: parent._allDayEvents
 
                         Rectangle {
-                            width: allDayLabel.implicitWidth + Tokens.spacing.medium * 2
-                            height: 28
+                            property int maxWidth: flow.width
+
+                            width: Math.min(
+                                allDayLabel.implicitWidth + Tokens.spacing.medium * 2,
+                                maxWidth
+                            )
+                            height: allDayLabel.implicitHeight + Tokens.spacing.extraSmall * 2
                             radius: Tokens.shape.small
                             color: Theme.tertiaryContainer
 
@@ -351,6 +368,14 @@ Item {
                                 text: modelData.title
                                 textStyle: "labelMedium"
                                 colorRole: "onTertiaryContainer"
+                                wrapMode: Text.WordWrap
+                                width: parent.width - Tokens.spacing.medium * 2
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: eventDialog.openDialog(true, modelData, root.selectedDate)
                             }
                         }
                     }
@@ -378,13 +403,20 @@ Item {
                             policy: ScrollBar.AsNeeded
                         }
 
-                        Component.onCompleted: {
-                            // Auto-scroll to current hour
-                            if (root.isSameDate(root.selectedDate, root.today)) {
-                                const hour = new Date().getHours()
-                                const targetY = Math.max(0, (hour - 1) * AppConfig.calendarDayViewHourHeight)
-                                contentY = Math.min(targetY, contentHeight - height)
+                        // Auto-scroll to current hour once height is known.
+                        // Component.onCompleted runs while height is still 0 in
+                        // a lazy-loaded StackLayout/Loader chain.
+                        property bool _didAutoScroll: false
+                        onHeightChanged: {
+                            if (_didAutoScroll || height <= 0) return
+                            if (!root.isSameDate(root.selectedDate, root.today)) {
+                                _didAutoScroll = true
+                                return
                             }
+                            const hour = new Date().getHours()
+                            const targetY = Math.max(0, (hour - 1) * AppConfig.calendarDayViewHourHeight)
+                            contentY = Math.min(targetY, Math.max(0, contentHeight - height))
+                            _didAutoScroll = true
                         }
 
                         Item {
@@ -437,7 +469,6 @@ Item {
                                     return (now.getHours() + now.getMinutes() / 60) * AppConfig.calendarDayViewHourHeight
                                 }
 
-                                // Red dot at the start of the line
                                 Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
@@ -462,16 +493,16 @@ Item {
                             // Event cards
                             Repeater {
                                 model: {
-                                    return root.selectedDayEvents.filter(ev => !ev.allDay && ev.startTime)
+                                    return root.selectedDayEvents.filter(ev => !ev.allDay && ev.start)
                                 }
 
                                 Rectangle {
                                     readonly property var ev: modelData
-                                    readonly property var startParts: ev.startTime.split(":")
-                                    readonly property real startHour: parseInt(startParts[0]) + parseInt(startParts[1]) / 60
-                                    readonly property var endParts: (ev.endTime || "").split(":")
-                                    readonly property real endHour: endParts.length >= 2
-                                        ? parseInt(endParts[0]) + parseInt(endParts[1]) / 60
+                                    readonly property real startHour: ev.start
+                                        ? (ev.start.getHours() + ev.start.getMinutes() / 60)
+                                        : 0
+                                    readonly property real endHour: ev.end
+                                        ? (ev.end.getHours() + ev.end.getMinutes() / 60)
                                         : startHour + 1
                                     readonly property real durationHours: Math.max(0.5, endHour - startHour)
 
@@ -482,7 +513,6 @@ Item {
                                     radius: Tokens.shape.small
                                     color: Theme.primaryContainer
 
-                                    // Left accent bar
                                     Rectangle {
                                         anchors.left: parent.left
                                         anchors.top: parent.top
@@ -492,7 +522,6 @@ Item {
                                         color: Theme.primary
                                     }
 
-                                    // Hover state
                                     Rectangle {
                                         anchors.fill: parent
                                         radius: parent.radius
@@ -519,7 +548,8 @@ Item {
                                         }
 
                                         MaterialText {
-                                            text: ev.startTime + (ev.endTime ? " – " + ev.endTime : "")
+                                            text: Qt.formatTime(ev.start, "HH:mm")
+                                                + (ev.end ? " – " + Qt.formatTime(ev.end, "HH:mm") : "")
                                             textStyle: "labelSmall"
                                             colorRole: "onPrimaryContainer"
                                             opacity: 0.8
@@ -542,16 +572,13 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            eventDialog.openDialog(true, ev, root.selectedDate)
-                                        }
+                                        onClicked: eventDialog.openDialog(true, ev, root.selectedDate)
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Empty state (overlays timeline when no events)
                     EmptyState {
                         anchors.centerIn: parent
                         visible: root.selectedDayEvents.length === 0
@@ -561,11 +588,13 @@ Item {
                     }
                 }
 
-                // Add event button
                 MaterialButton {
                     Layout.fillWidth: true
                     text: "Add Event"
                     variant: "tonal"
+                    enabled: CalendarBackend.calendars.length > 0
+                    ToolTip.visible: hovered && !enabled
+                    ToolTip.text: "No calendars configured. Add one in ~/.config/khal/config or ensure ~/.local/share/khal/calendars/<name>/ exists."
                     onClicked: eventDialog.openDialog(false, null, root.selectedDate)
                 }
             }
@@ -576,27 +605,38 @@ Item {
         id: eventDialog
         anchors.fill: parent
 
-        onEventSaved: (title, startTime, endTime, calendar, description, location, categories, recurrence, until) => {
-            if (isEditMode && eventData && eventData.uid) {
-                // Delete old + create new (khal has no programmatic edit)
-                CalendarService.deleteEvent(eventData.uid, eventData.calendar)
+        onEventSaved: (fields) => {
+            const isEdit = isEditMode && eventData && eventData.uid
+            if (isEdit && eventData.isRecurringMaster) {
+                // Ask user: this occurrence or whole series
+                recurrenceChoice.askEdit(eventData, fields)
+            } else if (isEdit) {
+                CalendarBackend.editEvent(eventData.uid, fields, "all")
+            } else {
+                CalendarBackend.addEvent(fields)
             }
-            CalendarService.addEvent(
-                calendar || CalendarService.calendars[0] || "",
-                Qt.formatDate(root.selectedDate, "yyyy-MM-dd"),
-                startTime,
-                endTime,
-                title,
-                description,
-                location,
-                categories,
-                recurrence,
-                until
-            )
         }
 
-        onEventDeleted: (uid, calendar) => {
-            CalendarService.deleteEvent(uid, calendar)
+        onEventDeleted: (uid, isRecurring) => {
+            if (isRecurring) {
+                recurrenceChoice.askDelete(eventData)
+            } else {
+                CalendarBackend.deleteEvent(uid, "all")
+            }
+        }
+    }
+
+    RecurrenceEditChoice {
+        id: recurrenceChoice
+        anchors.fill: parent
+
+        onChoiceMade: (mode, intent, ev, fields) => {
+            // mode: "this" | "all"; intent: "edit" | "delete"
+            if (intent === "edit") {
+                CalendarBackend.editEvent(ev.uid, fields, mode, ev.start)
+            } else {
+                CalendarBackend.deleteEvent(ev.uid, mode, ev.start)
+            }
         }
     }
 }

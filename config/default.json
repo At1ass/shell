@@ -210,6 +210,14 @@
     "monitors": {}
   },
 
+  "feed": {
+    "enabled": false,
+    "panelWidth": 520,
+    "refreshMinutes": 30,
+    "maxArticles": 100,
+    "feeds": []
+  },
+
   "services": {
     "weather": {
       "enabled": true,
@@ -222,15 +230,13 @@
     "calendar": {
       "reminders": {
         "enabled": true,
-        "minutesBefore": 15
-      },
-      "upcoming": {
-        "count": 4,
-        "days": 7
+        "minutesBefore": 15,
+        "lookaheadDays": 2
       },
       "dayView": {
         "hourHeight": 60
-      }
+      },
+      "firstDayOfWeek": 1
     },
     "vpn": {
       "enabled": false,

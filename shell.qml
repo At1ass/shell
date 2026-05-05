@@ -13,8 +13,10 @@ import qs.src.features.screenshot
 import qs.src.features.lockscreen
 import qs.src.features.powermenu
 import qs.src.features.cheatsheet
+import qs.src.features.feed
 import qs.src.core.config
 import qs.src.core.services
+import Calendar
 
 ShellRoot {
     readonly property var _hws: HyprlandWindowService
@@ -82,6 +84,29 @@ ShellRoot {
     // Toast notifications
     ToastOverlay {}
 
+    // Calendar plugin: bootstrap reminders config and surface errors
+    Binding {
+        target: CalendarBackend
+        property: "remindersEnabled"
+        value: AppConfig.calendarRemindersEnabled
+    }
+    Binding {
+        target: CalendarBackend
+        property: "reminderMinutes"
+        value: AppConfig.calendarReminderMinutes
+    }
+    Binding {
+        target: CalendarBackend
+        property: "reminderLookaheadDays"
+        value: AppConfig.calendarReminderLookaheadDays
+    }
+    Connections {
+        target: CalendarBackend
+        function onErrorOccurred(message) {
+            ToastService.error(message)
+        }
+    }
+
     // Launcher
     LazyLoader {
         loading: GlobalStates.launcherOpen
@@ -119,5 +144,11 @@ ShellRoot {
     LazyLoader {
         loading: GlobalStates.cheatsheetOpen
         Cheatsheet {}
+    }
+
+    // Feed panel
+    LazyLoader {
+        loading: GlobalStates.feedPanelOpen
+        FeedPanel {}
     }
 }
