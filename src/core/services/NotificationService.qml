@@ -97,11 +97,9 @@ Singleton {
         id: notifDataInstantiator
         model: notifServer.trackedNotifications
         delegate: NotifData {
+            id: notifData
             required property var modelData
             notification: modelData
-
-            Component.onCompleted: root._notifDataByNotifId[modelData.id] = this
-            Component.onDestruction: { delete root._notifDataByNotifId[modelData.id] }
 
             // Service watches popup-relevant property changes and emits
             // popupReplaced so the active popup can update. Attach via an
@@ -117,6 +115,20 @@ Singleton {
                 function onActionsChanged()  { root._notifDataPropChanged(modelData) }
             }
             onClosed: (reason) => root._onNotifDataClosed(modelData, reason)
+        }
+
+        // Register/unregister on Instantiator add/remove — guaranteed to
+        // fire after the delegate is fully constructed and before the
+        // next event-loop iteration processes our deferred _processNotification.
+        onObjectAdded: (index, object) => {
+            if (object?.notification) {
+                root._notifDataByNotifId[object.notification.id] = object
+            }
+        }
+        onObjectRemoved: (index, object) => {
+            if (object?.notification) {
+                delete root._notifDataByNotifId[object.notification.id]
+            }
         }
     }
 
@@ -200,7 +212,10 @@ Singleton {
         const isCritical = notification.urgency === 2 // NotificationUrgency.Critical
         if (isCritical || root._rateBucketTokens > 0) {
             if (!isCritical) root._rateBucketTokens--
-            _processNotification(notification)
+            // Defer one event-loop tick so the Instantiator's delegate
+            // for this newly-tracked notification has time to register in
+            // _notifDataByNotifId before _showNotification looks it up.
+            Qt.callLater(() => root._processNotification(notification))
         } else if (root._notificationQueue.length < root._maxQueueSize) {
             root._notificationQueue.push(notification)
             root._notificationQueue = root._notificationQueue // trigger change signal
