@@ -135,6 +135,8 @@ Singleton {
             const source = WallpaperSourceRegistry.getSource(id)
             if (!source) continue
             source.itemsRefreshed.connect(() => manager._onSourceItemsRefreshed(id))
+            source.itemResolved.connect((itemId, localPath) =>
+                manager._onItemResolved(id, itemId, localPath))
             const updated = Object.assign({}, _connectedSources)
             updated[id] = true
             _connectedSources = updated
@@ -151,6 +153,23 @@ Singleton {
         for (const mon in monitorBindings) {
             if (monitorBindings[mon].sourceId === sourceId) _applyForMonitor(mon)
         }
+    }
+
+    // Called when a remote source finishes async download (resolveItem
+    // returned "" earlier). Apply wallpaper to any monitor still waiting.
+    function _onItemResolved(sourceId, itemId, localPath) {
+        if (!localPath || localPath.length === 0) return
+        const wallpapers = Object.assign({}, monitorWallpapers)
+        let touched = false
+        for (const mon in monitorBindings) {
+            const b = monitorBindings[mon]
+            if (b.sourceId === sourceId && b.currentItemId === itemId) {
+                wallpapers[mon] = _asUrl(localPath)
+                touched = true
+                _schedulePostScript(mon, localPath)
+            }
+        }
+        if (touched) monitorWallpapers = wallpapers
     }
 
     // ── State persistence ───────────────────────────────────────────

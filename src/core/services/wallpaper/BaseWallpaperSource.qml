@@ -39,6 +39,12 @@ QtObject {
     signal itemsRefreshed()
     signal errorOccurred(string message)
 
+    // Emitted by remote sources when an async download finishes and a
+    // local path is finally available. Local sources never emit this
+    // (their resolveItem is sync). Manager listens to apply wallpapers
+    // when the resolveItem return was an empty placeholder.
+    signal itemResolved(string itemId, string localPath)
+
     // Public API — concrete sources override.
 
     // Reload items from the underlying source. Local: rescan directory.

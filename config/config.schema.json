@@ -516,8 +516,8 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["local"],
-                "description": "Source type. 'local' = filesystem directory."
+                "enum": ["local", "wallhaven"],
+                "description": "Source type. 'local' = filesystem directory. 'wallhaven' = wallhaven.cc API."
               },
               "name": {
                 "type": "string",
@@ -526,6 +526,27 @@
               "path": {
                 "type": "string",
                 "description": "For type=local: directory path to scan for image files."
+              },
+              "query": {
+                "type": "string",
+                "description": "For type=wallhaven: search query (free text)."
+              },
+              "categories": {
+                "type": "string",
+                "default": "111",
+                "pattern": "^[01]{3}$",
+                "description": "For type=wallhaven: bitmask of 100=general, 010=anime, 001=people. Default '111' (all)."
+              },
+              "purity": {
+                "type": "string",
+                "default": "100",
+                "pattern": "^[01]{3}$",
+                "description": "For type=wallhaven: bitmask of 100=sfw, 010=sketchy, 001=nsfw. Default '100' (SFW)."
+              },
+              "apiKeyEnvVar": {
+                "type": "string",
+                "default": "WALLHAVEN_API_KEY",
+                "description": "For type=wallhaven: name of environment variable holding the Wallhaven API key. Never store the key in this config file."
               }
             }
           }

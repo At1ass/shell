@@ -22,8 +22,8 @@ Singleton {
 
     signal sourcesChanged()
 
-    Component { id: localComp; LocalDirectorySource {} }
-    // Stage D adds: Component { id: wallhavenComp; WallhavenSource {} }
+    Component { id: localComp;     LocalDirectorySource {} }
+    Component { id: wallhavenComp; WallhavenSource {} }
 
     Component.onCompleted: {
         if (AppConfig.ready) registry._rebuild()
@@ -72,9 +72,9 @@ Singleton {
     }
 
     function _typeMatches(source, type) {
-        // Heuristic: detect by object property presence (LocalDirectorySource has directoryPath).
-        if (type === "local") return ("directoryPath" in source)
-        // Stage D will add wallhaven check
+        // Heuristic: detect by property presence.
+        if (type === "local")     return ("directoryPath" in source)
+        if (type === "wallhaven") return ("query" in source && "categories" in source)
         return false
     }
 
@@ -86,9 +86,15 @@ Singleton {
                     "name":     cfg.name || cfg.id,
                     "directoryPath": cfg.path || ""
                 })
-            // Stage D:
-            // case "wallhaven":
-            //     return wallhavenComp.createObject(registry, { ... })
+            case "wallhaven":
+                return wallhavenComp.createObject(registry, {
+                    "sourceId":     cfg.id,
+                    "name":         cfg.name || cfg.id,
+                    "query":        cfg.query || "",
+                    "categories":   cfg.categories || "111",
+                    "purity":       cfg.purity || "100",
+                    "apiKeyEnvVar": cfg.apiKeyEnvVar || "WALLHAVEN_API_KEY"
+                })
         }
         console.warn("WallpaperSourceRegistry: unknown source type", cfg.type, "for id", cfg.id)
         return null
@@ -98,7 +104,10 @@ Singleton {
         if (cfg.type === "local") {
             const path = cfg.path || ""
             if (source.directoryPath !== path) source.directoryPath = path
+        } else if (cfg.type === "wallhaven") {
+            if (source.query      !== (cfg.query || ""))           source.query      = cfg.query || ""
+            if (source.categories !== (cfg.categories || "111"))   source.categories = cfg.categories || "111"
+            if (source.purity     !== (cfg.purity || "100"))       source.purity     = cfg.purity || "100"
         }
-        // Stage D adds wallhaven param updates
     }
 }
