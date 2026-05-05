@@ -185,7 +185,7 @@ PanelWindow {
             NotificationService.attemptInvokeAction(popup.notificationData.notificationId, actionId)
         }
         onTimeoutExpired: {
-            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
+            NotificationService.expireActiveNotification(popup.notificationData.notificationId)
         }
     }
 }

@@ -64,6 +64,10 @@ Singleton {
             keepOnReload: false
             actionsSupported: true
             imageSupported: true
+            // UI components render body as Text.StyledText — declare markup
+            // support so clients know they can send HTML-style markup, and
+            // we don't have to strip tags (which broke "Less than < 5").
+            bodyMarkupSupported: true
 
             onNotification: (notification) => {
                 root._ingestNotification(notification)
@@ -175,6 +179,11 @@ Singleton {
     }
 
     function _ingestNotification(notification) {
+        // Track immediately so the server keeps the Notification alive while
+        // we decide what to do — otherwise notifications routed through the
+        // queue would be discarded between push and drain.
+        notification.tracked = true
+
         const isCritical = notification.urgency === 2 // NotificationUrgency.Critical
         if (isCritical || root._rateBucketTokens > 0) {
             if (!isCritical) root._rateBucketTokens--
@@ -182,17 +191,23 @@ Singleton {
         } else if (root._notificationQueue.length < root._maxQueueSize) {
             root._notificationQueue.push(notification)
             root._notificationQueue = root._notificationQueue // trigger change signal
+        } else {
+            // Queue full — explicit untrack discards via the server.
+            notification.tracked = false
         }
-        // Drop if queue is full
     }
 
     function _processNotification(notification) {
-        notification.tracked = true
+        // Build history entry from current values; data is value-copy, so it
+        // outlives the Notification object even if we untrack it below.
         const data = createData(notification)
         addToHistory(data)
 
-        if (doNotDisturb)
+        if (doNotDisturb) {
+            // Untrack to discard — history already captured the values.
+            notification.tracked = false
             return
+        }
 
         const quickshellId = notification.id
         const existingInternalId = quickshellIdToInternalId[quickshellId]
@@ -248,7 +263,7 @@ Singleton {
             "contentId": data.contentId
         }
 
-        notification.closed.connect(() => root._onNotificationClosed(data.notificationId))
+        notification.closed.connect((reason) => root._onNotificationClosed(data.notificationId, reason))
 
         popupRequested(data, notification)
     }
@@ -290,8 +305,11 @@ Singleton {
         _updateExistingNotification(internalId, notifData.notification)
     }
 
-    function _onNotificationClosed(id) {
-        if (hasActivePopup(id)) {
+    function _onNotificationClosed(id, reason) {
+        // reason is NotificationCloseReason: Expired=1, Dismissed=2, CloseRequested=3.
+        // For Dismissed: user already triggered dismiss path — popup is exiting.
+        // For Expired / CloseRequested: still need to dismiss the popup if visible.
+        if (hasActivePopup(id) && reason !== 2 /* Dismissed */) {
             popupDismissRequested(id)
         }
         cleanupNotification(id)
@@ -335,7 +353,9 @@ Singleton {
 
     function normalizeNotification(notification) {
         const summary = (notification.summary || "").trim()
-        const body = stripTags(notification.body || "")
+        // body passed through unchanged — server advertises bodyMarkupSupported,
+        // so clients send HTML-style markup which UI renders via Text.StyledText.
+        const body = notification.body || ""
         const appName = (notification.appName || notification.desktopEntry || "").trim()
         const appIcon = notification.appIcon || ""
         const image = notification.image || ""
@@ -360,10 +380,6 @@ Singleton {
             "urgency": urgency,
             "expireTimeout": expireTimeout
         }
-    }
-
-    function stripTags(text) {
-        return text.replace(/<[^>]*>?/gm, "")
     }
 
     function createData(notification) {
@@ -416,9 +432,9 @@ Singleton {
         const meta = activeNotifications[id]
         if (!meta || meta.hoverCount <= 0) return
         meta.hoverCount--
-        if (meta.hoverCount === 0) {
-            meta.timestamp += Date.now() - meta.pauseTime
-        }
+        // Note: do NOT mutate meta.timestamp here. timestamp is the original
+        // ingest time used by history's relative-time formatter. PopupItem
+        // tracks its own pause separately (NotificationPopupItem.qml).
     }
 
     // Backward-compatible wrappers
@@ -640,10 +656,25 @@ Singleton {
     }
 
     // Public API
+    //
+    // dismiss vs expire (NotificationCloseReason):
+    //   - dismissActiveNotification → notification.dismiss() — fires Dismissed (2).
+    //     Use when the user explicitly closes (X button, swipe, action click).
+    //   - expireActiveNotification → notification.expire() — fires Expired (1).
+    //     Use when the auto-dismiss timer ran out.
     function dismissActiveNotification(id) {
         const meta = activeNotifications[id]
         if (meta?.notification?.dismiss) {
             meta.notification.dismiss()
+        }
+        cleanupNotification(id)
+        popupDismissRequested(id)
+    }
+
+    function expireActiveNotification(id) {
+        const meta = activeNotifications[id]
+        if (meta?.notification?.expire) {
+            meta.notification.expire()
         }
         cleanupNotification(id)
         popupDismissRequested(id)
