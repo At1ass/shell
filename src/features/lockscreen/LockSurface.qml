@@ -48,8 +48,8 @@ Item {
     Image {
         id: wallpaperSource
         anchors.fill: parent
-        source: root.screen ? WallpaperService.getWallpaper(root.screen.name) : ""
-        fillMode: root.screen ? WallpaperService.getFillMode(root.screen.name) : Image.PreserveAspectCrop
+        source: root.screen ? WallpaperManager.getWallpaper(root.screen.name) : ""
+        fillMode: root.screen ? WallpaperManager.getFillMode(root.screen.name) : Image.PreserveAspectCrop
         visible: false
         cache: true
 

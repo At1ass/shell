@@ -501,37 +501,31 @@
           "default": "",
           "description": "Shell command run after each wallpaper change. $WALLPAPER_PATH contains the new path."
         },
-        "global": {
-          "type": "object",
-          "description": "Wallpaper cycling settings applied to monitors without per-monitor overrides.",
-          "additionalProperties": false,
-          "properties": {
-            "directory": {
-              "type": "string",
-              "default": "",
-              "description": "Directory to cycle wallpapers from. Empty = no cycling."
-            },
-            "randomOrder": {
-              "type": "boolean",
-              "default": true,
-              "description": "Cycle in random order. false = alphabetical."
-            },
-            "autoChange": {
-              "type": "object",
-              "description": "Timed wallpaper auto-cycling.",
-              "additionalProperties": false,
-              "properties": {
-                "enabled": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Automatically cycle wallpapers on a timer."
-                },
-                "intervalMs": {
-                  "type": "integer",
-                  "default": 300000,
-                  "minimum": 10000,
-                  "description": "Cycle interval in ms. Default 300000 (5 minutes). Minimum 10000 (10 seconds)."
-                }
+        "sources": {
+          "type": "array",
+          "default": [],
+          "description": "Pluggable wallpaper sources. Currently supported types: 'local' (filesystem directory). Each monitor binds to one source by id.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["id", "type"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique source identifier referenced by monitors[].sourceId."
+              },
+              "type": {
+                "type": "string",
+                "enum": ["local"],
+                "description": "Source type. 'local' = filesystem directory."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable label (used by picker UI; falls back to id)."
+              },
+              "path": {
+                "type": "string",
+                "description": "For type=local: directory path to scan for image files."
               }
             }
           }
@@ -539,18 +533,14 @@
         "monitors": {
           "type": "object",
           "default": {},
-          "description": "Per-monitor overrides. Keys are monitor names (e.g. 'DP-1', 'HDMI-A-1').",
+          "description": "Per-monitor wallpaper bindings. Keys are monitor names (e.g. 'DP-1').",
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "path": {
+              "sourceId": {
                 "type": "string",
-                "description": "Static wallpaper path for this monitor."
-              },
-              "directory": {
-                "type": "string",
-                "description": "Wallpaper cycling directory override."
+                "description": "Source id from wallpaper.sources[]. Empty = use defaultWallpaper only."
               },
               "fillMode": {
                 "type": "integer",
@@ -561,7 +551,26 @@
               },
               "randomOrder": {
                 "type": "boolean",
-                "description": "Override random order for this monitor's cycling."
+                "default": true,
+                "description": "Cycle in random order. false = alphabetical (for local sources)."
+              },
+              "autoChange": {
+                "type": "object",
+                "description": "Per-monitor auto-cycling.",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically cycle wallpapers on a timer for this monitor."
+                  },
+                  "intervalMs": {
+                    "type": "integer",
+                    "default": 300000,
+                    "minimum": 10000,
+                    "description": "Cycle interval in ms. Default 300000 (5 minutes). Minimum 10000 (10 seconds)."
+                  }
+                }
               }
             }
           }
