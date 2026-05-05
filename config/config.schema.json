@@ -530,6 +530,19 @@
             }
           }
         },
+        "cache": {
+          "type": "object",
+          "description": "Disk cache for remote-source wallpapers (Wallhaven, etc.).",
+          "additionalProperties": false,
+          "properties": {
+            "maxBytes": {
+              "type": "integer",
+              "default": 524288000,
+              "minimum": 10485760,
+              "description": "LRU eviction threshold in bytes. Default 500 MB. Minimum 10 MB."
+            }
+          }
+        },
         "monitors": {
           "type": "object",
           "default": {},

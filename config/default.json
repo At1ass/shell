@@ -200,6 +200,7 @@
     "defaultWallpaper": "",
     "postSetScript": "",
     "sources": [],
+    "cache": { "maxBytes": 524288000 },
     "monitors": {}
   },
 
