@@ -90,7 +90,9 @@ QtObject {
                 break
             }
         }
-        dismiss()
+        // Explicit qualifier — bare `dismiss()` doesn't resolve under
+        // ComponentBehavior: Bound scope rules.
+        data.dismiss()
     }
 
     function _hash(s) {
