@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import qs.src.core.config
 import qs.src.core.services
+import qs.src.core.services.wallpaper
 
 Singleton {
     id: wallpaperService
@@ -81,21 +82,57 @@ Singleton {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // DIRECTORY SCANNING QUEUE
+    // DIRECTORY SOURCES (provider abstraction; Stage A of refactor)
     // ═══════════════════════════════════════════════════════════════
+    // Each scan key (monitor name or "__global") backs a
+    // LocalDirectorySource instance. Sources are created lazily on
+    // first need and reused on directory changes. itemsRefreshed →
+    // _onSourceRefreshed updates monitorFiles + applies wallpaper,
+    // matching the previous handleScanResult behaviour.
 
-    Process {
-        id: scanProcess
-        property var queue: []
-        property string currentKey: ""
-        property string currentDirectory: ""
+    property var _sources: ({})       // key → LocalDirectorySource
 
-        stdout: StdioCollector {
-            id: scanCollector
-            onStreamFinished: wallpaperService.handleScanResult(scanProcess.currentKey, text)
+    Component {
+        id: localSourceComponent
+        LocalDirectorySource {}
+    }
+
+    function _ensureSource(key, dirPath) {
+        let s = _sources[key]
+        if (!s) {
+            s = localSourceComponent.createObject(wallpaperService, {
+                "sourceId": key,
+                "directoryPath": dirPath
+            })
+            s.itemsRefreshed.connect(() => wallpaperService._onSourceRefreshed(key, s))
+            s.errorOccurred.connect((msg) => {
+                console.warn("WallpaperService source[" + key + "]:", msg)
+            })
+            const updated = Object.assign({}, _sources)
+            updated[key] = s
+            _sources = updated
+        } else if (s.directoryPath !== dirPath) {
+            s.directoryPath = dirPath
+        } else {
+            s.refresh()
         }
+    }
 
-        onExited: wallpaperService.processNextScan()
+    function _onSourceRefreshed(key, source) {
+        const files = source.items.map(it => it.url)
+        const updatedFiles = Object.assign({}, monitorFiles)
+        updatedFiles[key] = files
+        monitorFiles = updatedFiles
+
+        if (files.length === 0) return
+
+        if (key === "__global") {
+            configuredMonitors.forEach(monitor => {
+                if (!monitorDirectories[monitor]) applyDirectoryWallpaper(monitor, key, true)
+            })
+        } else {
+            applyDirectoryWallpaper(key, key, true)
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -191,12 +228,11 @@ Singleton {
         monitorIndices = ({})
 
         if (globalDirectory.length > 0)
-            enqueueScan("__global", globalDirectory)
+            _ensureSource("__global", globalDirectory)
 
         for (let monitor in monitorDirectories)
-            enqueueScan(monitor, monitorDirectories[monitor])
+            _ensureSource(monitor, monitorDirectories[monitor])
 
-        processNextScan()
         loadState()
     }
 
@@ -249,66 +285,6 @@ Singleton {
     // ═══════════════════════════════════════════════════════════════
     // DIRECTORY SCANNING HELPERS
     // ═══════════════════════════════════════════════════════════════
-
-    function enqueueScan(key, directory) {
-        if (!directory || directory.length === 0)
-            return
-
-        scanProcess.queue.push({ key: key, directory: directory })
-    }
-
-    function processNextScan() {
-        if (scanProcess.running)
-            return
-
-        if (!scanProcess.queue || scanProcess.queue.length === 0) {
-            scanProcess.currentKey = ""
-            scanProcess.currentDirectory = ""
-            return
-        }
-
-        const next = scanProcess.queue.shift()
-        scanProcess.currentKey = next.key
-        scanProcess.currentDirectory = next.directory
-
-        scanProcess.command = [
-            "find", next.directory,
-            "-maxdepth", "1",
-            "-type", "f",
-            "(",
-            "-iname", "*.jpg",
-            "-o", "-iname", "*.jpeg",
-            "-o", "-iname", "*.png",
-            "-o", "-iname", "*.webp",
-            ")"
-        ]
-        scanProcess.running = true
-    }
-
-    function handleScanResult(key, rawText) {
-        const trimmed = rawText.trim()
-        const files = trimmed.length > 0 ? trimmed.split("\n").filter(f => f.length > 0).sort() : []
-
-        const updatedFiles = Object.assign({}, monitorFiles)
-        updatedFiles[key] = files
-        monitorFiles = updatedFiles
-
-        if (files.length === 0) {
-            processNextScan()
-            return
-        }
-
-        if (key === "__global") {
-            configuredMonitors.forEach(monitor => {
-                if (!monitorDirectories[monitor])
-                    applyDirectoryWallpaper(monitor, key, true)
-            })
-        } else {
-            applyDirectoryWallpaper(key, key, true)
-        }
-
-        processNextScan()
-    }
 
     function applyDirectoryWallpaper(monitor, filesKey, initial) {
         const files = monitorFiles[filesKey] || []
@@ -479,18 +455,17 @@ Singleton {
             const updatedRandom = Object.assign({}, monitorRandomOrder)
             updatedRandom["__global"] = randomOrder
             monitorRandomOrder = updatedRandom
-            enqueueScan("__global", dirPath)
+            _ensureSource("__global", dirPath)
         } else {
             ensureMonitorConfig(monitor)
             configData.monitors[monitor].directory = dirPath
             const updatedDirectories = Object.assign({}, monitorDirectories)
             updatedDirectories[monitor] = dirPath
             monitorDirectories = updatedDirectories
-            enqueueScan(monitor, dirPath)
+            _ensureSource(monitor, dirPath)
         }
 
         saveConfig()
-        processNextScan()
     }
 
     function nextWallpaper(monitor, persist) {

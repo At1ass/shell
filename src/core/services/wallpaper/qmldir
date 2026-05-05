@@ -1,0 +1,4 @@
+module qs.src.core.services.wallpaper
+
+BaseWallpaperSource 1.0 BaseWallpaperSource.qml
+LocalDirectorySource 1.0 LocalDirectorySource.qml
