@@ -30,10 +30,11 @@ Rectangle {
         }
     }
 
-    // Scrim click to close
+    // Scrim click to close — goes through requestClose() so subclasses
+    // can intercept (e.g. confirm-on-discard).
     MouseArea {
         anchors.fill: parent
-        onClicked: root.close()
+        onClicked: root.requestClose()
     }
 
     // Dialog container
@@ -81,6 +82,9 @@ Rectangle {
         root.opacity = 0
         closeTimer.start()
     }
+
+    // Subclasses can override to add a confirm step. Default just closes.
+    function requestClose() { close() }
 
     Timer {
         id: closeTimer

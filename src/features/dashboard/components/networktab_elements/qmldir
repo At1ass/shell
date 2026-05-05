@@ -1,0 +1,7 @@
+module qs.src.features.dashboard.components.networktab_elements
+
+ConnectivityChip 1.0 ConnectivityChip.qml
+WifiPanel 1.0 WifiPanel.qml
+BluetoothPanel 1.0 BluetoothPanel.qml
+VpnPanel 1.0 VpnPanel.qml
+EthernetPanel 1.0 EthernetPanel.qml

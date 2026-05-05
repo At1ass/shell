@@ -10,15 +10,17 @@ Scope {
     property var popupWindows: []
     property var _destroyingSet: ({})  // notificationId -> true
     property int maxVisible: AppConfig.notificationPopupMaxVisible
+    readonly property string position: AppConfig.notificationPopupPosition
+    readonly property bool isTop: position.startsWith("top")
     readonly property int topMargin: AppConfig.barHeight + AppConfig.barMargin
+    readonly property int bottomMargin: AppConfig.barMargin
+    readonly property int baseMargin: isTop ? topMargin : bottomMargin
     readonly property int popupSpacing: 8
 
     // Sticky screen: all popups go to the same screen while the stack is active.
-    // Only re-evaluate focused screen when no popups are visible.
     property var _currentScreen: null
 
     function _getTargetScreen() {
-        // If popups are active, keep them on the same screen
         if (_currentScreen && popupWindows.length > 0) return _currentScreen
 
         const focused = Hyprland.focusedMonitor
@@ -78,7 +80,7 @@ Scope {
             "notificationData": data,
             "notificationObject": notification,
             "screen": targetScreen,
-            "screenY": topMargin
+            "screenY": baseMargin
         })
 
         popup.exitFinished.connect(() => manager._onPopupExitFinished(popup))
@@ -86,7 +88,6 @@ Scope {
         popupWindows = [popup].concat(popupWindows)
         NotificationService.registerPopup(data.notificationId)
 
-        // Recalculate all positions based on actual heights
         _recalculateStack()
     }
 
@@ -125,14 +126,13 @@ Scope {
 
         _recalculateStack()
 
-        // Reset sticky screen when stack is empty
         if (popupWindows.length === 0) _currentScreen = null
 
         Qt.callLater(() => { popup.destroy() })
     }
 
     function _recalculateStack() {
-        let y = topMargin
+        let y = baseMargin
         for (let i = 0; i < popupWindows.length; i++) {
             const popup = popupWindows[i]
             if (!popup) continue

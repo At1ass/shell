@@ -46,16 +46,17 @@ Rectangle {
         Image {
             visible: source !== ""
             source: root.groupAppIcon ? Quickshell.iconPath(root.groupAppIcon) : ""
-            Layout.preferredWidth: 24
-            Layout.preferredHeight: 24
+            Layout.preferredWidth: 20
+            Layout.preferredHeight: 20
             fillMode: Image.PreserveAspectFit
-            sourceSize.width: 24
-            sourceSize.height: 24
+            sourceSize.width: 20
+            sourceSize.height: 20
+            smooth: true
         }
 
         MaterialText {
             text: root.groupAppName
-            textStyle: "titleSmall"
+            textStyle: "labelLarge"
             colorRole: "onSurface"
             elide: Text.ElideRight
             Layout.fillWidth: true
@@ -78,11 +79,11 @@ Rectangle {
             }
         }
 
-        IconButton {
+        MaterialIcon {
             iconName: root.expanded ? "expand_less" : "expand_more"
-            iconSize: Tokens.iconSize.medium
-            variant: "standard"
-            onClicked: root.toggleExpanded()
+            fontSize: Tokens.iconSize.medium
+            iconColor: Theme.onSurfaceVariant
+            backgroundColor: "transparent"
         }
     }
 }

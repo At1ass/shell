@@ -7,7 +7,7 @@
 | Компонент | Описание |
 |-----------|----------|
 | **Status Bar** | Настраиваемые виджеты: воркспейсы, активное окно, часы, погода, медиа, уведомления, громкость, сеть, батарея, раскладка, трей |
-| **Dashboard** | 4-вкладочный центр управления: Quick, Weather, Calendar, System |
+| **Dashboard** | 4-вкладочный центр управления: Quick, Weather, Calendar (khal + CalDAV), System |
 | **Launcher** | Поиск приложений с fuzzy matching + калькулятор + история буфера обмена |
 | **Notification Center** | Панель уведомлений с историей, группировкой по приложениям, DND |
 | **OSD** | Оверлеи громкости и яркости |
@@ -42,6 +42,8 @@
 | `ddcutil` | Яркость внешних мониторов через DDC/CI |
 | `cliphist` | История буфера обмена в launcher |
 | `qalculate-glib` | Калькулятор в launcher (нужен при сборке плагина) |
+| `khal` | Календарь — CLI для iCalendar (события, RRULE, просмотр) |
+| `vdirsyncer` | CalDAV синхронизация (Google, Yandex, iCloud и др.) |
 | `libnotify` | Напоминания о событиях календаря (`notify-send`) |
 | `networkmanager` | Виджет сети и статус VPN |
 | `bluez` | Статус Bluetooth в Dashboard |
@@ -165,7 +167,7 @@ powerMenu                — меню питания
 gamingMode               — игровой режим
 wallpaper                — управление обоями
 services.weather         — погода (Open-Meteo, без API ключа)
-services.calendar        — напоминания о событиях
+services.calendar        — календарь (khal), напоминания, upcoming, day view
 services.vpn             — статус VPN (NetworkManager)
 hyprland.workspaceCount  — количество воркспейсов
 ```
@@ -232,8 +234,6 @@ qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar 3=S
 qs ipc call globalstates toggleControlPanel
 qs ipc call globalstates openControlPanel
 qs ipc call globalstates closeControlPanel
-qs ipc call globalstates openControlPanelLeft
-qs ipc call globalstates closeControlPanelLeft
 
 # Launcher
 qs ipc call globalstates toggleLauncher
@@ -375,6 +375,7 @@ shell/
 │   │   └── services/            # Все сервисы (аудио, сеть, погода, …)
 │   ├── features/
 │   │   ├── statusbar/           # Панель и виджеты
+│   │   ├── dock/                # Док приложений с превью окон
 │   │   ├── dashboard/           # 4-вкладочный центр управления
 │   │   ├── launcher/            # Поиск приложений
 │   │   ├── notifications/       # Центр уведомлений и попапы

@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
+import qs.src.core.services
 
 Singleton {
     id: root
@@ -34,6 +35,9 @@ Singleton {
 
     // Device pending auto-connect after pairing
     property var _pendingConnectDevice: null
+
+    // Address of device currently being connected/disconnected/paired
+    property string busyDeviceAddress: ""
 
     // Material icon based on state
     readonly property string icon: {
@@ -67,18 +71,21 @@ Singleton {
 
     // Connect a paired/bonded device (direct property assignment like caelesia)
     function connectDevice(device) {
+        busyDeviceAddress = device.address || ""
         device.trusted = true
         device.connected = true
     }
 
     // Disconnect from a device
     function disconnectDevice(device) {
+        busyDeviceAddress = device.address || ""
         device.connected = false
     }
 
     // Pair a new device — user confirms on the remote device,
     // then auto-connect fires via _pendingConnectDevice watcher
     function pairDevice(device) {
+        busyDeviceAddress = device.address || ""
         root._pendingConnectDevice = device
         device.pair()
     }
@@ -108,6 +115,7 @@ Singleton {
                 dev.trusted = true
                 dev.connected = true
                 root._pendingConnectDevice = null
+                root.busyDeviceAddress = ""
             }
         }
     }
@@ -121,7 +129,9 @@ Singleton {
         onTriggered: {
             if (root._pendingConnectDevice) {
                 console.warn("BluetoothService: pairing timed out for", root._pendingConnectDevice.address)
+                ToastService.warning("Pairing timed out")
                 root._pendingConnectDevice = null
+                root.busyDeviceAddress = ""
             }
         }
     }
@@ -210,6 +220,10 @@ Singleton {
             root.connectedDeviceCount = count
             root.pairedDevices = paired
             root.discoveredDevices = discovered
+
+            // Clear busy state once the device list reflects the change
+            if (root.busyDeviceAddress && !root._pendingConnectDevice)
+                root.busyDeviceAddress = ""
         }
     }
 

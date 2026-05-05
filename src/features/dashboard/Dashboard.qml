@@ -22,7 +22,7 @@ Scope {
 
         Behavior on implicitHeight {
             NumberAnimation {
-                duration: Tokens.motion.duration.medium2
+                duration: Tokens.motion.duration.short4
                 easing.type: Tokens.motion.easing.emphasizedDecelerate
             }
         }
