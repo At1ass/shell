@@ -58,6 +58,10 @@ Singleton {
     property var  _connectedSources: ({})  // sourceId → true; tracks which sources we've subscribed to
 
     Component.onCompleted: {
+        // Touch WallpaperCache so its singleton instantiates and registers
+        // its IPC handler (target: "wallpaper-cache") even when no remote
+        // source is currently configured. Cheap property read, no side effects.
+        const _ = WallpaperCache.baseDir
         if (AppConfig.ready) initFromConfig()
     }
 
