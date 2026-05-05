@@ -90,9 +90,11 @@ QtObject {
                 break
             }
         }
-        // Explicit qualifier — bare `dismiss()` doesn't resolve under
-        // ComponentBehavior: Bound scope rules.
-        data.dismiss()
+        // Per freedesktop spec, the server closes a non-resident notification
+        // automatically once an action is invoked — calling dismiss() here
+        // would race with the synchronous tear-down of this NotifData
+        // (Instantiator destroys the delegate when the notification leaves
+        // trackedNotifications, which can happen mid-invoke).
     }
 
     function _hash(s) {
