@@ -29,7 +29,7 @@ Item {
 		anchors.fill: parent
 
 		// Get wallpaper specific to this monitor
-		source: WallpaperService.getWallpaper(screen.name)
+		source: WallpaperManager.getWallpaper(screen.name)
 
 		// Fill mode specific to this monitor
 		// 0 = Stretch
@@ -39,7 +39,7 @@ Item {
 		// 4 = TileVertically
 		// 5 = TileHorizontally
 		// 6 = Pad
-		fillMode: WallpaperService.getFillMode(screen.name)
+		fillMode: WallpaperManager.getFillMode(screen.name)
 
 		// Async loading to prevent UI blocking
 		asynchronous: root.asynchronous
@@ -80,16 +80,16 @@ Item {
 	// ═══════════════════════════════════════════════════════════════
 
 	Connections {
-		target: WallpaperService
+		target: WallpaperManager
 
 		// React to wallpaper changes
 		function onMonitorWallpapersChanged() {
-			image.source = WallpaperService.getWallpaper(screen.name)
+			image.source = WallpaperManager.getWallpaper(screen.name)
 		}
 
 		// React to fill mode changes
 		function onMonitorFillModesChanged() {
-			image.fillMode = WallpaperService.getFillMode(screen.name)
+			image.fillMode = WallpaperManager.getFillMode(screen.name)
 		}
 	}
 }

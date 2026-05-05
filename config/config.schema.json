@@ -501,56 +501,125 @@
           "default": "",
           "description": "Shell command run after each wallpaper change. $WALLPAPER_PATH contains the new path."
         },
-        "global": {
+        "sources": {
+          "type": "array",
+          "default": [],
+          "description": "Pluggable wallpaper sources. Currently supported types: 'local' (filesystem directory). Each monitor binds to one source by id.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["id", "type"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique source identifier referenced by monitors[].sourceId."
+              },
+              "type": {
+                "type": "string",
+                "enum": ["local", "wallhaven"],
+                "description": "Source type. 'local' = filesystem directory. 'wallhaven' = wallhaven.cc API."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable label (used by picker UI; falls back to id)."
+              },
+              "path": {
+                "type": "string",
+                "description": "For type=local: directory path to scan for image files."
+              },
+              "query": {
+                "type": "string",
+                "description": "For type=wallhaven: search query. Supports tags (id:1234), users (@username), like (like:wallpaperId), and free text. See https://wallhaven.cc/help/api"
+              },
+              "categories": {
+                "type": "string",
+                "default": "111",
+                "pattern": "^[01]{3}$",
+                "description": "For type=wallhaven: bitmask of 100=general, 010=anime, 001=people. Default '111' (all)."
+              },
+              "purity": {
+                "type": "string",
+                "default": "100",
+                "pattern": "^[01]{3}$",
+                "description": "For type=wallhaven: bitmask of 100=sfw, 010=sketchy, 001=nsfw. Default '100' (SFW). NSFW requires API key."
+              },
+              "sorting": {
+                "type": "string",
+                "enum": ["date_added", "relevance", "random", "views", "favorites", "toplist", "hot"],
+                "default": "date_added",
+                "description": "For type=wallhaven: result ordering."
+              },
+              "order": {
+                "type": "string",
+                "enum": ["desc", "asc"],
+                "default": "desc",
+                "description": "For type=wallhaven: ascending or descending."
+              },
+              "topRange": {
+                "type": "string",
+                "enum": ["1d", "3d", "1w", "1M", "3M", "6M", "1y"],
+                "default": "1M",
+                "description": "For type=wallhaven: time window — only used when sorting='toplist'."
+              },
+              "atleast": {
+                "type": "string",
+                "default": "",
+                "pattern": "^(\\d+x\\d+)?$",
+                "description": "For type=wallhaven: minimum resolution as WIDTHxHEIGHT (e.g. '1920x1080'). Empty = no minimum."
+              },
+              "resolutions": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: exact resolutions, comma-separated (e.g. '1920x1080,2560x1440'). Empty = any."
+              },
+              "ratios": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: aspect ratios, comma-separated (e.g. '16x9,16x10'). Empty = any."
+              },
+              "colors": {
+                "type": "string",
+                "default": "",
+                "pattern": "^([0-9a-fA-F]{6})?$",
+                "description": "For type=wallhaven: 6-digit hex color (no leading #). Wallhaven returns wallpapers with that color present. Single value only per API."
+              },
+              "seed": {
+                "type": "string",
+                "default": "",
+                "description": "For type=wallhaven: seed for sorting='random' to keep order stable across requests/restarts."
+              },
+              "apiKeyEnvVar": {
+                "type": "string",
+                "default": "WALLHAVEN_API_KEY",
+                "description": "For type=wallhaven: name of environment variable holding the Wallhaven API key. Without a key, only SFW results are accessible. Never store the key in this config file."
+              }
+            }
+          }
+        },
+        "cache": {
           "type": "object",
-          "description": "Wallpaper cycling settings applied to monitors without per-monitor overrides.",
+          "description": "Disk cache for remote-source wallpapers (Wallhaven, etc.).",
           "additionalProperties": false,
           "properties": {
-            "directory": {
-              "type": "string",
-              "default": "",
-              "description": "Directory to cycle wallpapers from. Empty = no cycling."
-            },
-            "randomOrder": {
-              "type": "boolean",
-              "default": true,
-              "description": "Cycle in random order. false = alphabetical."
-            },
-            "autoChange": {
-              "type": "object",
-              "description": "Timed wallpaper auto-cycling.",
-              "additionalProperties": false,
-              "properties": {
-                "enabled": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Automatically cycle wallpapers on a timer."
-                },
-                "intervalMs": {
-                  "type": "integer",
-                  "default": 300000,
-                  "minimum": 10000,
-                  "description": "Cycle interval in ms. Default 300000 (5 minutes). Minimum 10000 (10 seconds)."
-                }
-              }
+            "maxBytes": {
+              "type": "integer",
+              "default": 524288000,
+              "minimum": 10485760,
+              "description": "LRU eviction threshold in bytes. Default 500 MB. Minimum 10 MB."
             }
           }
         },
         "monitors": {
           "type": "object",
           "default": {},
-          "description": "Per-monitor overrides. Keys are monitor names (e.g. 'DP-1', 'HDMI-A-1').",
+          "description": "Per-monitor wallpaper bindings. Keys are monitor names (e.g. 'DP-1').",
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "path": {
+              "sourceId": {
                 "type": "string",
-                "description": "Static wallpaper path for this monitor."
-              },
-              "directory": {
-                "type": "string",
-                "description": "Wallpaper cycling directory override."
+                "description": "Source id from wallpaper.sources[]. Empty = use defaultWallpaper only."
               },
               "fillMode": {
                 "type": "integer",
@@ -561,7 +630,26 @@
               },
               "randomOrder": {
                 "type": "boolean",
-                "description": "Override random order for this monitor's cycling."
+                "default": true,
+                "description": "Cycle in random order. false = alphabetical (for local sources)."
+              },
+              "autoChange": {
+                "type": "object",
+                "description": "Per-monitor auto-cycling.",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically cycle wallpapers on a timer for this monitor."
+                  },
+                  "intervalMs": {
+                    "type": "integer",
+                    "default": 300000,
+                    "minimum": 10000,
+                    "description": "Cycle interval in ms. Default 300000 (5 minutes). Minimum 10000 (10 seconds)."
+                  }
+                }
               }
             }
           }

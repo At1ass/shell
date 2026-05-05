@@ -116,15 +116,12 @@ Singleton {
     // Hyprland
     readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 
-    // Wallpaper
+    // Wallpaper — top-level keys read by WallpaperManager.
+    // Per-monitor settings (sourceId, fillMode, autoChange, randomOrder) are
+    // read directly via data.wallpaper.monitors[name] inside WallpaperManager.
     readonly property string wallpaperPrimaryMonitor: data.wallpaper?.primaryMonitor ?? ""
     readonly property string wallpaperDefaultPath: data.wallpaper?.defaultWallpaper ?? ""
     readonly property string wallpaperPostScript: data.wallpaper?.postSetScript ?? ""
-    readonly property bool wallpaperAutoChange: data.wallpaper?.global?.autoChange?.enabled ?? false
-    readonly property int wallpaperAutoChangeInterval: data.wallpaper?.global?.autoChange?.intervalMs ?? 300000
-    readonly property bool wallpaperRandomOrder: data.wallpaper?.global?.randomOrder ?? true
-    readonly property string wallpaperGlobalDirectory: data.wallpaper?.global?.directory ?? ""
-    readonly property var wallpaperMonitors: data.wallpaper?.monitors ?? ({})
 
     // Wallpaper state (from state.json)
     readonly property var wallpaperState: stateData.wallpaper ?? ({})

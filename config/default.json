@@ -199,14 +199,8 @@
     "primaryMonitor": "",
     "defaultWallpaper": "",
     "postSetScript": "",
-    "global": {
-      "directory": "",
-      "randomOrder": true,
-      "autoChange": {
-        "enabled": false,
-        "intervalMs": 300000
-      }
-    },
+    "sources": [],
+    "cache": { "maxBytes": 524288000 },
     "monitors": {}
   },
 
