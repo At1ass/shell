@@ -19,8 +19,10 @@ MaterialCard {
            : Theme.surfaceContainerHigh
     radius: Tokens.shape.medium
 
-    // Swipe-to-dismiss
+    // Swipe-to-dismiss. Coords kept in scene (window) frame via mapToItem
+    // — local MouseArea x is unstable when root.x mutates during drag.
     property real _dragStartX: 0
+    property real _dragInitialRootX: 0
     property bool _swiping: false
 
     ParallelAnimation {
@@ -49,15 +51,18 @@ MaterialCard {
         hoverEnabled: true
 
         onPressed: (mouse) => {
-            root._dragStartX = mouse.x
+            const scene = historyMouseArea.mapToItem(null, mouse.x, mouse.y)
+            root._dragStartX = scene.x
+            root._dragInitialRootX = root.x
             root._swiping = false
         }
         onPositionChanged: (mouse) => {
             if (!pressed) return
-            const dx = mouse.x - root._dragStartX
+            const scene = historyMouseArea.mapToItem(null, mouse.x, mouse.y)
+            const dx = scene.x - root._dragStartX
             if (Math.abs(dx) > 10) root._swiping = true
             if (root._swiping) {
-                root.x = dx
+                root.x = root._dragInitialRootX + dx
                 root.opacity = 1.0 - (Math.abs(root.x) / root.width) * 0.5
             }
         }
@@ -185,6 +190,7 @@ MaterialCard {
         MaterialText {
             text: root.hasNotification ? (notificationObject.body || "") : ""
             textStyle: "bodyMedium"
+            textFormat: Text.StyledText
             colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                        ? "onErrorContainer"
                        : "onSurfaceVariant"

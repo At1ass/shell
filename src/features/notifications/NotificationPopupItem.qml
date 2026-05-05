@@ -66,8 +66,12 @@ Rectangle {
         }
     }
 
-    // Swipe-to-dismiss state
+    // Swipe-to-dismiss state. _dragStartX and the deltas below are kept in
+    // scene (window) coordinates via mapToItem(null, ...). Local MouseArea
+    // coordinates are unstable here because root.x mutates during drag,
+    // which translates the MouseArea and feeds back into mouse.x.
     property real _dragStartX: 0
+    property real _dragInitialRootX: 0
     property bool _swiping: false
     property real _swipeDirection: 0
 
@@ -182,19 +186,22 @@ Rectangle {
         hoverEnabled: true
 
         onPressed: (mouse) => {
-            root._dragStartX = mouse.x
+            const scene = mouseArea.mapToItem(null, mouse.x, mouse.y)
+            root._dragStartX = scene.x
+            root._dragInitialRootX = root.x
             root._swiping = false
             root._swipeDirection = 0
         }
         onPositionChanged: (mouse) => {
             if (!pressed) return
-            const dx = mouse.x - root._dragStartX
+            const scene = mouseArea.mapToItem(null, mouse.x, mouse.y)
+            const dx = scene.x - root._dragStartX
             if (Math.abs(dx) > 10) {
                 root._swiping = true
                 root._swipeDirection = dx > 0 ? 1 : -1
             }
             if (root._swiping) {
-                root.x = dx
+                root.x = root._dragInitialRootX + dx
                 root.opacity = 1.0 - (Math.abs(root.x) / root.implicitWidth) * 0.5
             }
         }
@@ -269,6 +276,7 @@ Rectangle {
             text: root.hasData ? (notificationData.body || "") : ""
             visible: text.length > 0
             textStyle: "bodyMedium"
+            textFormat: Text.StyledText
             wrapMode: Text.WordWrap
             maximumLineCount: 4
             elide: Text.ElideRight
