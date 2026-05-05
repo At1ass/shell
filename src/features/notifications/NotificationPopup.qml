@@ -113,32 +113,18 @@ PanelWindow {
         onFinished: popup._finalizeExit()
     }
 
-    // Watchdog: force-exit if animation hangs
-    Timer {
-        id: exitWatchdog
-        interval: 600
-        repeat: false
-        onTriggered: {
-            if (!popup._finalized) {
-                popup._finalizeExit()
-            }
-        }
-    }
-
     Component.onCompleted: entranceAnim.start()
 
     function startExit() {
         if (exiting || _isDestroying) return
         exiting = true
         exitAnim.start()
-        exitWatchdog.start()
     }
 
     function forceExit() {
         if (_isDestroying) return
         _isDestroying = true
         exitAnim.stop()
-        exitWatchdog.stop()
         visible = false
         _finalizeExit()
     }
@@ -147,7 +133,6 @@ PanelWindow {
         if (_finalized) return
         _finalized = true
         _isDestroying = true
-        exitWatchdog.stop()
         exitFinished()
     }
 
@@ -159,10 +144,7 @@ PanelWindow {
     NotificationPopupItem {
         id: popupItem
         notificationData: popup.notificationData
-        duration: {
-            const meta = NotificationService.activeNotifications[popup.notificationData?.notificationId]
-            return meta ? meta.duration : 0
-        }
+        duration: NotificationService.activeDuration(popup.notificationData?.notificationId ?? "")
 
         transform: [
             Translate { y: popup._entranceTranslateY },
@@ -185,7 +167,7 @@ PanelWindow {
             NotificationService.attemptInvokeAction(popup.notificationData.notificationId, actionId)
         }
         onTimeoutExpired: {
-            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
+            NotificationService.expireActiveNotification(popup.notificationData.notificationId)
         }
     }
 }

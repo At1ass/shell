@@ -19,8 +19,10 @@ MaterialCard {
            : Theme.surfaceContainerHigh
     radius: Tokens.shape.medium
 
-    // Swipe-to-dismiss
+    // Swipe-to-dismiss. Coords kept in scene (window) frame via mapToItem
+    // — local MouseArea x is unstable when root.x mutates during drag.
     property real _dragStartX: 0
+    property real _dragInitialRootX: 0
     property bool _swiping: false
 
     ParallelAnimation {
@@ -49,15 +51,18 @@ MaterialCard {
         hoverEnabled: true
 
         onPressed: (mouse) => {
-            root._dragStartX = mouse.x
+            const scene = historyMouseArea.mapToItem(null, mouse.x, mouse.y)
+            root._dragStartX = scene.x
+            root._dragInitialRootX = root.x
             root._swiping = false
         }
         onPositionChanged: (mouse) => {
             if (!pressed) return
-            const dx = mouse.x - root._dragStartX
+            const scene = historyMouseArea.mapToItem(null, mouse.x, mouse.y)
+            const dx = scene.x - root._dragStartX
             if (Math.abs(dx) > 10) root._swiping = true
             if (root._swiping) {
-                root.x = dx
+                root.x = root._dragInitialRootX + dx
                 root.opacity = 1.0 - (Math.abs(root.x) / root.width) * 0.5
             }
         }
@@ -185,6 +190,7 @@ MaterialCard {
         MaterialText {
             text: root.hasNotification ? (notificationObject.body || "") : ""
             textStyle: "bodyMedium"
+            textFormat: Text.StyledText
             colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                        ? "onErrorContainer"
                        : "onSurfaceVariant"
@@ -214,14 +220,21 @@ MaterialCard {
             }
         }
 
-        // Action buttons — horizontal flow
+        // Action buttons — horizontal flow. "default" and empty-label
+        // actions are filtered (per freedesktop spec — default is body-click).
         Flow {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
-            visible: root.expanded && root.hasNotification && (notificationObject.actions || []).length > 0
+
+            readonly property var _visibleActions: root.hasNotification
+                ? (notificationObject.actions || []).filter(
+                    a => a.identifier !== "default" && (a.text || "").trim().length > 0)
+                : []
+
+            visible: root.expanded && _visibleActions.length > 0
 
             Repeater {
-                model: root.hasNotification ? (notificationObject.actions || []) : []
+                model: parent._visibleActions
 
                 MaterialButton {
                     required property var modelData

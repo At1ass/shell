@@ -17,23 +17,17 @@ Scope {
     readonly property int baseMargin: isTop ? topMargin : bottomMargin
     readonly property int popupSpacing: 8
 
-    // Sticky screen: all popups go to the same screen while the stack is active.
-    property var _currentScreen: null
-
+    // Follow-focused-monitor: each new popup spawns on the currently
+    // focused screen. Existing popups stay on their original screen
+    // (re-parenting mid-flight would cause animation flicker).
     function _getTargetScreen() {
-        if (_currentScreen && popupWindows.length > 0) return _currentScreen
-
         const focused = Hyprland.focusedMonitor
         if (focused) {
             for (const screen of Quickshell.screens) {
-                if (screen.name === focused.name) {
-                    _currentScreen = screen
-                    return screen
-                }
+                if (screen.name === focused.name) return screen
             }
         }
-        _currentScreen = Quickshell.screens[0]
-        return _currentScreen
+        return Quickshell.screens[0]
     }
 
     property Component popupComponent: Component {
@@ -54,14 +48,6 @@ Scope {
         function onPopupDismissRequested(notificationId) {
             manager._beginDismiss(notificationId)
         }
-    }
-
-    // Sweeper: periodic cleanup of zombie windows
-    Timer {
-        interval: 500
-        repeat: true
-        running: manager.popupWindows.length > 0
-        onTriggered: manager._sweep()
     }
 
     function _createPopup(data, notification) {
@@ -126,8 +112,6 @@ Scope {
 
         _recalculateStack()
 
-        if (popupWindows.length === 0) _currentScreen = null
-
         Qt.callLater(() => { popup.destroy() })
     }
 
@@ -143,23 +127,4 @@ Scope {
         }
     }
 
-    function _sweep() {
-        let needsCleanup = false
-        for (let i = popupWindows.length - 1; i >= 0; i--) {
-            const popup = popupWindows[i]
-            if (!popup) {
-                popupWindows.splice(i, 1)
-                needsCleanup = true
-                continue
-            }
-            if (!popup.hasValidData && !popup.exiting && !popup._isDestroying) {
-                popup.forceExit()
-                needsCleanup = true
-            }
-        }
-        if (needsCleanup) {
-            popupWindows = popupWindows.slice()
-            _recalculateStack()
-        }
-    }
 }

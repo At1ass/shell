@@ -18,6 +18,15 @@ Rectangle {
     readonly property bool isCritical: hasData && notificationData.urgency === NotificationUrgency.Critical
     readonly property bool hovered: mouseArea.containsMouse
 
+    // Per freedesktop spec, the action with identifier "default" is the
+    // implicit click target on the notification body — it's never meant
+    // to be a labelled button. Filter it (and any empty-label actions)
+    // out of the buttons strip; surface it via body click instead.
+    readonly property var _allActions: hasData ? (notificationData.actions || []) : []
+    readonly property var _visibleActions: _allActions.filter(
+        a => a.identifier !== "default" && (a.text || "").trim().length > 0)
+    readonly property var _defaultAction: _allActions.find(a => a.identifier === "default") ?? null
+
     signal swipeDismissed()
     signal closeClicked()
     signal actionInvoked(string actionId)
@@ -66,8 +75,12 @@ Rectangle {
         }
     }
 
-    // Swipe-to-dismiss state
+    // Swipe-to-dismiss state. _dragStartX and the deltas below are kept in
+    // scene (window) coordinates via mapToItem(null, ...). Local MouseArea
+    // coordinates are unstable here because root.x mutates during drag,
+    // which translates the MouseArea and feeds back into mouse.x.
     property real _dragStartX: 0
+    property real _dragInitialRootX: 0
     property bool _swiping: false
     property real _swipeDirection: 0
 
@@ -182,19 +195,22 @@ Rectangle {
         hoverEnabled: true
 
         onPressed: (mouse) => {
-            root._dragStartX = mouse.x
+            const scene = mouseArea.mapToItem(null, mouse.x, mouse.y)
+            root._dragStartX = scene.x
+            root._dragInitialRootX = root.x
             root._swiping = false
             root._swipeDirection = 0
         }
         onPositionChanged: (mouse) => {
             if (!pressed) return
-            const dx = mouse.x - root._dragStartX
+            const scene = mouseArea.mapToItem(null, mouse.x, mouse.y)
+            const dx = scene.x - root._dragStartX
             if (Math.abs(dx) > 10) {
                 root._swiping = true
                 root._swipeDirection = dx > 0 ? 1 : -1
             }
             if (root._swiping) {
-                root.x = dx
+                root.x = root._dragInitialRootX + dx
                 root.opacity = 1.0 - (Math.abs(root.x) / root.implicitWidth) * 0.5
             }
         }
@@ -205,6 +221,9 @@ Rectangle {
             } else if (root._swiping) {
                 root._swiping = false
                 snapBackAnim.start()
+            } else if (root._defaultAction) {
+                // Plain click on the body invokes the implicit "default" action.
+                root.actionInvoked(root._defaultAction.identifier)
             }
         }
     }
@@ -269,6 +288,7 @@ Rectangle {
             text: root.hasData ? (notificationData.body || "") : ""
             visible: text.length > 0
             textStyle: "bodyMedium"
+            textFormat: Text.StyledText
             wrapMode: Text.WordWrap
             maximumLineCount: 4
             elide: Text.ElideRight
@@ -296,14 +316,15 @@ Rectangle {
             }
         }
 
-        // Action buttons — horizontal flow
+        // Action buttons — horizontal flow. "default" identifier and
+        // empty-label actions are excluded (handled via body click).
         Flow {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
-            visible: root.hasData && (notificationData.actions || []).length > 0
+            visible: root._visibleActions.length > 0
 
             Repeater {
-                model: root.hasData ? (notificationData.actions || []) : []
+                model: root._visibleActions
 
                 MaterialButton {
                     required property var modelData

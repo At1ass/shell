@@ -10,6 +10,8 @@ import qs.src.ui.base
 import qs.src.ui.containers
 import qs.src.ui.feedback
 
+// NotificationDND import comes from qs.src.core.services above (singleton).
+
 Scope {
     PanelWindow {
         id: centerWindow
@@ -187,17 +189,34 @@ Scope {
                         }
                     }
 
-                    // Count indicator
-                    MaterialText {
-                        text: {
-                            const count = NotificationService.historyList.count
-                            if (count === 0) return ""
-                            return count + (count === 1 ? " notification" : " notifications")
-                        }
-                        visible: text.length > 0
-                        textStyle: "labelMedium"
-                        colorRole: "onSurfaceVariant"
+                    // Count indicator + DND state hint
+                    RowLayout {
                         Layout.fillWidth: true
+                        spacing: Tokens.spacing.small
+
+                        MaterialText {
+                            text: {
+                                const count = NotificationService.historyList.count
+                                if (count === 0) return ""
+                                return count + (count === 1 ? " notification" : " notifications")
+                            }
+                            visible: text.length > 0
+                            textStyle: "labelMedium"
+                            colorRole: "onSurfaceVariant"
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        // Surface DND-active state — distinguish manual toggle
+                        // from the auto-suppress when a fullscreen window is in focus.
+                        MaterialText {
+                            visible: NotificationDND.active
+                            text: NotificationDND.enabled
+                                ? "DND on — popups silenced"
+                                : "Fullscreen — popups silenced"
+                            textStyle: "labelSmall"
+                            colorRole: "tertiary"
+                        }
                     }
 
                     Divider {
