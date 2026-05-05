@@ -220,14 +220,21 @@ MaterialCard {
             }
         }
 
-        // Action buttons — horizontal flow
+        // Action buttons — horizontal flow. "default" and empty-label
+        // actions are filtered (per freedesktop spec — default is body-click).
         Flow {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
-            visible: root.expanded && root.hasNotification && (notificationObject.actions || []).length > 0
+
+            readonly property var _visibleActions: root.hasNotification
+                ? (notificationObject.actions || []).filter(
+                    a => a.identifier !== "default" && (a.text || "").trim().length > 0)
+                : []
+
+            visible: root.expanded && _visibleActions.length > 0
 
             Repeater {
-                model: root.hasNotification ? (notificationObject.actions || []) : []
+                model: parent._visibleActions
 
                 MaterialButton {
                     required property var modelData

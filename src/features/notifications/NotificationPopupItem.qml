@@ -18,6 +18,15 @@ Rectangle {
     readonly property bool isCritical: hasData && notificationData.urgency === NotificationUrgency.Critical
     readonly property bool hovered: mouseArea.containsMouse
 
+    // Per freedesktop spec, the action with identifier "default" is the
+    // implicit click target on the notification body — it's never meant
+    // to be a labelled button. Filter it (and any empty-label actions)
+    // out of the buttons strip; surface it via body click instead.
+    readonly property var _allActions: hasData ? (notificationData.actions || []) : []
+    readonly property var _visibleActions: _allActions.filter(
+        a => a.identifier !== "default" && (a.text || "").trim().length > 0)
+    readonly property var _defaultAction: _allActions.find(a => a.identifier === "default") ?? null
+
     signal swipeDismissed()
     signal closeClicked()
     signal actionInvoked(string actionId)
@@ -212,6 +221,9 @@ Rectangle {
             } else if (root._swiping) {
                 root._swiping = false
                 snapBackAnim.start()
+            } else if (root._defaultAction) {
+                // Plain click on the body invokes the implicit "default" action.
+                root.actionInvoked(root._defaultAction.identifier)
             }
         }
     }
@@ -304,14 +316,15 @@ Rectangle {
             }
         }
 
-        // Action buttons — horizontal flow
+        // Action buttons — horizontal flow. "default" identifier and
+        // empty-label actions are excluded (handled via body click).
         Flow {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
-            visible: root.hasData && (notificationData.actions || []).length > 0
+            visible: root._visibleActions.length > 0
 
             Repeater {
-                model: root.hasData ? (notificationData.actions || []) : []
+                model: root._visibleActions
 
                 MaterialButton {
                     required property var modelData
