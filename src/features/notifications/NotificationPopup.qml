@@ -159,10 +159,7 @@ PanelWindow {
     NotificationPopupItem {
         id: popupItem
         notificationData: popup.notificationData
-        duration: {
-            const meta = NotificationService.activeNotifications[popup.notificationData?.notificationId]
-            return meta ? meta.duration : 0
-        }
+        duration: NotificationService.activeDuration(popup.notificationData?.notificationId ?? "")
 
         transform: [
             Translate { y: popup._entranceTranslateY },

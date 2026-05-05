@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs.src.core.config
+import qs.src.features.notifications
 
 Singleton {
     id: root
@@ -26,8 +27,21 @@ Singleton {
     // State
     property ListModel historyList: ListModel {}
 
-    property var activeNotifications: ({}) // notificationId -> { notification, watcher, timestamp, duration, hoverCount, pauseTime, contentId }
-    property var quickshellIdToInternalId: ({})
+    // Maps internal id (history-style, "contentId:ts:n") to the NotifData
+    // wrapper. NotifData lifetime is governed by the Instantiator below;
+    // this map is a lookup for QML callers that hold the internal id.
+    property var _notifDataByInternalId: ({})
+
+    // Reverse map: Notification.id (Quickshell stable id) -> internal id.
+    // Used to detect "same notification pushed again" so we can update
+    // instead of re-creating.
+    property var _internalIdByNotifId: ({})
+
+    // NotifData index by Quickshell's stable Notification.id. Populated
+    // synchronously by the Instantiator delegate's Component.onCompleted —
+    // by the time _processNotification runs, the delegate exists.
+    property var _notifDataByNotifId: ({})
+
     property int _nextEntryId: 1
 
     // Popup registration — managed by PopupManager
@@ -58,51 +72,51 @@ Singleton {
     // Persistent history
     readonly property string historyFile: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/quickshell/notification-history.json"
 
-    Component {
-        id: notificationServerComponent
-        NotificationServer {
-            keepOnReload: false
-            actionsSupported: true
-            imageSupported: true
-            // UI components render body as Text.StyledText — declare markup
-            // support so clients know they can send HTML-style markup, and
-            // we don't have to strip tags (which broke "Less than < 5").
-            bodyMarkupSupported: true
+    NotificationServer {
+        id: notifServer
+        keepOnReload: false
+        actionsSupported: true
+        imageSupported: true
+        // UI components render body as Text.StyledText — declare markup
+        // support so clients know they can send HTML-style markup, and
+        // we don't have to strip tags (which broke "Less than < 5").
+        bodyMarkupSupported: true
 
-            onNotification: (notification) => {
-                root._ingestNotification(notification)
-            }
+        onNotification: (notification) => {
+            root._ingestNotification(notification)
         }
     }
 
-    Component {
-        id: notificationWatcherComponent
-        Connections {
-            property var targetNotification
-            property string targetDataId
-            target: targetNotification
+    // One NotifData per tracked notification. The Instantiator's lifetime
+    // tracks the server's trackedNotifications ObjectModel — when a
+    // notification is removed (because tracked=false or it closes), the
+    // delegate is destroyed automatically. Replaces the previous pattern of
+    // dynamically creating Connections via notificationWatcherComponent and
+    // remembering to destroy them.
+    Instantiator {
+        id: notifDataInstantiator
+        model: notifServer.trackedNotifications
+        delegate: NotifData {
+            required property var modelData
+            notification: modelData
 
-            function onSummaryChanged() {
-                root._updateNotificationFromObject(targetDataId)
+            Component.onCompleted: root._notifDataByNotifId[modelData.id] = this
+            Component.onDestruction: { delete root._notifDataByNotifId[modelData.id] }
+
+            // Service watches popup-relevant property changes and emits
+            // popupReplaced so the active popup can update. Attach via an
+            // explicit property — QtObject has no default children list.
+            readonly property Connections _serviceWatch: Connections {
+                target: modelData
+                function onSummaryChanged()  { root._notifDataPropChanged(modelData) }
+                function onBodyChanged()     { root._notifDataPropChanged(modelData) }
+                function onAppNameChanged()  { root._notifDataPropChanged(modelData) }
+                function onUrgencyChanged()  { root._notifDataPropChanged(modelData) }
+                function onAppIconChanged()  { root._notifDataPropChanged(modelData) }
+                function onImageChanged()    { root._notifDataPropChanged(modelData) }
+                function onActionsChanged()  { root._notifDataPropChanged(modelData) }
             }
-            function onBodyChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
-            function onAppNameChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
-            function onUrgencyChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
-            function onAppIconChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
-            function onImageChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
-            function onActionsChanged() {
-                root._updateNotificationFromObject(targetDataId)
-            }
+            onClosed: (reason) => root._onNotifDataClosed(modelData, reason)
         }
     }
 
@@ -174,7 +188,6 @@ Singleton {
     }
 
     Component.onCompleted: {
-        notificationServerComponent.createObject(root)
         historyFileView.reload()
     }
 
@@ -209,9 +222,10 @@ Singleton {
             return
         }
 
-        const quickshellId = notification.id
-        const existingInternalId = quickshellIdToInternalId[quickshellId]
-        if (existingInternalId && activeNotifications[existingInternalId]) {
+        // If the same Notification was already pushed and is still tracked,
+        // update its existing popup data instead of creating a new one.
+        const existingInternalId = _internalIdByNotifId[notification.id]
+        if (existingInternalId && _notifDataByInternalId[existingInternalId]) {
             _updateExistingNotification(existingInternalId, notification)
             return
         }
@@ -222,7 +236,7 @@ Singleton {
             cleanupNotification(duplicateId)
         }
 
-        _gateShow(quickshellId, notification, data)
+        _gateShow(notification.id, notification, data)
     }
 
     function _gateShow(quickshellId, notification, data) {
@@ -246,24 +260,16 @@ Singleton {
     }
 
     function _showNotification(quickshellId, notification, data) {
-        quickshellIdToInternalId[quickshellId] = data.notificationId
-
-        const watcher = notificationWatcherComponent.createObject(root, {
-            "targetNotification": notification,
-            "targetDataId": data.notificationId
-        })
-
-        activeNotifications[data.notificationId] = {
-            "notification": notification,
-            "watcher": watcher,
-            "timestamp": data.timestamp,
-            "duration": calculateDuration(data),
-            "hoverCount": 0,
-            "pauseTime": 0,
-            "contentId": data.contentId
+        const notifData = _notifDataByNotifId[quickshellId]
+        if (!notifData) {
+            // Should not happen — Instantiator's Component.onCompleted runs
+            // synchronously when trackedNotifications gains an entry. Defensive.
+            console.warn("NotificationService: NotifData missing for tracked notification", quickshellId)
+            return
         }
 
-        notification.closed.connect((reason) => root._onNotificationClosed(data.notificationId, reason))
+        _internalIdByNotifId[quickshellId] = data.notificationId
+        _notifDataByInternalId[data.notificationId] = notifData
 
         popupRequested(data, notification)
     }
@@ -285,40 +291,38 @@ Singleton {
             "expireTimeout": normalized.expireTimeout
         }
 
-        const notifData = activeNotifications[internalId]
-        if (notifData) {
-            notifData.notification = notification
-            notifData.duration = calculateDuration({
-                expireTimeout: normalized.expireTimeout,
-                urgency: normalized.urgency
-            })
-            notifData.contentId = contentId
-        }
-
         popupReplaced(internalId, updatedData)
     }
 
-    function _updateNotificationFromObject(internalId) {
-        const notifData = activeNotifications[internalId]
-        if (!notifData || !notifData.notification)
-            return
-        _updateExistingNotification(internalId, notifData.notification)
+    // Called by the Instantiator's per-NotifData Connections when a notable
+    // property of the Notification changes — translate to a popupReplaced
+    // signal so the active popup re-renders with new content.
+    function _notifDataPropChanged(notification) {
+        const internalId = _internalIdByNotifId[notification.id]
+        if (!internalId) return
+        if (!_notifDataByInternalId[internalId]) return
+        _updateExistingNotification(internalId, notification)
     }
 
-    function _onNotificationClosed(id, reason) {
-        // reason is NotificationCloseReason: Expired=1, Dismissed=2, CloseRequested=3.
-        // For Dismissed: user already triggered dismiss path — popup is exiting.
-        // For Expired / CloseRequested: still need to dismiss the popup if visible.
-        if (hasActivePopup(id) && reason !== 2 /* Dismissed */) {
-            popupDismissRequested(id)
+    // Called when a NotifData's underlying Notification fires closed(reason).
+    // Translate to internal-id-based dismiss signal; the NotifData itself
+    // will be destroyed by the Instantiator shortly after.
+    function _onNotifDataClosed(notification, reason) {
+        const internalId = _internalIdByNotifId[notification.id]
+        if (!internalId) return
+        // For Dismissed (2): user already triggered dismiss path — popup
+        // exit is in flight via dismissActiveNotification's popupDismissRequested.
+        // For Expired (1) / CloseRequested (3): still need to dismiss popup if visible.
+        if (hasActivePopup(internalId) && reason !== 2 /* Dismissed */) {
+            popupDismissRequested(internalId)
         }
-        cleanupNotification(id)
+        cleanupNotification(internalId)
     }
 
     function _findDuplicatePopup(contentId) {
         for (const id in root._activePopupIds) {
-            const meta = activeNotifications[id]
-            if (meta && meta.contentId === contentId) {
+            const nd = _notifDataByInternalId[id]
+            if (nd && nd.contentId === contentId) {
                 return id
             }
         }
@@ -326,18 +330,11 @@ Singleton {
     }
 
     function cleanupNotification(id) {
-        const notifData = activeNotifications[id]
-        if (notifData) {
-            notifData.watcher?.destroy()
-            delete activeNotifications[id]
-        }
-
-        for (const qsId in quickshellIdToInternalId) {
-            if (quickshellIdToInternalId[qsId] === id) {
-                delete quickshellIdToInternalId[qsId]
-                break
-            }
-        }
+        const nd = _notifDataByInternalId[id]
+        if (!nd) return
+        const notifId = nd.notification?.id
+        delete _notifDataByInternalId[id]
+        if (notifId !== undefined) delete _internalIdByNotifId[notifId]
     }
 
     function calculateDuration(data) {
@@ -418,33 +415,20 @@ Singleton {
         return (hash >>> 0).toString(16)
     }
 
-    // Hover count API
+    // Hover/pause delegated to NotifData (single source of truth).
     function incrementHover(id) {
-        const meta = activeNotifications[id]
-        if (!meta) return
-        if (meta.hoverCount === 0) {
-            meta.pauseTime = Date.now()
-        }
-        meta.hoverCount++
+        const nd = _notifDataByInternalId[id]
+        if (nd) nd.pauseTimeout()
     }
 
     function decrementHover(id) {
-        const meta = activeNotifications[id]
-        if (!meta || meta.hoverCount <= 0) return
-        meta.hoverCount--
-        // Note: do NOT mutate meta.timestamp here. timestamp is the original
-        // ingest time used by history's relative-time formatter. PopupItem
-        // tracks its own pause separately (NotificationPopupItem.qml).
+        const nd = _notifDataByInternalId[id]
+        if (nd) nd.resumeTimeout()
     }
 
-    // Backward-compatible wrappers
-    function pauseTimeout(id) {
-        incrementHover(id)
-    }
-
-    function resumeTimeout(id) {
-        decrementHover(id)
-    }
+    // Backward-compatible wrappers (callers in QML still use these names).
+    function pauseTimeout(id) { incrementHover(id) }
+    function resumeTimeout(id) { decrementHover(id) }
 
     // History persistence
     FileView {
@@ -663,19 +647,15 @@ Singleton {
     //   - expireActiveNotification → notification.expire() — fires Expired (1).
     //     Use when the auto-dismiss timer ran out.
     function dismissActiveNotification(id) {
-        const meta = activeNotifications[id]
-        if (meta?.notification?.dismiss) {
-            meta.notification.dismiss()
-        }
+        const nd = _notifDataByInternalId[id]
+        nd?.dismiss()
         cleanupNotification(id)
         popupDismissRequested(id)
     }
 
     function expireActiveNotification(id) {
-        const meta = activeNotifications[id]
-        if (meta?.notification?.expire) {
-            meta.notification.expire()
-        }
+        const nd = _notifDataByInternalId[id]
+        nd?.expire()
         cleanupNotification(id)
         popupDismissRequested(id)
     }
@@ -722,16 +702,16 @@ Singleton {
     }
 
     function attemptInvokeAction(id, actionId) {
-        const meta = activeNotifications[id]
-        const actions = meta?.notification?.actions
-        if (!actions)
-            return
-        for (const action of actions) {
-            if (action.identifier === actionId && action.invoke) {
-                action.invoke()
-                break
-            }
-        }
-        dismissActiveNotification(id)
+        const nd = _notifDataByInternalId[id]
+        if (!nd) return
+        nd.invokeAction(actionId)   // also dismisses
+        cleanupNotification(id)
+        popupDismissRequested(id)
+    }
+
+    // Public accessor for popup auto-dismiss timer; popups bind to this.
+    function activeDuration(id) {
+        const nd = _notifDataByInternalId[id]
+        return nd ? nd.durationMs : 0
     }
 }
