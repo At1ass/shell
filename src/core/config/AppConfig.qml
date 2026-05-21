@@ -24,7 +24,7 @@ Singleton {
     readonly property string themeSource: data.appearance?.theme?.source ?? "wallpaper"
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
-    readonly property real fontScale: data.appearance?.fontScale ?? 1.0
+    readonly property real fontScale: data.appearance?.fontScale ?? 1.3
 
     // Bar
     readonly property bool barEnabled: data.bar?.enabled ?? true
