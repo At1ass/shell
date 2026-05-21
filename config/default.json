@@ -204,14 +204,6 @@
     "monitors": {}
   },
 
-  "feed": {
-    "enabled": false,
-    "panelWidth": 520,
-    "refreshMinutes": 30,
-    "maxArticles": 100,
-    "feeds": []
-  },
-
   "services": {
     "weather": {
       "enabled": true,

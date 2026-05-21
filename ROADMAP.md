@@ -54,20 +54,6 @@ command: ["sh", "-c", "{ echo 'agent KeyboardDisplay'; ... while true; do sleep 
 
 ---
 
-## Tier 3 — FeedService XML parsing (3-4 часа)
-
-`src/core/services/FeedService.qml:148-220` — regex-based RSS/Atom XML парсинг с silent failures:
-- `_extractTag` возвращает `""` при parse failure → article молча пропадает
-- Malformed XML (CDATA в неожиданном месте, unclosed tags) обрабатывается криво
-- HTML entity decoder неполный
-- Cache `_readIds` через `Object.assign({}, _readIds)` — O(n²) при больших количествах статей
-
-**Правильный путь**: переписать на `QXmlStreamReader` (часть `Qt6Xml`, без C++ плагина). Все парсинговые баги уйдут. Ловит все XML edge cases корректно.
-
-Альтернатива: маленький C++ helper на 50-100 LOC. Но Qt-нативный путь проще и достаточен.
-
----
-
 ## Wallpaper — отложенные расширения
 
 ### Stage E — Wallpaper Picker UI (~3-5 часов)

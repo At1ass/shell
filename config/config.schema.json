@@ -137,65 +137,6 @@
       }
     },
 
-    "feed": {
-      "type": "object",
-      "description": "RSS/Atom feed reader panel. Opens as a right-side overlay with Google Discover-style article cards. Fetches on panel open, caches between sessions.",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the feed panel feature."
-        },
-        "panelWidth": {
-          "type": "integer",
-          "default": 520,
-          "minimum": 300,
-          "maximum": 800,
-          "description": "Feed panel width in logical pixels."
-        },
-        "refreshMinutes": {
-          "type": "integer",
-          "default": 30,
-          "minimum": 5,
-          "maximum": 1440,
-          "description": "Minimum interval between feed refreshes (minutes). Feeds are only fetched when the panel is opened and the cache is older than this value."
-        },
-        "maxArticles": {
-          "type": "integer",
-          "default": 100,
-          "minimum": 10,
-          "maximum": 500,
-          "description": "Maximum number of articles to keep in cache across all feeds."
-        },
-        "feeds": {
-          "type": "array",
-          "default": [],
-          "description": "List of RSS/Atom feed sources.",
-          "items": {
-            "type": "object",
-            "required": ["url"],
-            "additionalProperties": false,
-            "properties": {
-              "url": {
-                "type": "string",
-                "format": "uri",
-                "description": "RSS or Atom feed URL."
-              },
-              "name": {
-                "type": "string",
-                "description": "Display name for the feed source. If omitted, the domain name is used."
-              },
-              "category": {
-                "type": "string",
-                "description": "Category for grouping. Used as filter chip labels in the panel."
-              }
-            }
-          }
-        }
-      }
-    },
-
     "dashboard": {
       "type": "object",
       "description": "Dashboard panel (5-tab control center: Quick, Weather, Calendar, Audio, Network). Toggle via hotkey or by clicking bar widgets.",
@@ -832,8 +773,7 @@
         "dashboard-network",
         "notification-center",
         "launcher",
-        "control-panel",
-        "feed-panel"
+        "control-panel"
       ],
       "description": "Panel to open when the widget is left-clicked."
     },
@@ -845,7 +785,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["workspaces", "activewindow", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray", "feed"],
+          "enum": ["workspaces", "activewindow", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray"],
           "description": "Widget type identifier."
         },
         "enabled": {
@@ -910,10 +850,6 @@
         {
           "if": { "properties": { "type": { "const": "tray" } }, "required": ["type"] },
           "then": { "properties": { "settings": { "$ref": "#/definitions/traySettings" } } }
-        },
-        {
-          "if": { "properties": { "type": { "const": "feed" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/emptySettings" } } }
         }
       ]
     },

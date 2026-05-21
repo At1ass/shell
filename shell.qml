@@ -13,7 +13,6 @@ import qs.src.features.screenshot
 import qs.src.features.lockscreen
 import qs.src.features.powermenu
 import qs.src.features.cheatsheet
-import qs.src.features.feed
 import qs.src.core.config
 import qs.src.core.services
 import Calendar
@@ -144,11 +143,5 @@ ShellRoot {
     LazyLoader {
         loading: GlobalStates.cheatsheetOpen
         Cheatsheet {}
-    }
-
-    // Feed panel
-    LazyLoader {
-        loading: GlobalStates.feedPanelOpen
-        FeedPanel {}
     }
 }

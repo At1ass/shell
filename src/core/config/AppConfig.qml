@@ -72,13 +72,6 @@ Singleton {
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 
-    // Feed
-    readonly property bool feedEnabled: data.feed?.enabled ?? false
-    readonly property int feedPanelWidth: data.feed?.panelWidth ?? 520
-    readonly property int feedRefreshMinutes: data.feed?.refreshMinutes ?? 30
-    readonly property int feedMaxArticles: data.feed?.maxArticles ?? 100
-    readonly property var feedSources: data.feed?.feeds ?? []
-
     // OSD
     readonly property bool osdEnabled: data.osd?.enabled ?? true
     readonly property int osdTimeout: data.osd?.timeout ?? 2000
