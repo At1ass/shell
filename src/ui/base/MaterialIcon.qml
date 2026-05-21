@@ -16,7 +16,7 @@ Rectangle {
 
     // Color properties
     property color backgroundColor: "transparent"
-    property color iconColor: enabled ? Theme.primary : Theme.surfaceText
+    property color iconColor: enabled ? Theme.primary : Theme.onSurfaceVariant
 
     // Auto-size based on fontSize with padding (can be overridden by setting width/height explicitly)
     implicitWidth: fontSize * sizePadding
