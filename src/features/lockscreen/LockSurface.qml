@@ -95,7 +95,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatTime(new Date(), "HH:mm")
             font.family: Tokens.typography.fontFamily
-            font.pointSize: 72
+            font.pixelSize: 96
             font.weight: Font.Light
             font.letterSpacing: -1.5
             color: Theme.scrimForeground
@@ -224,7 +224,7 @@ Item {
                         selectionColor: Theme.primary
                         verticalAlignment: TextInput.AlignVCenter
                         font.family: Tokens.typography.fontFamily
-                        font.pointSize: Tokens.typography.bodyLarge.size
+                        font.pixelSize: Tokens.typography.bodyLarge.size
                         focus: true
                         clip: true
 

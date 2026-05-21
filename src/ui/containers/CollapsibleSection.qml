@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import qs.src.core.config
 import qs.src.ui.base
 import qs.src.ui.feedback
+import qs.src.ui.inputs
 
 MaterialCard {
     id: section
@@ -109,57 +110,10 @@ MaterialCard {
                 }
 
                 // Toggle switch
-                Rectangle {
+                MaterialSwitch {
                     visible: section.toggleEnabled
-                    width: 52
-                    height: 32
-                    radius: Tokens.shape.large
-                    color: section.toggleChecked ? Theme.primary : Theme.surfaceContainerHighest
-                    border.width: section.toggleChecked ? 0 : 2
-                    border.color: Theme.outline
-
-                    Behavior on color {
-                        ColorAnimation { duration: Tokens.motion.duration.short4 }
-                    }
-
-                    // Thumb
-                    Rectangle {
-                        x: section.toggleChecked ? parent.width - width - 6 : 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: section.toggleChecked ? 24 : 16
-                        height: section.toggleChecked ? 24 : 16
-                        radius: width / 2
-                        color: section.toggleChecked ? Theme.onPrimary : Theme.outline
-
-                        Behavior on x {
-                            NumberAnimation {
-                                duration: Tokens.motion.duration.short4
-                                easing.type: Tokens.motion.easing.emphasizedDecelerate
-                                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
-                            }
-                        }
-
-                        Behavior on width {
-                            NumberAnimation { duration: Tokens.motion.duration.short4 }
-                        }
-
-                        Behavior on height {
-                            NumberAnimation { duration: Tokens.motion.duration.short4 }
-                        }
-
-                        Behavior on color {
-                            ColorAnimation { duration: Tokens.motion.duration.short4 }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: (mouse) => {
-                            section.toggleClicked()
-                            mouse.accepted = true
-                        }
-                    }
+                    checked: section.toggleChecked
+                    onToggled: section.toggleClicked()
                 }
 
                 // Chevron

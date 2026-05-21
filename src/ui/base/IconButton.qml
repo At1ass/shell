@@ -36,9 +36,9 @@ Item {
 
         color: containerColor()
         border.width: variant === "outlined" ? 1 : 0
-        border.color: variant === "outlined" ? Theme.outline : "transparent"
-
-        opacity: root.enabled ? 1.0 : 0.38
+        border.color: variant === "outlined"
+                ? (root.enabled ? Theme.outline : Qt.alpha(Theme.onSurface, Tokens.state.disabledContainerOpacity))
+                : "transparent"
 
         Behavior on color {
             ColorAnimation {
@@ -59,7 +59,7 @@ Item {
             anchors.centerIn: parent
             iconName: root.iconName
             fontSize: root.iconSize
-            iconColor: root.enabled ? root.iconColor : Qt.alpha(root.iconColor, 0.38)
+            iconColor: root.enabled ? root.iconColor : Qt.alpha(root.iconColor, Tokens.state.disabledContentOpacity)
             backgroundColor: "transparent"
         }
     }
@@ -87,7 +87,12 @@ Item {
 
     // Helper functions
     function containerColor() {
-        if (!root.enabled) return Theme.surfaceContainerHigh
+        if (!root.enabled) {
+            // Filled/tonal show a faint disabled fill; standard/outlined stay transparent.
+            return (variant === "filled" || variant === "tonal")
+                ? Qt.alpha(Theme.onSurface, Tokens.state.disabledContainerOpacity)
+                : "transparent"
+        }
 
         switch (variant) {
         case "filled":

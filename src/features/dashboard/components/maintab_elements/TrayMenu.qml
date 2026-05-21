@@ -161,7 +161,7 @@ StackView {
                             id: labelMetrics
 
                             text: item.modelData.text
-                            font.pointSize: label.font.pointSize
+                            font.pixelSize: label.font.pixelSize
                             font.family: label.font.family
 
                             elide: Text.ElideRight

@@ -6,3 +6,6 @@ EmptyState 1.0 EmptyState.qml
 TooltipManager 1.0 TooltipManager.qml
 TooltipItem 1.0 TooltipItem.qml
 Badge 1.0 Badge.qml
+ProgressIndicator 1.0 ProgressIndicator.qml
+Snackbar 1.0 Snackbar.qml
+MaterialMenu 1.0 MaterialMenu.qml

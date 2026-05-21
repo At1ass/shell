@@ -51,7 +51,8 @@ Item {
             from: 0
             to: root.width - label.implicitWidth
             duration: Math.abs(root.width - label.implicitWidth) / root.speed * 1000
-            easing.type: Easing.InOutSine
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
 
         PauseAnimation {
@@ -64,7 +65,8 @@ Item {
             from: root.width - label.implicitWidth
             to: 0
             duration: Math.abs(root.width - label.implicitWidth) / root.speed * 1000
-            easing.type: Easing.InOutSine
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
 
         PauseAnimation {
