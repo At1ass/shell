@@ -26,15 +26,30 @@ greeter/
 │   └── UserModel.qml          — Пользователи из getent passwd (UID 1000–65533)
 ├── components/
 │   └── LoginForm.qml          — Username + password + session selector + submit
-└── ui/                        — Локальный UI kit (копия src/ui/base без qs.src.* зависимостей)
-    ├── Tokens.qml             — Типографика, spacing, shape, motion (fontScale=1.0)
-    ├── MaterialText.qml
-    ├── MaterialIcon.qml
-    ├── MaterialButton.qml
-    ├── IconButton.qml
-    ├── CircleAvatar.qml
+└── ui/                        — UI kit, СГЕНЕРИРОВАН из src/ui через sync-ui.sh
+    ├── Tokens.qml             — из src/core/config/Tokens.qml (fontScale=1.3, без AppConfig)
+    ├── MaterialText.qml       — \
+    ├── MaterialIcon.qml       —  |
+    ├── MaterialButton.qml     —  } из src/ui/base/* и src/ui/feedback/StateLayer.qml
+    ├── IconButton.qml         —  |  (Theme→GreeterTheme, qs.src.core.config→qs.config)
+    ├── CircleAvatar.qml       — /
     └── StateLayer.qml
 ```
+
+### Регенерация UI kit (`sync-ui.sh`)
+
+`ui/` — **сгенерированные файлы, не редактировать вручную**. Единый источник правды —
+основной кит в `src/ui`. После изменений в `src/ui` синхронизируй гритер:
+
+```bash
+src/features/greeter/sync-ui.sh
+```
+
+Скрипт копирует компоненты из `src/ui/base` + `src/ui/feedback/StateLayer.qml` и
+`src/core/config/Tokens.qml`, применяя механическую подстановку (`Theme`→`GreeterTheme`,
+импорты, `AppConfig.fontScale`→литерал). Так гритер не расходится с основным шеллом.
+Гритер — отдельный процесс (greetd, до логина), поэтому его тема (`GreeterTheme`) и
+`Tokens` обязаны отличаться источником данных — но тела компонентов идентичны.
 
 ## Установка
 
