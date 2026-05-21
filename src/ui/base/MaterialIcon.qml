@@ -41,7 +41,7 @@ Rectangle {
         text: root.iconName
         color: root.iconColor
         font.family: root.fontFamily
-        font.pointSize: root.fontSize
+        font.pixelSize: root.fontSize
         textFormat: Text.PlainText
         font.variableAxes: ({
             FILL: root.fill,

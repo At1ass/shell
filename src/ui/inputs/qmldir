@@ -1,0 +1,10 @@
+module qs.src.ui.inputs
+
+MaterialSlider 1.0 MaterialSlider.qml
+MaterialComboBox 1.0 MaterialComboBox.qml
+MaterialSwitch 1.0 MaterialSwitch.qml
+MaterialCheckbox 1.0 MaterialCheckbox.qml
+MaterialRadioButton 1.0 MaterialRadioButton.qml
+MaterialTextField 1.0 MaterialTextField.qml
+Chip 1.0 Chip.qml
+SegmentedButton 1.0 SegmentedButton.qml

@@ -97,7 +97,7 @@ ColumnLayout {
                     selectionColor: GreeterTheme.primary
                     verticalAlignment: TextInput.AlignVCenter
                     font.family: Tokens.typography.fontFamily
-                    font.pointSize: Tokens.typography.bodyLarge.size
+                    font.pixelSize: Tokens.typography.bodyLarge.size
                     clip: true
                     enabled: !root.authenticating
 
@@ -168,7 +168,7 @@ ColumnLayout {
                     selectionColor: GreeterTheme.primary
                     verticalAlignment: TextInput.AlignVCenter
                     font.family: Tokens.typography.fontFamily
-                    font.pointSize: Tokens.typography.bodyLarge.size
+                    font.pixelSize: Tokens.typography.bodyLarge.size
                     clip: true
                     enabled: !root.authenticating
 

@@ -126,7 +126,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
                         echoMode: showPasswordToggle.checked ? TextInput.Normal : TextInput.Password
                         font.family: Tokens.typography.fontFamily
-                        font.pointSize: Tokens.typography.bodyLarge.size
+                        font.pixelSize: Tokens.typography.bodyLarge.size
                         color: Theme.onSurface
                         clip: true
                     }

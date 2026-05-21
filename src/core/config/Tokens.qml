@@ -27,6 +27,9 @@ Singleton {
         readonly property int large: 16
         readonly property int extraLarge: 28
         readonly property int full: 999
+        // MD3 buttons are pill-shaped (radius = height/2). A large value clamps
+        // to min(w,h)/2 in Qt, yielding a pill at any button height.
+        readonly property int button: 999
     }
 
     // Font scale (0.5–2.0, 1.0 = normal)
@@ -163,6 +166,10 @@ Singleton {
         }
 
         // Easing curves (Material Design 3)
+        // Usage: enter/appear ⇒ emphasizedDecelerate, exit/disappear ⇒ emphasizedAccelerate,
+        // persistent on-screen state changes ⇒ standard. `emphasized` is a single-curve
+        // approximation (MD3's true emphasized is a two-part spring not expressible as one
+        // cubic-bezier) — prefer the decelerate/accelerate variants for directional motion.
         readonly property QtObject easing: QtObject {
             readonly property int emphasized: Easing.BezierSpline
             readonly property var emphasizedPoints: [0.2, 0.0, 0, 1.0]
@@ -181,6 +188,74 @@ Singleton {
         readonly property real pressedOpacity: 0.12
         readonly property real focusOpacity: 0.12
         readonly property real draggedOpacity: 0.16
+    }
+
+    // Material Design 3 disabled state tokens (replaces ad-hoc Qt.alpha hacks)
+    readonly property QtObject state: QtObject {
+        readonly property real disabledContainerOpacity: 0.12
+        readonly property real disabledContentOpacity: 0.38
+    }
+
+    // Keyboard focus indicator (MD3 focus ring)
+    readonly property QtObject focusRing: QtObject {
+        readonly property int width: 3
+        readonly property int offset: 2
+    }
+
+    // Material Design 3 elevation tokens.
+    // MD3 expresses elevation as a TONAL surface color (surfaceContainer tiers) PLUS,
+    // for floating elements, a subtle shadow. Each level maps to a Theme color-role name
+    // (resolve via Theme[level.surfaceRole]) and shadow params in px (consumed by Surface.qml,
+    // which translates shadowRadius → MultiEffect blur).
+    readonly property QtObject elevation: QtObject {
+        readonly property QtObject level0: QtObject {
+            readonly property string surfaceRole: "surface"
+            readonly property int shadowRadius: 0
+            readonly property int shadowVerticalOffset: 0
+            readonly property real shadowOpacity: 0.0
+        }
+        readonly property QtObject level1: QtObject {
+            readonly property string surfaceRole: "surfaceContainerLow"
+            readonly property int shadowRadius: 3
+            readonly property int shadowVerticalOffset: 1
+            readonly property real shadowOpacity: 0.10
+        }
+        readonly property QtObject level2: QtObject {
+            readonly property string surfaceRole: "surfaceContainer"
+            readonly property int shadowRadius: 6
+            readonly property int shadowVerticalOffset: 2
+            readonly property real shadowOpacity: 0.12
+        }
+        readonly property QtObject level3: QtObject {
+            readonly property string surfaceRole: "surfaceContainerHigh"
+            readonly property int shadowRadius: 12
+            readonly property int shadowVerticalOffset: 4
+            readonly property real shadowOpacity: 0.14
+        }
+        readonly property QtObject level4: QtObject {
+            readonly property string surfaceRole: "surfaceContainerHigh"
+            readonly property int shadowRadius: 16
+            readonly property int shadowVerticalOffset: 6
+            readonly property real shadowOpacity: 0.16
+        }
+        readonly property QtObject level5: QtObject {
+            readonly property string surfaceRole: "surfaceContainerHighest"
+            readonly property int shadowRadius: 24
+            readonly property int shadowVerticalOffset: 8
+            readonly property real shadowOpacity: 0.18
+        }
+
+        // Resolve a level QtObject by integer (0–5); clamps out-of-range.
+        function level(n) {
+            switch (Math.max(0, Math.min(5, n))) {
+            case 1: return level1
+            case 2: return level2
+            case 3: return level3
+            case 4: return level4
+            case 5: return level5
+            default: return level0
+            }
+        }
     }
 
     // Material Design 3 icon size tokens

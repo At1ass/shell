@@ -17,7 +17,9 @@ Text {
 
     // Автоматическое применение Material Design 3 типографики
     font.family: Tokens.typography.fontFamily
-    font.pointSize: currentStyle.size
+    // MD3 type-scale sizes are in sp → map to Qt pixelSize (DPI-independent),
+    // NOT pointSize (which is physical points and varies with font DPI).
+    font.pixelSize: currentStyle.size
     font.weight: currentStyle.weight
     font.letterSpacing: currentStyle.letterSpacing
 

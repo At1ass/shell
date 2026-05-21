@@ -1,5 +1,6 @@
 module qs.src.ui.containers
 
+Surface 1.0 Surface.qml
 MaterialCard 1.0 MaterialCard.qml
 BarElement 1.0 BarElement.qml
 Divider 1.0 Divider.qml

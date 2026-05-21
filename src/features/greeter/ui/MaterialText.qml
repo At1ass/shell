@@ -11,7 +11,8 @@ Text {
     readonly property color resolvedColor: GreeterTheme[colorRole] || GreeterTheme.onSurface
 
     font.family: Tokens.typography.fontFamily
-    font.pointSize: currentStyle.size
+    // MD3 sp sizes → Qt pixelSize (matches main shell MaterialText)
+    font.pixelSize: currentStyle.size
     font.weight: currentStyle.weight
     font.letterSpacing: currentStyle.letterSpacing
 
