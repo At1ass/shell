@@ -324,12 +324,11 @@ PanelWindow {
                             }
                         }
 
-                        Text {
+                        MaterialText {
                             width: thumbContainer.width
                             text: previewDelegate.modelData.title || "Untitled"
-                            color: Theme.onSurface
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
+                            colorRole: "onSurface"
+                            textStyle: "labelMedium"
                             elide: Text.ElideRight
                             horizontalAlignment: Text.AlignHCenter
                         }

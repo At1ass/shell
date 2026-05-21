@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
 import qs.src.ui.base
+import qs.src.ui.inputs
 
 Rectangle {
     id: root
@@ -65,43 +66,10 @@ Rectangle {
         }
 
         // Toggle switch
-        Rectangle {
+        MaterialSwitch {
             visible: root.toggleEnabled
-            width: 36
-            height: 20
-            radius: 10
-            color: root.toggleChecked ? Theme.primary : Theme.surfaceContainerHighest
-            border.width: root.toggleChecked ? 0 : 2
-            border.color: Theme.outline
-
-            Behavior on color {
-                ColorAnimation { duration: Tokens.motion.duration.short4 }
-            }
-
-            Rectangle {
-                y: (parent.height - height) / 2
-                x: root.toggleChecked ? parent.width - width - 3 : 3
-                width: root.toggleChecked ? 14 : 12
-                height: width
-                radius: width / 2
-                color: root.toggleChecked ? Theme.onPrimary : Theme.outline
-
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasizedDecelerate
-                    }
-                }
-                Behavior on width {
-                    NumberAnimation { duration: Tokens.motion.duration.short4 }
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.toggleClicked()
-            }
+            checked: root.toggleChecked
+            onToggled: root.toggleClicked()
         }
     }
 
