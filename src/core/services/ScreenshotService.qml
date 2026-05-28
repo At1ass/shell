@@ -14,9 +14,13 @@ Singleton {
     property bool _useSwappy: false
     property string screenshotTargetMonitor: ""
 
+    // Geometry is passed as a positional argv ($1) into the shell script so
+    // it cannot break out of quoting — the script string itself is a literal.
     Process {
         id: screenshotRegionProc
-        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
+        command: ["sh", "-c",
+                  'sleep 0.2 && grim -g "$1" - | wl-copy',
+                  "sh", root._grimGeometry]
         onExited: (exitCode) => {
             if (exitCode === 0) ToastService.success("Screenshot copied to clipboard")
             else ToastService.error("Screenshot failed (grim exited " + exitCode + ")")
@@ -25,7 +29,9 @@ Singleton {
 
     Process {
         id: screenshotSwappyProc
-        command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | swappy -f -`]
+        command: ["sh", "-c",
+                  'sleep 0.2 && grim -g "$1" - | swappy -f -',
+                  "sh", root._grimGeometry]
         // No exit handler — swappy manages its own save/cancel feedback;
         // closing the window is a normal action and should not show an error.
     }

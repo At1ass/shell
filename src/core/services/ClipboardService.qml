@@ -137,33 +137,51 @@ Singleton {
         safeDeleteEntry(entry)
     }
 
-    // Fuzzy search через C++ rapidfuzz
-    // Фильтрует записи, но сохраняет порядок cliphist (по времени, свежие первые)
+    // Trace fuzzySearch input/output to console.
+    property bool debug: false
+
+    // Empty query → raw cliphist order (newest first), no sorting/filtering,
+    // including binary/image entries so the user can scroll to a screenshot.
+    // Non-empty query → fuzzy match against text entries only; binary entries
+    // are dropped since their placeholder text would never match meaningfully.
     function fuzzySearch(query) {
+        if (debug) {
+            console.log("[ClipboardService.fuzzySearch] entries:", entries.length,
+                        "query:", JSON.stringify(query))
+            for (let k = 0; k < Math.min(entries.length, 10); k++)
+                console.log("  cliphist[" + k + "]:",
+                            entries[k].substring(0, 60).replace(/\n/g, "\\n"))
+        }
         if (!query || query.trim() === "") {
-            return preparedEntries.slice(0, 20)
+            return preparedEntries.map(e => ({
+                entry: e.entry, content: e.content, score: 0
+            }))
         }
 
-        const contents = preparedEntries.map(e => e.content)
-        const hits = FuzzySearch.match(query, contents, 20, 30.0)
-
-        // Собираем совпавшие индексы и сортируем по оригинальной позиции
-        const matched = []
-        for (let i = 0; i < hits.length; i++) {
-            matched.push({ originalIndex: hits[i].index, score: hits[i].score })
+        // Build a parallel array of text-only entries, remembering each
+        // entry's original cliphist index so results can be re-ordered by it.
+        const textIndices = []
+        const textContents = []
+        for (let i = 0; i < preparedEntries.length; i++) {
+            if (root.entryIsImage(preparedEntries[i].entry)) continue
+            textIndices.push(i)
+            textContents.push(preparedEntries[i].content)
         }
+
+        const hits = FuzzySearch.match(query, textContents, 50, 30.0)
+
+        // Map hit's text-array index back to the original cliphist index.
+        const matched = hits.map(h => ({
+            originalIndex: textIndices[h.index],
+            score: h.score
+        }))
         matched.sort((a, b) => a.originalIndex - b.originalIndex)
 
-        const results = []
-        for (let i = 0; i < matched.length; i++) {
-            const idx = matched[i].originalIndex
-            results.push({
-                entry: preparedEntries[idx].entry,
-                content: preparedEntries[idx].content,
-                score: matched[i].score
-            })
-        }
-        return results
+        return matched.map(m => ({
+            entry: preparedEntries[m.originalIndex].entry,
+            content: preparedEntries[m.originalIndex].content,
+            score: m.score
+        }))
     }
 
     // Проверка, является ли запись изображением
@@ -205,8 +223,18 @@ Singleton {
         thumbDecodeProc._entryId = item.id
         thumbDecodeProc._entry = item.entry
         thumbDecodeProc._outPath = root._thumbnailDir + "/" + item.id
-        thumbDecodeProc.command = ["sh", "-c", "mkdir -p '" + root._thumbnailDir + "' && " + root.cliphistBinary + " decode > '" + thumbDecodeProc._outPath + "'"]
+        // Paths as positional argv ($1, $2) — script string is a literal so
+        // there's no shell-concat injection surface.
+        thumbDecodeProc.command = ["sh", "-c",
+            'exec "$1" decode > "$2"',
+            "sh", root.cliphistBinary, thumbDecodeProc._outPath]
         thumbDecodeProc.running = true
+    }
+
+    Process {
+        id: thumbDirInitProc
+        command: ["mkdir", "-p", root._thumbnailDir]
+        running: true
     }
 
     Process {

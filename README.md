@@ -1,226 +1,265 @@
 # Quickshell Shell
 
-Современная конфигурация Hyprland shell на базе [Quickshell](https://quickshell.outfoxxed.me/) с дизайном Material Design 3.
+A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a Material Design 3 look.
 
-## Возможности
+## Features
 
-| Компонент | Описание |
-|-----------|----------|
-| **Status Bar** | Настраиваемые виджеты: воркспейсы, активное окно, часы, погода, медиа, уведомления, громкость, сеть, батарея, раскладка, трей |
-| **Dashboard** | 4-вкладочный центр управления: Quick, Weather, Calendar (khal + CalDAV), System |
-| **Launcher** | Поиск приложений с fuzzy matching + калькулятор + история буфера обмена |
-| **Notification Center** | Панель уведомлений с историей, группировкой по приложениям, DND |
-| **OSD** | Оверлеи громкости и яркости |
-| **Toast** | Всплывающие уведомления уровней info / success / warning / error |
-| **Screenshot** | Выбор области мышью или клавиатурой (hjkl), аннотации через swappy |
-| **Gaming Mode** | Авто-отключение анимаций/blur/shadows в Hyprland, восстановление при выключении |
-| **Wallpaper** | Мультимониторное управление обоями с автосменой |
+| Component | Description |
+|-----------|-------------|
+| **Status Bar** | Configurable widgets: workspaces, active window, clock, weather, media, notifications, volume, network, battery, layout, tray |
+| **Dock** | Per-screen application dock with running-window previews and auto-hide |
+| **Dashboard** | 5-tab control center: Quick, Weather, Calendar, Audio, Network |
+| **Launcher** | Application search with fuzzy matching + calculator + clipboard history |
+| **Notification Center** | History panel, per-app grouping, DND |
+| **OSD** | Volume and brightness overlays |
+| **Toast** | Info / success / warning / error popups |
+| **Screenshot** | Region selection via mouse or keyboard (hjkl), annotations through swappy |
+| **Gaming Mode** | Auto-disables Hyprland animations / blur / shadows; restores them on exit |
+| **Wallpaper** | Multi-monitor wallpapers with pluggable sources (local, Wallhaven) and auto-rotation |
+| **Night Light** | hyprsunset wrapper with on/off and temperature IPC |
 | **Power Menu** | Lock / Suspend / Reboot / Shutdown / Logout |
-| **Lockscreen** | Интеграция с WlSessionLock |
-| **Cheatsheet** | Интерактивный справочник keybindings (Hyprland + Shell) и IPC-команд |
+| **Lockscreen** | Built-in lock surface via `WlSessionLock` (optional; pair with external locker if disabled) |
+| **Cheatsheet** | Interactive reference of Hyprland + shell keybindings and IPC commands |
+| **Greeter** | Optional greetd greeter — separate Quickshell config (see `src/features/greeter/README.md`) |
 
 ---
 
-## Зависимости
+## Dependencies
 
-### Обязательные
+### Required
 
-| Пакет | Назначение |
-|-------|------------|
+| Package | Purpose |
+|---------|---------|
 | `quickshell-git` | Shell framework (Wayland, QML) |
-| `hyprland` | Compositor (используются ext-global-shortcuts, WlrLayershell, HyprlandFocusGrab) |
+| `hyprland` | Compositor (uses ext-global-shortcuts, WlrLayershell, HyprlandFocusGrab) |
 | `qt6-base`, `qt6-declarative` | Qt6 runtime |
-| `pipewire` + `wireplumber` | Аудио — для виджета громкости и OSD |
+| `pipewire` + `wireplumber` | Audio — volume widget and OSD |
 
-### Опциональные
+### Optional
 
-| Пакет | Назначение |
-|-------|------------|
-| `grim` | Скриншоты (нужен для Screenshot overlay) |
-| `wl-clipboard` | Копирование скриншота в буфер (`wl-copy`) |
-| `swappy` | Аннотации скриншотов |
-| `ddcutil` | Яркость внешних мониторов через DDC/CI |
-| `cliphist` | История буфера обмена в launcher |
-| `qalculate-glib` | Калькулятор в launcher (нужен при сборке плагина) |
-| `khal` | Календарь — CLI для iCalendar (события, RRULE, просмотр) |
-| `vdirsyncer` | CalDAV синхронизация (Google, Yandex, iCloud и др.) |
-| `libnotify` | Напоминания о событиях календаря (`notify-send`) |
-| `networkmanager` | Виджет сети и статус VPN |
-| `bluez` | Статус Bluetooth в Dashboard |
+| Package | Purpose |
+|---------|---------|
+| `grim` | Screenshots (required for the Screenshot overlay) |
+| `wl-clipboard` | Copy screenshots to the clipboard (`wl-copy`) |
+| `swappy` | Screenshot annotations |
+| `ddcutil` | External-monitor brightness via DDC/CI |
+| `cliphist` | Clipboard history in the launcher |
+| `qalculate-glib` | Calculator in the launcher (also a build dep for the plugin) |
+| `libical` | Native calendar plugin (events, RRULE expansion) |
+| `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
+| `libnotify` | Calendar event reminders (`notify-send`) |
+| `hyprsunset` | Night Light temperature shift |
+| `networkmanager` | Network widget and VPN status |
+| `bluez` | Bluetooth status in the Dashboard |
 
-### Зависимости сборки (C++ плагины)
+### Build dependencies (C++ plugins)
 
-| Пакет | Назначение |
-|-------|------------|
-| `cmake` + `ninja` | Система сборки |
+| Package | Purpose |
+|---------|---------|
+| `cmake` + `ninja` | Build system |
 | `qt6-tools` | `moc`, `rcc` |
-| `qalculate-glib` | Заголовки для плагина калькулятора |
+| `qalculate-glib` | Calculator plugin headers |
+| `libical` | Calendar plugin (requires libical ≥ 4.0 — refcounted recurrence API) |
 
 ---
 
-## Установка
+## Installation
 
-### 1. Клонировать / скопировать
+### 1. Clone
 
 ```bash
-git clone <repo> ~/.config/quickshell
+git clone <repo> ~/.config/quickshell/shell
 ```
 
-### 2. Собрать C++ плагины
+### 2. Build C++ plugins
 
 ```bash
-cd ~/.config/quickshell/src/plugins
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+cd ~/.config/quickshell/shell/src/plugins
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 ```
 
-Плагины: Material Color Utilities (динамические цвета), FuzzySearch (поиск), Qalculate (калькулятор), SystemMonitor (мониторинг системы).
+Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring).
 
-### 3. Создать конфиг пользователя
+### 3. Create a user config
 
 ```bash
-cp ~/.config/quickshell/config/default.json \
+cp ~/.config/quickshell/shell/config/default.json \
    ~/.config/quickshell/config.json
 ```
 
-Конфиг читается из `~/.config/quickshell/config.json`. При отсутствии используется `config/default.json` как fallback.
+Config is read from `$XDG_CONFIG_HOME/quickshell/config.json` (defaults to `~/.config/quickshell/config.json`). If absent, the bundled `config/default.json` is loaded as a fallback.
 
-### 4. Настроить конфиг
+### 4. Configure
 
-Минимальные изменения — установить координаты и название города для погоды:
+At minimum, set your weather coordinates and city name:
 
 ```json
 "services": {
   "weather": {
-    "location": "Москва",
-    "latitude": 55.75,
-    "longitude": 37.62
+    "location": "London",
+    "latitude": 51.5,
+    "longitude": -0.12
   }
 }
 ```
 
-### 5. Добавить keybinds в `hyprland.conf`
+### 5. Add keybinds to `hyprland.conf`
 
-Горячие клавиши регистрируются через `GlobalShortcut` — привязываются в Hyprland:
+Hotkeys are registered as `GlobalShortcut`s and bound on the Hyprland side:
 
 ```conf
-# Панели
-bind = SUPER, D,      global, quickshell:controlPanelToggle
+# Panels
 bind = SUPER, SPACE,  global, quickshell:launcherToggle
 bind = SUPER, Escape, global, quickshell:powerMenuToggle
 bind = SUPER, F1,     global, quickshell:cheatsheetToggle
 
-# Скриншоты
+# Screenshots
 bind = SUPER,       Print, global, quickshell:screenshot
 bind = SUPER SHIFT, Print, global, quickshell:screenshotSwappy
 
-# Аудио
+# Audio
 bind = , XF86AudioRaiseVolume, global, quickshell:audioVolumeUp
 bind = , XF86AudioLowerVolume, global, quickshell:audioVolumeDown
 bind = , XF86AudioMute,        global, quickshell:audioToggleMute
 
-# Яркость (DDC/CI мониторы)
+# Brightness (DDC/CI external monitors + backlight)
 bind = , XF86MonBrightnessUp,   global, quickshell:brightnessUp
 bind = , XF86MonBrightnessDown, global, quickshell:brightnessDown
 
-# Gaming mode
+# Gaming mode and night light
 bind = SUPER ALT, G, global, quickshell:gamingModeToggle
+bind = SUPER ALT, N, global, quickshell:nightLightToggle
 ```
 
-### 6. Запустить
+### 6. Run
 
 ```bash
-quickshell
+quickshell -p ~/.config/quickshell/shell
 ```
 
-Или добавить в автозапуск Hyprland:
+Or add it to Hyprland's autostart:
 
 ```conf
-exec-once = quickshell
+exec-once = quickshell -p ~/.config/quickshell/shell
 ```
 
 ---
 
-## Конфигурация
+## Configuration
 
-Файл: `~/.config/quickshell/config.json`
+File: `~/.config/quickshell/config.json`
 
-**Hot-reload**: конфиг отслеживается — изменения применяются без перезапуска.
+**Hot-reload**: the config file is watched — changes apply without a restart.
 
-Полная документация всех полей: [`config/config.schema.json`](config/config.schema.json)
+Full field documentation: [`config/config.schema.json`](config/config.schema.json)
 
-Референсный конфиг со значениями по умолчанию: [`config/default.json`](config/default.json)
+Reference config with defaults: [`config/default.json`](config/default.json)
 
-### Структура конфига
+### Top-level sections
 
 ```
-appearance.theme         — тема (source, variant, darkMode)
-appearance.fontScale     — масштаб шрифтов (0.5–2.0)
-bar                      — панель и виджеты
-bar.transparent          — прозрачный фон бара
-dashboard                — размеры центра управления
-notifications            — попапы и центр уведомлений
-launcher                 — поиск и провайдеры
-osd                      — оверлеи громкости/яркости
-lockscreen               — экран блокировки
-powerMenu                — меню питания
-gamingMode               — игровой режим
-wallpaper                — управление обоями
-services.weather         — погода (Open-Meteo, без API ключа)
-services.calendar        — календарь (khal), напоминания, upcoming, day view
-services.vpn             — статус VPN (NetworkManager)
-hyprland.workspaceCount  — количество воркспейсов
+appearance.theme         — theme (source, variant, darkMode)
+appearance.fontScale     — font scale (0.5–2.0)
+modules                  — on/off switch for every top-level shell element (see below)
+bar                      — status bar and widgets
+bar.transparent          — transparent bar background
+dock                     — application dock (auto-hide, icon size)
+dashboard                — control-center dimensions
+notifications            — popups and notification center
+launcher                 — search and providers
+osd                      — volume / brightness overlays
+lockscreen               — built-in lock screen
+powerMenu                — power menu
+gamingMode               — gaming mode (Hyprland overrides)
+wallpaper                — wallpaper sources and per-monitor bindings
+services.weather         — weather (Open-Meteo, no API key)
+services.calendar        — calendar (native libical plugin), reminders, upcoming, day view
+services.nightLight      — hyprsunset wrapper (default temperature, schedule)
+services.vpn             — VPN status (NetworkManager)
+hyprland.workspaceCount  — number of workspaces
 ```
 
-### Виджеты бара
+### Modules (turning elements on or off)
 
-Каждый виджет в массиве `bar.widgets` имеет общие поля:
+The `modules` block is the central switch for every top-level shell element. Any element can be turned off by setting it to `false`. An absent key falls back to its default. Changes apply on the fly (hot-reload), no restart required.
 
-| Поле | Описание |
-|------|----------|
-| `type` | Тип виджета (см. таблицу ниже) |
-| `enabled` | Включён или нет |
+```json
+"modules": {
+  "bar": true,           // status bar (per monitor)
+  "dock": false,         // application dock (per monitor)
+  "wallpaper": true,     // wallpaper layer; when false the compositor background shows through
+  "dashboard": true,     // control center
+  "launcher": true,      // application launcher
+  "notifications": true, // notification center AND popups
+  "osd": true,           // volume and brightness OSDs
+  "lockscreen": false,   // built-in lock screen
+  "powerMenu": true,     // power menu
+  "cheatsheet": true,    // keybinding cheatsheet overlay
+  "screenshot": true,    // region-selection overlay + screenshot hotkeys / IPC
+  "toasts": true,        // toast notifications (ToastService)
+  "popouts": true        // popout host (tray menus, etc.)
+}
+```
+
+When a module is off, the corresponding element is never instantiated and its hotkeys / IPC / click-actions become no-ops.
+
+**Things to know:**
+
+- `lockscreen: false` — lock requests (power menu, `loginctl` / DBus `lock-session`) become no-ops. The screen is **not** locked — pair this with an external locker (e.g. hyprlock via hypridle).
+- `popouts: false` — tray right-click menus and other popouts will not appear.
+- `toasts: false` — `ToastService` errors/successes are silently dropped (visible only in the console log).
+- `notifications: false` disables both the center and popups. The bar's bell widget is toggled separately via its own `enabled` flag in `bar.widgets` (the counter keeps updating because the underlying service still runs).
+
+### Bar widgets
+
+Every widget in `bar.widgets` shares these fields:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Widget type (see table below) |
+| `enabled` | Enabled or not |
 | `section` | `"left"` / `"center"` / `"right"` |
-| `monitors` | `"all"` или имя монитора (`"DP-2"`) или массив |
-| `clickAction` | Действие при клике (см. список ниже) |
-| `settings` | Параметры конкретного виджета |
+| `monitors` | `"all"`, a monitor name (`"DP-2"`), or an array |
+| `clickAction` | Action triggered on click (see below) |
+| `settings` | Widget-specific parameters |
 
-Доступные типы виджетов:
+Available widget types:
 
-| Тип | Описание |
-|-----|----------|
-| `workspaces` | Воркспейсы Hyprland с индикаторами окон |
-| `activewindow` | Заголовок и иконка активного окна |
-| `weather` | Текущая погода |
-| `clock` | Дата / время (настраиваемый формат) |
-| `media` | Текущий трек (MPRIS) |
-| `notifications` | Колокольчик с бейджем |
-| `volume` | Громкость (скролл для изменения) |
-| `network` | WiFi / Ethernet статус |
-| `battery` | Заряд батареи |
-| `layout` | Текущая раскладка клавиатуры |
-| `tray` | Системный трей |
+| Type | Description |
+|------|-------------|
+| `workspaces` | Hyprland workspaces with window indicators |
+| `activewindow` | Active window title and icon |
+| `weather` | Current weather |
+| `clock` | Date / time (configurable format) |
+| `media` | Current MPRIS track |
+| `notifications` | Bell with badge |
+| `volume` | Volume (scroll to change) |
+| `network` | Wi-Fi / Ethernet status |
+| `battery` | Battery level |
+| `layout` | Current keyboard layout |
+| `tray` | System tray |
 
-Доступные `clickAction`:
+Available `clickAction` values:
 
-| Значение | Действие |
-|----------|----------|
-| `dashboard-quick` | Открыть Dashboard на вкладке Quick |
-| `dashboard-weather` | Открыть Dashboard на вкладке Weather |
-| `dashboard-calendar` | Открыть Dashboard на вкладке Calendar |
-| `dashboard-system` | Открыть Dashboard на вкладке System |
-| `notification-center` | Открыть/закрыть центр уведомлений |
-| `launcher` | Открыть launcher |
-| `control-panel` | Открыть правую панель управления |
+| Value | Action |
+|-------|--------|
+| `dashboard-quick` | Open Dashboard on the Quick tab |
+| `dashboard-weather` | Open Dashboard on the Weather tab |
+| `dashboard-calendar` | Open Dashboard on the Calendar tab |
+| `dashboard-audio` | Open Dashboard on the Audio tab |
+| `dashboard-network` | Open Dashboard on the Network tab |
+| `notification-center` | Toggle the notification center |
+| `launcher` | Open the launcher |
 
 ---
 
-## IPC команды
+## IPC commands
 
-Управление шеллом извне:
+Drive the shell from outside:
 
 ```bash
-qs ipc call <handler> <function> [аргумент]
+qs ipc call <handler> <function> [argument]
 ```
 
 ### `globalstates`
@@ -228,26 +267,21 @@ qs ipc call <handler> <function> [аргумент]
 ```bash
 # Dashboard
 qs ipc call globalstates toggleDashboard
-qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar 3=System
-
-# Control Panel (правая панель)
-qs ipc call globalstates toggleControlPanel
-qs ipc call globalstates openControlPanel
-qs ipc call globalstates closeControlPanel
+qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar 3=Audio 4=Network
 
 # Launcher
 qs ipc call globalstates toggleLauncher
 qs ipc call globalstates openLauncher
 qs ipc call globalstates closeLauncher
 
-# Notification Center
+# Notification center
 qs ipc call globalstates toggleNotificationCenter
 qs ipc call globalstates openNotificationCenter
 qs ipc call globalstates closeNotificationCenter
 
-# Скриншоты
-qs ipc call globalstates screenshot          # область → буфер обмена
-qs ipc call globalstates screenshotSwappy    # область → swappy
+# Screenshots
+qs ipc call globalstates screenshot          # region → clipboard
+qs ipc call globalstates screenshotSwappy    # region → swappy
 
 # Power
 qs ipc call globalstates togglePowerMenu
@@ -255,17 +289,21 @@ qs ipc call globalstates openPowerMenu
 qs ipc call globalstates closePowerMenu
 qs ipc call globalstates lockScreen
 
-# Gaming Mode
+# Gaming mode
 qs ipc call globalstates toggleGamingMode
 qs ipc call globalstates enableGamingMode
 qs ipc call globalstates disableGamingMode
+
+# Night light
+qs ipc call globalstates toggleNightLight
+qs ipc call globalstates setNightLightTemperature 4500
 
 # Cheatsheet
 qs ipc call globalstates toggleCheatsheet
 qs ipc call globalstates openCheatsheet
 qs ipc call globalstates closeCheatsheet
 
-# Прочее
+# Misc
 qs ipc call globalstates closeAll
 ```
 
@@ -276,153 +314,168 @@ qs ipc call audio volumeUp
 qs ipc call audio volumeDown
 qs ipc call audio setVolume 0.5       # 0.0 – 1.0
 qs ipc call audio toggleMute
-qs ipc call audio getMasterVolume     # возвращает текущую громкость
+qs ipc call audio getMasterVolume     # returns current volume
 qs ipc call audio isMuted
 ```
 
 ### `mpris`
 
 ```bash
-# Воспроизведение
+# Playback
 qs ipc call mpris play
 qs ipc call mpris pause
 qs ipc call mpris stop
 qs ipc call mpris togglePlaying
 qs ipc call mpris next
 qs ipc call mpris previous
-qs ipc call mpris seek 10             # перемотка на 10 секунд
-qs ipc call mpris setPosition 30      # перейти к позиции (секунды)
+qs ipc call mpris seek 10             # offset in seconds
+qs ipc call mpris setPosition 30      # jump to position (seconds)
 
-# Громкость плеера
+# Player volume
 qs ipc call mpris setVolume 0.8
 qs ipc call mpris volumeUp
 qs ipc call mpris volumeDown
 qs ipc call mpris getVolume
 
-# Режимы
+# Modes
 qs ipc call mpris toggleShuffle
 qs ipc call mpris toggleLoop
 
-# Информация
+# Info
 qs ipc call mpris getCurrentTrack
 qs ipc call mpris isPlaying
-qs ipc call mpris getPosition         # текущая позиция (секунды)
-qs ipc call mpris getLength           # длительность трека (секунды)
+qs ipc call mpris getPosition         # current position (seconds)
+qs ipc call mpris getLength           # track length (seconds)
 
-# Управление плеером
-qs ipc call mpris raise               # показать окно плеера
-qs ipc call mpris quit                # закрыть плеер
+# Player control
+qs ipc call mpris raise               # raise the player window
+qs ipc call mpris quit                # quit the player
 ```
 
 ### `wallpaper`
 
 ```bash
-# Установка обоев
+# Set wallpaper
 qs ipc call wallpaper set DP-1 /path/to/image.jpg
 qs ipc call wallpaper setAll /path/to/image.jpg
 
-# Навигация
-qs ipc call wallpaper next            # следующие обои на всех мониторах
-qs ipc call wallpaper next DP-1       # следующие обои на конкретном мониторе
+# Navigation
+qs ipc call wallpaper next                  # next wallpaper on every monitor
+qs ipc call wallpaper next DP-1             # next wallpaper on a specific monitor
 qs ipc call wallpaper previous
 
-# Настройки
-qs ipc call wallpaper setDirectory /path/to/wallpapers
-qs ipc call wallpaper setAutoChange true 300000
-qs ipc call wallpaper setRandom true
-qs ipc call wallpaper setFillMode DP-1 2      # Qt Image.FillMode (2=PreserveAspectCrop)
+# Sources (per-monitor binding to a source id from the sources[] block)
+qs ipc call wallpaper setSource DP-1 wallhaven-anime
+qs ipc call wallpaper loadMore wallhaven-anime      # next page (Wallhaven only)
+qs ipc call wallpaper refreshSource wallhaven-anime # re-run the query
+
+# Fill mode (Qt Image.FillMode int)
+qs ipc call wallpaper setFillMode DP-1 2            # 2 = PreserveAspectCrop
 qs ipc call wallpaper setFillModeAll 2
 
-# Информация
-qs ipc call wallpaper status          # текущее состояние всех мониторов (JSON)
+# Auto-change
+qs ipc call wallpaper setAutoChange DP-1 true 300000  # monitor, enabled, intervalMs
+
+# Status
+qs ipc call wallpaper status                # current state of every monitor (text)
+```
+
+### `wallpaper-cache` (debug)
+
+```bash
+qs ipc call wallpaper-cache status          # cache base dir, file count, queue depth
+qs ipc call wallpaper-cache test <url>      # queue a test download
+qs ipc call wallpaper-cache evict           # force LRU eviction pass
 ```
 
 ---
 
-## Управление скриншотами с клавиатуры
+## Keyboard-driven screenshot overlay
 
-При открытом оверлее выделения:
+While the region-selection overlay is open:
 
-| Клавиша | Действие |
-|---------|----------|
-| `h` / `←` | Курсор влево |
-| `j` / `↓` | Курсор вниз |
-| `k` / `↑` | Курсор вверх |
-| `l` / `→` | Курсор вправо |
-| `Shift` + движение | Большой шаг (40px) |
-| Удержание клавиши | Ускоренное движение (16px/шаг) |
-| `Space` | Поставить якорь (первый раз) / Сделать скриншот (второй раз) |
-| `Enter` | Сделать скриншот выделенной области |
-| `ПКМ` / `Esc` | Отмена |
+| Key | Action |
+|-----|--------|
+| `h` / `←` | Cursor left |
+| `j` / `↓` | Cursor down |
+| `k` / `↑` | Cursor up |
+| `l` / `→` | Cursor right |
+| `Shift` + movement | Large step (40px) |
+| Hold a movement key | Accelerated movement (16px/step) |
+| `Space` | Drop the anchor (first press) / take the screenshot (second press) |
+| `Enter` | Take the screenshot of the selected region |
+| Right-click / `Esc` | Cancel |
 
-Навигация работает в любой раскладке клавиатуры.
+Navigation is layout-independent.
 
 ---
 
-## Структура проекта
+## Project layout
 
 ```
 shell/
-├── shell.qml                    # Точка входа
-├── config.json                  # Пользовательский конфиг (создаётся вручную)
+├── shell.qml                    # Entry point
 ├── config/
-│   ├── default.json             # Референсный конфиг / fallback
-│   └── config.schema.json       # JSON Schema с описанием всех полей
+│   ├── default.json             # Reference config / fallback
+│   └── config.schema.json       # JSON Schema describing every field
 ├── src/
 │   ├── core/
 │   │   ├── config/
-│   │   │   └── AppConfig.qml    # Центральный синглтон конфига
-│   │   └── services/            # Все сервисы (аудио, сеть, погода, …)
+│   │   │   ├── AppConfig.qml    # Central config singleton
+│   │   │   └── Tokens.qml       # Design tokens (sizes, shape, state-layer opacities)
+│   │   └── services/            # All services (audio, network, weather, …)
 │   ├── features/
-│   │   ├── statusbar/           # Панель и виджеты
-│   │   ├── dock/                # Док приложений с превью окон
-│   │   ├── dashboard/           # 4-вкладочный центр управления
-│   │   ├── launcher/            # Поиск приложений
-│   │   ├── notifications/       # Центр уведомлений и попапы
+│   │   ├── statusbar/           # Status bar and widgets
+│   │   ├── dock/                # Application dock with window previews
+│   │   ├── dashboard/           # 5-tab control center
+│   │   ├── launcher/            # Application search
+│   │   ├── notifications/       # Notification center and popups
 │   │   ├── osd/                 # VolumeOSD, BrightnessOSD, ToastOverlay
-│   │   ├── screenshot/          # Оверлей выбора области
-│   │   ├── cheatsheet/          # Справочник горячих клавиш
-│   │   ├── lockscreen/          # Экран блокировки
-│   │   ├── powermenu/           # Меню питания
-│   │   ├── popouts/            # Popouts (трей-меню, контекстные панели)
-│   │   └── background/          # Обои
+│   │   ├── screenshot/          # Region-selection overlay
+│   │   ├── cheatsheet/          # Keybinding reference
+│   │   ├── lockscreen/          # Lock screen
+│   │   ├── powermenu/           # Power menu
+│   │   ├── popouts/             # Popout host (tray menus, context panels)
+│   │   ├── greeter/             # Standalone greetd greeter (separate Quickshell config)
+│   │   └── background/          # Wallpaper layer
 │   ├── plugins/
-│   │   └── src/                 # C++ плагины (требуют сборки)
+│   │   └── src/                 # C++ plugins (require building)
 │   │       ├── mcu-qml/         # Material Color Utilities
 │   │       ├── fuzzy-search-qml/# Fuzzy matching
-│   │       ├── qalculate-qml/   # Калькулятор
-│   │       └── system-monitor-qml/ # Мониторинг CPU/RAM/…
-│   └── ui/                      # Переиспользуемые MD3 компоненты
-└── docs/                        # Дополнительная документация
+│   │       ├── qalculate-qml/   # Calculator
+│   │       ├── calendar-qml/    # iCalendar via libical (events, RRULE, reminders)
+│   │       └── system-monitor-qml/ # CPU / RAM / GPU / disk / network monitoring
+│   └── ui/                      # Reusable MD3 components
+└── docs/                        # Historical analysis and refactor notes
 ```
 
 ---
 
-## Устойчивое состояние
+## Persistent state
 
-Состояние, сохраняемое между перезапусками (`~/.config/quickshell/state.json`):
+State preserved across restarts (`~/.config/quickshell/state.json`):
 
-- **Gaming Mode** — активен или нет, сохранённые настройки Hyprland для восстановления
-- **Wallpaper** — текущие обои для каждого монитора
+- **Gaming Mode** — active or not, plus saved Hyprland settings for restoration
+- **Wallpaper** — current wallpaper per monitor and per-source pagination state
 
 ---
 
-## Горячие клавиши шелла
+## Shell hotkeys
 
-Полный список шорткатов для `hyprland.conf` (`bind = ..., global, quickshell:<name>`):
+Full list of shortcuts for `hyprland.conf` (`bind = ..., global, quickshell:<name>`):
 
-| Имя шортката | Действие |
-|-------------|----------|
-| `controlPanelToggle` | Открыть/закрыть правую панель управления |
-| `launcherToggle` | Открыть/закрыть launcher |
-| `closeAllPanels` | Закрыть все открытые панели |
-| `screenshot` | Выделить область → скриншот в буфер |
-| `screenshotSwappy` | Выделить область → открыть в swappy |
-| `powerMenuToggle` | Открыть/закрыть меню питания |
-| `cheatsheetToggle` | Открыть/закрыть справочник |
-| `gamingModeToggle` | Включить/выключить gaming mode |
-| `audioVolumeUp` | Громкость +5% |
-| `audioVolumeDown` | Громкость −5% |
-| `audioToggleMute` | Заглушить/включить звук |
-| `brightnessUp` | Яркость +5% (DDC/CI) |
-| `brightnessDown` | Яркость −5% (DDC/CI) |
+| Shortcut | Action |
+|----------|--------|
+| `launcherToggle` | Toggle the launcher |
+| `closeAllPanels` | Close every open panel |
+| `screenshot` | Region select → screenshot to clipboard |
+| `screenshotSwappy` | Region select → open in swappy |
+| `powerMenuToggle` | Toggle the power menu |
+| `cheatsheetToggle` | Toggle the cheatsheet |
+| `gamingModeToggle` | Toggle gaming mode |
+| `nightLightToggle` | Toggle night light |
+| `audioVolumeUp` | Volume +5% |
+| `audioVolumeDown` | Volume −5% |
+| `audioToggleMute` | Mute / unmute |
+| `brightnessUp` | Brightness +5% (DDC/CI + backlight) |
+| `brightnessDown` | Brightness −5% (DDC/CI + backlight) |

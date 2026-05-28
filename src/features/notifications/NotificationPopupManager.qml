@@ -70,6 +70,10 @@ Scope {
         })
 
         popup.exitFinished.connect(() => manager._onPopupExitFinished(popup))
+        // Async image loads grow popupItem.implicitHeight after the popup is
+        // already positioned. Re-stack so siblings below shift down instead of
+        // being overlapped.
+        popup.implicitHeightChanged.connect(manager._recalculateStack)
 
         popupWindows = [popup].concat(popupWindows)
         NotificationService.registerPopup(data.notificationId)

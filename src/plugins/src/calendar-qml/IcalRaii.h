@@ -19,7 +19,11 @@
 // • `icalcomponent_get_uid` / `_get_summary` / `_get_description`       → BORROWED
 // • Any `icalproperty_get_*` returning a pointer                        → BORROWED
 //
-// • `icaltimetype` / `icalrecurrencetype` / `icalparameter*` (returned) → value/borrowed
+// • `icaltimetype` / `icalparameter*` (returned)                       → value/borrowed
+// • `icalrecurrencetype*` (libical ≥ 4.0): refcounted; owned from
+//   `icalrecurrencetype_new` / `_new_from_string` / `_clone`,
+//   borrowed from `icalproperty_get_rrule`. Release owned with
+//   `icalrecurrencetype_unref` (wrapped here as `RecurrencePtr`).
 //
 // Convention in this codebase:
 // 1. Wrap a pointer at the moment of allocation in the appropriate alias below.
@@ -34,6 +38,7 @@ namespace ical {
 
 using ComponentPtr = std::unique_ptr<icalcomponent, decltype(&icalcomponent_free)>;
 using RecurIterPtr = std::unique_ptr<icalrecur_iterator, decltype(&icalrecur_iterator_free)>;
+using RecurrencePtr = std::unique_ptr<icalrecurrencetype, decltype(&icalrecurrencetype_unref)>;
 
 // icalmemory_free_buffer takes void*, but we want a typed unique_ptr<char>.
 // Wrap the call in a deleter functor.
@@ -51,6 +56,10 @@ inline ComponentPtr wrapComponent(icalcomponent* p) noexcept {
 
 inline RecurIterPtr wrapRecurIter(icalrecur_iterator* p) noexcept {
     return { p, &icalrecur_iterator_free };
+}
+
+inline RecurrencePtr wrapRecurrence(icalrecurrencetype* p) noexcept {
+    return { p, &icalrecurrencetype_unref };
 }
 
 inline StringPtr wrapString(char* p) noexcept {

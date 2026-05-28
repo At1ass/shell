@@ -159,7 +159,13 @@ QVariantList CalendarStore::eventsOnDate(const QDate& d) const {
         QVariantMap m = v.toMap();
         QDateTime st = m.value(QStringLiteral("start")).toDateTime();
         QDateTime en = m.value(QStringLiteral("end")).toDateTime();
-        if (en >= dayStart && st < dayEnd) out.append(m);
+        const bool allDay = m.value(QStringLiteral("allDay")).toBool();
+        // All-day end is exclusive per RFC 5545. Timed events ending
+        // exactly at midnight likewise don't intrude into the next day.
+        const bool endsExclusiveAtMidnight = en.isValid() && en > st &&
+            (allDay || en.time() == QTime(0, 0));
+        const bool overlapsEnd = endsExclusiveAtMidnight ? en > dayStart : en >= dayStart;
+        if (overlapsEnd && st < dayEnd) out.append(m);
     }
     return out;
 }
@@ -173,13 +179,20 @@ QVariantMap CalendarStore::eventsByDate(const QDate& from, const QDate& to) cons
         QVariantMap m = v.toMap();
         QDateTime st = m.value(QStringLiteral("start")).toDateTime();
         QDateTime en = m.value(QStringLiteral("end")).toDateTime();
+        const bool allDay = m.value(QStringLiteral("allDay")).toBool();
         if (!st.isValid()) continue;
 
         QDate ds = st.date();
         QDate de = en.isValid() ? en.date() : ds;
-        // Exclusive end at midnight = previous day
-        if (en.isValid() && en.time() == QTime(0, 0) && en > st)
+        if (allDay && en.isValid() && en > st) {
+            // All-day DTEND is exclusive per RFC 5545. Some sources emit
+            // DTEND as DATE-TIME in UTC, which shifts off midnight after
+            // local-zone conversion — so don't gate on en.time() == 00:00.
             de = de.addDays(-1);
+        } else if (en.isValid() && en.time() == QTime(0, 0) && en > st) {
+            // Timed event ending exactly at midnight — previous day
+            de = de.addDays(-1);
+        }
         if (de < ds) de = ds;
         if (ds < from) ds = from;
         if (de > to)   de = to;
@@ -356,18 +369,17 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
     if (newRec != master.recurrence) {
         clearRrule(ve);
         if (newRec != Recurrence::None) {
-            icalrecurrencetype rule;
-            icalrecurrencetype_clear(&rule);
-            rule.freq = toIcalFreq(newRec);
-            rule.interval = 1;
+            ical::RecurrencePtr rule = ical::wrapRecurrence(icalrecurrencetype_new());
+            rule->freq = toIcalFreq(newRec);
+            rule->interval = 1;
             QDate until = fields.value(QStringLiteral("recurrenceUntil")).toDate();
             if (until.isValid()) {
                 icaltimetype u = icaltime_null_date();
                 u.year = until.year(); u.month = until.month(); u.day = until.day();
                 u.is_date = 1;
-                rule.until = u;
+                rule->until = u;
             }
-            icalcomponent_add_property(ve, icalproperty_new_rrule(rule));
+            icalcomponent_add_property(ve, icalproperty_new_rrule(rule.get()));
         }
     } else if (newRec != Recurrence::None) {
         // Recurrence keyword unchanged, but UNTIL might have changed.
@@ -377,16 +389,17 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
             // Read existing rule, modify UNTIL, write back
             icalproperty* rp = icalcomponent_get_first_property(ve, ICAL_RRULE_PROPERTY);
             if (rp) {
-                icalrecurrencetype rule = icalproperty_get_rrule(rp);
-                if (newUntil.isValid()) {
-                    icaltimetype u = icaltime_null_date();
-                    u.year = newUntil.year(); u.month = newUntil.month(); u.day = newUntil.day();
-                    u.is_date = 1;
-                    rule.until = u;
-                } else {
-                    rule.until = icaltime_null_time();
+                if (struct icalrecurrencetype* rule = icalproperty_get_rrule(rp)) {  // borrowed
+                    if (newUntil.isValid()) {
+                        icaltimetype u = icaltime_null_date();
+                        u.year = newUntil.year(); u.month = newUntil.month(); u.day = newUntil.day();
+                        u.is_date = 1;
+                        rule->until = u;
+                    } else {
+                        rule->until = icaltime_null_time();
+                    }
+                    icalproperty_set_rrule(rp, rule);
                 }
-                icalproperty_set_rrule(rp, rule);
             }
         }
     }

@@ -21,12 +21,12 @@ Singleton {
         let primary = data.primaryMonitor ?? ""
 
         if (monitors) {
-            if (primary && monitors[primary]?.current)
-                return monitors[primary].current
+            if (primary && monitors[primary]?.currentItemId)
+                return monitors[primary].currentItemId
 
             for (let name in monitors) {
-                if (monitors[name]?.current)
-                    return monitors[name].current
+                if (monitors[name]?.currentItemId)
+                    return monitors[name].currentItemId
             }
         }
 

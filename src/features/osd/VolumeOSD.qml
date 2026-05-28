@@ -155,10 +155,10 @@ Scope {
                                 spacing: Tokens.spacing.small
 
                                 MaterialText {
-                                    text: root.currentMuted ? "Звук выключен" : "Громкость"
-                                    textStyle: "titleMedium"
+                                    text: root.currentMuted ? "Muted" : "Volume"
+                                    textStyle: "headlineSmall"
                                     colorRole: "onSurface"
-                                    font.weight: Font.Medium
+                                    font.weight: Font.Bold
                                 }
 
                                 Item { Layout.fillWidth: true }
