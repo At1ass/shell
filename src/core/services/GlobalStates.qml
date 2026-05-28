@@ -43,6 +43,7 @@ Singleton {
     // Открыть Dashboard на конкретной вкладке
     // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
     function openDashboardTab(tabIndex) {
+        if (!AppConfig.moduleEnabled("dashboard")) return
         dashboardOpenIndex = tabIndex
         dashboardOpen = true
     }
@@ -70,9 +71,11 @@ Singleton {
                 openDashboardTab(4)
                 return
             case "notification-center":
+                if (!AppConfig.moduleEnabled("notifications")) return
                 notificationCenterOpen = !notificationCenterOpen
                 return
             case "launcher":
+                if (!AppConfig.moduleEnabled("launcher")) return
                 launcherOpen = !launcherOpen
                 return
             case "control-panel":
@@ -90,6 +93,9 @@ Singleton {
 
     // Lock/Unlock
     function lockSession() {
+        // Disabled lockscreen module → lock requests (power menu, loginctl/DBus
+        // lock-session) become no-ops. See README caveat; pair with an external locker.
+        if (!AppConfig.moduleEnabled("lockscreen")) return
         closeAllPanels()
         powerMenuOpen = false
         lockscreenActive = true
@@ -130,7 +136,9 @@ Singleton {
         running: true
         stdout: SplitParser {
             onRead: data => {
-                if (data.includes("Lock")) root.lockSession()
+                // Match the bare ".Lock" member name (with trailing space
+                // before "()"). Plain `Lock` substring also matches `.Unlock`.
+                if (data.includes(".Lock ")) root.lockSession()
             }
         }
     }
@@ -207,19 +215,19 @@ Singleton {
     GlobalShortcut {
         name: "launcherToggle"
         description: "Toggle launcher"
-        onPressed: root.launcherOpen = !root.launcherOpen
+        onPressed: if (AppConfig.moduleEnabled("launcher")) root.launcherOpen = !root.launcherOpen
     }
 
     GlobalShortcut {
         name: "powerMenuToggle"
         description: "Toggle power menu"
-        onPressed: root.powerMenuOpen = !root.powerMenuOpen
+        onPressed: if (AppConfig.moduleEnabled("powerMenu")) root.powerMenuOpen = !root.powerMenuOpen
     }
 
     GlobalShortcut {
         name: "cheatsheetToggle"
         description: "Toggle cheatsheet overlay"
-        onPressed: root.cheatsheetOpen = !root.cheatsheetOpen
+        onPressed: if (AppConfig.moduleEnabled("cheatsheet")) root.cheatsheetOpen = !root.cheatsheetOpen
     }
 
     GlobalShortcut {
@@ -237,13 +245,13 @@ Singleton {
     GlobalShortcut {
         name: "screenshot"
         description: "Take a screenshot (area)"
-        onPressed: ScreenshotService.takeScreenshot()
+        onPressed: if (AppConfig.moduleEnabled("screenshot")) ScreenshotService.takeScreenshot()
     }
 
     GlobalShortcut {
         name: "screenshotSwappy"
         description: "Take annotated screenshot (swappy)"
-        onPressed: ScreenshotService.takeScreenshotSwappy()
+        onPressed: if (AppConfig.moduleEnabled("screenshot")) ScreenshotService.takeScreenshotSwappy()
     }
 
     GlobalShortcut {
@@ -275,14 +283,17 @@ Singleton {
         }
 
         function toggleDashboard(): void {
+            if (!AppConfig.moduleEnabled("dashboard")) return
             root.dashboardOpen = !root.dashboardOpen
         }
 
         function toggleLauncher(): void {
+            if (!AppConfig.moduleEnabled("launcher")) return
             root.launcherOpen = !root.launcherOpen
         }
 
         function openLauncher(): void {
+            if (!AppConfig.moduleEnabled("launcher")) return
             root.launcherOpen = true
         }
 
@@ -295,10 +306,12 @@ Singleton {
         }
 
         function toggleNotificationCenter(): void {
+            if (!AppConfig.moduleEnabled("notifications")) return
             root.notificationCenterOpen = !root.notificationCenterOpen
         }
 
         function openNotificationCenter(): void {
+            if (!AppConfig.moduleEnabled("notifications")) return
             root.notificationCenterOpen = true
         }
 
@@ -307,10 +320,12 @@ Singleton {
         }
 
         function screenshot(): void {
+            if (!AppConfig.moduleEnabled("screenshot")) return
             ScreenshotService.takeScreenshot()
         }
 
         function screenshotSwappy(): void {
+            if (!AppConfig.moduleEnabled("screenshot")) return
             ScreenshotService.takeScreenshotSwappy()
         }
 
@@ -327,10 +342,12 @@ Singleton {
         }
 
         function togglePowerMenu(): void {
+            if (!AppConfig.moduleEnabled("powerMenu")) return
             root.powerMenuOpen = !root.powerMenuOpen
         }
 
         function openPowerMenu(): void {
+            if (!AppConfig.moduleEnabled("powerMenu")) return
             root.powerMenuOpen = true
         }
 
@@ -343,10 +360,12 @@ Singleton {
         }
 
         function toggleCheatsheet(): void {
+            if (!AppConfig.moduleEnabled("cheatsheet")) return
             root.cheatsheetOpen = !root.cheatsheetOpen
         }
 
         function openCheatsheet(): void {
+            if (!AppConfig.moduleEnabled("cheatsheet")) return
             root.cheatsheetOpen = true
         }
 

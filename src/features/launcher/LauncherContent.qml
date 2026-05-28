@@ -328,6 +328,10 @@ Item {
             // Отключаем transitions при открытии
             appListView.transitionsEnabled = false
 
+            // Pull fresh cliphist state — the clipboard-change watcher uses
+            // a 100ms debounce, which races a fast Mod+Space after a copy.
+            ClipboardService.refresh()
+
             // Очищаем и сбрасываем
             searchField.text = ""
             LauncherService.search("")
@@ -345,6 +349,18 @@ Item {
             // Очищаем при закрытии
             searchField.text = ""
             LauncherService.search("")
+        }
+    }
+
+    // Re-run the search when cliphist entries change in clipboard-prefix mode
+    // (covers the case where ClipboardService.refresh in onVisibleChanged got
+    // back stale data, then the 100ms debounce refresh delivered the new
+    // entry afterwards — the displayed list needs to recompute).
+    Connections {
+        target: ClipboardService
+        function onEntriesChanged() {
+            if (root.visible && searchField.text.startsWith(">"))
+                LauncherService.search(searchField.text)
         }
     }
 

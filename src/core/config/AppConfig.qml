@@ -18,6 +18,20 @@ Singleton {
     // Raw JSON data
     property var data: ({})
 
+    // === Module toggles ===
+    // Central on/off map for every top-level UI element. A user disables anything
+    // via the `modules` block in config.json; absent keys fall back to these defaults.
+    readonly property var moduleDefaults: ({
+        bar: true, dock: false, wallpaper: true, dashboard: true,
+        launcher: true, notifications: true, osd: true, lockscreen: false,
+        powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true
+    })
+
+    function moduleEnabled(name) {
+        const v = data.modules ? data.modules[name] : undefined
+        return (v === undefined || v === null) ? (moduleDefaults[name] ?? true) : v
+    }
+
     // === Typed accessors ===
 
     // Appearance
@@ -27,7 +41,6 @@ Singleton {
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
 
     // Bar
-    readonly property bool barEnabled: data.bar?.enabled ?? true
     readonly property string barPosition: data.bar?.position ?? "top"
     readonly property int barHeight: data.bar?.height ?? 48
     readonly property int barMargin: data.bar?.margin ?? 16
@@ -35,7 +48,6 @@ Singleton {
     readonly property var barWidgets: data.bar?.widgets || []
 
     // Dashboard
-    readonly property bool dashboardEnabled: data.dashboard?.enabled ?? true
     readonly property int dashboardWidth: data.dashboard?.width ?? 900
     readonly property int dashboardHeight: data.dashboard?.height ?? 640
 
@@ -73,16 +85,13 @@ Singleton {
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 
     // OSD
-    readonly property bool osdEnabled: data.osd?.enabled ?? true
     readonly property int osdTimeout: data.osd?.timeout ?? 2000
 
     // Lockscreen
-    readonly property bool lockscreenEnabled: data.lockscreen?.enabled ?? false
     readonly property bool lockscreenBlurWallpaper: data.lockscreen?.blurWallpaper ?? true
     readonly property bool lockscreenShowClock: data.lockscreen?.showClock ?? true
 
     // Power Menu
-    readonly property bool powerMenuEnabled: data.powerMenu?.enabled ?? true
     readonly property bool powerMenuConfirmActions: data.powerMenu?.confirmActions ?? true
     readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown"]
 
@@ -97,7 +106,6 @@ Singleton {
     readonly property int  gmHyprRounding: data.gamingMode?.hyprland?.rounding ?? 0
 
     // Dock
-    readonly property bool dockEnabled: data.dock?.enabled ?? false
     readonly property bool dockAutoHide: data.dock?.autoHide ?? true
     readonly property bool dockExclusive: data.dock?.exclusive ?? false
     readonly property int dockIconSize: data.dock?.iconSize ?? 48

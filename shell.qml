@@ -19,9 +19,12 @@ import Calendar
 
 ShellRoot {
     readonly property var _hws: HyprlandWindowService
-    Popouts.Popouts {
-        id: globalPopouts
-        Component.onCompleted: PopoutsState.popoutsInstance = globalPopouts
+    LazyLoader {
+        active: AppConfig.moduleEnabled("popouts")
+        Popouts.Popouts {
+            id: globalPopouts
+            Component.onCompleted: PopoutsState.popoutsInstance = globalPopouts
+        }
     }
 
     Variants {
@@ -30,33 +33,43 @@ ShellRoot {
             id: screenScope
             required property ShellScreen modelData
 
-            Bar.StatusBar {
-                id: statusBar
-                screen: screenScope.modelData
+            LazyLoader {
+                active: AppConfig.moduleEnabled("bar")
+                Bar.StatusBar {
+                    id: statusBar
+                    screen: screenScope.modelData
+                }
             }
 
             // Dock (per screen)
-            DockFeature.Dock {
-                screen: screenScope.modelData
+            LazyLoader {
+                active: AppConfig.moduleEnabled("dock")
+                DockFeature.Dock {
+                    screen: screenScope.modelData
+                }
             }
 
-            PanelWindow {
-                id: wallpaperPanel
-                screen: screenScope.modelData
+            // Wallpaper (per screen)
+            LazyLoader {
+                active: AppConfig.moduleEnabled("wallpaper")
+                PanelWindow {
+                    id: wallpaperPanel
+                    screen: screenScope.modelData
 
-                anchors {
-                    left: true
-                    top: true
-                    right: true
-                    bottom: true
-                }
-                exclusionMode: ExclusionMode.Ignore
-                WlrLayershell.namespace: "shell:wallpaper"
-                WlrLayershell.layer: WlrLayershell.Background
+                    anchors {
+                        left: true
+                        top: true
+                        right: true
+                        bottom: true
+                    }
+                    exclusionMode: ExclusionMode.Ignore
+                    WlrLayershell.namespace: "shell:wallpaper"
+                    WlrLayershell.layer: WlrLayershell.Background
 
-                Wallpaper {
-                    anchors.fill: parent
-                    screen: wallpaperPanel.screen
+                    Wallpaper {
+                        anchors.fill: parent
+                        screen: wallpaperPanel.screen
+                    }
                 }
             }
         }
@@ -64,24 +77,27 @@ ShellRoot {
 
     // Dashboard
     LazyLoader {
-        loading: GlobalStates.dashboardOpen
+        active: AppConfig.moduleEnabled("dashboard") && GlobalStates.dashboardOpen
         Dashboard {}
     }
 
     // Volume OSD
     LazyLoader {
-        loading: true
+        active: AppConfig.moduleEnabled("osd")
         VolumeOSD {}
     }
 
     // Brightness OSD
     LazyLoader {
-        loading: true
+        active: AppConfig.moduleEnabled("osd")
         BrightnessOSD {}
     }
 
     // Toast notifications
-    ToastOverlay {}
+    LazyLoader {
+        active: AppConfig.moduleEnabled("toasts")
+        ToastOverlay {}
+    }
 
     // Calendar plugin: bootstrap reminders config and surface errors
     Binding {
@@ -108,40 +124,43 @@ ShellRoot {
 
     // Launcher
     LazyLoader {
-        loading: GlobalStates.launcherOpen
+        active: AppConfig.moduleEnabled("launcher") && GlobalStates.launcherOpen
         Launcher {}
     }
 
     // Notification popups
-    NotificationPopupManager {}
+    LazyLoader {
+        active: AppConfig.moduleEnabled("notifications")
+        NotificationPopupManager {}
+    }
 
     // Notification center
     LazyLoader {
-        loading: GlobalStates.notificationCenterOpen
+        active: AppConfig.moduleEnabled("notifications") && GlobalStates.notificationCenterOpen
         NotificationCenter {}
     }
 
     // Screenshot region selection overlay
     LazyLoader {
-        loading: ScreenshotService.screenshotOverlayActive
+        active: AppConfig.moduleEnabled("screenshot") && ScreenshotService.screenshotOverlayActive
         ScreenshotOverlay {}
     }
 
     // Lockscreen (WlSessionLock creates surfaces for each screen internally)
     LazyLoader {
-        loading: GlobalStates.lockscreenActive
+        active: AppConfig.moduleEnabled("lockscreen") && GlobalStates.lockscreenActive
         Lockscreen {}
     }
 
     // Power menu
     LazyLoader {
-        loading: GlobalStates.powerMenuOpen
+        active: AppConfig.moduleEnabled("powerMenu") && GlobalStates.powerMenuOpen
         PowerMenu {}
     }
 
     // Cheatsheet overlay
     LazyLoader {
-        loading: GlobalStates.cheatsheetOpen
+        active: AppConfig.moduleEnabled("cheatsheet") && GlobalStates.cheatsheetOpen
         Cheatsheet {}
     }
 }

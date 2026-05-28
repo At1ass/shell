@@ -1,134 +1,158 @@
 # ROADMAP
 
-Открытые задачи по следам недавних рефакторов и систематического аудита подсистем. Сгруппированы по area + tier (severity × frequency × ROI).
+Open work, grouped by area and tier (severity × frequency × ROI).
 
-История недавних рефакторов в ветке `dashboard-refactor`:
-- `feat(calendar): replace khal CLI with libical C++ plugin` — calendar полностью на нативный плагин
-- 6 коммитов notifications subsystem — declarative lifecycle, decomposition god-object'а на 4 фокусных singleton'а
-- 5 коммитов wallpaper subsystem — pluggable provider model + Wallhaven с полным API v1 search
+Recent history that informs the items below:
+- `feat(config): unify per-feature enabled flags into modules on/off map` — every top-level UI element is now toggled via `modules.*`
+- `fix(calendar): adopt libical 4.0 refcounted rrule; fix all-day overlap` — calendar plugin migrated to libical's new refcounted recurrence API
+- `chore: remove feed feature entirely` — feed module dropped
+- MD3 overhaul (`md3-overhaul` branch): elevation, pixelSize typography, pill buttons, MaterialSwitch/MaterialText adoption, greeter UI kit unified via `sync-ui.sh`
+- `feat(calendar): replace khal CLI with libical C++ plugin` — calendar fully native
+- Notifications subsystem split into 4 focused singletons with declarative lifecycle
+- Wallpaper subsystem with pluggable provider model + Wallhaven (full `/search` API)
 
 ---
 
-## Tier 1 — Security / hygiene quick fixes (~30 мин суммарно)
+## Tier 1 — security / hygiene quick fixes (~30 min total)
 
-Точечные правки, низкий риск, локализованы в одном файле каждая.
+Small, low-risk, single-file edits.
 
 ### `ScreenshotService.qml` — template injection
-Строки `19, 28`:
+Lines `19, 28`:
 ```qml
 command: ["sh", "-c", `sleep 0.2 && grim -g "${root._grimGeometry}" - | wl-copy`]
 ```
-`_grimGeometry` приходит из ScreenshotOverlay (внутренний источник, эксплуатация маловероятна), но `bash -c` с template literal — плохая форма. Заменить на argv chain через два Process'а (grim + pipe → wl-copy/swappy).
+`_grimGeometry` comes from `ScreenshotOverlay` (internal source, exploitation unlikely), but `bash -c` with a template literal is bad form. Replace with an argv chain across two `Process`es (grim + pipe → wl-copy/swappy).
 
-### `ClipboardService.qml:208` — shell concat
+### `ClipboardService.qml:208` — shell concatenation
 ```qml
 thumbDecodeProc.command = ["sh", "-c", "mkdir -p '" + root._thumbnailDir + "' && " + root.cliphistBinary + " decode > '" + thumbDecodeProc._outPath + "'"]
 ```
-`item.id` от cliphist числовой, эксплуатация маловероятна, но паттерн зеркалит calendar `deleteEvent` баг (уже починен). Заменить на `QDir().mkpath(...)` для каталога + `Process` с argv для cliphist + redirect через stdin/stdout.
+`item.id` from cliphist is numeric, exploitation unlikely, but the pattern mirrors the calendar `deleteEvent` bug (already fixed). Replace with `QDir().mkpath(...)` for the directory + a `Process` with argv for cliphist and stdin/stdout redirection.
 
 ### `EthernetService.qml:77` — defense-in-depth
 ```qml
 speedProc.command = ["cat", "/sys/class/net/" + root.interfaceName + "/speed"]
 ```
-`interfaceName` от nmcli, реально безопасен. Добавить regex-валидацию `^[a-zA-Z0-9_-]+$` для гигиены.
+`interfaceName` from nmcli is realistically safe. Add a `^[a-zA-Z0-9_-]+$` regex guard for hygiene.
 
 ### `GlobalStates.qml:140` — DBus parse precision
 ```qml
 data.includes("Lock")
 ```
-Матчит и "UnLock". Заменить на `data.includes(".Lock ")` или regex-anchor.
+Also matches "UnLock". Replace with `data.includes(".Lock ")` or a regex anchor.
 
 ---
 
-## Tier 2 — Subprocess → DBus (3-4 часа)
+## Tier 2 — subprocess → DBus (3–4 hours)
 
 ### `BluetoothService.qml:20` — bluetoothctl infinite loop
 ```qml
 command: ["sh", "-c", "{ echo 'agent KeyboardDisplay'; ... while true; do sleep 0.5; echo 'yes'; done; } | bluetoothctl"]
 ```
-- Infinite loop без exit handler
-- Если bluetoothctl падает, процесс висит ждать I/O
-- Поллинг каждые 2с для device list
+- Infinite loop with no exit handler
+- If bluetoothctl dies, the process hangs waiting for I/O
+- 2-second polling for device list
 
-**Правильный путь**: native D-Bus через `Quickshell.Io.DBus` к `org.bluez`. Pattern уже использован в `MprisController.qml`. Готовый шаблон для будущих subprocess→DBus миграций. Подсистема — чистый кейс отказа от subprocess в пользу нативного API.
+**Correct path**: native D-Bus via `Quickshell.Io.DBus` against `org.bluez`. The pattern already lives in `MprisController.qml`; reuse as the template for future subprocess→DBus migrations. The subsystem is the cleanest candidate for swapping subprocess for a native API.
 
 ---
 
-## Wallpaper — отложенные расширения
+## Tier 3 — dead code cleanup
 
-### Stage E — Wallpaper Picker UI (~3-5 часов)
-Нижняя панель браузера source items с thumbnails. Архитектурно прозрачно — `WallpaperSourceRegistry.getSource(id).items` уже всё даёт. UI:
-- Bottom panel (как cheatsheet, layer)
-- Tabs по source ids
-- Grid из thumbnail Image с lazy loading
-- Click on thumbnail → `WallpaperManager.setMonitorSource + setItem`
-- Per-source actions: refresh, loadMore, для wallhaven — search bar с onAccepted → query
+### `controlPanel` IPC + GlobalShortcut + state are dead
+- `GlobalStates.controlPanelOpen` is set/toggled in 9 places
+- `IpcHandler.toggleControlPanel/openControlPanel/closeControlPanel` exposed
+- `GlobalShortcut "controlPanelToggle"` registered
+- `clickAction: "control-panel"` accepted
+- The cheatsheet content still lists `openControlPanelLeft` / `closeControlPanelLeft`
 
-### Wallhaven — endpoints помимо /search
-- **`/w/{id}`** — single wallpaper details (used когда пользователь добавил конкретный wallpaper-ID)
+**Nothing renders against any of it.** Either delete the entire surface or actually implement the control panel feature. Currently misleading in cheatsheet, README (already removed in latest revision) and any user binding.
+
+### Stale root-level analysis docs
+- `dashboard_vs_traymenu_focusgrab_analysis.md`, `menu_system_analysis.md`, `refactor_bar.md`, `tray_menu_refactoring_summary.md`, `WORKSPACE_ICONS_CAELESTIA.md`, `WORKSPACE_ICONS_QUICKSTART.md`, root `QUICK_FIXES.md`
+- Most of `docs/*.md` (Jan/Feb 2026 audit and refactor planning notes)
+- `docs/README.md` index references nonexistent files (`PROJECT_OVERVIEW.md`, `QUICK_WINS.md`, `CODE_AUDIT.md`, `REFACTORING_CHECKLIST.md`)
+
+Either move to `docs/archive/` or delete. They are frozen research artifacts, not living documentation.
+
+---
+
+## Wallpaper — deferred extensions
+
+### Stage E — wallpaper picker UI (~3–5 hours)
+Bottom-panel browser of source items with thumbnails. Architecturally straightforward — `WallpaperSourceRegistry.getSource(id).items` already supplies everything. UI:
+- Bottom panel (cheatsheet-style layer)
+- Tabs per source id
+- Grid of thumbnail `Image` with lazy loading
+- Click thumbnail → `WallpaperManager.setMonitorSource + setItem`
+- Per-source actions: refresh, loadMore; for Wallhaven — a search bar with `onAccepted → query`
+
+### Wallhaven — endpoints beyond `/search`
+- **`/w/{id}`** — single-wallpaper details (used when the user pinned a specific wallpaper id)
 - **`/tag/{id}`** — tag info
-- **`/collections/{username}/{id}`** — содержимое коллекции (важно: «использовать мою Wallhaven-коллекцию как источник»)
-- Настройка: либо новый source type `wallhaven-collection`, либо опц. `collectionId + username` в существующем
+- **`/collections/{username}/{id}`** — collection contents (important: "use my Wallhaven collection as a source")
+- Setup: either a new `wallhaven-collection` source type, or optional `collectionId + username` on the existing one
 
-### Другие remote sources
-По паттерну Wallhaven (~250 LOC каждый):
-- **Unsplash** — `/photos/random` или `/search/photos`, нужен Access Key (env var)
-- **Reddit** — `/r/wallpapers/.json`, без auth, проще всего
-- **Bing wallpaper** — `/HPImageArchive.aspx` без auth
+### Other remote sources
+Following the Wallhaven pattern (~250 LOC each):
+- **Unsplash** — `/photos/random` or `/search/photos`, needs an Access Key (env var)
+- **Reddit** — `/r/wallpapers/.json`, no auth, easiest
+- **Bing wallpaper** — `/HPImageArchive.aspx`, no auth
 
 ### Wallpaper migration helper
-Программный конвертер старого config (`wallpaper.global.directory + monitors[].directory`) в новый (`sources[] + monitors[].sourceId`). Решение Stage B — пользователь правит руками. Может пригодиться для других пользователей если когда-нибудь станет публичным проектом.
+Programmatic converter from the old config (`wallpaper.global.directory + monitors[].directory`) to the new (`sources[] + monitors[].sourceId`). The Stage B decision was "user fixes it by hand". Could matter for other users if this ever becomes a public project.
 
-### Per-monitor query overrides для Wallhaven
-В Stage D у source один `query`, все monitors разделяют. Чтобы каждый monitor имел свой query/categories — нужно либо несколько Wallhaven sources, либо `monitors[].sourceQueryOverride`. Пока решается через несколько sources.
+### Per-monitor query overrides for Wallhaven
+In Stage D a source has one `query`, and every monitor shares it. To give each monitor its own query/categories — either spawn multiple Wallhaven sources or add `monitors[].sourceQueryOverride`. Worked around today by using multiple sources.
 
 ---
 
-## Notifications — отложенные
+## Notifications — deferred
 
 ### Tests (Qt Test framework)
-По паттерну calendar (`src/plugins/src/calendar-qml/test/`). Можно тестировать logic-only singletons:
-- `NotificationRateLimiter` — token bucket math, queue behavior
+Mirror the calendar tests (`src/plugins/src/calendar-qml/test/`). Logic-only singletons are testable:
+- `NotificationRateLimiter` — token-bucket math, queue behavior
 - `NotificationHistory` — TTL pruning, grouping, persistence roundtrip
 
-UI popup тесты сложны (требуют сцену) — out of scope.
+UI popup tests are hard (require a scene) — out of scope.
 
 ### `services.notifications.dnd.suppressOnFullscreen` config
-Сейчас hardcoded `true` в `NotificationDND.qml`. Если нужно отключаемо — добавить:
+Currently hardcoded `true` in `NotificationDND.qml`. If it needs to be toggleable, add:
 - AppConfig reader
-- schema entry
-- Чтение в NotificationDND через `?? true`
+- Schema entry
+- Read in NotificationDND with `?? true`
 
-15 строк работы.
+~15 lines of work.
 
 ### Inline reply support
-Quickshell поддерживает `notification.sendInlineReply(text)`. Требует UI text input в popup. Для notifications которые declare `inlineReplyPlaceholder` (Slack, Discord, Telegram, etc).
+Quickshell supports `notification.sendInlineReply(text)`. Requires a UI text input in the popup. Useful for notifications that declare `inlineReplyPlaceholder` (Slack, Discord, Telegram, etc.).
 
 ### Action icons
-`actionIconsSupported` capability — currently не объявлено и UI не показывает иконки на actions. Если объявить — clients начнут слать `iconName` в action и ожидать рендер иконки рядом с текстом.
+The `actionIconsSupported` capability is currently not advertised and the UI does not show icons on actions. If we advertise it, clients will start sending `iconName` per action and expect an icon next to the text.
 
-### Persistent notifications через `keepOnReload: true`
-Сейчас `keepOnReload: false` + JSON file для history. Альтернатива — Quickshell-managed retention. Не очевидно что лучше; текущее работает.
+### Persistent notifications via `keepOnReload: true`
+Today: `keepOnReload: false` + a JSON file for history. Alternative: Quickshell-managed retention. Not obvious which is better; the current setup works.
 
 ---
 
-## Calendar — отложенные
+## Calendar — deferred
 
-### Stage E полировка UI (низкий приоритет)
-Из аудита были предложения, но в рефактор не вошли:
-- Локализация дней недели (`Qt.locale().dayName(i, Locale.ShortFormat)`)
-- "Today" button в шапке
-- Multi-day events в timeline-view (сейчас фильтрует по `!ev.allDay && ev.start === selectedDate.date`)
-- Drag-to-reschedule в day timeline
-- Confirm-on-close в EventDialog при unsaved changes (есть, но можно расширить)
-- Search по событиям
+### Stage E UI polish (low priority)
+Suggestions from the audit that did not make it into the refactor:
+- Localized weekday names (`Qt.locale().dayName(i, Locale.ShortFormat)`)
+- "Today" button in the header
+- Multi-day events in the timeline view (currently filtered by `!ev.allDay && ev.start === selectedDate.date`)
+- Drag-to-reschedule in the day timeline
+- Confirm-on-close in `EventDialog` for unsaved changes (exists; could be broader)
+- Event search
 
-Все QML-only, ничего не блокирует.
+All QML-only, nothing blocks.
 
 ---
 
 ## Out of scope
 
-- **Полная замена subprocess-based services на DBus/native** — большой проект; делается по одному за раз (BluetoothService первый)
-- **Cross-shell pattern share** — наработки из этих рефакторов (BaseProvider, NotifData wrapper, source registry) можно вынести в reusable patterns если когда-нибудь делать форк/share
-- **CI / unit tests для всего** — selectively по mission-critical компонентам, не везде
+- **Wholesale replacement of subprocess-based services with DBus/native** — large project; tackled one at a time (`BluetoothService` first)
+- **Cross-shell pattern sharing** — patterns from these refactors (BaseProvider, NotifData wrapper, source registry) could be extracted as reusable building blocks if this ever forks / ships as a public project
+- **CI / unit tests for everything** — selectively for mission-critical components; not everywhere

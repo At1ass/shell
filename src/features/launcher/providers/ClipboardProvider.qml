@@ -10,21 +10,20 @@ BaseProvider {
     priority: 60  // Высокий приоритет, выше Applications
     prefixes: [">"]  // Префикс ">" для поиска в clipboard
 
-    property var lastResults: []
-    property string lastQuery: ""
     property var launcherService: null
 
     function search(query) {
         let searchQuery = removePrefix(query).trim()
-
-        // Кешируем результаты
-        if (searchQuery === lastQuery && lastResults.length > 0) {
-            return lastResults
-        }
-
+        // No result cache: preparedEntries is the source of truth and gets
+        // updated reactively on every clipboard change. A stale cache here
+        // would mask the just-copied entry behind an old list.
         const searchResults = ClipboardService.fuzzySearch(searchQuery)
+        if (ClipboardService.debug) {
+            console.log("[ClipboardProvider.search] query:", JSON.stringify(query),
+                        "searchQuery:", JSON.stringify(searchQuery),
+                        "results:", searchResults.length)
+        }
         const results = []
-
         for (let i = 0; i < searchResults.length; i++) {
             const item = searchResults[i]
             const entry = item.entry
@@ -57,23 +56,23 @@ BaseProvider {
 
             const capturedEntry = entry
 
-            // Score убывает с позицией — сохраняет порядок cliphist в LauncherService
+            // Equal score for every clipboard result → LauncherService's
+            // stable sort keeps them in cliphist (recency) order. Fuzzy
+            // match scores are deliberately discarded so that text matches
+            // never bubble above newer screenshots.
             results.push({
                 id: "clipboard:" + i + ":" + content.substring(0, 20),
                 text: displayText,
                 description: description,
                 icon: icon,
                 type: "clipboard",
-                score: searchResults.length - i,
+                score: 0,
                 data: { entry: capturedEntry, content: content, isImage: isImage },
                 action: function() {
                     ClipboardService.copy(capturedEntry)
                 }
             })
         }
-
-        lastResults = results
-        lastQuery = searchQuery
 
         return results
     }

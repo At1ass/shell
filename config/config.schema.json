@@ -58,16 +58,32 @@
       }
     },
 
+    "modules": {
+      "type": "object",
+      "description": "Central on/off switches for every top-level UI element. Each key toggles one element; omitted keys use the listed default. Hot-reload applies changes immediately.",
+      "additionalProperties": false,
+      "properties": {
+        "bar": { "type": "boolean", "default": true, "description": "Status bar (per monitor)." },
+        "dock": { "type": "boolean", "default": false, "description": "Application dock (per monitor)." },
+        "wallpaper": { "type": "boolean", "default": true, "description": "Wallpaper layer (per monitor). Disabling shows the compositor background." },
+        "dashboard": { "type": "boolean", "default": true, "description": "Dashboard control center." },
+        "launcher": { "type": "boolean", "default": true, "description": "Application launcher." },
+        "notifications": { "type": "boolean", "default": true, "description": "Notification center AND popups. The bar notifications widget is toggled separately via its own widget 'enabled'." },
+        "osd": { "type": "boolean", "default": true, "description": "Volume and brightness on-screen displays." },
+        "lockscreen": { "type": "boolean", "default": false, "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops — pair with an external locker." },
+        "powerMenu": { "type": "boolean", "default": true, "description": "Power actions overlay." },
+        "cheatsheet": { "type": "boolean", "default": true, "description": "Keybinding cheatsheet overlay." },
+        "screenshot": { "type": "boolean", "default": true, "description": "Screenshot region-selection overlay and screenshot hotkeys/IPC." },
+        "toasts": { "type": "boolean", "default": true, "description": "Toast messages. When false, ToastService errors/successes are silently dropped (console only)." },
+        "popouts": { "type": "boolean", "default": true, "description": "Global popout host (e.g. tray menus). When false, tray right-click menus and other popouts won't appear." }
+      }
+    },
+
     "bar": {
       "type": "object",
       "description": "Top status bar.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the status bar."
-        },
         "position": {
           "type": "string",
           "enum": ["top"],
@@ -106,11 +122,6 @@
       "description": "Application dock at the bottom of the screen. Shows pinned and running applications with auto-hide support.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the application dock."
-        },
         "autoHide": {
           "type": "boolean",
           "default": true,
@@ -142,11 +153,6 @@
       "description": "Dashboard panel (5-tab control center: Quick, Weather, Calendar, Audio, Network). Toggle via hotkey or by clicking bar widgets.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable the dashboard."
-        },
         "width": {
           "type": "integer",
           "default": 900,
@@ -299,11 +305,6 @@
       "description": "On-screen display overlays for volume/brightness changes.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable OSD overlays."
-        },
         "timeout": {
           "type": "integer",
           "default": 2000,
@@ -318,11 +319,6 @@
       "description": "WlSessionLock-based lockscreen. Activated via IPC lockScreen() or loginctl lock-session.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the built-in lockscreen. When false, lock actions still work if an external locker intercepts the session lock signal."
-        },
         "blurWallpaper": {
           "type": "boolean",
           "default": true,
@@ -341,11 +337,6 @@
       "description": "Full-screen power actions overlay.",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable the power menu feature."
-        },
         "confirmActions": {
           "type": "boolean",
           "default": true,
@@ -650,7 +641,7 @@
         },
         "calendar": {
           "type": "object",
-          "description": "Calendar integration via khal CLI with optional CalDAV sync (vdirsyncer).",
+          "description": "Calendar integration via the native libical plugin, with optional CalDAV sync (vdirsyncer).",
           "additionalProperties": false,
           "properties": {
             "reminders": {

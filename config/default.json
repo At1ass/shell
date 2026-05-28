@@ -10,8 +10,23 @@
     "fontScale": 1.3
   },
 
+  "modules": {
+    "bar": true,
+    "dock": false,
+    "wallpaper": true,
+    "dashboard": true,
+    "launcher": true,
+    "notifications": true,
+    "osd": true,
+    "lockscreen": false,
+    "powerMenu": true,
+    "cheatsheet": true,
+    "screenshot": true,
+    "toasts": true,
+    "popouts": true
+  },
+
   "bar": {
-    "enabled": true,
     "position": "top",
     "height": 48,
     "margin": 16,
@@ -127,7 +142,6 @@
   },
 
   "dock": {
-    "enabled": false,
     "autoHide": true,
     "exclusive": false,
     "iconSize": 48,
@@ -135,7 +149,6 @@
   },
 
   "dashboard": {
-    "enabled": true,
     "width": 900,
     "height": 640
   },
@@ -167,12 +180,10 @@
   },
 
   "osd": {
-    "enabled": true,
     "timeout": 2000
   },
 
   "lockscreen": {
-    "enabled": false,
     "blurWallpaper": true,
     "showClock": true
   },

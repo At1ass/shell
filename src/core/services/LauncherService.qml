@@ -165,11 +165,26 @@ Singleton {
             }
         }
 
-        // Сортировка по score (descending)
-        collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0))
+        // In prefix-match mode, preserve the provider's natural order
+        // (e.g. cliphist recency for ">"). Otherwise sort by score desc.
+        if (!hasPrefixMatch)
+            collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0))
 
-        // Преобразуем результаты в формат для ListView (ограничиваем top-10)
-        filteredApps = collectedResults.slice(0, AppConfig.launcherMaxResults)
+        // Prefix-matched provider implies a focused mode (e.g. ">" for
+        // clipboard). Don't cap to the generic launcherMaxResults — the
+        // user needs enough room to scroll through screenshots/history.
+        const cap = hasPrefixMatch ? Math.max(AppConfig.launcherMaxResults, 50)
+                                   : AppConfig.launcherMaxResults
+        filteredApps = collectedResults.slice(0, cap)
+
+        if (ClipboardService.debug && hasPrefixMatch) {
+            console.log("[LauncherService] prefix mode results:", filteredApps.length)
+            for (let k = 0; k < Math.min(filteredApps.length, 10); k++) {
+                const r = filteredApps[k]
+                console.log("  ", k, "type=" + r.type, "text=" +
+                    (r.text || "").substring(0, 40).replace(/\n/g, "\\n"))
+            }
+        }
     }
 
     // Выполнение action результата

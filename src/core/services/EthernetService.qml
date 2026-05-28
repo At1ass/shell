@@ -73,9 +73,15 @@ Singleton {
                 }
 
                 root.connected = true
-                // Get link speed via ethtool
-                speedProc.command = ["cat", "/sys/class/net/" + root.interfaceName + "/speed"]
-                speedProc.running = true
+                // Defense-in-depth: interfaceName comes from nmcli (trusted)
+                // but we still validate the shape before splicing it into a
+                // /sys path. Linux ifnames are alnum + _ - . (max 15 chars).
+                if (/^[A-Za-z0-9_.-]{1,15}$/.test(root.interfaceName)) {
+                    speedProc.command = ["cat", "/sys/class/net/" + root.interfaceName + "/speed"]
+                    speedProc.running = true
+                } else {
+                    root.speed = ""
+                }
             }
         }
     }

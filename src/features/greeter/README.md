@@ -1,59 +1,49 @@
 # Quickshell Greeter
 
-Greetd greeter — экран входа в систему с Material Design 3 UI.
-Отдельная конфигурация Quickshell, работает независимо от основной оболочки.
+A greetd greeter — login screen with a Material Design 3 UI. A standalone Quickshell configuration that runs independently of the main shell.
 
-## Как работает
+## How it works
 
-Greetd запускает Hyprland от пользователя `greeter`, Hyprland запускает
-`qs -p .../greeter`, greeter показывает форму логина и общается с greetd
-через `Quickshell.Services.Greetd` IPC. После успешной аутентификации
-запускает выбранную сессию и завершается.
+greetd starts Hyprland as the `greeter` user, Hyprland launches `qs -p .../greeter`, the greeter shows the login form and talks to greetd through `Quickshell.Services.Greetd` IPC. On successful authentication it launches the selected session and exits.
 
-Внизу экрана — кнопки питания (shutdown, reboot, suspend) через `systemctl`,
-доступные без аутентификации.
+At the bottom of the screen there are power buttons (shutdown, reboot, suspend) wired to `systemctl`, available without authentication.
 
-## Структура файлов
+## File layout
 
 ```
 greeter/
-├── shell.qml                  — Entry point: PanelWindow fullscreen на каждом мониторе
-├── GreeterSurface.qml         — Обои + blur + scrim + часы + форма + Greetd IPC
+├── shell.qml                  — Entry point: fullscreen PanelWindow per monitor
+├── GreeterSurface.qml         — Wallpaper + blur + scrim + clock + form + Greetd IPC
 ├── config/
-│   ├── GreeterConfig.qml      — Конфиг из /etc/greetd/ + wallpaper из state.json
-│   ├── GreeterTheme.qml       — Material Design 3 тема (McuTheme)
-│   ├── SessionModel.qml       — Парсинг wayland-sessions/*.desktop и xsessions/*.desktop
-│   └── UserModel.qml          — Пользователи из getent passwd (UID 1000–65533)
+│   ├── GreeterConfig.qml      — Config from /etc/greetd/ + wallpaper from state.json
+│   ├── GreeterTheme.qml       — Material Design 3 theme (McuTheme)
+│   ├── SessionModel.qml       — Parses wayland-sessions/*.desktop and xsessions/*.desktop
+│   └── UserModel.qml          — Users from getent passwd (UID 1000–65533)
 ├── components/
 │   └── LoginForm.qml          — Username + password + session selector + submit
-└── ui/                        — UI kit, СГЕНЕРИРОВАН из src/ui через sync-ui.sh
-    ├── Tokens.qml             — из src/core/config/Tokens.qml (fontScale=1.3, без AppConfig)
+└── ui/                        — UI kit, GENERATED from src/ui via sync-ui.sh
+    ├── Tokens.qml             — from src/core/config/Tokens.qml (fontScale=1.3, no AppConfig)
     ├── MaterialText.qml       — \
     ├── MaterialIcon.qml       —  |
-    ├── MaterialButton.qml     —  } из src/ui/base/* и src/ui/feedback/StateLayer.qml
+    ├── MaterialButton.qml     —  } from src/ui/base/* and src/ui/feedback/StateLayer.qml
     ├── IconButton.qml         —  |  (Theme→GreeterTheme, qs.src.core.config→qs.config)
     ├── CircleAvatar.qml       — /
     └── StateLayer.qml
 ```
 
-### Регенерация UI kit (`sync-ui.sh`)
+### Regenerating the UI kit (`sync-ui.sh`)
 
-`ui/` — **сгенерированные файлы, не редактировать вручную**. Единый источник правды —
-основной кит в `src/ui`. После изменений в `src/ui` синхронизируй гритер:
+`ui/` contains **generated files; do not edit by hand**. The single source of truth is the main UI kit in `src/ui`. After changes to `src/ui`, sync the greeter:
 
 ```bash
 src/features/greeter/sync-ui.sh
 ```
 
-Скрипт копирует компоненты из `src/ui/base` + `src/ui/feedback/StateLayer.qml` и
-`src/core/config/Tokens.qml`, применяя механическую подстановку (`Theme`→`GreeterTheme`,
-импорты, `AppConfig.fontScale`→литерал). Так гритер не расходится с основным шеллом.
-Гритер — отдельный процесс (greetd, до логина), поэтому его тема (`GreeterTheme`) и
-`Tokens` обязаны отличаться источником данных — но тела компонентов идентичны.
+The script copies components from `src/ui/base` + `src/ui/feedback/StateLayer.qml` and `src/core/config/Tokens.qml`, applying mechanical rewrites (`Theme`→`GreeterTheme`, imports, `AppConfig.fontScale`→literal). This keeps the greeter from drifting from the main shell. The greeter is a separate process (greetd, before login), so its theme (`GreeterTheme`) and `Tokens` must differ from the main shell in their data source — but the component bodies are identical.
 
-## Установка
+## Installation
 
-### 1. Greetd
+### 1. greetd
 
 `/etc/greetd/config.toml`:
 
@@ -66,12 +56,12 @@ command = "start-hyprland -- -c /etc/greetd/hyprland-greeter.conf"
 user = "greeter"
 ```
 
-### 2. Hyprland конфигурация для greeter
+### 2. Hyprland config for the greeter
 
 `/etc/greetd/hyprland-greeter.conf`:
 
 ```conf
-# Настроить мониторы под своё железо
+# Adapt monitors to your hardware
 monitor = DP-1, preferred, auto, 1
 
 exec-once = qs -p /home/<USER>/.config/quickshell/shell/src/features/greeter; hyprctl dispatch exit
@@ -83,7 +73,7 @@ misc {
 }
 ```
 
-### 3. Конфигурация greeter
+### 3. Greeter configuration
 
 `/etc/greetd/greeter.json`:
 
@@ -99,70 +89,68 @@ misc {
 }
 ```
 
-| Параметр         | По умолчанию | Описание                                              |
-|------------------|--------------|-------------------------------------------------------|
-| `primaryMonitor` | `""`         | Имя монитора для выбора обоев из state.json           |
-| `darkMode`       | `true`       | Тёмная тема                                           |
-| `themeVariant`   | `"vibrant"`  | Вариант Material You (vibrant, tonalspot, и т.д.)     |
-| `themeColor`     | `"#6200EE"`  | Fallback цвет для генерации темы (если нет обоев)     |
-| `showClock`      | `true`       | Показывать часы и дату                                |
-| `defaultUser`    | `""`         | Автозаполнение имени пользователя                     |
-| `defaultSession` | `""`         | Автовыбор сессии по имени (e.g. `"Hyprland"`)         |
-| `wallpaperPath`  | `""`         | Ручной путь к обоям (используется если state.json нет)|
+| Field            | Default     | Description                                                      |
+|------------------|-------------|------------------------------------------------------------------|
+| `primaryMonitor` | `""`        | Monitor name used to pick a wallpaper from state.json            |
+| `darkMode`       | `true`      | Dark theme                                                       |
+| `themeVariant`   | `"vibrant"` | Material You variant (vibrant, tonalspot, etc.)                  |
+| `themeColor`     | `"#6200EE"` | Fallback seed color for theme generation (when there's no image) |
+| `showClock`      | `true`      | Show clock and date                                              |
+| `defaultUser`    | `""`        | Pre-fill the username                                            |
+| `defaultSession` | `""`        | Pre-select a session by name (e.g. `"Hyprland"`)                 |
+| `wallpaperPath`  | `""`        | Manual wallpaper path (used when state.json is unavailable)      |
 
-### 4. Обои из основной оболочки
+### 4. Wallpaper from the main shell
 
-Greeter подхватывает текущие обои из `state.json` основной оболочки через симлинк.
+The greeter picks up the current wallpaper from the main shell's `state.json` via a symlink.
 
-#### Создать симлинк
+#### Create the symlink
 
 ```bash
 sudo ln -sf /home/<USER>/.config/quickshell/state.json /etc/greetd/shell-state.json
 ```
 
-#### ACL: доступ для пользователя greeter
+#### ACL: access for the greeter user
 
-Пользователю `greeter` нужен **traverse** (`x`) по цепочке директорий до `state.json`
-и **read** (`r`) на сам файл и файлы обоев. Traverse не даёт права на листинг
-содержимого директории — только на прохождение сквозь неё по конкретному пути.
+The `greeter` user needs **traverse** (`x`) along the directory chain down to `state.json` and **read** (`r`) on the file itself and on the wallpaper files. Traverse does not grant listing — only the ability to step through to a known path.
 
 ```bash
-# Traverse до state.json
+# Traverse to state.json
 setfacl -m u:greeter:x /home/<USER>
 setfacl -m u:greeter:x /home/<USER>/.config
 setfacl -m u:greeter:x /home/<USER>/.config/quickshell
 setfacl -m u:greeter:r /home/<USER>/.config/quickshell/state.json
 
-# Чтение обоев
+# Read wallpapers
 setfacl -m u:greeter:rx /home/<USER>/wallpapers
 find /home/<USER>/wallpapers -type d -exec setfacl -m u:greeter:rx {} \;
 find /home/<USER>/wallpapers -type f -exec setfacl -m u:greeter:r {} \;
 ```
 
-#### Каскад выбора обоев
+#### Wallpaper selection cascade
 
 1. `shell-state.json` → `wallpaper.monitors[primaryMonitor].current`
-2. `shell-state.json` → первый монитор с установленными обоями
-3. `greeter.json` → `wallpaperPath` (ручной fallback)
-4. Нет обоев → сплошной цвет `surfaceDim` из темы
+2. `shell-state.json` → first monitor with a wallpaper set
+3. `greeter.json` → `wallpaperPath` (manual fallback)
+4. None of the above → solid `surfaceDim` color from the theme
 
-#### Безопасность
+#### Security
 
-- `greeter` получает **только read** на `state.json` и файлы обоев
-- `x` на директории — traverse, **не листинг** (`ls /home/<USER>` не сработает)
-- `state.json` содержит только пути к обоям и UI state, никаких секретов
-- Без записи, без выполнения файлов
+- `greeter` only gets **read** on `state.json` and on the wallpaper files
+- `x` on directories is traverse, **not list** (`ls /home/<USER>` will fail)
+- `state.json` contains only wallpaper paths and UI state — no secrets
+- No write, no execute
 
-### 5. Проверка ACL
+### 5. Verifying ACLs
 
 ```bash
-# Должен вернуть содержимое state.json
+# Should return the contents of state.json
 sudo -u greeter cat /etc/greetd/shell-state.json
 
-# Должен вернуть файл обоев
+# Should return a wallpaper file
 sudo -u greeter cat /home/<USER>/wallpapers/some-wallpaper.jpg > /dev/null && echo OK
 
-# НЕ должен работать — нет права на листинг
+# Should NOT work — no list permission
 sudo -u greeter ls /home/<USER>  # Permission denied
 ```
 
@@ -175,25 +163,24 @@ User enters credentials
     → responseRequired=true → Greetd.respond(password)
   → onReadyToLaunch()
     → Greetd.launch(session.exec.split(" "), [], true)
-    → quit=true → quickshell завершается → Hyprland завершается → greetd запускает сессию
-  или onAuthFailure(message)
-    → shake-анимация + сообщение об ошибке + retry
+    → quit=true → quickshell exits → Hyprland exits → greetd launches the session
+  or onAuthFailure(message)
+    → shake animation + error message + retry
 ```
 
-## Тестирование
+## Testing
 
-### UI без greetd (в обычной сессии)
+### UI without greetd (in a normal session)
 
 ```bash
 qs -p ~/.config/quickshell/shell/src/features/greeter
 ```
 
-Greetd IPC недоступен — UI отобразится, но аутентификация не сработает.
-Полезно для проверки визуала, парсинга сессий и пользователей.
+Greetd IPC is unavailable — the UI renders but authentication will not work. Handy for visual checks, session and user parsing.
 
-### Полный тест через greetd
+### Full test through greetd
 
-Переключиться в TTY (Ctrl+Alt+F1), залогиниться, перезапустить greetd:
+Switch to a TTY (Ctrl+Alt+F1), log in, restart greetd:
 
 ```bash
 sudo systemctl restart greetd
