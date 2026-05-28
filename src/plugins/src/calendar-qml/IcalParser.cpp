@@ -137,10 +137,11 @@ Event extractEvent(icalcomponent* vevent, const QString& path, const QString& ca
     if (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_RRULE_PROPERTY)) {
         const char* raw = icalproperty_get_value_as_string(p);
         if (raw) ev.rruleRaw = QString::fromUtf8(raw);
-        icalrecurrencetype rule = icalproperty_get_rrule(p);
-        ev.recurrence = fromIcalFreq(rule.freq);
-        if (!icaltime_is_null_time(rule.until)) {
-            ev.recurrenceUntil = QDate(rule.until.year, rule.until.month, rule.until.day);
+        if (struct icalrecurrencetype* rule = icalproperty_get_rrule(p)) {  // borrowed
+            ev.recurrence = fromIcalFreq(rule->freq);
+            if (!icaltime_is_null_time(rule->until)) {
+                ev.recurrenceUntil = QDate(rule->until.year, rule->until.month, rule->until.day);
+            }
         }
     }
 
@@ -292,8 +293,9 @@ QVariantList expandRange(const std::vector<Event>& events,
         }
 
         // Recurring — expand in event's authoring TZ
-        icalrecurrencetype rule = icalrecurrencetype_from_string(
-            ev.rruleRaw.toUtf8().constData());
+        ical::RecurrencePtr rule = ical::wrapRecurrence(
+            icalrecurrencetype_new_from_string(ev.rruleRaw.toUtf8().constData()));
+        if (!rule) continue;
 
         const qint64 durationSecs = ev.start.secsTo(ev.end);
 
@@ -322,7 +324,7 @@ QVariantList expandRange(const std::vector<Event>& events,
             if (!ev.allDay) dtstart = icaltime_convert_to_zone(dtstart, eventTz);
         }
 
-        ical::RecurIterPtr it = ical::wrapRecurIter(icalrecur_iterator_new(rule, dtstart));
+        ical::RecurIterPtr it = ical::wrapRecurIter(icalrecur_iterator_new(rule.get(), dtstart));
         if (!it) continue;
 
         int safety = 0;
@@ -417,10 +419,9 @@ QString buildIcsString(const QVariantMap& fields) {
 
     const Recurrence rec = recurrenceFromString(fields.value(QStringLiteral("recurrence")).toString());
     if (rec != Recurrence::None) {
-        icalrecurrencetype rule;
-        icalrecurrencetype_clear(&rule);
-        rule.freq = toIcalFreq(rec);
-        rule.interval = 1;
+        ical::RecurrencePtr rule = ical::wrapRecurrence(icalrecurrencetype_new());
+        rule->freq = toIcalFreq(rec);
+        rule->interval = 1;
         QDate until = fields.value(QStringLiteral("recurrenceUntil")).toDate();
         if (until.isValid()) {
             icaltimetype u = icaltime_null_date();
@@ -428,9 +429,9 @@ QString buildIcsString(const QVariantMap& fields) {
             u.month = until.month();
             u.day = until.day();
             u.is_date = 1;
-            rule.until = u;
+            rule->until = u;
         }
-        icalcomponent_add_property(ev, icalproperty_new_rrule(rule));
+        icalcomponent_add_property(ev, icalproperty_new_rrule(rule.get()));
     }
 
     QStringList cats = fields.value(QStringLiteral("categories")).toStringList();
