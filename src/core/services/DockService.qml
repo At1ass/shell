@@ -232,8 +232,15 @@ Singleton {
 
     // === Window actions ===
 
+    // Emitted whenever an app is launched (any source: left-click, middle-click, menu)
+    // so the dock icon can show launch feedback regardless of where the launch came from.
+    signal appLaunched(string key)
+
     function launch(app) {
-        if (app && app.entry) app.entry.execute()
+        if (app && app.entry) {
+            app.entry.execute()
+            appLaunched(app.key)
+        }
     }
 
     function _focusAddress(addr) {

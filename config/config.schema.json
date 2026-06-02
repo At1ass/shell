@@ -124,9 +124,9 @@
       "properties": {
         "position": {
           "type": "string",
-          "enum": ["bottom", "top"],
+          "enum": ["bottom", "top", "left", "right"],
           "default": "bottom",
-          "description": "Screen edge the dock attaches to. ('left'/'right' vertical orientation planned.)"
+          "description": "Screen edge the dock attaches to. 'bottom'/'top' are horizontal (row of icons); 'left'/'right' are vertical (column of icons)."
         },
         "autoHide": {
           "type": "boolean",

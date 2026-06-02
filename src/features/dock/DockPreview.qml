@@ -7,18 +7,37 @@ import qs.src.ui.base
 import qs.src.ui.containers
 import qs.src.ui.feedback
 
-// Live window-preview card shown above a hovered running app. Presentational —
+// Live window-preview card shown beside a hovered running app. Presentational —
 // the coordinator (Dock) owns show/hide timing; this reports hover and dismissal.
+// Orientation follows the dock: a horizontal dock lays thumbnails in a row (scrolls
+// horizontally on overflow); a vertical dock lays them in a column (scrolls vertically).
+// The card is clamped to the screen so it never overflows off-edge.
 Surface {
     id: root
 
     property var model: []             // Wayland toplevels (DockService.toplevelsFor(...))
-    property real centerX: 0           // window-coord center to align under
+    property real center: 0            // along-axis center (x for horizontal, y for vertical)
     property bool showing: false
     property int thumbHeight: 180
     property string fallbackIcon: ""
     property Item anchorItem: null     // dock bar; preview sits on its inner side
-    property bool atTop: false         // dock at top → preview below the bar
+    property string position: "bottom"
+
+    readonly property bool vertical: position === "left" || position === "right"
+    readonly property int _pad: Tokens.spacing.medium
+    readonly property int _margin: Tokens.spacing.small
+    readonly property int _gap: Tokens.spacing.extraSmall
+
+    readonly property real _contentW: previewGrid.implicitWidth + _pad * 2
+    readonly property real _contentH: previewGrid.implicitHeight + _pad * 2
+    // Clamp the overflow axis to the available space; the Flickable scrolls the rest.
+    readonly property real _maxW: {
+        if (!parent) return 100000
+        if (!vertical) return parent.width - _margin * 2
+        const bw = anchorItem ? anchorItem.width : 0
+        return parent.width - bw - _gap - _margin * 2
+    }
+    readonly property real _maxH: parent ? (parent.height - _margin * 2) : 100000
 
     signal hoverChanged(bool hovered)
     signal requestDismiss()
@@ -26,21 +45,28 @@ Surface {
     visible: showing
     opacity: visible ? 1 : 0
     scale: visible ? 1 : 0.92
-    transformOrigin: atTop ? Item.Top : Item.Bottom
+    transformOrigin: position === "bottom" ? Item.Bottom
+                   : position === "top" ? Item.Top
+                   : position === "left" ? Item.Left : Item.Right
 
-    anchors.top: (anchorItem && atTop) ? anchorItem.bottom : undefined
-    anchors.bottom: (anchorItem && !atTop) ? anchorItem.top : undefined
-    anchors.topMargin: atTop ? Tokens.spacing.extraSmall : 0
-    anchors.bottomMargin: atTop ? 0 : Tokens.spacing.extraSmall
-
+    // Positioned entirely via x/y (no anchors) so all four sides share one path.
     x: {
-        const margin = Tokens.spacing.small
-        const targetX = centerX - width / 2
-        return Math.max(margin, Math.min(targetX, parent.width - width - margin))
+        if (!anchorItem) return 0
+        if (vertical)
+            return position === "left" ? (anchorItem.x + anchorItem.width + _gap)
+                                       : (anchorItem.x - width - _gap)
+        return Math.max(_margin, Math.min(center - width / 2, parent.width - width - _margin))
+    }
+    y: {
+        if (!anchorItem) return 0
+        if (vertical)
+            return Math.max(_margin, Math.min(center - height / 2, parent.height - height - _margin))
+        return position === "top" ? (anchorItem.y + anchorItem.height + _gap)
+                                  : (anchorItem.y - height - _gap)
     }
 
-    width: previewRow.implicitWidth + Tokens.spacing.medium * 2
-    height: previewRow.implicitHeight + Tokens.spacing.medium * 2
+    width: Math.min(_contentW, _maxW)
+    height: Math.min(_contentH, _maxH)
 
     elevation: 3                       // MD3: floating/overlay surface
     radius: Tokens.shape.large
@@ -72,126 +98,163 @@ Surface {
             easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
         }
     }
+    Behavior on y {
+        NumberAnimation {
+            duration: Tokens.motion.duration.short3
+            easing.type: Tokens.motion.easing.emphasized
+            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+        }
+    }
 
     HoverHandler {
         onHoveredChanged: root.hoverChanged(hovered)
     }
 
-    Row {
-        id: previewRow
-        anchors.centerIn: parent
-        spacing: Tokens.spacing.small
+    Flickable {
+        id: flick
+        anchors.fill: parent
+        anchors.margins: root._pad
+        contentWidth: previewGrid.implicitWidth
+        contentHeight: previewGrid.implicitHeight
+        clip: true
+        flickableDirection: root.vertical ? Flickable.VerticalFlick : Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: root.vertical ? (contentHeight > height) : (contentWidth > width)
 
-        Repeater {
-            model: root.model
+        // Map wheel to scrolling along the overflow axis.
+        WheelHandler {
+            enabled: flick.interactive
+            onWheel: (ev) => {
+                const d = (ev.angleDelta.y !== 0 ? ev.angleDelta.y : ev.angleDelta.x)
+                if (root.vertical)
+                    flick.contentY = Math.max(0, Math.min(flick.contentY - d,
+                                              flick.contentHeight - flick.height))
+                else
+                    flick.contentX = Math.max(0, Math.min(flick.contentX - d,
+                                              flick.contentWidth - flick.width))
+            }
+        }
 
-            delegate: Item {
-                id: previewDelegate
-                required property var modelData
-                required property int index
+        // Row (horizontal dock) or column (vertical dock) of thumbnails.
+        Grid {
+            id: previewGrid
+            // Single column (vertical dock) or single row (horizontal). -1 is invalid for
+            // Grid (the positioner), unlike GridLayout.
+            columns: root.vertical ? 1 : 99
+            rowSpacing: Tokens.spacing.small
+            columnSpacing: Tokens.spacing.small
 
-                readonly property bool isFocused: modelData.activated
+            Repeater {
+                model: root.model
 
-                width: thumbColumn.implicitWidth
-                height: thumbColumn.implicitHeight
+                delegate: Item {
+                    id: previewDelegate
+                    required property var modelData
+                    required property int index
 
-                Column {
-                    id: thumbColumn
-                    spacing: 4
+                    readonly property bool isFocused: modelData.activated
 
-                    Rectangle {
-                        id: thumbContainer
-                        width: Math.max(screencopyView.implicitWidth > 0 ? screencopyView.implicitWidth : 280, 240)
-                        height: root.thumbHeight
-                        radius: Tokens.shape.small
-                        color: previewDelegate.isFocused
-                               ? Qt.alpha(Theme.primaryContainer, 0.5)
-                               : Qt.alpha(Theme.surfaceContainerHighest, 0.5)
-                        clip: true
+                    width: thumbColumn.implicitWidth
+                    height: thumbColumn.implicitHeight
 
-                        border.width: previewDelegate.isFocused ? 2 : 0
-                        border.color: Theme.primary
+                    Column {
+                        id: thumbColumn
+                        spacing: 4
 
-                        ScreencopyView {
-                            id: screencopyView
-                            anchors.centerIn: parent
-                            captureSource: previewDelegate.modelData
-                            live: true
-                            constraintSize: Qt.size(280, root.thumbHeight - 4)
-                            visible: hasContent
-                        }
-
-                        // Fallback when no content yet
-                        Image {
-                            anchors.centerIn: parent
-                            width: 48
-                            height: 48
-                            visible: !screencopyView.hasContent
-                            source: root.fallbackIcon ? "image://icon/" + root.fallbackIcon
-                                                      : "image://icon/application-x-executable"
-                            sourceSize: Qt.size(48, 48)
-                            opacity: 0.5
-                        }
-
-                        StateLayer {
-                            layerColor: Theme.onSurface
-                            hovered: thumbMouse.containsMouse
-                            pressed: thumbMouse.pressed
-                        }
-
-                        MouseArea {
-                            id: thumbMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                previewDelegate.modelData.activate()
-                                root.requestDismiss()
-                            }
-                        }
-
-                        // Per-window close — window-level action lives where you see the
-                        // window. Closes via the Wayland toplevel; the preview updates
-                        // (and auto-hides when the last window closes).
                         Rectangle {
-                            id: closeBtn
-                            anchors.top: parent.top
-                            anchors.right: parent.right
-                            anchors.margins: Tokens.spacing.extraSmall
-                            width: 24
-                            height: 24
-                            radius: 12
-                            z: 2
-                            visible: thumbMouse.containsMouse || closeMouse.containsMouse
-                            color: closeMouse.containsMouse
-                                   ? Theme.errorContainer
-                                   : Qt.alpha(Theme.surfaceContainerHighest, 0.92)
+                            id: thumbContainer
+                            width: Math.max(screencopyView.implicitWidth > 0 ? screencopyView.implicitWidth : 280, 240)
+                            height: root.thumbHeight
+                            radius: Tokens.shape.small
+                            color: previewDelegate.isFocused
+                                   ? Qt.alpha(Theme.primaryContainer, 0.5)
+                                   : Qt.alpha(Theme.surfaceContainerHighest, 0.5)
+                            clip: true
 
-                            MaterialIcon {
+                            border.width: previewDelegate.isFocused ? 2 : 0
+                            border.color: Theme.primary
+
+                            ScreencopyView {
+                                id: screencopyView
                                 anchors.centerIn: parent
-                                iconName: "close"
-                                fontSize: Tokens.iconSize.small
-                                iconColor: closeMouse.containsMouse ? Theme.onErrorContainer : Theme.onSurface
-                                backgroundColor: "transparent"
+                                captureSource: previewDelegate.modelData
+                                live: true
+                                constraintSize: Qt.size(280, root.thumbHeight - 4)
+                                visible: hasContent
+                            }
+
+                            // Fallback when no content yet
+                            Image {
+                                anchors.centerIn: parent
+                                width: 48
+                                height: 48
+                                visible: !screencopyView.hasContent
+                                source: root.fallbackIcon ? "image://icon/" + root.fallbackIcon
+                                                          : "image://icon/application-x-executable"
+                                sourceSize: Qt.size(48, 48)
+                                opacity: 0.5
+                            }
+
+                            StateLayer {
+                                layerColor: Theme.onSurface
+                                hovered: thumbMouse.containsMouse
+                                pressed: thumbMouse.pressed
                             }
 
                             MouseArea {
-                                id: closeMouse
+                                id: thumbMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: previewDelegate.modelData.close()
+                                onClicked: {
+                                    previewDelegate.modelData.activate()
+                                    root.requestDismiss()
+                                }
+                            }
+
+                            // Per-window close — window-level action lives where you see the
+                            // window. Closes via the Wayland toplevel; the preview updates
+                            // (and auto-hides when the last window closes).
+                            Rectangle {
+                                id: closeBtn
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: Tokens.spacing.extraSmall
+                                width: 24
+                                height: 24
+                                radius: 12
+                                z: 2
+                                visible: thumbMouse.containsMouse || closeMouse.containsMouse
+                                color: closeMouse.containsMouse
+                                       ? Theme.errorContainer
+                                       : Qt.alpha(Theme.surfaceContainerHighest, 0.92)
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    iconName: "close"
+                                    fontSize: Tokens.iconSize.small
+                                    iconColor: closeMouse.containsMouse ? Theme.onErrorContainer : Theme.onSurface
+                                    backgroundColor: "transparent"
+                                }
+
+                                MouseArea {
+                                    id: closeMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: previewDelegate.modelData.close()
+                                }
                             }
                         }
-                    }
 
-                    MaterialText {
-                        width: thumbContainer.width
-                        text: previewDelegate.modelData.title || "Untitled"
-                        colorRole: "onSurface"
-                        textStyle: "labelMedium"
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
+                        MaterialText {
+                            width: thumbContainer.width
+                            text: previewDelegate.modelData.title || "Untitled"
+                            colorRole: "onSurface"
+                            textStyle: "labelMedium"
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+                        }
                     }
                 }
             }

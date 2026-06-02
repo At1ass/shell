@@ -164,7 +164,7 @@ appearance.fontScale     — font scale (0.5–2.0)
 modules                  — on/off switch for every top-level shell element (see below)
 bar                      — status bar and widgets
 bar.transparent          — transparent bar background
-dock                     — application dock (auto-hide, icon size)
+dock                     — application dock (position, auto-hide, icon size, pinned apps)
 dashboard                — control-center dimensions
 notifications            — popups and notification center
 launcher                 — search and providers
@@ -251,6 +251,34 @@ Available `clickAction` values:
 | `dashboard-network` | Open Dashboard on the Network tab |
 | `notification-center` | Toggle the notification center |
 | `launcher` | Open the launcher |
+
+---
+
+### Dock
+
+Per-screen application dock showing pinned + running apps, with live window previews.
+
+Config (`dock` section):
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `position` | `bottom` | Screen edge: `bottom` / `top` (horizontal row) or `left` / `right` (vertical column). |
+| `autoHide` | `true` | Hide until the cursor reaches the dock's screen edge. |
+| `exclusive` | `false` | Reserve screen space (exclusive zone) for the dock. |
+| `iconSize` | `48` | App icon size in logical pixels. |
+| `pinnedApps` | `[]` | Pinned apps (desktop id / window class / name). Editing this list wins; runtime pin/unpin persists to `state.json` (see schema). |
+
+Interactions:
+
+| Action | Result |
+|--------|--------|
+| Left-click | Launch (if not running), focus, or cycle the app's windows |
+| Middle-click | Open a new window |
+| Right-click | Context menu — New window, Pin / Unpin, Close |
+| Hover (running) | Live window previews — click a thumbnail to focus, `×` to close that window |
+| Drag a pinned icon | Reorder pinned apps |
+
+Runtime pin order lives in `~/.config/quickshell/state.json` (`dock.pinnedApps`); the shell never writes back to `config.json`.
 
 ---
 

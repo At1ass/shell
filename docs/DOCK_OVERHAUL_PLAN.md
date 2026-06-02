@@ -8,6 +8,33 @@ and Material Design 3 guidelines. Citations inline.
 
 ---
 
+## 0. Implementation status (delivered)
+
+Done, with these deviations from the original plan:
+
+- **Components**: `DockService` (singleton) + `Dock` (recreating wrapper) → `DockPanel`,
+  `DockBar`, `DockIcon`, `DockPreview`, `DockContextMenu`, `DockTooltip`.
+- **Identity**: `DesktopEntries.heuristicLookup` + `startupClass` + dotted-id fallback; stable
+  QtObject entry pool consumed via `ScriptModel` (delegates reused, no churn).
+- **Context menu = app-level only** (New window / Pin-Unpin / Close all). Per-window actions
+  (focus, close `×`) live on the **preview** thumbnails instead — no duplication. Menu/preview/
+  tooltip render in-window; the input mask is a union of their precise rects; menu dismissal via
+  `HyprlandFocusGrab`.
+- **Pins persist to `state.json`** (`updateState`), never to config; conflict policy =
+  *config edit wins* (baseline snapshot in `dock._configSeed`). Fixed a latent `updateState`
+  reactivity bug (it reused the object reference → no change signal).
+- **Position**: `bottom | top | left | right` via `dock.position`; the window is **recreated**
+  on change (a layer surface doesn't reliably reconfigure anchors/size live). Preview/menu/
+  tooltip and indicators are orientation-aware; preview scrolls (Flickable) and is clamped to
+  the screen so it never overflows.
+- **MD3**: `Surface` elevation (bar 2 / preview & menu 3), emphasized motion, in-window tooltip.
+- **Phase 5 delivered**: MD3 tooltip, launch bounce (all launch sources via
+  `DockService.appLaunched`), urgency pulse (`HyprlandToplevel.urgent`), drag-to-reorder pinned.
+- **Not done** (out of chosen scope / infeasible cleanly): magnification, keyboard navigation,
+  icon enter/move transitions (GridLayout has no move transitions).
+
+---
+
 ## 1. Context & rationale
 
 Current `Dock.qml` does the hard Wayland parts well (input mask, anti-feedback-loop reveal,
