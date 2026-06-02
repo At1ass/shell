@@ -106,6 +106,7 @@ Singleton {
     readonly property int  gmHyprRounding: data.gamingMode?.hyprland?.rounding ?? 0
 
     // Dock
+    readonly property string dockPosition: data.dock?.position ?? "bottom"
     readonly property bool dockAutoHide: data.dock?.autoHide ?? true
     readonly property bool dockExclusive: data.dock?.exclusive ?? false
     readonly property int dockIconSize: data.dock?.iconSize ?? 48
@@ -242,8 +243,10 @@ Singleton {
     }
 
     function updateState(section, data) {
-        let current = root.stateData || {}
-        current[section] = Object.assign(current[section] || {}, data)
+        // Assign a NEW top-level object so the `var` property emits stateDataChanged
+        // (reassigning the same reference does not — bindings would not re-evaluate).
+        let current = Object.assign({}, root.stateData || {})
+        current[section] = Object.assign({}, current[section] || {}, data)
         root.stateData = current
         stateSaveTimer.restart()
     }

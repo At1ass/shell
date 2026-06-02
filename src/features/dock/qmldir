@@ -1,3 +1,7 @@
 module qs.src.features.dock
 
 Dock 1.0 Dock.qml
+DockBar 1.0 DockBar.qml
+DockContextMenu 1.0 DockContextMenu.qml
+DockIcon 1.0 DockIcon.qml
+DockPreview 1.0 DockPreview.qml

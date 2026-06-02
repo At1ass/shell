@@ -122,10 +122,16 @@
       "description": "Application dock at the bottom of the screen. Shows pinned and running applications with auto-hide support.",
       "additionalProperties": false,
       "properties": {
+        "position": {
+          "type": "string",
+          "enum": ["bottom", "top"],
+          "default": "bottom",
+          "description": "Screen edge the dock attaches to. ('left'/'right' vertical orientation planned.)"
+        },
         "autoHide": {
           "type": "boolean",
           "default": true,
-          "description": "Auto-hide the dock. When true, dock is only visible when hovering the bottom screen edge."
+          "description": "Auto-hide the dock. When true, dock is only visible when hovering the dock's screen edge."
         },
         "exclusive": {
           "type": "boolean",
@@ -142,7 +148,7 @@
         "pinnedApps": {
           "type": "array",
           "default": [],
-          "description": "List of pinned application IDs (window class names). These always appear in the dock, in order.",
+          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) — those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
           "items": { "type": "string" }
         }
       }
