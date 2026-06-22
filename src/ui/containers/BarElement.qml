@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.feedback
 
 Rectangle {
     id: root
@@ -64,29 +65,15 @@ Rectangle {
         anchors.fill: parent
         color: Theme.primary
         opacity: 0.05
-        radius: parent.radius
+        radius: root.radius
     }
 
-    // Material Design state layer
-    Rectangle {
-        id: stateLayer
-        anchors.fill: parent
-        radius: parent.radius
-        color: Theme.onSurface
-        opacity: {
-            if (!clickable && !hoverable) return 0.0
-            if (pressed) return 0.12
-            if (hovered) return 0.08
-            return 0.0
-        }
-
-        Behavior on opacity {
-            enabled: root.animated
-            NumberAnimation {
-                duration: Tokens.motion.duration.short3
-                easing.type: Easing.OutQuad
-            }
-        }
+    // Material Design 3 state layer (hover/press feedback) — opacities and easing from Tokens.
+    StateLayer {
+        layerColor: Theme.onSurface
+        hovered: root.hovered && (root.clickable || root.hoverable)
+        pressed: root.pressed && root.clickable
+        showFocusRing: false
     }
 
     // Content container
@@ -123,7 +110,8 @@ Rectangle {
                 root.clicked(mouse)
             }
 
-            // Пропускаем событие дальше, если есть дочерние MouseArea
+            // Let the event fall through to child MouseAreas when this element is not itself
+            // clickable and has no handler of its own.
             if (!clickable && !root.clickHandler) {
                 mouse.accepted = false
             }
@@ -153,7 +141,8 @@ Rectangle {
         enabled: root.animated
         NumberAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Easing.OutCubic
+            easing.type: Tokens.motion.easing.emphasized
+            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
         }
     }
 
@@ -161,17 +150,19 @@ Rectangle {
         enabled: root.animated
         ColorAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Easing.OutQuad
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
-    // Scale animation on press
+    // Scale feedback on press
     scale: (pressed && clickable) ? 0.95 : 1.0
     Behavior on scale {
         enabled: root.animated
         NumberAnimation {
             duration: Tokens.motion.duration.short3
-            easing.type: Easing.OutQuad
+            easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 }

@@ -45,6 +45,7 @@ Singleton {
     readonly property int barHeight: data.bar?.height ?? 48
     readonly property int barMargin: data.bar?.margin ?? 16
     readonly property bool barTransparent: data.bar?.transparent ?? false
+    readonly property bool barAutoHide: data.bar?.autoHide ?? false
     readonly property var barWidgets: data.bar?.widgets || []
 
     // Dashboard

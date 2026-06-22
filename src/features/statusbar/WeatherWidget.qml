@@ -35,23 +35,21 @@ BarElement {
             visible: root.showLocation
             text: Weather.location
             textStyle: "bodyMedium"
-            colorRole: root.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
         }
 
         MaterialIcon {
             visible: root.showIcon
-            // iconName: root.batteryIcon(root.percentage, root.charging, root.deviceReady)
             iconName: Weather.icon
             fontSize: Tokens.typography.titleLarge.size
-            iconColor: root.hovered ? Theme.primary : Theme.onSurface
-            color: "transparent"
+            iconColor: Theme.onSurface
         }
 
         MaterialText {
             visible: root.showTemp
             text: Math.round(Weather.tempC) + Weather.tempUnit
             textStyle: "bodyMedium"
-            colorRole: root.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
         }
     }
 }

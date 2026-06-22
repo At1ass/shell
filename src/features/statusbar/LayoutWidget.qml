@@ -47,15 +47,8 @@ BarElement {
         MaterialText {
             text: KeyboardLayoutService.currentLayoutCode.toUpperCase() || "EN"
             textStyle: "titleMedium"
-            colorRole: layoutWidget.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
             anchors.horizontalCenter: parent.horizontalCenter
-
-            Behavior on color {
-                ColorAnimation {
-                    duration: Tokens.motion.duration.short3
-                    easing.type: Tokens.motion.easing.standard
-                }
-            }
         }
 
         // CapsLock / NumLock indicators

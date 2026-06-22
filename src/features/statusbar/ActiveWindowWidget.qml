@@ -41,14 +41,13 @@ BarElement {
             visible: root.showIcon
             iconName: IconCategoryResolver.getAppCategoryIcon(ActiveWindowService.windowClass)
             fontSize: Tokens.typography.titleLarge.size
-            iconColor: root.hovered ? Theme.primary : Theme.onSurface
-            color: "transparent"
+            iconColor: Theme.onSurface
         }
 
         MaterialText {
             text: ActiveWindowService.windowTitle
             textStyle: "bodyMedium"
-            colorRole: root.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
             elide: Text.ElideRight
             maximumLineCount: 1
             Layout.maximumWidth: root.maxWidth

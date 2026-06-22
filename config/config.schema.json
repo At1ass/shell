@@ -109,6 +109,11 @@
           "default": false,
           "description": "Fully transparent bar background. When true, the surface container and primary tint layers are hidden, showing only the widgets floating over the desktop."
         },
+        "autoHide": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-hide the bar. When true, the bar reveals only while the cursor reaches the top screen edge and reserves no screen space (its exclusive zone is turned off)."
+        },
         "widgets": {
           "type": "array",
           "description": "Ordered list of bar widgets. Rendered left-to-right within each section.",
@@ -873,6 +878,13 @@
           "type": "boolean",
           "default": true,
           "description": "Show window-count dots inside workspace chips."
+        },
+        "maxWindowsPerWorkspace": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum window icons rendered per workspace before collapsing the remainder into a '+N' overflow chip. Bounds the widget width so it cannot overrun neighbouring sections."
         },
         "activeIndicator": {
           "type": "string",

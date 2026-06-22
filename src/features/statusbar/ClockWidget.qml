@@ -42,7 +42,7 @@ BarElement {
             }
         },
 
-        // Tooltip для детальной информации о времени
+        // Tooltip with detailed date/time information
         TooltipItem {
             id: clockTooltip
             tooltip: clockWidget.tooltipManager
@@ -83,14 +83,12 @@ BarElement {
             text: clockWidget.currentTime
             textStyle: "titleMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurface"
-            // anchors.verticalCenter: parent.verticalCenter
         }
 
         MaterialText {
             text: "•"
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            // anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded && clockWidget.showDate
         }
 
@@ -98,7 +96,6 @@ BarElement {
             text: clockWidget.currentDate
             textStyle: "bodyMedium"
             colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            // anchors.verticalCenter: parent.verticalCenter
             visible: clockWidget.expanded && clockWidget.showDate
         }
     }

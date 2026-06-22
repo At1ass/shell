@@ -43,9 +43,7 @@ BarElement {
                 anchors.centerIn: parent
                 iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
                 fontSize: Tokens.typography.titleLarge.size
-                iconColor: NotificationService.doNotDisturb ? Theme.tertiary :
-                          (root.hovered ? Theme.primary : Theme.onSurface)
-                backgroundColor: "transparent"
+                iconColor: NotificationService.doNotDisturb ? Theme.tertiary : Theme.onSurface
             }
 
             Badge {

@@ -102,18 +102,14 @@ BarElement {
                 return (v < 0.34 ? "volume_mute" : v < 0.67 ? "volume_down" : "volume_up");
             }
             fontSize: Tokens.typography.titleLarge.size
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            // iconColor: Theme.onSurface
-            iconColor: root.hovered ? Theme.primary : Theme.onSurface
-            color: "transparent"
+            iconColor: Theme.onSurface
         }
-
 
         MaterialText {
             anchors.verticalCenter: parent.verticalCenter
             text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
-            colorRole: root.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
             visible: root.showPercentage
         }
     }
