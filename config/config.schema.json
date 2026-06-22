@@ -109,6 +109,11 @@
           "default": false,
           "description": "Fully transparent bar background. When true, the surface container and primary tint layers are hidden, showing only the widgets floating over the desktop."
         },
+        "autoHide": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-hide the bar. When true, the bar reveals only while the cursor reaches the top screen edge and reserves no screen space (its exclusive zone is turned off)."
+        },
         "widgets": {
           "type": "array",
           "description": "Ordered list of bar widgets. Rendered left-to-right within each section.",
@@ -122,10 +127,16 @@
       "description": "Application dock at the bottom of the screen. Shows pinned and running applications with auto-hide support.",
       "additionalProperties": false,
       "properties": {
+        "position": {
+          "type": "string",
+          "enum": ["bottom", "top", "left", "right"],
+          "default": "bottom",
+          "description": "Screen edge the dock attaches to. 'bottom'/'top' are horizontal (row of icons); 'left'/'right' are vertical (column of icons)."
+        },
         "autoHide": {
           "type": "boolean",
           "default": true,
-          "description": "Auto-hide the dock. When true, dock is only visible when hovering the bottom screen edge."
+          "description": "Auto-hide the dock. When true, dock is only visible when hovering the dock's screen edge."
         },
         "exclusive": {
           "type": "boolean",
@@ -142,7 +153,7 @@
         "pinnedApps": {
           "type": "array",
           "default": [],
-          "description": "List of pinned application IDs (window class names). These always appear in the dock, in order.",
+          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) — those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
           "items": { "type": "string" }
         }
       }
@@ -867,6 +878,13 @@
           "type": "boolean",
           "default": true,
           "description": "Show window-count dots inside workspace chips."
+        },
+        "maxWindowsPerWorkspace": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum window icons rendered per workspace before collapsing the remainder into a '+N' overflow chip. Bounds the widget width so it cannot overrun neighbouring sections."
         },
         "activeIndicator": {
           "type": "string",

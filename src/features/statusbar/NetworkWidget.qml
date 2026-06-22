@@ -39,7 +39,6 @@ BarElement {
             iconName: NetworkService.icon
             fontSize: Tokens.typography.titleLarge.size
             iconColor: Theme.onSurface
-            color: "transparent"
         }
 
         MaterialText {

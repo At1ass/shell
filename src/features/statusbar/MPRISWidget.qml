@@ -1,8 +1,5 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Services.Mpris
 import qs.src.ui.containers
 import qs.src.ui.inputs
 import qs.src.ui.feedback
@@ -15,10 +12,7 @@ BarElement {
     clickable: true
     clip: true
     animated: false
-    // expandOnHover: true
-    // expandedWidth: 300
     hoverable: true
-    // hoverable: false
 
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
@@ -46,7 +40,7 @@ BarElement {
             MaterialText {
                 text: {
                     if (typeof MprisController === 'undefined' || !MprisController.activeTrack)
-                        return "Нет воспроизведения";
+                        return "Nothing playing";
                     const title = MprisController.activeTrack.title || "Unknown Title";
                     const artist = MprisController.activeTrack.artist || "Unknown Artist";
                     return `${title} — ${artist}`;
@@ -76,80 +70,27 @@ BarElement {
             visible: root.showIcon
             iconName: "music_note"
             fontSize: Tokens.typography.titleLarge.size
-            // iconColor: Theme.onSurface
-            iconColor: (root.hovered ? Theme.primary : Theme.onSurface)
-            color: "transparent"
+            iconColor: Theme.onSurface
         }
 
-        // Track info - visible only on hover
-        // Item {
-        //     width: 300
-        //     // height: 40
-        //     clip: true
-        //
-        //     Row {
-        //         id: row
-        //         spacing: 40
-        //         x: 0
-        //
-        //         Repeater {
-        //             model: 2
-        //             MaterialText {
-        //                 // visible: root.hovered && !root.compact
-        //                 text: {
-        //                     if (typeof MprisController === "undefined" || !MprisController.activeTrack)
-        //                     return "Нет воспроизведения";
-        //                     const title = MprisController.activeTrack.title || "Unknown Title";
-        //                     const artist = MprisController.activeTrack.artist || "Unknown Artist";
-        //                     return `${title} — ${artist}`;
-        //                 }
-        //                 textStyle: "bodyMedium"
-        //                 colorRole: "onSurface"
-        //                 elide: Text.ElideRight
-        //                 maximumLineCount: 1
-        //                 // Layout.maximumWidth: root.maxWidth > 0 ? root.maxWidth : 200
-        //                 Layout.preferredWidth: 260
-        //                 Layout.alignment: Qt.AlignVCenter
-        //
-        //                 Behavior on Layout.maximumWidth {
-        //                     NumberAnimation {
-        //                         duration: Tokens.motion.duration.short4
-        //                         easing.type: Tokens.motion.easing.standard
-        //                     }
-        //                 }
-        //             }
-        //
-        //         }
-        //
-        //         NumberAnimation on x {
-        //             from: 0
-        //             to: -(row.width / 2)
-        //             duration: 6000
-        //             loops: Animation.Infinite
-        //         }
-        //     }
-        // }
+        // Track info — expands from 0 to its full width on hover.
         MaterialText {
-            // visible: root.hovered && !root.compact
             id: trackInfoText
             text: {
                 if (typeof MprisController === "undefined" || !MprisController.activeTrack)
-                    return "Нет воспроизведения";
+                    return "Nothing playing";
                 const title = MprisController.activeTrack.title || "Unknown Title";
                 const artist = MprisController.activeTrack.artist || "Unknown Artist";
                 return `${title} — ${artist}`;
             }
             textStyle: "bodyMedium"
-            colorRole: root.hovered ? "primary" : "onSurface"
+            colorRole: "onSurface"
             elide: Text.ElideRight
             maximumLineCount: 1
-            // visible: root.hovered || !root.compact
             visible: Layout.preferredWidth > 0
-            // Layout.maximumWidth: root.maxWidth > 0 ? root.maxWidth : 200
             Layout.preferredWidth: root.hovered ? 260 : 0
             Layout.alignment: Qt.AlignVCenter
 
-            // Behavior on Layout.maximumWidth {
             Behavior on Layout.preferredWidth {
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
@@ -166,7 +107,7 @@ BarElement {
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
-            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
+            iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -190,8 +131,7 @@ BarElement {
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
-            // iconColor: Theme.onSurface
-            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
+            iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             visible: true
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -209,8 +149,7 @@ BarElement {
             containerSize: 32
             touchTargetSize: 40
             enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
-            // iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
-            iconColor: enabled ? (root.hovered ? Theme.primary : Theme.onSurface) : Theme.onSurfaceVariant
+            iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
@@ -223,27 +162,6 @@ BarElement {
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                 }
-            }
-        }
-
-        property Scope positionInfo: Scope {
-            id: positionInfo
-
-            property var player: MprisController.activePlayer
-            property int position: Math.floor(MprisController.position)
-            property int length: Math.floor(MprisController.length)
-
-            FrameAnimation {
-                id: posTracker
-                running: MprisController.isPlaying && hoverTooltip.visible
-                onTriggered: positionInfo.player.positionChanged()
-            }
-
-            function timeStr(time: int): string {
-                const seconds = time % 60;
-                const minutes = Math.floor(time / 60);
-
-                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
             }
         }
     }

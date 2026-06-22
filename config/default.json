@@ -31,6 +31,7 @@
     "height": 48,
     "margin": 16,
     "transparent": false,
+    "autoHide": false,
     "widgets": [
       {
         "type": "workspaces",
@@ -40,6 +41,7 @@
         "settings": {
           "count": 10,
           "showWindows": true,
+          "maxWindowsPerWorkspace": 4,
           "activeIndicator": "pill"
         }
       },
