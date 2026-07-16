@@ -19,6 +19,7 @@
 #include <cstring>
 #include <optional>
 #include <cmath>
+#include <QElapsedTimer>
 
 #ifdef HAVE_LIBSENSORS
 #include <sensors/sensors.h>
@@ -32,6 +33,10 @@ public:
     ~StatsWorker() override;
 
 public slots:
+    // Heavy IO init (proc fds, sensors, sysfs scans) — must run on the
+    // worker thread AFTER signals are connected, or early errorOccurred
+    // emissions are silently lost and the GUI thread pays for the scans.
+    void initialize();
     void setFastInterval(int ms);
     void refreshNow();
     void setCpuModel(const QString& model) { m_cpuModel = model; }
@@ -46,6 +51,7 @@ private:
     void openProcFiles();
     void closeProcFiles();
     bool readProcFile(int fd, char* buffer, size_t bufferSize);
+    bool readProcFileAll(int fd, QByteArray& out);
     QString formatBytes(double bytes);
     QString formatSpeed(double bytesPerSec);
     std::optional<int> readCpuTempSysfs();
@@ -129,8 +135,8 @@ private:
     void updateCpuFreq(StatsSnapshot& snapshot);
     void updateRam(StatsSnapshot& snapshot);
     void updateDisk(StatsSnapshot& snapshot);
-    void updateNetwork(StatsSnapshot& snapshot);
-    void updateDiskIo(StatsSnapshot& snapshot);
+    void updateNetwork(StatsSnapshot& snapshot, double elapsedSec);
+    void updateDiskIo(StatsSnapshot& snapshot, double elapsedSec);
     void updateLoadAvg();
 
     void detectNetInterface();
@@ -146,7 +152,8 @@ private:
     char m_cpuBuffer[2048];
     char m_memBuffer[4096];
     char m_loadavgBuffer[128];
-    char m_diskstatsBuffer[8192];
+    QByteArray m_diskstatsData;   // /proc/diskstats grows with device count
+    QElapsedTimer m_fastClock;    // real elapsed time between fast polls
     QTimer m_fastTimer;
     QTimer m_slowTimer;
     QString m_cpuModel;
@@ -202,6 +209,7 @@ SystemMonitor::SystemMonitor(QObject* parent)
     QMetaObject::invokeMethod(m_worker, "setGpuModel", Qt::QueuedConnection, Q_ARG(QString, m_gpuModel));
 
     m_workerThread.start();
+    QMetaObject::invokeMethod(m_worker, "initialize", Qt::QueuedConnection);
     QMetaObject::invokeMethod(m_worker, "startTimers", Qt::QueuedConnection);
     m_isMonitoring = true;
     emit isMonitoringChanged();
@@ -233,12 +241,6 @@ void SystemMonitor::refresh()
 // ─── StatsWorker implementation ─────────────────────────────────────────────
 
 StatsWorker::StatsWorker() {
-    openProcFiles();
-    initSensors();
-    detectGpuBackend();
-    detectNetInterface();
-    detectDiskDevice();
-
     m_fastTimer.setParent(this);
     m_slowTimer.setParent(this);
 
@@ -249,6 +251,14 @@ StatsWorker::StatsWorker() {
     m_slowTimer.setInterval(5000);
     m_slowTimer.setSingleShot(false);
     connect(&m_slowTimer, &QTimer::timeout, this, &StatsWorker::pollSlow);
+}
+
+void StatsWorker::initialize() {
+    openProcFiles();
+    initSensors();
+    detectGpuBackend();
+    detectNetInterface();
+    detectDiskDevice();
 }
 
 StatsWorker::~StatsWorker() {
@@ -316,6 +326,20 @@ bool StatsWorker::readProcFile(int fd, char* buffer, size_t bufferSize) {
     }
     buffer[bytesRead] = '\0';
     return true;
+}
+
+// Read a whole proc file of unbounded size through a persistent fd.
+bool StatsWorker::readProcFileAll(int fd, QByteArray& out) {
+    if (fd < 0)
+        return false;
+    if (lseek(fd, 0, SEEK_SET) < 0)
+        return false;
+    out.clear();
+    char chunk[8192];
+    ssize_t n;
+    while ((n = read(fd, chunk, sizeof(chunk))) > 0)
+        out.append(chunk, n);
+    return n == 0;
 }
 
 QString StatsWorker::formatBytes(double bytes) {
@@ -476,7 +500,10 @@ std::optional<int> StatsWorker::readCpuTempSysfs() {
     // thermal_zone*: take the best matching one
     QDir thermalDir(QStringLiteral("/sys/class/thermal"));
     const auto zones = thermalDir.entryList(QStringList() << "thermal_zone*", QDir::Dirs | QDir::NoDotAndDotDot);
-    int best = 0;
+    // A zone whose type matches the CPU always wins; the hottest zone is
+    // only a fallback (it used to override CPU matches with NVMe/GPU heat).
+    int bestCpu = 0;
+    int bestAny = 0;
     for (const auto& zone : zones) {
         QFile typeFile(thermalDir.absoluteFilePath(zone + "/type"));
         QString type;
@@ -493,10 +520,12 @@ std::optional<int> StatsWorker::readCpuTempSysfs() {
         const bool likelyCpu = type.contains("cpu", Qt::CaseInsensitive)
                             || type.contains("tctl", Qt::CaseInsensitive)
                             || type.contains("package", Qt::CaseInsensitive);
-        if (likelyCpu || best == 0 || celsius > best)
-            best = celsius;
+        if (likelyCpu)
+            bestCpu = std::max(bestCpu, celsius);
+        bestAny = std::max(bestAny, celsius);
     }
-    if (best > 0) return best;
+    if (bestCpu > 0) return bestCpu;
+    if (bestAny > 0) return bestAny;
 
     // hwmon temp*_label
     QDir hwmonDir(QStringLiteral("/sys/class/hwmon"));
@@ -573,9 +602,8 @@ void StatsWorker::initSensors() {
             while ((sub = sensors_get_all_subfeatures(chip, feature, &s)) != nullptr) {
                 if (sub->type != SENSORS_SUBFEATURE_TEMP_INPUT)
                     continue;
-                const sensors_subfeature* labelSub = sensors_get_subfeature(chip, feature, SENSORS_SUBFEATURE_TEMP_TYPE);
                 std::unique_ptr<char, decltype(&free)> labelPtr(
-                    labelSub ? sensors_get_label(chip, feature) : nullptr, &free);
+                    sensors_get_label(chip, feature), &free);
                 const char* label = labelPtr.get();
                 int sc = scoreLabel(label);
                 if (sc > bestScore) {
@@ -799,7 +827,7 @@ void StatsWorker::updateLoadAvg() {
 
 // ─── Network speed ──────────────────────────────────────────────────────────
 
-void StatsWorker::updateNetwork(StatsSnapshot& snapshot) {
+void StatsWorker::updateNetwork(StatsSnapshot& snapshot, double elapsedSec) {
     if (m_netInterface.isEmpty()) {
         snapshot.hasNet = false;
         return;
@@ -822,11 +850,8 @@ void StatsWorker::updateNetwork(StatsSnapshot& snapshot) {
         return;
     }
 
-    double interval = m_fastTimer.interval() / 1000.0;
-    if (interval <= 0) interval = 2.0;
-
-    double rxSpeed = (rxBytes >= m_prevRxBytes) ? (rxBytes - m_prevRxBytes) / interval : 0;
-    double txSpeed = (txBytes >= m_prevTxBytes) ? (txBytes - m_prevTxBytes) / interval : 0;
+    double rxSpeed = (rxBytes >= m_prevRxBytes) ? (rxBytes - m_prevRxBytes) / elapsedSec : 0;
+    double txSpeed = (txBytes >= m_prevTxBytes) ? (txBytes - m_prevTxBytes) / elapsedSec : 0;
 
     m_prevRxBytes = rxBytes;
     m_prevTxBytes = txBytes;
@@ -841,28 +866,31 @@ void StatsWorker::updateNetwork(StatsSnapshot& snapshot) {
 
 // ─── Disk I/O ───────────────────────────────────────────────────────────────
 
-void StatsWorker::updateDiskIo(StatsSnapshot& snapshot) {
+void StatsWorker::updateDiskIo(StatsSnapshot& snapshot, double elapsedSec) {
     if (m_diskDevice.isEmpty() || m_diskstatsFd < 0) {
         snapshot.hasDiskIo = false;
         return;
     }
 
-    if (!readProcFile(m_diskstatsFd, m_diskstatsBuffer, sizeof(m_diskstatsBuffer)))
+    // Dynamic buffer: with many loop/zram/dm devices the root device line
+    // can fall past any fixed-size buffer, silently disabling disk IO stats.
+    if (!readProcFileAll(m_diskstatsFd, m_diskstatsData))
         return;
 
     QByteArray devName = m_diskDevice.toUtf8();
     uint64_t readSectors = 0, writeSectors = 0;
     bool found = false;
 
-    char* line = m_diskstatsBuffer;
+    m_diskstatsData.append('\0');
+    char* line = m_diskstatsData.data();
     char* lineEnd;
     while ((lineEnd = strchr(line, '\n')) != nullptr) {
         *lineEnd = '\0';
         // diskstats format: major minor name rd_ios rd_merges rd_sectors rd_ticks wr_ios wr_merges wr_sectors ...
         unsigned int major, minor;
         char name[64] = {0};
-        uint64_t rdIos, rdMerges, rdSect, rdTicks, wrIos, wrMerges, wrSect;
-        int parsed = sscanf(line, "%u %u %63s %lu %lu %lu %lu %lu %lu %lu",
+        unsigned long long rdIos, rdMerges, rdSect, rdTicks, wrIos, wrMerges, wrSect;
+        int parsed = sscanf(line, "%u %u %63s %llu %llu %llu %llu %llu %llu %llu",
                             &major, &minor, name,
                             &rdIos, &rdMerges, &rdSect, &rdTicks,
                             &wrIos, &wrMerges, &wrSect);
@@ -892,9 +920,6 @@ void StatsWorker::updateDiskIo(StatsSnapshot& snapshot) {
         return;
     }
 
-    double interval = m_fastTimer.interval() / 1000.0;
-    if (interval <= 0) interval = 2.0;
-
     double readBytes = (readSectors >= m_prevReadSectors) ? (readSectors - m_prevReadSectors) * 512.0 : 0;
     double writeBytes = (writeSectors >= m_prevWriteSectors) ? (writeSectors - m_prevWriteSectors) * 512.0 : 0;
 
@@ -902,15 +927,31 @@ void StatsWorker::updateDiskIo(StatsSnapshot& snapshot) {
     m_prevWriteSectors = writeSectors;
 
     snapshot.hasDiskIo = true;
-    snapshot.diskReadSpeed = readBytes / interval;
-    snapshot.diskWriteSpeed = writeBytes / interval;
-    snapshot.diskReadFormatted = formatSpeed(readBytes / interval);
-    snapshot.diskWriteFormatted = formatSpeed(writeBytes / interval);
+    snapshot.diskReadSpeed = readBytes / elapsedSec;
+    snapshot.diskWriteSpeed = writeBytes / elapsedSec;
+    snapshot.diskReadFormatted = formatSpeed(readBytes / elapsedSec);
+    snapshot.diskWriteFormatted = formatSpeed(writeBytes / elapsedSec);
 }
 
 // ─── Poll methods ───────────────────────────────────────────────────────────
 
 void StatsWorker::pollFast() {
+    // Real elapsed time between polls: after suspend/resume the nominal
+    // timer interval would turn hours of counter delta into an absurd
+    // one-tick spike; a huge gap instead resets the speed baselines.
+    const double nominal = m_fastTimer.interval() > 0 ? m_fastTimer.interval() / 1000.0 : 2.0;
+    double elapsedSec = nominal;
+    if (m_fastClock.isValid()) {
+        const double e = m_fastClock.restart() / 1000.0;
+        if (e > 0.05) elapsedSec = e;
+    } else {
+        m_fastClock.start();
+    }
+    if (elapsedSec > nominal * 10) {
+        m_netFirstTick = true;
+        m_diskIoFirstTick = true;
+    }
+
     StatsSnapshot snapshot;
     snapshot.cpuModel = m_cpuModel;
     snapshot.gpuModel = !m_gpuModelNvml.isEmpty() ? m_gpuModelNvml : m_gpuModel;
@@ -919,8 +960,8 @@ void StatsWorker::pollFast() {
     updateCpuFreq(snapshot);
     updateRam(snapshot);
     updateDisk(snapshot);
-    updateNetwork(snapshot);
-    updateDiskIo(snapshot);
+    updateNetwork(snapshot, elapsedSec);
+    updateDiskIo(snapshot, elapsedSec);
 
     // Re-detect network interface periodically (every 6th slow poll ≈ 30s)
     // This counter is bumped in pollSlow
@@ -1013,11 +1054,15 @@ void StatsWorker::pollSlow() {
     }
     // GpuBackend::None — no GPU polling
 
-    // Re-detect network interface periodically
+    // Re-detect network interface periodically; a change must reset the
+    // speed baselines or the first tick mixes counters of two interfaces.
     m_netRedetectCounter++;
     if (m_netRedetectCounter >= 6) {
         m_netRedetectCounter = 0;
+        const QString before = m_netInterface;
         detectNetInterface();
+        if (m_netInterface != before)
+            m_netFirstTick = true;
     }
 }
 
@@ -1028,8 +1073,8 @@ void StatsWorker::updateCpu(StatsSnapshot& snapshot) {
     if (!readProcFile(m_cpuStatFd, m_cpuBuffer, sizeof(m_cpuBuffer)))
         return;
 
-    uint64_t user, nice, system, idle, iowait, irq, softirq;
-    int parsed = sscanf(m_cpuBuffer, "cpu %lu %lu %lu %lu %lu %lu %lu",
+    unsigned long long user, nice, system, idle, iowait, irq, softirq;
+    int parsed = sscanf(m_cpuBuffer, "cpu %llu %llu %llu %llu %llu %llu %llu",
                         &user, &nice, &system, &idle, &iowait, &irq, &softirq);
     if (parsed != 7)
         return;

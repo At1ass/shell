@@ -8,6 +8,8 @@ qt_add_executable(calendar_test
     CalendarTests.cpp
     ../IcalParser.cpp
     ../EventTypes.cpp
+    ../CalendarStore.cpp
+    ../Atomic.cpp
 )
 
 target_include_directories(calendar_test PRIVATE

@@ -34,24 +34,8 @@ target_link_libraries(calendarqml
         PkgConfig::LIBICAL
 )
 
-set(INSTALL_QMLDIR "usr/lib/qt6/qml" CACHE STRING "QML install dir")
-
-qt_query_qml_module(calendarqml
-    URI module_uri
-    VERSION module_version
-    PLUGIN_TARGET module_plugin_target
-    TARGET_PATH module_target_path
-    QMLDIR module_qmldir
-    TYPEINFO module_typeinfo
-)
-
-message(STATUS "Created QML module ${module_uri}, version ${module_version}")
-
-set(module_dir "${INSTALL_QMLDIR}/${module_target_path}")
-install(TARGETS calendarqml LIBRARY DESTINATION "${module_dir}" RUNTIME DESTINATION "${module_dir}")
-install(TARGETS "${module_plugin_target}" LIBRARY DESTINATION "${module_dir}" RUNTIME DESTINATION "${module_dir}")
-install(FILES "${module_qmldir}" DESTINATION "${module_dir}")
-install(FILES "${module_typeinfo}" DESTINATION "${module_dir}")
+include(../PluginInstall.cmake)
+plugin_install(calendarqml)
 
 # Optional unit tests — enabled with -DBUILD_TESTING=ON
 if (BUILD_TESTING)

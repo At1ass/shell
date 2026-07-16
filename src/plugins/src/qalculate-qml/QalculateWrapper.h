@@ -2,7 +2,6 @@
 #include <QObject>
 #include <QString>
 #include <QQmlEngine>
-#include <QMutex>
 
 class QalculateWrapper : public QObject {
     Q_OBJECT
@@ -12,11 +11,16 @@ class QalculateWrapper : public QObject {
 public:
     explicit QalculateWrapper(QObject* parent = nullptr);
 
-    // Основной метод для вычислений
-    // printExpr - включить выражение в результат (например: "2+2 = 4")
-    Q_INVOKABLE QString eval(const QString& expression, bool printExpr = false) const;
+    // Asynchronous evaluation on a pool thread — the UI thread never pays
+    // for libqalculate init (~100-300 ms) or the per-call timeout budget.
+    // The result arrives via evaluated(expression, result); expression is
+    // echoed verbatim so callers can match request and response.
+    Q_INVOKABLE void evalAsync(const QString& expression, bool printExpr = false);
 
-private:
-    // Mutex для thread-safe доступа к глобальному CALCULATOR
-    mutable QMutex m_mutex;
+    // Synchronous evaluation. Blocks the CALLING thread up to the internal
+    // calculation timeout; avoid on the UI thread — prefer evalAsync.
+    Q_INVOKABLE QString eval(const QString& expression, bool printExpr = false);
+
+signals:
+    void evaluated(const QString& expression, const QString& result);
 };

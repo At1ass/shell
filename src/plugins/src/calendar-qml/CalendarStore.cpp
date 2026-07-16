@@ -12,6 +12,8 @@
 
 #include <libical/ical.h>
 
+#include <functional>
+
 namespace {
 
 QString homePath()        { return QDir::homePath(); }
@@ -73,6 +75,26 @@ void clearRrule(icalcomponent* vevent) {
     }
 }
 
+// Locate the override VEVENT (UID + RECURRENCE-ID) inside a parsed VCALENDAR.
+// Matching is minute-precise: RECURRENCE-ID may round-trip through different
+// zones between parse cycles.
+icalcomponent* findOverrideVevent(icalcomponent* root, const QString& uid,
+                                  const QDateTime& recurrenceId) {
+    for (icalcomponent* ve = icalcomponent_get_first_component(root, ICAL_VEVENT_COMPONENT);
+         ve; ve = icalcomponent_get_next_component(root, ICAL_VEVENT_COMPONENT)) {
+        icalproperty* rid = icalcomponent_get_first_property(ve, ICAL_RECURRENCEID_PROPERTY);
+        if (!rid) continue;
+        if (QString::fromUtf8(icalcomponent_get_uid(ve)) != uid) continue;
+        icaltimetype t = icalproperty_get_recurrenceid(rid);
+        const QDateTime dt = IcalParser::icalTimeToQDateTime(t);
+        // Compare INSTANTS, not local fields — the two sides may carry
+        // different zone representations of the same moment.
+        if (dt.isValid() && qAbs(dt.secsTo(recurrenceId)) < 60)
+            return ve;
+    }
+    return nullptr;
+}
+
 // Locate the master VEVENT (UID match, no RECURRENCE-ID) inside a parsed VCALENDAR.
 icalcomponent* findMasterVevent(icalcomponent* root, const QString& uid) {
     for (icalcomponent* ve = icalcomponent_get_first_component(root, ICAL_VEVENT_COMPONENT);
@@ -110,8 +132,10 @@ void CalendarStore::rescanAll() {
         m_calendarPaths.insert(c.name, c.path);
 
     m_events.clear();
-    QSet<QString> seenDirs;
     for (const auto& cal : m_calendars) {
+        // seenDirs is PER CALENDAR: a shared set attributed every event of
+        // nested/duplicated khal paths to whichever calendar scanned first.
+        QSet<QString> seenDirs;
         QStringList icsFiles;
         scanIcsRecursive(cal.path, icsFiles, seenDirs);
         for (const QString& path : icsFiles) {
@@ -213,6 +237,18 @@ const Event* CalendarStore::findMaster(const QString& uid) const {
     return nullptr;
 }
 
+const Event* CalendarStore::findOverride(const QString& uid,
+                                         const QDateTime& recurrenceId) const {
+    if (!recurrenceId.isValid()) return nullptr;
+    for (const Event& ev : m_events) {
+        if (ev.uid != uid || !ev.isOverride()) continue;
+        // Compare INSTANTS, not local fields — zone representations differ.
+        if (qAbs(ev.recurrenceId.secsTo(recurrenceId)) < 60)
+            return &ev;
+    }
+    return nullptr;
+}
+
 QString CalendarStore::calendarPath(const QString& name) const {
     return m_calendarPaths.value(name);
 }
@@ -252,7 +288,6 @@ void CalendarStore::addEventCmd(QString calendarName, QVariantMap fields) {
                 error = QStringLiteral("Calendar path not resolvable");
             } else if (Atomic::writeFile(path, text.toUtf8(), &error)) {
                 ok = true;
-                markSelfMutated();
                 rescanAll();
             }
         }
@@ -261,9 +296,25 @@ void CalendarStore::addEventCmd(QString calendarName, QVariantMap fields) {
 }
 
 void CalendarStore::editEventCmd(QString uid, QVariantMap fields,
-                                 QString scopeStr, QDateTime occurrenceStart) {
+                                 QString scopeStr, QDateTime occurrenceStart,
+                                 QDateTime recurrenceId) {
     QString error;
     bool ok = false;
+
+    // A valid recurrenceId addresses an OVERRIDE (moved occurrence): edit
+    // it in its own file. Falling through to the master here is what used
+    // to corrupt whole series when editing a moved instance.
+    if (recurrenceId.isValid()) {
+        if (const Event* ov = findOverride(uid, recurrenceId)) {
+            ok = editOverrideInPlace(*ov, fields, &error);
+            if (ok) rescanAll();
+            emit mutationDone(ok, error);
+            return;
+        }
+        error = QStringLiteral("Override not found: ") + uid;
+        emit mutationDone(false, error);
+        return;
+    }
 
     const Event* master = findMaster(uid);
     if (!master) {
@@ -280,16 +331,35 @@ void CalendarStore::editEventCmd(QString uid, QVariantMap fields,
             ok = editAllInPlace(*master, fields, &error);
         }
         if (ok) {
-            markSelfMutated();
             rescanAll();
         }
     }
     emit mutationDone(ok, error);
 }
 
-void CalendarStore::deleteEventCmd(QString uid, QString scopeStr, QDateTime occurrenceStart) {
+void CalendarStore::deleteEventCmd(QString uid, QString scopeStr, QDateTime occurrenceStart,
+                                   QDateTime recurrenceId) {
     QString error;
     bool ok = false;
+
+    // Valid recurrenceId → the target is an override. Deleting it removes
+    // the override VEVENT and adds an EXDATE at the ORIGINAL time on the
+    // master, so the occurrence does not reappear.
+    if (recurrenceId.isValid()) {
+        if (const Event* ov = findOverride(uid, recurrenceId)) {
+            const Event ovCopy = *ov;   // rescan invalidates pointers
+            ok = deleteOverride(ovCopy, &error);
+            if (ok) {
+                if (const Event* master = findMaster(uid))
+                    deleteSingleOccurrence(*master, ovCopy.recurrenceId, nullptr);
+                rescanAll();
+            }
+        } else {
+            error = QStringLiteral("Override not found: ") + uid;
+        }
+        emit mutationDone(ok, error);
+        return;
+    }
 
     const Event* master = findMaster(uid);
     if (!master) {
@@ -304,7 +374,6 @@ void CalendarStore::deleteEventCmd(QString uid, QString scopeStr, QDateTime occu
             ok = deleteWholeSeries(*master, &error);
         }
         if (ok) {
-            markSelfMutated();
             rescanAll();
         }
     }
@@ -335,30 +404,39 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
         return false;
     }
 
-    // Mutate only changed fields. Setters replace existing properties
-    // for SUMMARY/DESCRIPTION/LOCATION/DTSTART/DTEND. CATEGORIES and
-    // RRULE need explicit clear+add.
-    const QString title = fields.value(QStringLiteral("title")).toString();
-    icalcomponent_set_summary(ve, title.toUtf8().constData());
+    // Mutate ONLY the fields present in the map — an absent key means
+    // "leave as is", so a partial edit cannot blank other fields.
+    if (fields.contains(QStringLiteral("title")))
+        icalcomponent_set_summary(ve,
+            fields.value(QStringLiteral("title")).toString().toUtf8().constData());
 
-    const QString desc = fields.value(QStringLiteral("description")).toString();
-    icalcomponent_set_description(ve, desc.toUtf8().constData());
+    if (fields.contains(QStringLiteral("description")))
+        icalcomponent_set_description(ve,
+            fields.value(QStringLiteral("description")).toString().toUtf8().constData());
 
-    const QString loc = fields.value(QStringLiteral("location")).toString();
-    icalcomponent_set_location(ve, loc.toUtf8().constData());
+    if (fields.contains(QStringLiteral("location")))
+        icalcomponent_set_location(ve,
+            fields.value(QStringLiteral("location")).toString().toUtf8().constData());
 
-    const bool allDay = fields.value(QStringLiteral("allDay")).toBool();
+    const bool allDay = fields.contains(QStringLiteral("allDay"))
+        ? fields.value(QStringLiteral("allDay")).toBool()
+        : master.allDay;
     QDateTime start = fields.value(QStringLiteral("start")).toDateTime();
     QDateTime end   = fields.value(QStringLiteral("end")).toDateTime();
-    if (start.isValid()) icalcomponent_set_dtstart(ve, IcalParser::qDateTimeToIcalTime(start, allDay));
-    if (end.isValid())   icalcomponent_set_dtend(ve,   IcalParser::qDateTimeToIcalTime(end, allDay));
+    // Preserve the AUTHORING zone: rewriting a TZID=Europe/X series as UTC
+    // re-anchors every occurrence and shifts the series by an hour after
+    // the next DST transition.
+    if (start.isValid()) setDtInAuthoringZone(ve, ICAL_DTSTART_PROPERTY, start, allDay, master.timezone, root.get());
+    if (end.isValid())   setDtInAuthoringZone(ve, ICAL_DTEND_PROPERTY,   end,   allDay, master.timezone, root.get());
 
     // CATEGORIES: clear + re-add
-    clearCategories(ve);
-    QStringList cats = fields.value(QStringLiteral("categories")).toStringList();
-    if (!cats.isEmpty()) {
-        QByteArray joined = cats.join(QLatin1Char(',')).toUtf8();
-        icalcomponent_add_property(ve, icalproperty_new_categories(joined.constData()));
+    if (fields.contains(QStringLiteral("categories"))) {
+        clearCategories(ve);
+        QStringList cats = fields.value(QStringLiteral("categories")).toStringList();
+        if (!cats.isEmpty()) {
+            QByteArray joined = cats.join(QLatin1Char(',')).toUtf8();
+            icalcomponent_add_property(ve, icalproperty_new_categories(joined.constData()));
+        }
     }
 
     // RRULE: only touch if recurrence keyword changed compared to master.
@@ -422,6 +500,204 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
     return Atomic::writeFile(master.sourceFile, text.toUtf8(), errorOut);
 }
 
+// Replace DTSTART/DTEND keeping the event's authoring zone semantics:
+// TZID-anchored events stay TZID-anchored, UTC stays UTC, floating stays
+// floating wall-clock.
+void CalendarStore::setDtInAuthoringZone(icalcomponent* ve, int propKind,
+                                         const QDateTime& dt, bool asDate,
+                                         const EventTimezone& tz,
+                                         icalcomponent* vcal)
+{
+    const icalproperty_kind kind = static_cast<icalproperty_kind>(propKind);
+
+    // Drop the existing property (there is at most one DTSTART/DTEND).
+    if (icalproperty* old = icalcomponent_get_first_property(ve, kind)) {
+        icalcomponent_remove_property(ve, old);
+        icalproperty_free(old);
+    }
+
+    icaltimetype t;
+    QString tzidParam;
+    if (asDate) {
+        t = IcalParser::qDateTimeToIcalTime(dt, true);
+    } else if (!tz.tzid.isEmpty()) {
+        icaltimezone* zone = IcalParser::resolveTimezone(tz.tzid, vcal);
+        t = icaltime_from_timet_with_zone(dt.toSecsSinceEpoch(), 0, zone);
+        t.zone = zone;
+        tzidParam = tz.tzid;
+    } else if (tz.isUtc) {
+        t = IcalParser::qDateTimeToIcalTime(dt, false);
+    } else {
+        // Floating: wall-clock, no zone, no Z suffix.
+        const QDateTime local = dt.toLocalTime();
+        t = icaltime_null_time();
+        t.year   = local.date().year();
+        t.month  = local.date().month();
+        t.day    = local.date().day();
+        t.hour   = local.time().hour();
+        t.minute = local.time().minute();
+        t.second = local.time().second();
+    }
+
+    icalproperty* prop = (kind == ICAL_DTSTART_PROPERTY)
+        ? icalproperty_new_dtstart(t)
+        : icalproperty_new_dtend(t);
+    if (!tzidParam.isEmpty())
+        icalproperty_add_parameter(prop,
+            icalparameter_new_tzid(tzidParam.toUtf8().constData()));
+    icalcomponent_add_property(ve, prop);
+}
+
+// Edit an override VEVENT inside its own file, addressed by
+// (UID, RECURRENCE-ID). RECURRENCE-ID itself is never touched.
+bool CalendarStore::editOverrideInPlace(const Event& override_, const QVariantMap& fields,
+                                        QString* errorOut)
+{
+    QFile in(override_.sourceFile);
+    if (!in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (errorOut) *errorOut = QStringLiteral("Cannot read ") + override_.sourceFile;
+        return false;
+    }
+    QByteArray data = in.readAll();
+    in.close();
+
+    ical::ComponentPtr root = IcalParser::parseToComponent(data);
+    if (!root) {
+        if (errorOut) *errorOut = QStringLiteral("Parse error in ") + override_.sourceFile;
+        return false;
+    }
+    icalcomponent* ve = findOverrideVevent(root.get(), override_.uid, override_.recurrenceId);
+    if (!ve) {
+        if (errorOut) *errorOut = QStringLiteral("Override VEVENT not found: ") + override_.uid;
+        return false;
+    }
+
+    if (fields.contains(QStringLiteral("title")))
+        icalcomponent_set_summary(ve,
+            fields.value(QStringLiteral("title")).toString().toUtf8().constData());
+    if (fields.contains(QStringLiteral("description")))
+        icalcomponent_set_description(ve,
+            fields.value(QStringLiteral("description")).toString().toUtf8().constData());
+    if (fields.contains(QStringLiteral("location")))
+        icalcomponent_set_location(ve,
+            fields.value(QStringLiteral("location")).toString().toUtf8().constData());
+
+    const bool allDay = fields.contains(QStringLiteral("allDay"))
+        ? fields.value(QStringLiteral("allDay")).toBool()
+        : override_.allDay;
+    QDateTime start = fields.value(QStringLiteral("start")).toDateTime();
+    QDateTime end   = fields.value(QStringLiteral("end")).toDateTime();
+    if (start.isValid()) setDtInAuthoringZone(ve, ICAL_DTSTART_PROPERTY, start, allDay, override_.timezone, root.get());
+    if (end.isValid())   setDtInAuthoringZone(ve, ICAL_DTEND_PROPERTY,   end,   allDay, override_.timezone, root.get());
+
+    if (fields.contains(QStringLiteral("categories"))) {
+        clearCategories(ve);
+        QStringList cats = fields.value(QStringLiteral("categories")).toStringList();
+        if (!cats.isEmpty()) {
+            QByteArray joined = cats.join(QLatin1Char(',')).toUtf8();
+            icalcomponent_add_property(ve, icalproperty_new_categories(joined.constData()));
+        }
+    }
+
+    int seq = icalcomponent_get_sequence(ve);
+    icalcomponent_set_sequence(ve, seq + 1);
+
+    const QString text = IcalParser::serializeComponent(root.get());
+    if (text.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Serialise failed");
+        return false;
+    }
+    return Atomic::writeFile(override_.sourceFile, text.toUtf8(), errorOut);
+}
+
+// Remove every VEVENT with `uid` from `path`. Deletes the file when no
+// VEVENT remains, otherwise rewrites it atomically.
+bool CalendarStore::removeUidFromFile(const QString& path, const QString& uid,
+                                      QString* errorOut)
+{
+    QFile in(path);
+    if (!in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (errorOut) *errorOut = QStringLiteral("Cannot read ") + path;
+        return false;
+    }
+    QByteArray data = in.readAll();
+    in.close();
+
+    ical::ComponentPtr root = IcalParser::parseToComponent(data);
+    if (!root) {
+        if (errorOut) *errorOut = QStringLiteral("Parse error in ") + path;
+        return false;
+    }
+
+    int remaining = 0;
+    icalcomponent* ve = icalcomponent_get_first_component(root.get(), ICAL_VEVENT_COMPONENT);
+    while (ve) {
+        icalcomponent* next = icalcomponent_get_next_component(root.get(), ICAL_VEVENT_COMPONENT);
+        if (QString::fromUtf8(icalcomponent_get_uid(ve)) == uid) {
+            icalcomponent_remove_component(root.get(), ve);
+            icalcomponent_free(ve);
+        } else {
+            ++remaining;
+        }
+        ve = next;
+    }
+
+    if (remaining == 0) {
+        if (!QFile::remove(path)) {
+            if (errorOut) *errorOut = QStringLiteral("Cannot delete ") + path;
+            return false;
+        }
+        return true;
+    }
+
+    const QString text = IcalParser::serializeComponent(root.get());
+    if (text.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Serialise failed");
+        return false;
+    }
+    return Atomic::writeFile(path, text.toUtf8(), errorOut);
+}
+
+bool CalendarStore::deleteOverride(const Event& override_, QString* errorOut) {
+    // The override may share its file with other VEVENTs (same-file
+    // overrides from CalDAV exports) — remove just this VEVENT.
+    QFile in(override_.sourceFile);
+    if (!in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (errorOut) *errorOut = QStringLiteral("Cannot read ") + override_.sourceFile;
+        return false;
+    }
+    QByteArray data = in.readAll();
+    in.close();
+
+    ical::ComponentPtr root = IcalParser::parseToComponent(data);
+    if (!root) {
+        if (errorOut) *errorOut = QStringLiteral("Parse error in ") + override_.sourceFile;
+        return false;
+    }
+    icalcomponent* ve = findOverrideVevent(root.get(), override_.uid, override_.recurrenceId);
+    if (!ve) {
+        if (errorOut) *errorOut = QStringLiteral("Override VEVENT not found");
+        return false;
+    }
+    icalcomponent_remove_component(root.get(), ve);
+    icalcomponent_free(ve);
+
+    if (!icalcomponent_get_first_component(root.get(), ICAL_VEVENT_COMPONENT)) {
+        if (!QFile::remove(override_.sourceFile)) {
+            if (errorOut) *errorOut = QStringLiteral("Cannot delete ") + override_.sourceFile;
+            return false;
+        }
+        return true;
+    }
+
+    const QString text = IcalParser::serializeComponent(root.get());
+    if (text.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Serialise failed");
+        return false;
+    }
+    return Atomic::writeFile(override_.sourceFile, text.toUtf8(), errorOut);
+}
+
 bool CalendarStore::editSingleOverride(const Event& master, const QVariantMap& fields,
                                        const QDateTime& occurrenceStart, QString* errorOut)
 {
@@ -451,11 +727,18 @@ bool CalendarStore::editSingleOverride(const Event& master, const QVariantMap& f
 }
 
 bool CalendarStore::deleteWholeSeries(const Event& master, QString* errorOut) {
-    if (!QFile::remove(master.sourceFile)) {
-        if (errorOut) *errorOut = QStringLiteral("Cannot delete ") + master.sourceFile;
-        return false;
+    // Overrides may live in separate files — leaving them behind kept
+    // deleted series rendering forever with no way to remove them.
+    QSet<QString> files;
+    files.insert(master.sourceFile);
+    for (const Event& ev : m_events)
+        if (ev.uid == master.uid) files.insert(ev.sourceFile);
+
+    bool allOk = true;
+    for (const QString& f : files) {
+        if (!removeUidFromFile(f, master.uid, errorOut)) allOk = false;
     }
-    return true;
+    return allOk;
 }
 
 bool CalendarStore::deleteSingleOccurrence(const Event& master,
@@ -495,7 +778,10 @@ bool CalendarStore::deleteSingleOccurrence(const Event& master,
 
 void CalendarStore::handleFsEvent(const QString& path) {
     Q_UNUSED(path);
-    if (QDateTime::currentMSecsSinceEpoch() < m_ignoreFsUntil) return;
+    // No self-write suppression: our own mutations already rescan
+    // synchronously, so the debounced rescan this triggers is merely
+    // redundant — while a suppression window silently DROPPED external
+    // changes that landed inside it.
     m_debounce->start();
 }
 
@@ -503,20 +789,27 @@ void CalendarStore::debouncedRescan() {
     rescanAll();
 }
 
-void CalendarStore::markSelfMutated() {
-    m_ignoreFsUntil = QDateTime::currentMSecsSinceEpoch() + 500;
-}
-
 void CalendarStore::rebuildWatchPaths() {
     if (!m_watcher->directories().isEmpty())
         m_watcher->removePaths(m_watcher->directories());
 
+    // Watch the FULL directory tree — the scanner descends arbitrarily
+    // deep, so a one-level watch missed external edits further down.
     QStringList dirs;
     for (const auto& cal : m_calendars) {
-        dirs << cal.path;
-        const QDir d(cal.path);
-        const auto sub = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
-        for (const QFileInfo& fi : sub) dirs << fi.absoluteFilePath();
+        QSet<QString> seen;
+        std::function<void(const QString&)> walk = [&](const QString& dirPath) {
+            const QFileInfo here(dirPath);
+            if (!here.exists()) return;
+            const QString canonical = here.canonicalFilePath();
+            if (canonical.isEmpty() || seen.contains(canonical)) return;
+            seen.insert(canonical);
+            dirs << dirPath;
+            const QDir d(dirPath);
+            const auto sub = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+            for (const QFileInfo& fi : sub) walk(fi.absoluteFilePath());
+        };
+        walk(cal.path);
     }
     if (!dirs.isEmpty()) m_watcher->addPaths(dirs);
 }
@@ -525,6 +818,18 @@ void CalendarStore::rebuildWatchPaths() {
 
 std::vector<CalendarStore::CalendarInfo> CalendarStore::discoverCalendars() {
     std::vector<CalendarInfo> out;
+
+    // Test seam: a fixed vdir root bypassing khal discovery. Set only by
+    // the unit tests — never in production.
+    const QString testRoot = qEnvironmentVariable("CALENDAR_QML_TEST_ROOT");
+    if (!testRoot.isEmpty()) {
+        const QDir root(testRoot);
+        const auto dirs = root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QFileInfo& fi : dirs)
+            out.push_back({ fi.fileName(), fi.absoluteFilePath() });
+        return out;
+    }
+
     QFile f(khalConfigPath());
 
     if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {

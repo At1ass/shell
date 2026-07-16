@@ -2,7 +2,11 @@ import QtQuick
 import Quickshell
 import Qalculate
 
-// Math evaluation provider backed by libqalculate.
+// Math evaluation provider backed by libqalculate. Evaluation is fully
+// asynchronous (QalculateWrapper.evalAsync on a pool thread): search()
+// returns the cached result immediately and requests a fresh evaluation;
+// when `evaluated` arrives the cache updates and resultsInvalidated()
+// makes LauncherService re-run the live query. The UI thread never blocks.
 BaseProvider {
     id: root
 
@@ -10,64 +14,59 @@ BaseProvider {
     priority: 100   // high priority
     prefixes: ["="]
 
-    // Throttle cache: QalculateWrapper.eval is synchronous on the UI thread,
-    // so rapid typing must not evaluate every keystroke. Errors are cached
-    // like results (per project convention).
-    property string _lastQuery: ""
-    property var _lastResult: null
-    property real _lastEvalTime: 0
-    readonly property int _throttleMs: 150
+    // Single-slot cache: expression -> built result rows (errors included).
+    property string _cachedExpr: ""
+    property var _cachedRows: null
 
-    // Trailing edge: when a keystroke lands inside the throttle window the
-    // stale result is shown — this timer re-runs the search afterwards so
-    // the FINAL expression always gets evaluated ("=2+2" typed fast used to
-    // stick at the result of "=2+").
-    property bool _trailingPending: false
-    readonly property Timer _trailingTimer: Timer {
-        interval: root._throttleMs
-        onTriggered: {
-            if (root._trailingPending) {
-                root._trailingPending = false
-                root.resultsInvalidated()
-            }
+    // Expression currently awaiting evaluation (dedupes repeat requests).
+    property string _inflightExpr: ""
+    // Whether the query that requested it carried the explicit "=" prefix.
+    property bool _inflightHadPrefix: false
+
+    readonly property Connections _evalWatch: Connections {
+        target: QalculateWrapper
+        function onEvaluated(expression, result) {
+            if (expression !== root._inflightExpr)
+                return
+            root._inflightExpr = ""
+            root._cachedExpr = expression.trim()
+            root._cachedRows = root._buildRows(expression, result, root._inflightHadPrefix)
+            root.resultsInvalidated()
         }
     }
 
     function search(query) {
-        let expr = removePrefix(query)
-        let normalizedExpr = expr ? expr.trim() : ""
+        const expr = removePrefix(query)
+        const normalized = expr ? expr.trim() : ""
 
-        if (!normalizedExpr) {
-            _lastQuery = ""
-            _lastResult = null
+        if (!normalized) {
+            _cachedExpr = ""
+            _cachedRows = null
+            _inflightExpr = ""
             return []
         }
 
-        // Same expression — serve the cached result (including cached errors).
-        if (normalizedExpr === _lastQuery && _lastResult !== null) {
-            return _lastResult
+        if (normalized === _cachedExpr && _cachedRows !== null)
+            return _cachedRows
+
+        if (_inflightExpr !== expr) {
+            _inflightExpr = expr
+            _inflightHadPrefix = query.startsWith("=")
+            QalculateWrapper.evalAsync(expr, false)
         }
 
-        // Inside the throttle window — serve the previous result and arm the
-        // trailing re-evaluation.
-        const now = Date.now()
-        if (now - _lastEvalTime < _throttleMs && _lastResult !== null) {
-            _trailingPending = true
-            _trailingTimer.restart()
-            return _lastResult
-        }
+        // Stale-but-instant: previous rows until `evaluated` lands.
+        return _cachedRows ?? []
+    }
 
-        _lastEvalTime = now
-        _lastQuery = normalizedExpr
-        _trailingPending = false
-
-        let result = QalculateWrapper.eval(expr, false)
+    function _buildRows(expr, result, hadPrefix) {
+        const normalized = expr.trim()
 
         if (!result || result.startsWith("error:") || result.startsWith("warning:")) {
             // Surface the error only under the explicit "=" prefix.
-            if (query.startsWith("=")) {
-                const errorResult = [{
-                    id: "calculator:error:" + normalizedExpr,
+            if (hadPrefix) {
+                return [{
+                    id: "calculator:error:" + normalized,
                     text: "Error",
                     description: result || "Invalid expression",
                     icon: "dialog-error",
@@ -75,27 +74,21 @@ BaseProvider {
                     score: 0,
                     action: function() {}
                 }]
-                _lastResult = errorResult
-                return errorResult
             }
-            _lastResult = []
             return []
         }
 
-        const successResult = [{
-            id: "calculator:" + normalizedExpr,
+        return [{
+            id: "calculator:" + normalized,
             text: result,
-            description: expr + " = " + result,
+            description: normalized + " = " + result,
             icon: "accessories-calculator",
             type: "calculator",
             score: 100,
-            data: { result: result, expression: expr },
+            data: { result: result, expression: normalized },
             action: function() {
                 Quickshell.clipboardText = result
             }
         }]
-
-        _lastResult = successResult
-        return successResult
     }
 }

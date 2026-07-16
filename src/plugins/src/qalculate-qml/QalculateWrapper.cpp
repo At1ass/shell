@@ -1,15 +1,22 @@
 #include "QalculateWrapper.h"
 #include <libqalculate/qalculate.h>
-#include <QDebug>
+#include <QCoreApplication>
+#include <QMetaObject>
+#include <QMutex>
 #include <QMutexLocker>
+#include <QPointer>
+#include <QtConcurrent>
 #include <memory>
 #include <mutex>
 
+// CALCULATOR is a process-global libqalculate singleton and is not
+// thread-safe: one static mutex serializes every evaluation (a per-instance
+// mutex would guard nothing across engines). Initialization is lazy and
+// happens on the first evaluating thread — never on the GUI thread.
+static QMutex s_calcMutex;
 static std::once_flag s_calcInitFlag;
 
-QalculateWrapper::QalculateWrapper(QObject* parent)
-    : QObject(parent)
-{
+static void ensureCalculator() {
     std::call_once(s_calcInitFlag, []() {
         static std::unique_ptr<Calculator> s_calculator(new Calculator());
         CALCULATOR = s_calculator.get();
@@ -19,29 +26,25 @@ QalculateWrapper::QalculateWrapper(QObject* parent)
     });
 }
 
-QString QalculateWrapper::eval(const QString& expression, bool printExpr) const {
-    if (expression.isEmpty()) {
+static QString evalInternal(const QString& expression, bool printExpr) {
+    if (expression.isEmpty())
         return QString();
-    }
 
-    // Thread-safe доступ к глобальному CALCULATOR
-    QMutexLocker locker(&m_mutex);
+    QMutexLocker locker(&s_calcMutex);
+    ensureCalculator();
 
     EvaluationOptions eo;
     PrintOptions po;
 
     std::string parsed;
-
-    // calculateAndPrint делает все в одном вызове
     std::string result = CALCULATOR->calculateAndPrint(
         CALCULATOR->unlocalizeExpression(expression.toStdString(), eo.parse_options),
-        100,  // max time in ms
+        100,  // max calculation time in ms
         eo,
         po,
-        &parsed  // сюда запишется распарсенное выражение
+        &parsed
     );
 
-    // Собираем ошибки и предупреждения
     std::string error;
     while (CALCULATOR->message()) {
         if (!CALCULATOR->message()->message().empty()) {
@@ -55,12 +58,10 @@ QString QalculateWrapper::eval(const QString& expression, bool printExpr) const 
         CALCULATOR->nextMessage();
     }
 
-    // Если есть ошибки - возвращаем их
     if (!error.empty()) {
         return QString::fromStdString(error);
     }
 
-    // Возвращаем результат
     if (printExpr) {
         return QString("%1 = %2")
             .arg(QString::fromStdString(parsed))
@@ -68,4 +69,27 @@ QString QalculateWrapper::eval(const QString& expression, bool printExpr) const 
     }
 
     return QString::fromStdString(result);
+}
+
+QalculateWrapper::QalculateWrapper(QObject* parent)
+    : QObject(parent)
+{
+    // Deliberately empty: the calculator initializes lazily on the first
+    // evaluation, on whichever pool thread performs it.
+}
+
+void QalculateWrapper::evalAsync(const QString& expression, bool printExpr) {
+    auto future = QtConcurrent::run([guard = QPointer<QalculateWrapper>(this), expression, printExpr]() {
+        const QString result = evalInternal(expression, printExpr);
+        auto* app = QCoreApplication::instance();
+        if (!app) return;
+        QMetaObject::invokeMethod(app, [guard, expression, result]() {
+            if (guard) emit guard->evaluated(expression, result);
+        }, Qt::QueuedConnection);
+    });
+    Q_UNUSED(future);
+}
+
+QString QalculateWrapper::eval(const QString& expression, bool printExpr) {
+    return evalInternal(expression, printExpr);
 }
