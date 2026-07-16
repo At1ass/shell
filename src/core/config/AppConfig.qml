@@ -35,7 +35,6 @@ Singleton {
     // === Typed accessors ===
 
     // Appearance
-    readonly property string themeSource: data.appearance?.theme?.source ?? "wallpaper"
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
@@ -69,12 +68,13 @@ Singleton {
     readonly property int launcherWidth: data.launcher?.width ?? 600
     readonly property int launcherListMaxHeight: data.launcher?.listMaxHeight ?? 400
     readonly property int launcherTopMargin: data.launcher?.topMargin ?? 56
+    readonly property var launcherHiddenApps: data.launcher?.hiddenApps ?? []
 
     // Services
     readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
     readonly property string weatherLocation: data.services?.weather?.location ?? "London"
-    readonly property real weatherLatitude: data.services?.weather?.latitude ?? 53.2
-    readonly property real weatherLongitude: data.services?.weather?.longitude ?? 45.0
+    readonly property real weatherLatitude: data.services?.weather?.latitude ?? 51.5
+    readonly property real weatherLongitude: data.services?.weather?.longitude ?? -0.12
     readonly property int weatherRefreshMinutes: data.services?.weather?.refreshMinutes ?? 15
     readonly property string weatherUnits: data.services?.weather?.units ?? "metric"
     readonly property bool calendarRemindersEnabled: data.services?.calendar?.reminders?.enabled ?? true
@@ -94,7 +94,7 @@ Singleton {
 
     // Power Menu
     readonly property bool powerMenuConfirmActions: data.powerMenu?.confirmActions ?? true
-    readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown"]
+    readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown", "logout"]
 
     // Gaming Mode
     readonly property bool gmDisableAnimations: data.gamingMode?.disableAnimations ?? true
@@ -115,9 +115,6 @@ Singleton {
 
     // Night Light
     readonly property int nightLightTemperature: data.services?.nightLight?.temperature ?? 4500
-
-    // Hyprland
-    readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
 
     // Wallpaper — top-level keys read by WallpaperManager.
     // Per-monitor settings (sourceId, fillMode, autoChange, randomOrder) are

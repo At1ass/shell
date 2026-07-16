@@ -50,7 +50,7 @@
         },
         "fontScale": {
           "type": "number",
-          "default": 1.0,
+          "default": 1.3,
           "minimum": 0.5,
           "maximum": 2.0,
           "description": "Global font size multiplier applied to all Material typography tokens. 1.0 = default M3 sizes, 0.8 = 80%, 1.2 = 120%. Supports hot-reload."
@@ -290,16 +290,6 @@
           "default": 56,
           "minimum": 0,
           "description": "Distance from top of screen to the launcher (pixels)."
-        },
-        "providers": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "enum": ["applications", "calculator", "clipboard"]
-          },
-          "default": ["applications", "calculator", "clipboard"],
-          "description": "'applications' — installed apps. 'calculator' — inline math (requires libqalculate). 'clipboard' — clipboard history (requires cliphist). Prefix '>' activates clipboard mode."
         },
         "hiddenApps": {
           "type": "array",
@@ -731,24 +721,9 @@
               "default": 4500,
               "minimum": 1000,
               "maximum": 6500,
-              "description": "Color temperature in Kelvin. Lower = warmer (more orange). Default 6500K = no change."
+              "description": "Color temperature in Kelvin applied when night light is enabled (default 4500K; 6500K is neutral daylight)."
             }
           }
-        }
-      }
-    },
-
-    "hyprland": {
-      "type": "object",
-      "description": "Hyprland compositor settings.",
-      "additionalProperties": false,
-      "properties": {
-        "workspaceCount": {
-          "type": "integer",
-          "default": 10,
-          "minimum": 1,
-          "maximum": 100,
-          "description": "Number of workspaces shown in the bar widget."
         }
       }
     }
@@ -867,7 +842,7 @@
         },
         "count": {
           "type": "integer",
-          "default": 9,
+          "default": 10,
           "minimum": 1,
           "maximum": 100,
           "description": "Number of workspace indicators to display."

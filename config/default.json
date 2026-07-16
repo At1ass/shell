@@ -4,7 +4,7 @@
   "appearance": {
     "theme": {
       "source": "wallpaper",
-      "variant": "vibrant",
+      "variant": "tonalspot",
       "darkMode": true
     },
     "fontScale": 1.3
@@ -144,6 +144,7 @@
   },
 
   "dock": {
+    "position": "bottom",
     "autoHide": true,
     "exclusive": false,
     "iconSize": 48,
@@ -177,7 +178,6 @@
     "width": 600,
     "listMaxHeight": 400,
     "topMargin": 56,
-    "providers": ["applications", "calculator", "clipboard"],
     "hiddenApps": []
   },
 
@@ -244,9 +244,5 @@
     "nightLight": {
       "temperature": 4500
     }
-  },
-
-  "hyprland": {
-    "workspaceCount": 10
   }
 }

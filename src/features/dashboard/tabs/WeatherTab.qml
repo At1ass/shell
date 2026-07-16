@@ -24,7 +24,7 @@ Item {
                 spacing: 2
 
                 MaterialText {
-                    text: Weather.location || "Penza, Russia"
+                    text: Weather.location || "Unknown location"
                     textStyle: "headlineSmall"
                     colorRole: "onSurface"
                     font.weight: Font.Bold

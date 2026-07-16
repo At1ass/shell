@@ -11,7 +11,7 @@ Singleton {
     property string location: AppConfig.weatherLocation
     property real latitude: AppConfig.weatherLatitude
     property real longitude: AppConfig.weatherLongitude
-    property int refreshMinutes: 15
+    property int refreshMinutes: AppConfig.weatherRefreshMinutes
     property int minIntervalSeconds: 60
 
     // --- Состояние ---
@@ -117,12 +117,13 @@ Singleton {
         return descriptions[code] || "Unknown";
     }
 
-    // Периодический опрос (стартует сразу)
+    // Periodic polling (fires immediately on start)
     Timer {
         id: periodic
         interval: store.refreshMinutes * 60 * 1000
         repeat: true
-        running: !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
+        running: AppConfig.weatherEnabled
+                 && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
         triggeredOnStart: true
         onTriggered: store.fetchIfStale()
     }
@@ -148,6 +149,8 @@ Singleton {
     }
 
     function _doFetch() {
+        if (!AppConfig.weatherEnabled)
+            return;
         lastAttemptAt = new Date();
         errorString = "";
 

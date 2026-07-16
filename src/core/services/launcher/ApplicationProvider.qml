@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import FuzzySearch
+import qs.src.core.config
 import qs.src.core.services
 
 // Application search/launch provider.
@@ -22,13 +23,22 @@ BaseProvider {
     property var _corpus: null
     onApplicationsChanged: _corpus = null
 
+    // launcher.hiddenApps changes arrive through config hot-reload.
+    readonly property Connections _configWatch: Connections {
+        target: AppConfig
+        function onDataChanged() { root._corpus = null }
+    }
+
     function _buildCorpus() {
+        const hidden = AppConfig.launcherHiddenApps.map(
+            id => id.toLowerCase().replace(/\.desktop$/, ""))
         const visible = []
         const names = []
         const fullTexts = []
         for (let i = 0; i < applications.length; i++) {
             const app = applications[i]
             if (app.noDisplay) continue
+            if (hidden.indexOf((app.id || "").toLowerCase().replace(/\.desktop$/, "")) !== -1) continue
             visible.push(app)
             names.push(app.name || "")
             fullTexts.push([

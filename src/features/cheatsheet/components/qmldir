@@ -4,3 +4,4 @@ BindRow 1.0 BindRow.qml
 IpcFunctionRow 1.0 IpcFunctionRow.qml
 IpcReferenceTab 1.0 IpcReferenceTab.qml
 KeybindingsTab 1.0 KeybindingsTab.qml
+singleton IpcReferenceData 1.0 IpcReferenceData.qml
