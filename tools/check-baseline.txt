@@ -8,6 +8,6 @@ layer-services-imports-features 0
 layer-services-imports-ui 0
 layer-ui-imports-services 0
 lazyloader-loading 0
-qmllint-warnings 277
+qmllint-warnings 276
 sh-c-concatenation 1
 stacklayout-in-features 3

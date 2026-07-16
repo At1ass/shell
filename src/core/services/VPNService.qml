@@ -51,6 +51,12 @@ Singleton {
         Quickshell.execDetached(["nm-connection-editor"])
     }
 
+    // Refresh on demand — NetworkEventMonitor calls this on NM events.
+    function refresh() {
+        if (!vpnStateProc.running) vpnStateProc.running = true
+        if (!vpnListProc.running) vpnListProc.running = true
+    }
+
     // Monitor VPN connection state
     Process {
         id: vpnStateProc
@@ -141,15 +147,4 @@ Singleton {
         }
     }
 
-    // Periodic refresh (every 5 seconds)
-    Timer {
-        interval: 5000
-        running: true
-        repeat: true
-
-        onTriggered: {
-            vpnStateProc.running = true
-            vpnListProc.running = true
-        }
-    }
 }

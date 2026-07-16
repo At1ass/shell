@@ -13,11 +13,21 @@ Singleton {
     property string speed: ""
     readonly property string icon: connected ? "lan" : "lan_disconnect"
 
-    // Monitor ethernet device status
+    // Refresh on demand — NetworkEventMonitor calls this on NM events.
+    function refresh() {
+        if (!deviceStatusProc.running) deviceStatusProc.running = true
+    }
+
+    // Query ethernet device status
     Process {
         id: deviceStatusProc
         running: true
         command: ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"]
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("EthernetService: nmcli device status failed (exit " + exitCode + ")")
+        }
 
         stdout: StdioCollector {
             id: statusCollector
@@ -77,8 +87,9 @@ Singleton {
                 // but we still validate the shape before splicing it into a
                 // /sys path. Linux ifnames are alnum + _ - . (max 15 chars).
                 if (/^[A-Za-z0-9_.-]{1,15}$/.test(root.interfaceName)) {
-                    speedProc.command = ["cat", "/sys/class/net/" + root.interfaceName + "/speed"]
-                    speedProc.running = true
+                    const path = "/sys/class/net/" + root.interfaceName + "/speed"
+                    if (speedFile.path === path) speedFile.reload()
+                    else speedFile.path = path
                 } else {
                     root.speed = ""
                 }
@@ -86,34 +97,15 @@ Singleton {
         }
     }
 
-    // Get link speed
-    Process {
-        id: speedProc
+    // Link speed straight from sysfs — no `cat` subprocess needed.
+    FileView {
+        id: speedFile
 
-        stdout: StdioCollector {
-            id: speedCollector
-            onStreamFinished: {
-                const val = speedCollector.text.trim()
-                if (val && val !== "-1" && val !== "") {
-                    root.speed = val + " Mb/s"
-                } else {
-                    root.speed = ""
-                }
-            }
+        onLoaded: {
+            const val = text().trim()
+            root.speed = (val && val !== "-1") ? val + " Mb/s" : ""
         }
 
-        stderr: StdioCollector {
-            onStreamFinished: {
-                // Ignore errors (e.g., no permission)
-            }
-        }
-    }
-
-    // Periodic refresh
-    Timer {
-        interval: 10000
-        running: true
-        repeat: true
-        onTriggered: deviceStatusProc.running = true
+        onLoadFailed: root.speed = ""  // e.g. no permission / iface gone
     }
 }

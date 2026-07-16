@@ -1,12 +1,12 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell.Networking
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
+import qs.src.ui.inputs
 
 Item {
     id: root
@@ -94,6 +94,16 @@ Item {
         property string targetSSID: ""
         property var targetNetwork: null
 
+        // Wipe the plaintext password on EVERY close path (scrim click,
+        // Escape, buttons) — not just the button handlers.
+        onVisibleChanged: {
+            if (!visible) {
+                passwordInput.text = ""
+                passwordInput.password = true
+                targetNetwork = null
+            }
+        }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Tokens.spacing.large
@@ -106,39 +116,13 @@ Item {
                 font.weight: Font.Medium
             }
 
-            Rectangle {
+            MaterialTextField {
+                id: passwordInput
                 Layout.fillWidth: true
-                height: 48
-                radius: Tokens.shape.small
-                color: Theme.surfaceContainerHighest
-                border.width: passwordInput.activeFocus ? 2 : 1
-                border.color: passwordInput.activeFocus ? Theme.primary : Theme.outline
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.spacing.medium
-                    anchors.rightMargin: Tokens.spacing.small
-                    spacing: Tokens.spacing.small
-
-                    TextInput {
-                        id: passwordInput
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                        echoMode: showPasswordToggle.checked ? TextInput.Normal : TextInput.Password
-                        font.family: Tokens.typography.fontFamily
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-                        color: Theme.onSurface
-                        clip: true
-                    }
-
-                    IconButton {
-                        id: showPasswordToggle
-                        property bool checked: false
-                        iconName: checked ? "visibility_off" : "visibility"
-                        variant: "standard"
-                        onClicked: checked = !checked
-                    }
-                }
+                password: true
+                placeholderText: "Password"
+                trailingIcon: passwordInput.password ? "visibility" : "visibility_off"
+                onTrailingClicked: passwordInput.password = !passwordInput.password
             }
 
             RowLayout {
