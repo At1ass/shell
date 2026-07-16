@@ -80,22 +80,28 @@ StackView {
                 Rectangle {
                     id: item
 
+                    // NOT required/typed-strict on access: the DBus menu can
+                    // destroy entries while delegates still exist (close,
+                    // app-side model reset) — modelData auto-nulls and every
+                    // binding below must tolerate it.
                     required property QsMenuEntry modelData
 
                     implicitWidth: 220
-                    implicitHeight: modelData.isSeparator ? 1 : children.implicitHeight
+                    implicitHeight: (modelData?.isSeparator ?? false) ? 1 : contentLoader.implicitHeight
 
                     radius: Tokens.shape.medium
-                    color: modelData.isSeparator ? Theme.outlineVariant : "transparent"
+                    color: (modelData?.isSeparator ?? false) ? Theme.outlineVariant : "transparent"
                     border.width: 0
 
                     Loader {
-                        id: children
+                        // Named contentLoader — an id of `children` shadows
+                        // Item.children.
+                        id: contentLoader
 
                         anchors.left: parent.left
                         anchors.right: parent.right
 
-                        active: !item.modelData.isSeparator
+                        active: !(item.modelData?.isSeparator ?? true)
                         asynchronous: true
 
                         sourceComponent: Item {
@@ -106,17 +112,18 @@ StackView {
 
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                enabled: item.modelData.enabled
+                                enabled: item.modelData?.enabled ?? false
 
                                 onClicked: {
                                     const entry = item.modelData;
+                                    if (!entry) return;
                                     if (entry.hasChildren) {
                                         root.push(subMenuComponent.createObject(null, {
                                             handle: entry,
                                             isSubMenu: true
                                         }));
                                     } else {
-                                        item.modelData.triggered();
+                                        entry.triggered();
                                         root.menuClosed();
                                     }
                                 }
@@ -135,12 +142,12 @@ StackView {
                                 anchors.leftMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
-                                active: item.modelData.icon !== ""
+                                active: (item.modelData?.icon ?? "") !== ""
                                 asynchronous: true
 
                                 sourceComponent: IconImage {
                                     implicitSize: label.implicitHeight
-                                    source: item.modelData.icon
+                                    source: Qt.resolvedUrl(item.modelData?.icon ?? "")
                                 }
                             }
 
@@ -153,9 +160,9 @@ StackView {
                                 anchors.rightMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
-                                text: item.modelData.text
+                                text: item.modelData?.text ?? ""
                                 textStyle: "bodyMedium"
-                                colorRole: item.modelData.enabled ? "onSurface" : "outline"
+                                colorRole: (item.modelData?.enabled ?? false) ? "onSurface" : "outline"
                                 elide: Text.ElideRight
                             }
 
@@ -166,9 +173,9 @@ StackView {
                                 anchors.rightMargin: Tokens.spacing.extraSmall
                                 anchors.verticalCenter: parent.verticalCenter
 
-                                visible: item.modelData.hasChildren
+                                visible: item.modelData?.hasChildren ?? false
                                 iconName: "chevron_right"
-                                iconColor: item.modelData.enabled ? "onSurface" : "outline"
+                                iconColor: (item.modelData?.enabled ?? false) ? Theme.onSurface : Theme.outline
                                 fontSize: Tokens.typography.titleMedium.size
                             }
                         }

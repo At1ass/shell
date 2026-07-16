@@ -216,7 +216,10 @@ Singleton {
             "body": item.body || "",
             "appName": item.appName || "",
             "appIcon": item.appIcon || "",
-            "image": item.image || "",
+            // image://qsimage/ handles live only as long as the tracked
+            // notification — persisting one stores a dangling pointer that
+            // spams the image provider on every scroll. Keep stable URLs only.
+            "image": (item.image || "").startsWith("image://qsimage/") ? "" : (item.image || ""),
             "actions": item.actions || [],
             "urgency": (item.urgency < 0 || item.urgency > 2) ? NotificationUrgency.Normal : item.urgency,
             "expireTimeout": item.expireTimeout,

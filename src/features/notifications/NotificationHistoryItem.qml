@@ -200,9 +200,15 @@ MaterialCard {
             Layout.minimumWidth: 0
         }
 
-        // Notification image
+        // Notification image. Volatile image://qsimage/ handles are dropped:
+        // they cannot outlive their notification, and old history files may
+        // still carry them.
         Rectangle {
-            visible: root.expanded && root.hasNotification && (notificationObject.image || "") !== ""
+            readonly property string imageSource: {
+                const img = root.hasNotification ? (notificationObject.image || "") : ""
+                return img.startsWith("image://qsimage/") ? "" : img
+            }
+            visible: root.expanded && imageSource !== ""
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? Math.min(historyNotifImage.implicitHeight, 180) : 0
             radius: Tokens.shape.small
@@ -212,7 +218,7 @@ MaterialCard {
             Image {
                 id: historyNotifImage
                 anchors.fill: parent
-                source: root.hasNotification ? (notificationObject.image || "") : ""
+                source: parent.imageSource
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
