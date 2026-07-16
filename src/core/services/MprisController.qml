@@ -51,7 +51,8 @@ Singleton {
     readonly property bool canControl: activePlayer?.canControl ?? false
     readonly property bool canPlay: activePlayer?.canPlay ?? false
     readonly property bool canPause: activePlayer?.canPause ?? false
-    readonly property bool canStop: activePlayer?.canStop ?? false
+    // MPRIS has no CanStop; the Stop command is gated by CanControl.
+    readonly property bool canStop: activePlayer?.canControl ?? false
     readonly property bool canTogglePlaying: activePlayer?.canTogglePlaying ?? false
     readonly property bool canGoNext: activePlayer?.canGoNext ?? false
     readonly property bool canGoPrevious: activePlayer?.canGoPrevious ?? false
@@ -93,7 +94,7 @@ Singleton {
 
     // ===== TRACK CHANGE TRACKING =====
     Connections {
-        target: activePlayer
+        target: root.activePlayer
 
         function onPostTrackChanged() {
             root.updateTrack()

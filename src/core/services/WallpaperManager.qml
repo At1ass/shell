@@ -68,13 +68,13 @@ Singleton {
     Connections {
         target: AppConfig
         function onReadyChanged() {
-            if (AppConfig.ready && !manager._initialized) initFromConfig()
+            if (AppConfig.ready && !manager._initialized) manager.initFromConfig()
         }
         function onDataChanged() {
-            if (manager._initialized) initFromConfig()
+            if (manager._initialized) manager.initFromConfig()
         }
         function onStateDataChanged() {
-            if (manager._initialized && !manager._stateApplied) loadState()
+            if (manager._initialized && !manager._stateApplied) manager.loadState()
         }
     }
 

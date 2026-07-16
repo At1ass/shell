@@ -24,7 +24,7 @@ Singleton {
     // "user wants no interruptions".
     readonly property bool _fullscreenActive: {
         const tl = Hyprland.activeToplevel
-        return (tl?.lastIpcObject?.fullscreen ?? 0) > 0
+        return (tl?.lastIpcObject.fullscreen ?? 0) > 0
     }
 
     readonly property bool active: enabled || _fullscreenActive

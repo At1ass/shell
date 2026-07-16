@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -66,7 +67,7 @@ Singleton {
         model: notifServer.trackedNotifications
         delegate: NotifData {
             id: notifData
-            required property var modelData
+            required property Notification modelData
             notification: modelData
 
             // Service watches popup-relevant property changes and emits
@@ -74,26 +75,28 @@ Singleton {
             // (NotifData) lacks a default children list, so attach via
             // an explicit property.
             readonly property Connections _serviceWatch: Connections {
-                target: modelData
-                function onSummaryChanged()  { root._notifDataPropChanged(modelData) }
-                function onBodyChanged()     { root._notifDataPropChanged(modelData) }
-                function onAppNameChanged()  { root._notifDataPropChanged(modelData) }
-                function onUrgencyChanged()  { root._notifDataPropChanged(modelData) }
-                function onAppIconChanged()  { root._notifDataPropChanged(modelData) }
-                function onImageChanged()    { root._notifDataPropChanged(modelData) }
-                function onActionsChanged()  { root._notifDataPropChanged(modelData) }
+                target: notifData.modelData
+                function onSummaryChanged()  { root._notifDataPropChanged(notifData.modelData) }
+                function onBodyChanged()     { root._notifDataPropChanged(notifData.modelData) }
+                function onAppNameChanged()  { root._notifDataPropChanged(notifData.modelData) }
+                function onUrgencyChanged()  { root._notifDataPropChanged(notifData.modelData) }
+                function onAppIconChanged()  { root._notifDataPropChanged(notifData.modelData) }
+                function onImageChanged()    { root._notifDataPropChanged(notifData.modelData) }
+                function onActionsChanged()  { root._notifDataPropChanged(notifData.modelData) }
             }
-            onClosed: (reason) => root._onNotifDataClosed(modelData, reason)
+            onClosed: (reason) => root._onNotifDataClosed(notifData.modelData, reason)
         }
 
         onObjectAdded: (index, object) => {
-            if (object?.notification) {
-                root._notifDataByNotifId[object.notification.id] = object
+            const data = object as NotifData
+            if (data?.notification) {
+                root._notifDataByNotifId[data.notification.id] = data
             }
         }
         onObjectRemoved: (index, object) => {
-            if (object?.notification) {
-                delete root._notifDataByNotifId[object.notification.id]
+            const data = object as NotifData
+            if (data?.notification) {
+                delete root._notifDataByNotifId[data.notification.id]
             }
         }
     }

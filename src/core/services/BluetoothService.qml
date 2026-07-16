@@ -155,10 +155,10 @@ Singleton {
 
     // Monitor adapter state
     Connections {
-        target: adapter
+        target: root.adapter
 
         function onEnabledChanged() {
-            root.enabled = adapter.enabled
+            root.enabled = root.adapter.enabled
         }
     }
 
@@ -174,7 +174,7 @@ Singleton {
             const paired = []
             const discovered = []
 
-            if (!adapter || !adapter.devices) {
+            if (!root.adapter || !root.adapter.devices) {
                 root.connected = false
                 root.connectedDeviceCount = 0
                 root.pairedDevices = []
@@ -182,7 +182,7 @@ Singleton {
                 return
             }
 
-            const devs = adapter.devices.values
+            const devs = root.adapter.devices.values
 
             for (const d of devs) {
                 if (!d) continue

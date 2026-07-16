@@ -1,9 +1,12 @@
+pragma Singleton
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
-pragma Singleton
 
 Singleton {
+    id: root
+
     property var clock: SystemClock {
         precision: SystemClock.Minutes
     }
@@ -32,7 +35,7 @@ Singleton {
             if (days > 0) formatted += `${days}d`
             if (hours > 0) formatted += `${formatted ? ", " : ""}${hours}h`
             if (minutes > 0 || !formatted) formatted += `${formatted ? ", " : ""}${minutes}m`
-            uptime = formatted
+            root.uptime = formatted
         }
     }
 
