@@ -13,7 +13,7 @@ import qs.src.core.services
 MaterialCard {
     id: root
     color: Theme.surfaceContainerHigh
-    radius: 0  // без скругления
+    radius: 0  // no rounding
     // Layout.preferredHeight: 350
 
     // Clip content
@@ -44,7 +44,7 @@ MaterialCard {
             anchors.fill: parent
             visible: MprisController.activeTrack?.artUrl !== ""
 
-            // Album art image (скрыто)
+            // Album art image (hidden)
             Image {
                 id: albumArtBackground
                 anchors.fill: parent
@@ -57,12 +57,12 @@ MaterialCard {
                 visible: false
             }
 
-            // MultiEffect применяет размытие
+            // MultiEffect applies the blur
             MultiEffect {
                 anchors.fill: parent
                 source: albumArtBackground
                 blurEnabled: true
-                blur: 1.0  // максимальное размытие (было radius: 40)
+                blur: 1.0  // maximum blur (was radius: 40)
                 blurMax: 32
             }
 
@@ -91,7 +91,7 @@ MaterialCard {
                     Layout.preferredHeight: 200
                     visible: MprisController.activeTrack?.artUrl !== ""
 
-                    // Исходное изображение (скрыто)
+                    // Source image (hidden)
                     Image {
                         id: albumArtThumb
                         anchors.fill: parent
@@ -105,7 +105,7 @@ MaterialCard {
                         visible: false
                     }
 
-                    // MultiEffect применяет маску скругления
+                    // MultiEffect applies the rounding mask
                     MultiEffect {
                         anchors.fill: parent
                         source: albumArtThumb
@@ -113,7 +113,7 @@ MaterialCard {
                         maskSource: maskItem
                     }
 
-                    // Маска для скругления
+                    // Rounding mask
                     Item {
                         id: maskItem
                         width: 200
@@ -129,7 +129,7 @@ MaterialCard {
                         }
                     }
 
-                    // Border поверх
+                    // Border on top
                     Rectangle {
                         anchors.fill: parent
                         radius: Tokens.shape.medium
@@ -298,7 +298,7 @@ MaterialCard {
             radius: Tokens.shape.medium
             color: Theme.surfaceContainerHigh
 
-            // M3 elevation через border + surface tint (вместо DropShadow)
+            // M3 elevation via border + surface tint (instead of DropShadow)
             border.width: 1
             border.color: Theme.outlineVariant
 

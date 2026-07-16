@@ -101,15 +101,15 @@ Item {
                 let path = Quickshell.iconPath(iconName, "image-missing")
                 if (!path) return ""
 
-                // Убираем fallback часть (если есть)
+                // Strip the fallback part (if any)
                 let mainPath = path.split("?")[0]
 
-                // Проверяем что это валидный source (путь или URI)
+                // Verify it is a valid source (path or URI)
                 if (mainPath.startsWith("/") || mainPath.startsWith("image://")) {
                     return mainPath
                 }
 
-                // Иконка не найдена - пробуем fallback
+                // Icon not found - try the fallback
                 if (path.includes("?fallback=")) {
                     let fallbackName = path.split("?fallback=")[1]
                     let fallbackPath = Quickshell.iconPath(fallbackName, "")

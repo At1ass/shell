@@ -22,7 +22,7 @@ Scope {
             bottom: true
         }
 
-        // Focus grab для эксклюзивного управления
+        // Focus grab for exclusive input control
         HyprlandFocusGrab {
             id: focusGrab
             windows: [launcherWindow]
@@ -33,7 +33,7 @@ Scope {
             }
         }
 
-        // MD3 Scrim (затемнение фона)
+        // MD3 Scrim (background dimming)
         Rectangle {
             id: scrim
             anchors.fill: parent
@@ -48,7 +48,7 @@ Scope {
                 }
             }
 
-            // MouseArea для закрытия при кликах на scrim
+            // MouseArea to close on scrim clicks
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
@@ -57,7 +57,7 @@ Scope {
             }
         }
 
-        // Loader для ленивой загрузки контента
+        // Loader for lazy content loading
         Loader {
             id: contentLoader
             active: GlobalStates.launcherOpen
@@ -69,7 +69,7 @@ Scope {
                 implicitWidth: AppConfig.launcherWidth
                 implicitHeight: launcherContent.implicitHeight
 
-                // MD3 анимация появления (slide down + fade in)
+                // MD3 entrance animation (slide down + fade in)
                 opacity: GlobalStates.launcherOpen ? 1.0 : 0.0
                 y: GlobalStates.launcherOpen ? 0 : -20
 
@@ -89,11 +89,11 @@ Scope {
                     }
                 }
 
-                // Блокируем клики внутри контента от MouseArea родителя
+                // Block clicks inside the content from the parent MouseArea
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        // Ничего не делаем, просто блокируем прохождение клика
+                        // Do nothing, just block the click from passing through
                     }
                 }
 

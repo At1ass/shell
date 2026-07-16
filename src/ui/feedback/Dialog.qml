@@ -8,7 +8,7 @@ Rectangle {
     anchors.fill: parent
 
     // MD3 Scrim (backdrop) - RGBA(0,0,0,0.32)
-    color: Qt.rgba(0, 0, 0, 0.32)
+    color: Qt.alpha(Theme.scrim, Tokens.state.scrimOpacity)
 
     visible: false
     opacity: 0

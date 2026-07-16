@@ -31,7 +31,7 @@ Singleton {
     // ===== SIGNALS =====
     signal volumeChanged(real volume, bool muted)
 
-    // Отслеживаем ЛЮБЫЕ изменения громкости (от любых источников)
+    // Track ANY volume changes (from any source)
     onMasterVolumeChanged: {
         volumeChanged(masterVolume, masterMuted)
     }
@@ -45,21 +45,21 @@ Singleton {
         if (defaultSink && defaultSink.audio) {
             const newVolume = Math.max(0, Math.min(1, value))
             defaultSink.audio.volume = newVolume
-            // volumeChanged будет эмитен автоматически через onMasterVolumeChanged
+            // volumeChanged is emitted automatically via onMasterVolumeChanged
         }
     }
 
     function toggleMasterMute() {
         if (defaultSink && defaultSink.audio) {
             defaultSink.audio.muted = !defaultSink.audio.muted
-            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+            // volumeChanged is emitted automatically via onMasterMutedChanged
         }
     }
 
     function setMasterMute(muted) {
         if (defaultSink && defaultSink.audio) {
             defaultSink.audio.muted = muted
-            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+            // volumeChanged is emitted automatically via onMasterMutedChanged
         }
     }
 
@@ -68,21 +68,21 @@ Singleton {
         if (defaultSource && defaultSource.audio) {
             const newVolume = Math.max(0, Math.min(1, value))
             defaultSource.audio.volume = newVolume
-            // volumeChanged будет эмитен автоматически через onMasterVolumeChanged
+            // volumeChanged is emitted automatically via onMasterVolumeChanged
         }
     }
 
     function toggleMicMute() {
         if (defaultSource && defaultSource.audio) {
             defaultSource.audio.muted = !defaultSource.audio.muted
-            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+            // volumeChanged is emitted automatically via onMasterMutedChanged
         }
     }
 
     function setMicMute(muted) {
         if (defaultSource && defaultSource.audio) {
             defaultSource.audio.muted = muted
-            // volumeChanged будет эмитен автоматически через onMasterMutedChanged
+            // volumeChanged is emitted automatically via onMasterMutedChanged
         }
     }
     // ===== DEVICE SELECTION =====

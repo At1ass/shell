@@ -1,10 +1,11 @@
 import QtQuick
+import qs.src.core.config
 
 Canvas {
     id: root
 
     property var values: []
-    property color lineColor: "#4CAF50"
+    property color lineColor: Theme.primary
     property color fillColor: Qt.rgba(lineColor.r, lineColor.g, lineColor.b, 0.15)
     property real lineWidth: 1.5
     property bool showFill: true

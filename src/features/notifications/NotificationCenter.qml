@@ -40,7 +40,7 @@ Scope {
         // Scrim overlay
         Rectangle {
             anchors.fill: parent
-            color: "black"
+            color: Theme.scrim
             opacity: panelSlide.visible ? 0.32 : 0
             visible: GlobalStates.notificationCenterOpen
 

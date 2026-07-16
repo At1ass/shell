@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -16,7 +17,7 @@ MaterialCard {
 
         CircleAvatar {
                 customSize: 100
-                imageSource: "file:///home/at1ass/.face"
+                imageSource: "file://" + Quickshell.env("HOME") + "/.face"
                 fallbackIcon: "person"
                 fallbackText: SystemMonitorService.userName || "User"
                 Layout.alignment: Qt.AlignHCenter

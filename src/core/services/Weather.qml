@@ -7,14 +7,14 @@ import qs.src.core.services
 Singleton {
     id: store
 
-    // --- Конфиг ---
+    // --- Config ---
     property string location: AppConfig.weatherLocation
     property real latitude: AppConfig.weatherLatitude
     property real longitude: AppConfig.weatherLongitude
     property int refreshMinutes: AppConfig.weatherRefreshMinutes
     property int minIntervalSeconds: 60
 
-    // --- Состояние ---
+    // --- State ---
     property var data: null
     property string errorString: ""
     property date lastSuccessAt: new Date(0)
@@ -128,7 +128,7 @@ Singleton {
         onTriggered: store.fetchIfStale()
     }
 
-    // Таймер экспоненциального бэкоффа
+    // Exponential backoff timer
     Timer {
         id: retryTimer
         interval: store._retryMs
@@ -136,7 +136,7 @@ Singleton {
         onTriggered: store._doFetch()
     }
 
-    // Публичные методы
+    // Public methods
     function fetchIfStale() {
         if ((Date.now() - lastSuccessAt.getTime()) >= (refreshMinutes * 60 * 1000))
             _doFetch();
@@ -193,7 +193,7 @@ Singleton {
         errorString = msg;
         failed(msg);
         if (_retryMs === 0) ToastService.warning("Weather unavailable: " + msg)
-        // 5s → 10s → 20s → … до 5 минут
+        // 5s → 10s → 20s → … up to 5 minutes
         _retryMs = Math.min(_retryMs > 0 ? _retryMs * 2 : 5000, 5 * 60 * 1000);
         if (!retryTimer.running)
             retryTimer.start();

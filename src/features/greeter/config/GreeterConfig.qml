@@ -56,7 +56,7 @@ Singleton {
         }
 
         onLoadFailed: error => {
-            console.log("GreeterConfig: no config at", root.greeterConfigPath, "- using defaults")
+            console.info("GreeterConfig: no config at", root.greeterConfigPath, "- using defaults")
             root.data = {}
             root._checkReady()
         }
@@ -78,7 +78,7 @@ Singleton {
         }
 
         onLoadFailed: error => {
-            console.log("GreeterConfig: shell state not found at", root.shellStatePath)
+            console.info("GreeterConfig: shell state not found at", root.shellStatePath)
             root._shellState = {}
             root._checkReady()
         }

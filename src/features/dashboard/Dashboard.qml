@@ -41,7 +41,7 @@ Scope {
         WlrLayershell.namespace: "quickshell:dashboard"
         WlrLayershell.layer: WlrLayer.Overlay
 
-        // Автозакрытие при клике вне области
+        // Auto-close on click outside the area
         HyprlandFocusGrab {
             id: focusGrab
             active: dashboardLoader.active && GlobalStates.dashboardOpen

@@ -69,7 +69,7 @@ Item {
         }
     }
 
-    // Индикатор активной вкладки
+    // Active tab indicator
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter

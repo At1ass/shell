@@ -593,6 +593,8 @@ Item {
                     text: "Add Event"
                     variant: "tonal"
                     enabled: CalendarBackend.calendars.length > 0
+                    // QtQuick.Controls ToolTip: tabs have no tooltipManager
+                    // plumbing (convention-sanctioned fallback).
                     ToolTip.visible: hovered && !enabled
                     ToolTip.text: "No calendars configured. Add one in ~/.config/khal/config or ensure ~/.local/share/khal/calendars/<name>/ exists."
                     onClicked: eventDialog.openDialog(false, null, root.selectedDate)

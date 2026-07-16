@@ -59,6 +59,6 @@ ColumnLayout {
         title: "No VPN profiles"
         subtitle: "Configure VPN in network settings"
         iconContainerSize: 56
-        iconSize: 32
+        iconSize: Tokens.iconSize.extraLarge
     }
 }

@@ -15,14 +15,14 @@ Item {
 
     property var screen
 
-    implicitHeight: Math.min(AppConfig.launcherWidth, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 для тени
+    implicitHeight: Math.min(AppConfig.launcherWidth, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 for the shadow
 
     // MD3 Shadow (Elevation Level 2)
 
     MaterialCard {
         id: container
         anchors.fill: parent
-        anchors.margins: 2  // Отступ для тени
+        anchors.margins: 2  // Margin for the shadow
         outlined: false
 
         color: Theme.surfaceContainer
@@ -71,7 +71,7 @@ Item {
                         color: Theme.onSurface
                         font.pixelSize: Tokens.typography.bodyLarge.size
 
-                        background: Item {}  // Transparent - используем внешний Rectangle
+                        background: Item {}  // Transparent - the outer Rectangle is used
 
                         // Live search
                         onTextChanged: {
@@ -82,12 +82,12 @@ Item {
                         // Tab navigation
                         Keys.onTabPressed: (event) => {
                             if (event.modifiers & Qt.ShiftModifier) {
-                                // Shift+Tab - вверх
+                                // Shift+Tab - up
                                 if (appListView.currentIndex > 0) {
                                     appListView.currentIndex--
                                 }
                             } else {
-                                // Tab - вниз
+                                // Tab - down
                                 if (appListView.currentIndex < appListView.count - 1) {
                                     appListView.currentIndex++
                                 }
@@ -96,7 +96,7 @@ Item {
                         }
 
                         Keys.onBacktabPressed: (event) => {
-                            // Shift+Tab альтернативный обработчик
+                            // Shift+Tab alternate handler
                             if (appListView.currentIndex > 0) {
                                 appListView.currentIndex--
                             }
@@ -157,10 +157,10 @@ Item {
 
                 maximumFlickVelocity: 3000
 
-                // ScriptModel для отслеживания изменений элементов
+                // ScriptModel to track item changes
                 model: ScriptModel {
                     id: scriptModel
-                    objectProp: "id"  // Исправлено: все провайдеры используют "id"
+                    objectProp: "id"  // Fixed: all providers use "id"
                     values: LauncherService.filteredApps
 
                     onValuesChanged: appListView.currentIndex = 0
@@ -172,12 +172,12 @@ Item {
                 currentIndex: 0
                 highlightFollowsCurrentItem: false
 
-                // Автопрокрутка при изменении currentIndex
+                // Auto-scroll when currentIndex changes
                 onCurrentIndexChanged: {
                     positionViewAtIndex(currentIndex, ListView.Contain)
                 }
 
-                // Transform origin для scale анимаций
+                // Transform origin for scale animations
                 transformOrigin: Item.Center
 
                 // Highlight
@@ -217,7 +217,7 @@ Item {
                     }
                 }
 
-                // Флаг для отключения transitions при переоткрытии
+                // Flag to disable transitions on reopen
                 property bool transitionsEnabled: true
 
                 // MD3 transitions for list item add/remove/move
@@ -304,7 +304,7 @@ Item {
                     }
                 }
 
-                // Scrollbar - всегда резервируем место
+                // Scrollbar - always reserve space
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AlwaysOn
                     visible: appListView.contentHeight > appListView.height
@@ -325,28 +325,28 @@ Item {
     // Reset search and focus when launcher opens/closes
     onVisibleChanged: {
         if (visible) {
-            // Отключаем transitions при открытии
+            // Disable transitions while opening
             appListView.transitionsEnabled = false
 
             // Pull fresh cliphist state — the clipboard-change watcher uses
             // a 100ms debounce, which races a fast Mod+Space after a copy.
             ClipboardService.refresh()
 
-            // Очищаем и сбрасываем
+            // Clear and reset
             searchField.text = ""
             LauncherService.search("")
             appListView.currentIndex = 0
 
-            // Включаем transitions обратно после небольшой задержки
+            // Re-enable transitions after a short delay
             Qt.callLater(function() {
                 appListView.transitionsEnabled = true
                 searchField.forceActiveFocus()
             })
         } else {
-            // Отключаем transitions при закрытии
+            // Disable transitions while closing
             appListView.transitionsEnabled = false
 
-            // Очищаем при закрытии
+            // Clear on close
             searchField.text = ""
             LauncherService.search("")
         }
@@ -364,7 +364,7 @@ Item {
         }
     }
 
-    // Инициализация при создании
+    // Initialize on creation
     Component.onCompleted: {
         LauncherService.search("")
         appListView.currentIndex = 0

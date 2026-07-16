@@ -5,22 +5,22 @@ import Quickshell
 import qs.src.core.config
 import qs.src.core.services.launcher
 
-// ProviderManager - управляет провайдерами для поиска
+// ProviderManager - manages search providers
 Singleton {
     id: root
 
-    // Текущий поисковый запрос
+    // Current search query
     property string searchQuery: ""
 
-    // Отфильтрованные результаты
+    // Filtered results
     property var filteredApps: []
 
-    // Кэш QML-объектов результатов поиска (ключ -> QtObject)
+    // Cache of search result QML objects (key -> QtObject)
     property var _wrapperCache: ({})
     property var _cacheAccessTime: ({})
     property int _maxCacheSize: 1000
 
-    // Провайдеры (в порядке приоритета)
+    // Providers (in priority order)
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
         ClipboardProvider { id: clipboardProvider },
@@ -58,7 +58,7 @@ Singleton {
             }
         }
 
-        // Удаляем старейший элемент
+        // Remove the oldest entry
         let wrapper = _wrapperCache[oldestKey]
         if (wrapper) {
             wrapper.destroy()
@@ -78,7 +78,7 @@ Singleton {
             return existing
         }
 
-        // Проверяем размер кэша и evict если нужно
+        // Check cache size and evict if needed
         let cacheSize = Object.keys(_wrapperCache).length
         if (cacheSize >= _maxCacheSize) {
             _evictOldestCacheEntry()
@@ -96,7 +96,7 @@ Singleton {
         return wrapper
     }
 
-    // Поиск через все провайдеры
+    // Search across all providers
     function search(query) {
         searchQuery = query
 
@@ -138,14 +138,14 @@ Singleton {
                 continue
             }
 
-            // Преобразуем результаты в QML-объекты, переиспользуя их между поисками
+            // Convert results to QML objects, reusing them across searches
             for (let j = 0; j < providerResults.length; j++) {
                 let result = providerResults[j]
                 if (!result || !result.id) continue
 
                 let key = String(result.id)
                 if (seenKeys[key]) {
-                    // Защита от дублей из разных провайдеров
+                    // Guard against duplicates from different providers
                     continue
                 }
                 seenKeys[key] = true
@@ -178,10 +178,10 @@ Singleton {
         filteredApps = collectedResults.slice(0, cap)
 
         if (ClipboardService.debug && hasPrefixMatch) {
-            console.log("[LauncherService] prefix mode results:", filteredApps.length)
+            console.info("[LauncherService] prefix mode results:", filteredApps.length)
             for (let k = 0; k < Math.min(filteredApps.length, 10); k++) {
                 const r = filteredApps[k]
-                console.log("  ", k, "type=" + r.type, "text=" +
+                console.info("  ", k, "type=" + r.type, "text=" +
                     (r.text || "").substring(0, 40).replace(/\n/g, "\\n"))
             }
         }

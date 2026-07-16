@@ -47,7 +47,7 @@ Slider {
             color: Theme.surfaceContainerHighest
 
 
-            // Stop indicator (точка на конце)
+            // Stop indicator (dot at the end of the track)
             Rectangle {
                 anchors {
                     right: control.orientation === Qt.Horizontal ? parent.right : undefined
@@ -136,7 +136,7 @@ Slider {
 
             // M3 elevation via subtle border
             border.width: 0.5
-            border.color: Qt.rgba(0, 0, 0, 0.1)
+            border.color: Qt.alpha(Theme.shadow, 0.1)
 
             Behavior on color {
                 ColorAnimation {

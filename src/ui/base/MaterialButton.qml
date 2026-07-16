@@ -55,7 +55,7 @@ Button {
             z: -1
             visible: control._elevated && control.enabled
             shadowEnabled: visible
-            shadowColor: Qt.rgba(0, 0, 0, Tokens.elevation.level1.shadowOpacity)
+            shadowColor: Qt.alpha(Theme.shadow, Tokens.elevation.level1.shadowOpacity)
             blurMax: 64
             shadowBlur: Tokens.elevation.level1.shadowRadius / 64
             shadowVerticalOffset: Tokens.elevation.level1.shadowVerticalOffset

@@ -49,8 +49,13 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
 | `libnotify` | Calendar event reminders (`notify-send`) |
 | `hyprsunset` | Night Light temperature shift |
-| `networkmanager` | Network widget and VPN status |
+| `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
 | `bluez` | Bluetooth status in the Dashboard |
+
+> Bluetooth pairing note: the shell intentionally runs **no** background pairing
+> agent (an always-on auto-confirm agent would accept any nearby pairing
+> request). Simple devices pair directly; devices that require passkey
+> confirmation need an interactive agent such as `blueman`.
 
 ### Build dependencies (C++ plugins)
 

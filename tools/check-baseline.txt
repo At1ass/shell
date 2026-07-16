@@ -1,13 +1,13 @@
-console-log 7
+console-log 0
 easing-literals-in-features 0
 easing-unpaired-tokens 0
 font-pointsize 0
-hardcoded-home-paths 1
+hardcoded-home-paths 0
 layer-config-imports-services 0
 layer-services-imports-features 0
 layer-services-imports-ui 0
 layer-ui-imports-services 0
 lazyloader-loading 0
 qmllint-warnings 258
-sh-c-concatenation 1
+sh-c-concatenation 0
 stacklayout-in-features 3

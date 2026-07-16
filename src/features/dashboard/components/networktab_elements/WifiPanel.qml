@@ -69,7 +69,7 @@ Item {
             title: "WiFi is disabled"
             subtitle: "Toggle the switch to enable"
             iconContainerSize: 56
-            iconSize: 32
+            iconSize: Tokens.iconSize.extraLarge
         }
 
     MaterialButton {

@@ -158,7 +158,7 @@ Item {
                 }
             }
 
-            // Разделитель
+            // Divider
             Divider {
                 Layout.fillWidth: true
             }

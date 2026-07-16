@@ -9,7 +9,7 @@ Rectangle {
     property bool animated: true
     property string shape: "circle"      // circle, rounded, square
 
-    // Размеры согласно Material Design
+    // Sizes per Material Design
     readonly property var sizes: ({
         "extraSmall": 4,
         "small": 8,
@@ -18,11 +18,11 @@ Rectangle {
         "extraLarge": 20
     })
 
-    // Автоматические размеры
+    // Automatic sizing
     width: sizes[size] || sizes.small
     height: width
 
-    // Автоматический радиус в зависимости от формы
+    // Automatic radius depending on shape
     radius: {
         switch(shape) {
             case "circle": return width / 2
@@ -32,10 +32,10 @@ Rectangle {
         }
     }
 
-    // Автоматический цвет из токенов
+    // Automatic color from tokens
     color: Theme[colorRole] || Theme.outline
 
-    // Анимации
+    // Animations
     Behavior on width {
         enabled: root.animated
         NumberAnimation {
@@ -63,10 +63,10 @@ Rectangle {
         }
     }
 
-    // Валидация размера
+    // Size validation
     onSizeChanged: {
         if (!sizes[size]) {
-            console.warn(`MaterialIndicator: неизвестный размер "${size}", используется small`)
+            console.warn(`MaterialIndicator: unknown size "${size}", falling back to small`)
         }
     }
 }

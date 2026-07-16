@@ -12,50 +12,35 @@ Recent history that informs the items below:
 
 ---
 
-## Active — root-cause refactor (phases F0–F9)
+## Done — root-cause refactor F0–F9 (2026-07)
 
-Principle: fix causes, not symptoms. Each phase is one branch/commit series; ordering matters (later phases build on earlier primitives). F7 (C++) can run in parallel any time after F0.
+All ten phases executed on branch `dock-overhaul` (one commit per phase, F0–F9).
+Highlights: mechanically-checked invariants (`tools/check.sh` ratchet +
+`tools/lint.sh` qmllint wrapper); layer graph now matches AGENTS §3 exactly;
+`GlobalStates.activePanel` state machine; popouts coordinated as data;
+startup readiness gates (state.json can no longer be clobbered); motion
+tokens normalized (~45 broken/raw easing sites) + `MotionAnimation`
+primitive; notifications lifecycle declarative; EventDialog on Material
+inputs (inputMask 'until' bug root-fixed); network/bluetooth event-driven
+(no polling, no auto-pair agent); OSD rewritten per-screen on `OsdSurface`;
+calendar plugin addresses events by (uid, recurrenceId) with regression
+tests (25 passing); Qalculate async; config contract honest (dead keys
+removed, honored keys implemented, defaults reconciled); IPC reference
+single-sourced (`IpcReferenceData.qml`).
 
-### F0 — make the rules checkable *(small)*
-`.qmllint.ini` with import paths (the "qmllint clean" rule is currently unverifiable — 2772 false unqualified warnings without it); fix real core warnings. `tools/check.sh` grep invariants for the AGENTS bans: layer edges (services↛features, ui↛services, config↛services), bare easing literals in features, StackLayout, `sh -c` concatenation, `console.log`, hardcoded `/home/`.
-**Done when:** check.sh output is the live progress bar of the refactor — green for held rules, red exactly on known debt.
+**Reinstall plugins after pulling this branch:**
+`cd src/plugins && cmake --build build && sudo cmake --install build`
 
-### F1 — layer graph + dead code *(small)*
-Invert Theme↔Wallpaper (Theme gets `seed` property, WallpaperManager pushes into it — removes the config↔services cycle). Move ownership: launcher providers → `core/services/launcher/`; `NotifData` → `core/services/`; `TrayMenu` → `popouts` (its only consumer). Delete dead: `features/GlobalState.qml`, entire control-panel surface (props, shortcut, 3 IPC fns, schema enum, `dashboard-system` alias), `updateConfig()`/save timer/suppress flag, dead GlobalStates props, `maintab_elements/TrayMenu.qml` dup, VolumeWidget dead filters, `mcu-qml/plugin.cpp`, WallpaperCache IPC `test()` probe. Add missing qmldirs (`core/config`, `core/services`, `maintab_elements`).
-**Done when:** layer grep invariants green; shell runs; zero orphan files.
-
-### F2 — state & coordination *(medium)*
-`GlobalStates.activePanel` state machine (derived readonly booleans keep the API; kills the n² mutual-exclusion handlers). Popouts as data: `PopoutsState.request` descriptor consumed by the Popouts window; instance handle + broken TrayWidget fallback deleted. Readiness gates: `updateState()` queues until `stateReady`; consumers apply persisted state on the signal (WallpaperManager loses the `_stateApplied` heuristic; also fix its source rewire-on-rebuild bug). Dashboard: declarative bindings only (tab index lives in GlobalStates; height binding not hijacked). lock-session: gdbus monitor without alias-path filter (anchored Lock/Unlock parse), restart on exit.
-**Done when:** restart restores dock pins/wallpaper/DND; `openDashboardTab` works after manual tab switching; `loginctl lock-session` locks; disabling popouts module doesn't break tray.
-
-### F3 — UI kit foundation + motion *(medium)*
-Motion presets in `ui/base` (emphasized/standard with `easing.type` + `*Points` fused, cannot diverge) → sweep the ~25 broken easing sites; bare `easing.*` in features becomes a checked ban. New primitives: `LinearProgress`, `Scrim`, `MonoText` + mono token, `Surface` tint prop (replaces 6 magic-opacity elevation tints). Remove shadowed properties (`enabled` ×10 → built-in, `BarElement.children` → `content`, `TooltipItem.data`, `Wallpaper.smooth`). Explicit wheel API on `BarElement` (root cause of the dead workspace scroll). Re-run greeter `sync-ui.sh`.
-**Done when:** qmllint has no property-override warnings; no easing literals in features.
-
-### F4 — root feature fixes + QML performance *(medium)*
-Notifications: declarative popup lifecycle — one animation drives progress bar and auto-dismiss with pause (replaces Date.now math + 30 Hz timer); `timestamp` int→real; gate-queue cap; eviction loop; shared now-tick for relative dates; wire history actions. EventDialog reworked on `MaterialTextField` (kills the inputMask "until" validation bug). All 3 StackLayouts → single Loader tab pattern. Perf roots: DockService `class → DesktopEntry` memoization; DockPreview on `ScriptModel`; StatusBar widget model stable across unrelated config reloads; ApplicationProvider corpus cached (rebuild on app-list change, not per keystroke); calculator throttle trailing edge; wallpaper `asynchronous` + `sourceSize`.
-**Done when:** hovered popups always dismiss; history shows sane dates; unrelated config edits don't flash the bar; wallpaper change doesn't freeze the shell.
-
-### F5 — network + bluetooth, event-driven *(medium/large)*
-One `NetworkService`: native Wi-Fi (fixing the dead `.values` bug inside the rewrite), a single long-lived `nmcli monitor` for eth/VPN instead of 2 processes / 5 s, VPN polling gated by config, password via stdin (`--ask`), `!running` guards, iface-name regex guard. `BluetoothService`: **delete the auto-yes agent daemon** (auto-confirms any pairing — the audit's critical C1), subscribe to `adapter.devices` signals instead of 2 s rebuild polling, pairing = explicit per-action confirmation. (Native BlueZ D-Bus remains the ideal endgame; `nmcli monitor` / signals get 90% of the win now.)
-**Done when:** idle `ps` shows no periodic nmcli/bluetoothctl; Wi-Fi panel actually scans/connects; no pairing without confirmation.
-
-### F6 — OSD rewrite *(medium)*
-`OsdSurface` shared base: per-screen (`screen: modelData` — multi-monitor OSD is currently broken), token-driven geometry/type/motion, bounded queue, English strings. Volume/Brightness/Toast become thin parameterizations.
-**Done when:** OSD appears on the right monitor; zero hardcoded literals in the module; toast storms don't grow memory.
-
-### F7 — C++ plugins *(large, parallel track)*
-Calendar — identity model: event address = `(uid, recurrenceId)`, expose `recurrenceId` to QML, delete/edit understand overrides (audit critical C2 — deleting a moved occurrence currently deletes the whole series); floating times not coerced to UTC; `editAllInPlace` preserves authoring TZID and touches only passed fields; `icalrecur_iterator_set_start()`; FSW recursive depth + deferred (not dropped) external changes in the self-write window; `wait(3000)`. Qalculate: async eval on a worker + signal; init off the UI thread. SystemMonitor: sensors truly optional in CMake, CPU-sensor selection by label, deltas by actual elapsed time, baseline reset on iface re-detect, diskstats buffer. Mcu: emit `validChanged`, wait all futures in dtor, `readDownscaled` fallback. All plugins: absolute install paths, single install per target, `-Wall -Wextra`. Calendar unit tests for override scenarios (delete/edit moved occurrence, floating TZ, DST transition).
-**Done when:** calendar tests green; heavy launcher expressions don't freeze UI.
-
-### F8 — config contract + single IPC reference *(small/medium)*
-Remove dead schema keys (`launcher.providers`/`hiddenApps`, `powerMenu.actions`, `hyprland` section); implement `weather.refreshMinutes`/`enabled` (cheap); unify defaults — `default.json` canonical, getters and schema must match; personal data (weather coords, `.face` path) out of code into config. One data source renders the cheatsheet IPC reference; README IPC section aligned (both currently lie, differently).
-**Done when:** every schema key is read by code; three default sources agree; cheatsheet lists exactly the real handlers.
-
-### F9 — final polish *(medium, background)*
-MD3 sweep of remaining features (NotificationPopupItem root → Surface, worst raw Rectangle/Text offenders, scrims, icon-size tokens); comments → English (~245 lines), Russian UI strings → English; remaining Low audit findings; full check.sh + qmllint pass; README/ROADMAP refresh.
-
-Deliberately untouched: dock architecture (audit: strongest module — only the two F4 perf items), notifications architecture (only F4 point fixes), greeter (sync-ui.sh verified byte-identical), wallpaper source architecture (only F2 lifecycle fixes).
+### Follow-ups (small, non-blocking)
+- Adopt `ScrollableList` where stock `ScrollView`/`ScrollBar` remain
+  (cheatsheet tabs, CalendarTab, LauncherContent, NotificationCenter).
+- Remaining raw `Rectangle`/`Text` in features (screenshot overlay chrome,
+  cheatsheet keycaps → `Chip`, DeviceSelectionDialog radio →
+  `MaterialRadioButton`, hand-rolled progress bars → `ProgressIndicator`).
+- Native BlueZ / NetworkManager D-Bus endgame (replaces `nmcli monitor`).
+- Notification inline reply / action icons (see Notifications — deferred).
+- qmllint ratchet burn-down (≈258 warnings, mostly upstream qmltypes gaps
+  and pre-existing unqualified access in feature files).
 
 ---
 

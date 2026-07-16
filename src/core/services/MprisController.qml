@@ -24,7 +24,7 @@ Singleton {
     readonly property bool isPlaying: activePlayer?.isPlaying ?? false
     readonly property var playbackState: activePlayer?.playbackState ?? MprisPlaybackState.Stopped
 
-    // ===== POSITION & LENGTH (в секундах с миллисекундной точностью) =====
+    // ===== POSITION & LENGTH (in seconds with millisecond precision) =====
     readonly property real position: activePlayer?.position ?? 0
     readonly property bool positionSupported: activePlayer?.positionSupported ?? false
     readonly property real length: activePlayer?.length ?? 0
@@ -79,12 +79,12 @@ Singleton {
         target: Mpris.players
 
         function onValuesChanged() {
-            // Если текущий плеер отключился
+            // If the current player disconnected
             if (root.trackedPlayer && !Mpris.players.values.includes(root.trackedPlayer)) {
                 root.trackedPlayer = null
             }
 
-            // Автоматический выбор нового плеера
+            // Automatically pick a new player
             if (!root.trackedPlayer && Mpris.players.values.length > 0) {
                 const playingPlayer = Mpris.players.values.find(p => p.isPlaying)
                 root.trackedPlayer = playingPlayer ?? Mpris.players.values[0]
@@ -180,7 +180,7 @@ Singleton {
         }
     }
 
-    // ===== POSITION CONTROL (в секундах) =====
+    // ===== POSITION CONTROL (in seconds) =====
     function seek(offsetSeconds: real) {
         if (canSeek && activePlayer) {
             activePlayer.seek(offsetSeconds)
@@ -258,11 +258,11 @@ Singleton {
     }
 
     // ===== POSITION TRACKING TIMER =====
-    // Рекомендовано в документации для live position updates
+    // Recommended in the docs for live position updates
     Timer {
         id: positionTimer
         running: root.isPlaying && root.positionSupported
-        interval: 1000  // Обновляем каждую секунду
+        interval: 1000  // Update every second
         repeat: true
         onTriggered: {
             if (root.activePlayer && root.positionSupported) {
@@ -357,8 +357,8 @@ Singleton {
         }
     }
 
-    // ===== GLOBAL SHORTCUTS (опционально) =====
-    // Можно раскомментировать для глобальных хоткеев
+    // ===== GLOBAL SHORTCUTS (optional) =====
+    // Can be uncommented for global hotkeys
     /*
     GlobalShortcut {
         name: "mprisPlayPause"
