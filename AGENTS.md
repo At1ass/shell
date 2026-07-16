@@ -106,7 +106,10 @@ QT_QPA_PLATFORMTHEME=gtk3 qs -p ~/.config/quickshell/shell   # фактичес�
 qs ipc call <handler> <function> [arg]
 
 # Линт (требование: qmllint clean на всех изменённых QML)
-/usr/lib/qt6/bin/qmllint <files...>
+tools/lint.sh <files...>      # обёртка qmllint с import-путями qs.* (.qmllint-imports/)
+
+# Инварианты запретов §10 + ratchet-базлайн (tools/check-baseline.txt)
+tools/check.sh                # exit 1 = регресс; после снижения долга: --update-baseline
 ```
 
 Автотестов на QML нет; для C++ плагинов пишутся unit-тесты. Перед коммитом изменённый QML

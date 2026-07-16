@@ -29,7 +29,7 @@ Singleton {
         const tl = Hyprland.activeToplevel
         if (tl) {
             root.windowTitle = tl.title ?? ""
-            root.windowClass = tl.lastIpcObject?.class ?? ""
+            root.windowClass = tl.lastIpcObject.class ?? ""
         }
     }
 }

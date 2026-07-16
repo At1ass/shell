@@ -21,7 +21,8 @@ cd src/plugins && cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAK
 # Запуск:
 QT_QPA_PLATFORMTHEME=gtk3 qs -p ~/.config/quickshell/shell
 # IPC:        qs ipc call <handler> <fn> [arg]
-# Линт:       /usr/lib/qt6/bin/qmllint <files>     # обязан быть clean на изменённых QML
+# Линт:       tools/lint.sh <files>   # qmllint с import-путями; clean на изменённых QML
+# Инварианты: tools/check.sh          # запреты §10, ratchet-базлайн; exit 1 = регресс
 ```
 
 ## Импорты

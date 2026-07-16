@@ -9,10 +9,10 @@ Singleton {
 
     // Native Quickshell.Networking API
     readonly property var wifiDevice: _findWifiDevice()
-    readonly property var networks: wifiDevice ? wifiDevice.networks : null
+    readonly property var networks: wifiDevice ? wifiDevice.networks.values : []
 
     // WiFi state
-    property bool wifiEnabled: Networking.wifiEnabled
+    readonly property bool wifiEnabled: Networking.wifiEnabled
     readonly property bool wifiHardwareEnabled: Networking.wifiHardwareEnabled
     readonly property string currentNetwork: _findConnectedNetwork()?.name ?? ""
     readonly property real signalStrength: _findConnectedNetwork()?.signalStrength ?? 0
@@ -31,7 +31,6 @@ Singleton {
     // Toggle WiFi
     function toggleWifi() {
         Networking.wifiEnabled = !Networking.wifiEnabled
-        root.wifiEnabled = Networking.wifiEnabled
     }
 
     // Connect to a known network (NM already has credentials)
@@ -108,29 +107,21 @@ Singleton {
         }
     }
 
-    // Find the first WiFi device
+    // Find the first WiFi device. Networking.devices is an UntypedObjectModel:
+    // it exposes items via `values`, never via array indexing.
     function _findWifiDevice() {
-        if (!Networking.devices) return null
-        for (let i = 0; i < Networking.devices.length; i++) {
-            if (Networking.devices[i].type === DeviceType.Wifi) return Networking.devices[i]
+        const devs = Networking.devices?.values ?? []
+        for (const d of devs) {
+            if (d.type === DeviceType.Wifi) return d
         }
         return null
     }
 
     // Find the currently connected network
     function _findConnectedNetwork() {
-        if (!networks) return null
-        for (let i = 0; i < networks.length; i++) {
-            if (networks[i].connected) return networks[i]
+        for (const n of networks) {
+            if (n.connected) return n
         }
         return null
-    }
-
-    // Keep wifiEnabled in sync with the native property
-    Connections {
-        target: Networking
-        function onWifiEnabledChanged() {
-            root.wifiEnabled = Networking.wifiEnabled
-        }
     }
 }
