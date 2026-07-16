@@ -29,6 +29,11 @@ Singleton {
 
     property bool _gateOpen: true
     property var  _gateQueue: []       // {notification, data} pairs
+    // The gate drains ~3/s while ingress admits up to 20/s — without a cap a
+    // notification storm grows this queue (and the retained objects) without
+    // bound while popups get ever staler. Overflow skips the POPUP only; the
+    // notification is already ingressed and lands in history regardless.
+    property int  maxGateQueueSize: 8
 
     // ── Outgoing events ──────────────────────────────────────────
     // ingressAccepted fires when a notification has cleared the bucket
@@ -110,6 +115,10 @@ Singleton {
             root._gateOpen = false
             gateTimer.restart()
             popupReady(notification, data)
+            return
+        }
+        if (root._gateQueue.length >= root.maxGateQueueSize) {
+            notification.tracked = false
             return
         }
         root._gateQueue.push({ "notification": notification, "data": data })

@@ -32,47 +32,27 @@ Rectangle {
     signal actionInvoked(string actionId)
     signal timeoutExpired()
 
-    // Local progress tracking
-    property real _startTime: Date.now()
-    property real _pausedDuration: 0
-    property real _pauseStart: 0
+    // One timeline drives BOTH the progress bar and the auto-dismiss:
+    // pausing on hover freezes them together, so the countdown and the bar
+    // can never disagree (the previous wall-clock bookkeeping could stall a
+    // popup forever after repeated hovers).
     property real progressValue: 1.0
 
-    Timer {
-        interval: 33
-        repeat: true
-        running: root.duration > 0 && !root.hovered && root.visible
-        onTriggered: {
-            const elapsed = Date.now() - root._startTime - root._pausedDuration
-            root.progressValue = Math.max(0, 1.0 - elapsed / root.duration)
-        }
-    }
-
-    // Per-popup auto-dismiss timer
-    property real _remainingOnPause: 0
-
-    Timer {
-        id: autoDismissTimer
-        interval: root.duration > 0 ? root.duration : 0
-        repeat: false
-        running: root.duration > 0 && !root.hovered
-        onTriggered: root.timeoutExpired()
+    NumberAnimation {
+        id: dismissAnim
+        target: root
+        property: "progressValue"
+        from: 1.0
+        to: 0.0
+        duration: root.duration
+        running: root.duration > 0 && root.visible
+        paused: running && root.hovered
+        onFinished: root.timeoutExpired()
     }
 
     onHoveredChanged: {
-        if (hovered) {
-            _pauseStart = Date.now()
-            _remainingOnPause = Math.max(0, autoDismissTimer.interval - (Date.now() - _startTime - _pausedDuration))
-            autoDismissTimer.stop()
-            NotificationService.incrementHover(notifId)
-        } else {
-            _pausedDuration += Date.now() - _pauseStart
-            if (root.duration > 0 && _remainingOnPause > 0) {
-                autoDismissTimer.interval = _remainingOnPause
-                autoDismissTimer.restart()
-            }
-            NotificationService.decrementHover(notifId)
-        }
+        if (hovered) NotificationService.incrementHover(notifId)
+        else NotificationService.decrementHover(notifId)
     }
 
     // Swipe-to-dismiss state. _dragStartX and the deltas below are kept in
@@ -357,6 +337,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
             radius: parent.radius
+            // progressValue is already animated continuously — no Behavior
+            // needed (the old 33 ms timer + 50 ms width animation re-trigger
+            // was pure churn).
             width: parent.width * Math.max(0, Math.min(1, root.progressValue))
             color: isCritical ? Theme.error : Theme.primary
             opacity: root.hovered ? 0.5 : 1.0
@@ -366,25 +349,14 @@ Rectangle {
                     duration: Tokens.motion.duration.short3
                 }
             }
-
-            Behavior on width {
-                NumberAnimation {
-                    duration: Tokens.motion.duration.short1
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
         }
     }
 
     function updateData(newData) {
         notificationData = newData
-        _startTime = Date.now()
-        _pausedDuration = 0
-        progressValue = 1.0
-        if (duration > 0) {
-            autoDismissTimer.interval = duration
-            autoDismissTimer.restart()
-        }
+        // Replaced content restarts the countdown; duration 0 = persistent
+        // popup (restarting a zero-length animation would finish instantly
+        // and dismiss it).
+        if (duration > 0) dismissAnim.restart()
     }
 }

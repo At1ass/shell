@@ -261,7 +261,7 @@ Scope {
                                 required property string appIcon
                                 required property string image
                                 required property int urgency
-                                required property int timestamp
+                                required property real timestamp
 
                                 readonly property bool itemVisible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
 
@@ -278,7 +278,7 @@ Scope {
                                         "appName": appName,
                                         "appIcon": appIcon,
                                         "image": image,
-                                        "actions": [],
+                                        "actions": NotificationHistory.actionsAt(index),
                                         "urgency": urgency,
                                         "timestamp": timestamp
                                     })

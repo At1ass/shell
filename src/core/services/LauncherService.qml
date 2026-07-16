@@ -187,7 +187,7 @@ Singleton {
         }
     }
 
-    // Выполнение action результата
+    // Execute a result's action.
     function launch(result) {
         if (!result || !result.action) {
             console.warn("LauncherService: No action for result")
@@ -197,6 +197,10 @@ Singleton {
         result.action()
     }
 
-    // НЕ инициализируем при старте - только при первом поиске
-    // Component.onCompleted не нужен
+    // Throttled/async providers report stale results; re-run the live query.
+    Component.onCompleted: {
+        for (let i = 0; i < providers.length; i++) {
+            providers[i].resultsInvalidated.connect(() => root.search(root.searchQuery))
+        }
+    }
 }

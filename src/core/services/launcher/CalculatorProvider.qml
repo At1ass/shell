@@ -1,55 +1,70 @@
 import QtQuick
+import Quickshell
 import Qalculate
 
-// Провайдер для математических вычислений с libqalculate
+// Math evaluation provider backed by libqalculate.
 BaseProvider {
     id: root
 
     name: "Calculator"
-    priority: 100  // Высокий приоритет
+    priority: 100   // high priority
     prefixes: ["="]
 
-    // Throttle кэш для предотвращения UI блокировки при быстром наборе
+    // Throttle cache: QalculateWrapper.eval is synchronous on the UI thread,
+    // so rapid typing must not evaluate every keystroke. Errors are cached
+    // like results (per project convention).
     property string _lastQuery: ""
     property var _lastResult: null
     property real _lastEvalTime: 0
-    readonly property int _throttleMs: 150  // Минимальный интервал между eval
+    readonly property int _throttleMs: 150
+
+    // Trailing edge: when a keystroke lands inside the throttle window the
+    // stale result is shown — this timer re-runs the search afterwards so
+    // the FINAL expression always gets evaluated ("=2+2" typed fast used to
+    // stick at the result of "=2+").
+    property bool _trailingPending: false
+    readonly property Timer _trailingTimer: Timer {
+        interval: root._throttleMs
+        onTriggered: {
+            if (root._trailingPending) {
+                root._trailingPending = false
+                root.resultsInvalidated()
+            }
+        }
+    }
 
     function search(query) {
-        // Убираем префикс если есть
         let expr = removePrefix(query)
         let normalizedExpr = expr ? expr.trim() : ""
 
-        // Если пустое выражение
         if (!normalizedExpr) {
             _lastQuery = ""
             _lastResult = null
             return []
         }
 
-        // Проверяем кэш - если тот же запрос, возвращаем сразу
+        // Same expression — serve the cached result (including cached errors).
         if (normalizedExpr === _lastQuery && _lastResult !== null) {
             return _lastResult
         }
 
-        // Throttle: если eval был меньше 150ms назад, возвращаем старый результат
+        // Inside the throttle window — serve the previous result and arm the
+        // trailing re-evaluation.
         const now = Date.now()
-        const timeSinceLastEval = now - _lastEvalTime
-        if (timeSinceLastEval < _throttleMs && _lastResult !== null) {
-            // Слишком рано для нового eval, возвращаем старый результат
+        if (now - _lastEvalTime < _throttleMs && _lastResult !== null) {
+            _trailingPending = true
+            _trailingTimer.restart()
             return _lastResult
         }
 
-        // Достаточно времени прошло - делаем eval
         _lastEvalTime = now
         _lastQuery = normalizedExpr
+        _trailingPending = false
 
-        // Используем Qalculate для вычисления
         let result = QalculateWrapper.eval(expr, false)
 
-        // Проверяем на ошибки
         if (!result || result.startsWith("error:") || result.startsWith("warning:")) {
-            // Показываем ошибку только если был явный префикс "="
+            // Surface the error only under the explicit "=" prefix.
             if (query.startsWith("=")) {
                 const errorResult = [{
                     id: "calculator:error:" + normalizedExpr,
@@ -67,7 +82,6 @@ BaseProvider {
             return []
         }
 
-        // Успешное вычисление
         const successResult = [{
             id: "calculator:" + normalizedExpr,
             text: result,
@@ -77,7 +91,6 @@ BaseProvider {
             score: 100,
             data: { result: result, expression: expr },
             action: function() {
-                // Copy to clipboard
                 Quickshell.clipboardText = result
             }
         }]

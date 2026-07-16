@@ -1,27 +1,29 @@
 import QtQuick
 
-// Базовый класс для всех провайдеров
+// Base type for launcher search providers.
 QtObject {
     id: root
 
-    // Имя провайдера (для отладки)
+    // Provider name (debugging).
     property string name: "BaseProvider"
 
-    // Приоритет (чем выше, тем раньше в результатах)
+    // Higher priority = earlier in merged results.
     property int priority: 0
 
-    // Префиксы которые обрабатывает провайдер (например ["=", "calc"])
-    // Пустой массив = обрабатывает все запросы
+    // Prefixes this provider handles (e.g. ["=", "calc"]).
+    // Empty array = handles every query.
     property var prefixes: []
 
-    // Проверка - может ли провайдер обработать запрос
+    // Emitted when previously returned results became stale (throttled or
+    // asynchronous providers). LauncherService re-runs the current query.
+    signal resultsInvalidated()
+
+    // Can this provider handle the query?
     function canHandle(query) {
         if (!query) return false
 
-        // Если нет префиксов - обрабатываем всё
         if (prefixes.length === 0) return true
 
-        // Проверяем префиксы
         for (let i = 0; i < prefixes.length; i++) {
             if (query.startsWith(prefixes[i])) {
                 return true
@@ -31,28 +33,28 @@ QtObject {
         return false
     }
 
-    // Поиск результатов (должен быть переопределен в наследниках)
-    // Возвращает массив объектов вида:
+    // Search (override in subtypes). Returns an array of:
     // {
+    //   id: "type:stable-key",
     //   text: "Result text",
     //   description: "Result description",
     //   icon: "icon-name",
     //   type: "calculator|application|file|action",
     //   score: 100,
-    //   data: {...},  // дополнительные данные
-    //   action: function() { ... }  // что выполнить
+    //   data: {...},              // extra payload
+    //   action: function() {...}  // what to execute
     // }
     function search(query) {
         console.warn(name + ": search() not implemented")
         return []
     }
 
-    // Результаты по умолчанию (когда запрос пустой)
+    // Results for the empty query.
     function defaultResults() {
         return []
     }
 
-    // Хелпер для удаления префикса из запроса
+    // Strip a matching prefix from the query.
     function removePrefix(query) {
         for (let i = 0; i < prefixes.length; i++) {
             if (query.startsWith(prefixes[i])) {

@@ -3,66 +3,33 @@ import Quickshell
 import FuzzySearch
 import qs.src.core.services
 
-// Провайдер для поиска и запуска приложений
+// Application search/launch provider.
 BaseProvider {
     id: root
 
     name: "Applications"
-    priority: 50  // Средний приоритет
-    prefixes: []  // Нет префикса - всегда активен
+    priority: 50   // medium priority
+    prefixes: []   // no prefix — always active
 
-    // Все доступные приложения
     readonly property var applications: DesktopEntries.applications.values
 
-    // Кеш частот для производительности
+    // Launch-frequency cache (id → count) for ranking.
     property var frequencyCache: ({})
 
-    // Обработчик изменения частот
-    function handleFrequencyChanged() {
-        frequencyCache = AppFrequencyService.getAllFrequencies()
-    }
+    // Search corpus (visible apps + name/full-text arrays for FuzzySearch).
+    // Rebuilt ONLY when the application list changes — building four strings
+    // per app on every keystroke was pure allocation churn.
+    property var _corpus: null
+    onApplicationsChanged: _corpus = null
 
-    Component.onCompleted: {
-        // Загружаем частоты при старте
-        frequencyCache = AppFrequencyService.getAllFrequencies()
-
-        // Подключаем обработчик изменений
-        AppFrequencyService.frequencyChanged.connect(handleFrequencyChanged)
-    }
-
-    Component.onDestruction: {
-        // Отключаем при уничтожении
-        AppFrequencyService.frequencyChanged.disconnect(handleFrequencyChanged)
-    }
-
-    function search(query) {
-        // Пустой запрос — топ 10 по частоте + алфавиту
-        if (!query || query.trim() === "") {
-            let visibleApps = applications.filter(app => !app.noDisplay)
-            visibleApps.sort((a, b) => {
-                let freqA = frequencyCache[a.id] || 0
-                let freqB = frequencyCache[b.id] || 0
-                if (freqA !== freqB) return freqB - freqA
-                let nameA = (a.name || "").toLowerCase()
-                let nameB = (b.name || "").toLowerCase()
-                return nameA.localeCompare(nameB)
-            })
-
-            let topApps = []
-            for (let i = 0; i < Math.min(10, visibleApps.length); i++) {
-                topApps.push(createResult(visibleApps[i], 10 - i))
-            }
-            return topApps
-        }
-
-        // Собираем два массива: имена (приоритет) и полный текст (fallback)
-        const visibleApps = []
+    function _buildCorpus() {
+        const visible = []
         const names = []
         const fullTexts = []
         for (let i = 0; i < applications.length; i++) {
             const app = applications[i]
             if (app.noDisplay) continue
-            visibleApps.push(app)
+            visible.push(app)
             names.push(app.name || "")
             fullTexts.push([
                 app.name || "",
@@ -71,20 +38,54 @@ BaseProvider {
                 (app.keywords || []).join(" ")
             ].join(" "))
         }
+        _corpus = { "visible": visible, "names": names, "fullTexts": fullTexts }
+    }
 
-        // Взвешенный поиск: имя × 2.5, полный текст × 1.0
-        const hits = FuzzySearch.matchWeighted(query, names, fullTexts, 10, 30.0, 2.5)
+    function handleFrequencyChanged() {
+        frequencyCache = AppFrequencyService.getAllFrequencies()
+    }
+
+    Component.onCompleted: {
+        frequencyCache = AppFrequencyService.getAllFrequencies()
+        AppFrequencyService.frequencyChanged.connect(handleFrequencyChanged)
+    }
+
+    Component.onDestruction: {
+        AppFrequencyService.frequencyChanged.disconnect(handleFrequencyChanged)
+    }
+
+    function search(query) {
+        if (!_corpus) _buildCorpus()
+
+        // Empty query — top 10 by launch frequency, then alphabetically.
+        if (!query || query.trim() === "") {
+            const sorted = _corpus.visible.slice()
+            sorted.sort((a, b) => {
+                const freqA = frequencyCache[a.id] || 0
+                const freqB = frequencyCache[b.id] || 0
+                if (freqA !== freqB) return freqB - freqA
+                return (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase())
+            })
+
+            const topApps = []
+            for (let i = 0; i < Math.min(10, sorted.length); i++) {
+                topApps.push(createResult(sorted[i], 10 - i))
+            }
+            return topApps
+        }
+
+        // Weighted search: name x 2.5, full text x 1.0.
+        const hits = FuzzySearch.matchWeighted(query, _corpus.names, _corpus.fullTexts, 10, 30.0, 2.5)
         const results = []
         for (let i = 0; i < hits.length; i++) {
-            const app = visibleApps[hits[i].index]
-            // Бонус за частоту запуска
+            const app = _corpus.visible[hits[i].index]
             let finalScore = hits[i].score
             const freq = frequencyCache[app.id] || 0
             if (freq > 0) finalScore += Math.min(freq * 5, 50)
             results.push(createResult(app, finalScore))
         }
 
-        // Пересортировка с учётом frequency boost
+        // Re-sort after the frequency boost.
         results.sort((a, b) => b.score - a.score)
         return results
     }
@@ -93,7 +94,6 @@ BaseProvider {
         return search("")
     }
 
-    // Создание результата из DesktopEntry
     function createResult(app, score) {
         const entryId = app.id
             || app.filePath
@@ -109,10 +109,7 @@ BaseProvider {
             score: score,
             data: { entry: app },
             action: function() {
-                // Инкрементируем частоту запуска
                 AppFrequencyService.incrementFrequency(app.id)
-
-                // Запускаем приложение
                 app.execute()
             }
         }

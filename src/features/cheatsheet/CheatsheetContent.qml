@@ -510,18 +510,31 @@ Item {
 
             Divider { Layout.fillWidth: true }
 
-            // ─── Tab content ────────────────────────────────────
+            // ─── Tab content — only the active tab exists (§10.14) ───
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: root.currentTab
 
-                Components.KeybindingsTab {
-                    categories: root.filteredBindCategories
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: root.currentTab === 0
+                    sourceComponent: Component {
+                        Components.KeybindingsTab {
+                            categories: root.filteredBindCategories
+                        }
+                    }
                 }
-
-                Components.IpcReferenceTab {
-                    handlers: root.filteredIpcHandlers
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: root.currentTab === 1
+                    sourceComponent: Component {
+                        Components.IpcReferenceTab {
+                            handlers: root.filteredIpcHandlers
+                        }
+                    }
                 }
             }
         }

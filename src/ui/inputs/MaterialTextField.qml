@@ -10,6 +10,10 @@ Item {
 
     property alias text: input.text
     property alias inputItem: input
+    // Prefer a validator over inputMask: masks make an "empty" field
+    // non-empty (mask literals live in `text`), breaking every
+    // emptiness/placeholder check downstream.
+    property alias validator: input.validator
     property string placeholderText: ""
     property string variant: "outlined" // "outlined" | "filled"
     property string leadingIcon: ""

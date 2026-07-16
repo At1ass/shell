@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.ui.base
@@ -143,7 +144,10 @@ Surface {
             columnSpacing: Tokens.spacing.small
 
             Repeater {
-                model: root.model
+                // ScriptModel diffs by object identity, so delegates (and
+                // their live ScreencopyViews) survive unrelated window events
+                // instead of being torn down on every reconcile.
+                model: ScriptModel { values: root.model }
 
                 delegate: Item {
                     id: previewDelegate

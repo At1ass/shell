@@ -13,7 +13,32 @@ PanelWindow {
     id: statusBar
 
     readonly property TooltipManager tooltip: tooltipManager
-    readonly property var barWidgets: AppConfig.ready ? (AppConfig.barWidgets || []) : []
+    // Per-section widget lists, updated ONLY when their JSON content really
+    // changes. AppConfig.data is a fresh object on every config hot-reload,
+    // so binding Repeater models straight to a .filter() of it would destroy
+    // and recreate every bar widget on any unrelated config edit.
+    property var leftWidgets: []
+    property var centerWidgets: []
+    property var rightWidgets: []
+
+    function _syncWidgets() {
+        const widgets = AppConfig.ready ? (AppConfig.barWidgets || []) : []
+        const next = { "left": [], "center": [], "right": [] }
+        for (const w of widgets) {
+            const section = w.section || "left"
+            if (next[section]) next[section].push(w)
+        }
+        if (JSON.stringify(next.left) !== JSON.stringify(leftWidgets)) leftWidgets = next.left
+        if (JSON.stringify(next.center) !== JSON.stringify(centerWidgets)) centerWidgets = next.center
+        if (JSON.stringify(next.right) !== JSON.stringify(rightWidgets)) rightWidgets = next.right
+    }
+
+    Connections {
+        target: AppConfig
+        function onReadyChanged() { statusBar._syncWidgets() }
+        function onDataChanged() { statusBar._syncWidgets() }
+    }
+    Component.onCompleted: _syncWidgets()
     readonly property string screenName: screen ? screen.name : ""
     // property ShellScreen screen: null
 
@@ -120,7 +145,7 @@ PanelWindow {
                 anchors.centerIn: parent
 
                 Repeater {
-                    model: statusBar.barWidgets.filter(w => (w.section || "left") === "center")
+                    model: statusBar.centerWidgets
                     delegate: BarWidgetLoader {
                         required property var modelData
                         screenName: statusBar.screenName
@@ -149,7 +174,7 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: statusBar.barWidgets.filter(w => (w.section || "left") === "left")
+                    model: statusBar.leftWidgets
                     delegate: BarWidgetLoader {
                         required property var modelData
                         screenName: statusBar.screenName
@@ -177,7 +202,7 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: statusBar.barWidgets.filter(w => (w.section || "left") === "right")
+                    model: statusBar.rightWidgets
                     delegate: BarWidgetLoader {
                         required property var modelData
                         screenName: statusBar.screenName

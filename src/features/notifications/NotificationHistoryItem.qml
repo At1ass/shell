@@ -141,7 +141,7 @@ MaterialCard {
             }
 
             MaterialText {
-                text: root.hasNotification ? root.formatRelativeTime(notificationObject.timestamp) : ""
+                text: root.hasNotification ? root.formatRelativeTime(notificationObject.timestamp, DateTime.clock.date) : ""
                 textStyle: "labelSmall"
                 colorRole: root.hasNotification && notificationObject.urgency === NotificationUrgency.Critical
                            ? "onErrorContainer"
@@ -253,10 +253,12 @@ MaterialCard {
         }
     }
 
-    // Relative time formatting
-    function formatRelativeTime(timestamp) {
+    // Relative time formatting. `nowDate` (DateTime.clock.date) is the
+    // reactive dependency: it ticks each minute, so "now"/"5m" refresh
+    // while the center stays open instead of freezing at open time.
+    function formatRelativeTime(timestamp, nowDate) {
         if (!timestamp) return ""
-        const now = Date.now()
+        const now = nowDate ? nowDate.getTime() : Date.now()
         const diffMs = now - timestamp
         const diffSec = Math.floor(diffMs / 1000)
         const diffMin = Math.floor(diffSec / 60)

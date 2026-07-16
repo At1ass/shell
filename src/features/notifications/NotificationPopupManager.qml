@@ -51,14 +51,13 @@ Scope {
     }
 
     function _createPopup(data, notification) {
-        // Enforce maxVisible — evict oldest popup
-        while (popupWindows.length >= maxVisible) {
-            const oldest = popupWindows[popupWindows.length - 1]
-            if (oldest && !_destroyingSet[oldest.notificationData?.notificationId]) {
-                _beginDismiss(oldest.notificationData.notificationId)
-            } else {
-                break
-            }
+        // Enforce maxVisible against popups NOT already dismissing (the old
+        // loop broke on the first dismissing entry, letting bursts stack
+        // beyond the cap). Oldest entries sit at the end of popupWindows.
+        const live = popupWindows.filter(p => p && !_destroyingSet[p.notificationData?.notificationId])
+        let toEvict = live.length - (maxVisible - 1)
+        for (let i = live.length - 1; i >= 0 && toEvict > 0; i--, toEvict--) {
+            _beginDismiss(live[i].notificationData.notificationId)
         }
 
         const targetScreen = _getTargetScreen()
