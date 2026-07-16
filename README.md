@@ -6,7 +6,7 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 
 | Component | Description |
 |-----------|-------------|
-| **Status Bar** | Configurable widgets: workspaces, active window, clock, weather, media, notifications, volume, network, battery, layout, tray |
+| **Status Bar** | Configurable widgets: workspaces, active window, clock, weather, media, notifications, volume, network, battery, layout, tray. Optional auto-hide. |
 | **Dock** | Per-screen application dock with running-window previews and auto-hide |
 | **Dashboard** | 5-tab control center: Quick, Weather, Calendar, Audio, Network |
 | **Launcher** | Application search with fuzzy matching + calculator + clipboard history |
@@ -164,6 +164,7 @@ appearance.fontScale     — font scale (0.5–2.0)
 modules                  — on/off switch for every top-level shell element (see below)
 bar                      — status bar and widgets
 bar.transparent          — transparent bar background
+bar.autoHide             — reveal the bar only at the top screen edge (no reserved space)
 dock                     — application dock (position, auto-hide, icon size, pinned apps)
 dashboard                — control-center dimensions
 notifications            — popups and notification center
@@ -474,8 +475,16 @@ shell/
 │   │       ├── calendar-qml/    # iCalendar via libical (events, RRULE, reminders)
 │   │       └── system-monitor-qml/ # CPU / RAM / GPU / disk / network monitoring
 │   └── ui/                      # Reusable MD3 components
-└── docs/                        # Historical analysis and refactor notes
+└── AGENTS.md, CLAUDE.md         # Project conventions and hard rules (read before contributing)
 ```
+
+## Contributing / conventions
+
+Architecture, coding conventions, hard prohibitions and the project's vectors
+(correctness · performance · safety · MD3) are documented in
+[`AGENTS.md`](AGENTS.md) (full handbook) and [`CLAUDE.md`](CLAUDE.md) (quick reference).
+Authoritative references: this README, [`ROADMAP.md`](ROADMAP.md) (open work),
+and [`config/config.schema.json`](config/config.schema.json) (configuration).
 
 ---
 

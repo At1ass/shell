@@ -10,6 +10,8 @@ Recent history that informs the items below:
 - `feat(calendar): replace khal CLI with libical C++ plugin` — calendar fully native
 - Notifications subsystem split into 4 focused singletons with declarative lifecycle
 - Wallpaper subsystem with pluggable provider model + Wallhaven (full `/search` API)
+- `docs/`: added `AGENTS.md` + `CLAUDE.md` (conventions, hard rules, project vectors); removed the frozen `docs/` archive and stale root-level working notes
+- Decision: **config-first, no GUI** — settings only via `config.json` + IPC; GUI settings are a non-goal (see `AGENTS.md` §0/§10)
 
 ---
 
@@ -68,13 +70,6 @@ command: ["sh", "-c", "{ echo 'agent KeyboardDisplay'; ... while true; do sleep 
 - The cheatsheet content still lists `openControlPanelLeft` / `closeControlPanelLeft`
 
 **Nothing renders against any of it.** Either delete the entire surface or actually implement the control panel feature. Currently misleading in cheatsheet, README (already removed in latest revision) and any user binding.
-
-### Stale root-level analysis docs
-- `dashboard_vs_traymenu_focusgrab_analysis.md`, `menu_system_analysis.md`, `refactor_bar.md`, `tray_menu_refactoring_summary.md`, `WORKSPACE_ICONS_CAELESTIA.md`, `WORKSPACE_ICONS_QUICKSTART.md`, root `QUICK_FIXES.md`
-- Most of `docs/*.md` (Jan/Feb 2026 audit and refactor planning notes)
-- `docs/README.md` index references nonexistent files (`PROJECT_OVERVIEW.md`, `QUICK_WINS.md`, `CODE_AUDIT.md`, `REFACTORING_CHECKLIST.md`)
-
-Either move to `docs/archive/` or delete. They are frozen research artifacts, not living documentation.
 
 ---
 
