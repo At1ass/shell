@@ -187,6 +187,18 @@ Singleton {
     property bool _stateLoaded: false
     readonly property bool stateReady: _stateLoaded
 
+    // Writes that arrive before state.json finished loading. Applying them
+    // immediately would merge into an EMPTY stateData; if the save timer then
+    // fired first, the file on disk would be overwritten with that single
+    // section (dock pins / gaming mode / DND destroyed).
+    property var _pendingStateWrites: []
+
+    function _flushPendingStateWrites() {
+        const pending = _pendingStateWrites
+        _pendingStateWrites = []
+        for (const w of pending) updateState(w.section, w.data)
+    }
+
     FileView {
         id: stateFile
         watchChanges: false
@@ -199,12 +211,14 @@ Singleton {
                 root.stateData = {}
             }
             root._stateLoaded = true
+            root._flushPendingStateWrites()
         }
 
         onLoadFailed: error => {
             // Normal on first run: state.json is created on first write.
             root.stateData = {}
             root._stateLoaded = true
+            root._flushPendingStateWrites()
         }
     }
 
@@ -218,6 +232,10 @@ Singleton {
     }
 
     function updateState(section, data) {
+        if (!_stateLoaded) {
+            _pendingStateWrites.push({ section: section, data: data })
+            return
+        }
         // Assign a NEW top-level object so the `var` property emits stateDataChanged
         // (reassigning the same reference does not — bindings would not re-evaluate).
         let current = Object.assign({}, root.stateData || {})

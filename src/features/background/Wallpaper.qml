@@ -3,93 +3,36 @@ import Quickshell
 import qs.src.core.services
 
 Item {
-	id: root
+    id: root
 
-	// ═══════════════════════════════════════════════════════════════
-	// PROPERTIES
-	// ═══════════════════════════════════════════════════════════════
+    required property ShellScreen screen
 
-	required property ShellScreen screen
+    Image {
+        id: image
+        anchors.fill: parent
 
-	// Async loading for better performance
-	property alias asynchronous: image.asynchronous
+        // Pure bindings: getWallpaper/getFillMode read the monitorWallpapers/
+        // monitorBindings maps, which WallpaperManager reassigns wholesale on
+        // every change — the bindings re-evaluate on their own. No imperative
+        // Connections here: a single `image.source = ...` write would sever
+        // the binding permanently.
+        source: WallpaperManager.getWallpaper(root.screen.name)
+        fillMode: WallpaperManager.getFillMode(root.screen.name)
 
-	// Cache for faster reloading
-	property bool cache: true
+        // Decode off the UI thread and never above screen resolution — a 4K+
+        // source otherwise freezes the shell for the full decode on every
+        // wallpaper change (and caches at native size per screen).
+        asynchronous: true
+        sourceSize.width: root.screen.width
+        sourceSize.height: root.screen.height
 
-	// Smooth scaling for better quality
-	property bool smooth: true
+        cache: true
+        smooth: true
 
-	// ═══════════════════════════════════════════════════════════════
-	// IMAGE
-	// ═══════════════════════════════════════════════════════════════
-
-	Image {
-		id: image
-		anchors.fill: parent
-
-		// Get wallpaper specific to this monitor
-		source: WallpaperManager.getWallpaper(screen.name)
-
-		// Fill mode specific to this monitor
-		// 0 = Stretch
-		// 1 = PreserveAspectFit (fit with black bars)
-		// 2 = PreserveAspectCrop (fill, crop edges)
-		// 3 = Tile
-		// 4 = TileVertically
-		// 5 = TileHorizontally
-		// 6 = Pad
-		fillMode: WallpaperManager.getFillMode(screen.name)
-
-		// Async loading to prevent UI blocking
-		asynchronous: root.asynchronous
-
-		// Cache for better performance
-		cache: root.cache
-
-		// Smooth scaling for better quality
-		smooth: root.smooth
-
-		// Status monitoring
-		onStatusChanged: {
-			if (status === Image.Error) {
-				console.error(`Failed to load wallpaper for ${screen.name}: ${source}`)
-			}
-		}
-        // Behavior on source {
-        //     SequentialAnimation {
-        //         NumberAnimation {
-        //             target: image
-        //             property: "opacity"
-        //             to: 0
-        //             duration: 200
-        //         }
-        //         PropertyAction { property: "source" }
-        //         NumberAnimation {
-        //             target: image
-        //             property: "opacity"
-        //             to: 1
-        //             duration: 200
-        //         }
-        //     }
-        // }
-	}
-
-	// ═══════════════════════════════════════════════════════════════
-	// CONNECTIONS
-	// ═══════════════════════════════════════════════════════════════
-
-	Connections {
-		target: WallpaperManager
-
-		// React to wallpaper changes
-		function onMonitorWallpapersChanged() {
-			image.source = WallpaperManager.getWallpaper(screen.name)
-		}
-
-		// React to fill mode changes
-		function onMonitorFillModesChanged() {
-			image.fillMode = WallpaperManager.getFillMode(screen.name)
-		}
-	}
+        onStatusChanged: {
+            if (status === Image.Error) {
+                console.warn(`Failed to load wallpaper for ${root.screen.name}: ${source}`)
+            }
+        }
+    }
 }

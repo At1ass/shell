@@ -28,7 +28,7 @@ Scope {
             active: GlobalStates.cheatsheetOpen
 
             onCleared: {
-                GlobalStates.cheatsheetOpen = false
+                GlobalStates.closePanel("cheatsheet")
             }
         }
 
@@ -50,7 +50,7 @@ Scope {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    GlobalStates.cheatsheetOpen = false
+                    GlobalStates.closePanel("cheatsheet")
                 }
             }
         }

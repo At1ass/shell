@@ -342,7 +342,7 @@ Item {
                 IconButton {
                     iconName: "close"
                     iconSize: Tokens.iconSize.large
-                    onClicked: GlobalStates.cheatsheetOpen = false
+                    onClicked: GlobalStates.closePanel("cheatsheet")
                 }
             }
 
@@ -391,7 +391,7 @@ Item {
                                 if (searchField.text.length > 0) {
                                     searchField.text = ""
                                 } else {
-                                    GlobalStates.cheatsheetOpen = false
+                                    GlobalStates.closePanel("cheatsheet")
                                 }
                                 event.accepted = true
                             } else if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {

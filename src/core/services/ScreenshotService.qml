@@ -38,14 +38,14 @@ Singleton {
 
     function takeScreenshot() {
         root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
-        GlobalStates.dashboardOpen = false
+        GlobalStates.closePanel("dashboard")
         root._useSwappy = false
         root.screenshotOverlayActive = true
     }
 
     function takeScreenshotSwappy() {
         root.screenshotTargetMonitor = Hyprland.focusedMonitor?.name ?? ""
-        GlobalStates.dashboardOpen = false
+        GlobalStates.closePanel("dashboard")
         root._useSwappy = true
         root.screenshotOverlayActive = true
     }

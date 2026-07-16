@@ -23,10 +23,7 @@ ShellRoot {
     Component.onCompleted: HyprlandWindowService.init()
     LazyLoader {
         active: AppConfig.moduleEnabled("popouts")
-        Popouts.Popouts {
-            id: globalPopouts
-            Component.onCompleted: PopoutsState.popoutsInstance = globalPopouts
-        }
+        Popouts.Popouts {}
     }
 
     Variants {

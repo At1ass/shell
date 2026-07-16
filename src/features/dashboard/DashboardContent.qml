@@ -12,34 +12,35 @@ Item {
     id: root
     focus: true
 
-    // Сигнал для изменения высоты окна
-    signal requestHeightChange(int newHeight)
-
     // ═══════════════════════════════════════════════════════════════
     // KEYBOARD NAVIGATION
     // ═══════════════════════════════════════════════════════════════
+    // The active tab lives in GlobalStates.dashboardOpenIndex — the ONLY
+    // writable source. tabView.currentIndex stays a pure binding to it, so
+    // openDashboardTab()/IPC keep working after manual tab switches
+    // (imperative writes to currentIndex would sever the binding).
 
     Keys.onTabPressed: (event) => {
-        tabView.currentIndex = (tabView.currentIndex + 1) % 5
+        GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 1) % 5
         event.accepted = true
     }
 
     Keys.onBacktabPressed: (event) => {
-        tabView.currentIndex = (tabView.currentIndex + 4) % 5
+        GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 4) % 5
         event.accepted = true
     }
 
     Keys.onPressed: (event) => {
         // Direct tab jump (1-4)
         if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
-            tabView.currentIndex = event.key - Qt.Key_1
+            GlobalStates.dashboardOpenIndex = event.key - Qt.Key_1
             event.accepted = true
             return
         }
 
         // Escape closes dashboard
         if (event.key === Qt.Key_Escape) {
-            GlobalStates.dashboardOpen = false
+            GlobalStates.closePanel("dashboard")
             event.accepted = true
             return
         }
@@ -56,12 +57,12 @@ Item {
         // Vi-like tab switching: H/L (shifted) when NOT on calendar tab
         if (tabView.currentIndex !== 2) {
             if (event.key === Qt.Key_H || event.key === Qt.Key_Left) {
-                tabView.currentIndex = Math.max(0, tabView.currentIndex - 1)
+                GlobalStates.dashboardOpenIndex = Math.max(0, tabView.currentIndex - 1)
                 event.accepted = true
                 return
             }
             if (event.key === Qt.Key_L || event.key === Qt.Key_Right) {
-                tabView.currentIndex = Math.min(4, tabView.currentIndex + 1)
+                GlobalStates.dashboardOpenIndex = Math.min(4, tabView.currentIndex + 1)
                 event.accepted = true
                 return
             }
@@ -72,7 +73,7 @@ Item {
     }
 
     function _handleCalendarKey(event) {
-        const cal = calendarLoader.item
+        const cal = calendarLoader.item as CalendarTab
         if (!cal) return
         const shift = !!(event.modifiers & Qt.ShiftModifier)
 
@@ -151,7 +152,7 @@ Item {
                             isActive: tabView.currentIndex === index
                             nameIcon: modelData.icon
                             label: modelData.label
-                            onClicked: tabView.currentIndex = index
+                            onClicked: GlobalStates.dashboardOpenIndex = index
                         }
                     }
                 }
@@ -163,29 +164,14 @@ Item {
             }
 
             // ===== TAB CONTENT =====
+            // StackLayout here is a pure positioner: each tab sits behind a
+            // Loader gated on the current index, so only ONE tab is alive at
+            // a time (the §10.14 ban targets eager all-tabs instantiation).
             StackLayout {
                 id: tabView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: GlobalStates.dashboardOpenIndex
-
-                onVisibleChanged: {
-                    if (!visible) currentIndexChanged()
-                }
-                onCurrentIndexChanged: {
-                    // Изменяем высоту окна в зависимости от вкладки
-                    if (currentIndex === 0) {
-                        root.requestHeightChange(AppConfig.dashboardHeight)        // QuickTab
-                    } else if (currentIndex === 1) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 20)   // WeatherTab
-                    } else if (currentIndex === 2) {
-                        root.requestHeightChange(AppConfig.dashboardHeight + 60)   // CalendarTab
-                    } else if (currentIndex === 3) {
-                        root.requestHeightChange(AppConfig.dashboardHeight)        // AudioTab
-                    } else if (currentIndex === 4) {
-                        root.requestHeightChange(AppConfig.dashboardHeight)        // NetworkTab
-                    }
-                }
 
                 Loader {
                     id: quickLoader

@@ -37,7 +37,7 @@ Scope {
             active: GlobalStates.powerMenuOpen
 
             onCleared: {
-                GlobalStates.powerMenuOpen = false
+                GlobalStates.closePanel("powermenu")
             }
         }
 
@@ -61,7 +61,7 @@ Scope {
             anchors.fill: parent
             focus: true
 
-            Keys.onEscapePressed: GlobalStates.powerMenuOpen = false
+            Keys.onEscapePressed: GlobalStates.closePanel("powermenu")
 
             Keys.onLeftPressed: {
                 menuWindow.focusedIndex = (menuWindow.focusedIndex - 1 + actions.length) % actions.length
@@ -106,7 +106,7 @@ Scope {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: GlobalStates.powerMenuOpen = false
+                onClicked: GlobalStates.closePanel("powermenu")
             }
         }
 

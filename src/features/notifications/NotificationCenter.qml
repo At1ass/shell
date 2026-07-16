@@ -34,7 +34,7 @@ Scope {
         HyprlandFocusGrab {
             active: GlobalStates.notificationCenterOpen
             windows: [centerWindow]
-            onCleared: GlobalStates.notificationCenterOpen = false
+            onCleared: GlobalStates.closePanel("notificationCenter")
         }
 
         // Scrim overlay
@@ -53,7 +53,7 @@ Scope {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: GlobalStates.notificationCenterOpen = false
+                onClicked: GlobalStates.closePanel("notificationCenter")
             }
         }
 
@@ -96,7 +96,7 @@ Scope {
             // Keyboard navigation
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Escape) {
-                    GlobalStates.notificationCenterOpen = false
+                    GlobalStates.closePanel("notificationCenter")
                     event.accepted = true
                 } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
                     notifList.decrementCurrentIndex()
@@ -166,7 +166,7 @@ Scope {
                             iconName: NotificationService.doNotDisturb ? "notifications_off" : "do_not_disturb_on"
                             iconSize: Tokens.iconSize.large
                             variant: "standard"
-                            onClicked: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+                            onClicked: NotificationService.toggleDoNotDisturb()
 
                             Rectangle {
                                 anchors.fill: parent

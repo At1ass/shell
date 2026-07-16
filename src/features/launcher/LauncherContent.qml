@@ -118,11 +118,11 @@ Item {
                             } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                                 if (appListView.currentItem) {
                                     LauncherService.launch(appListView.currentItem.modelData)
-                                    GlobalStates.launcherOpen = false
+                                    GlobalStates.closePanel("launcher")
                                 }
                                 event.accepted = true
                             } else if (event.key === Qt.Key_Escape) {
-                                GlobalStates.launcherOpen = false
+                                GlobalStates.closePanel("launcher")
                                 event.accepted = true
                             }
                         }
@@ -213,7 +213,7 @@ Item {
 
                     onClicked: {
                         LauncherService.launch(modelData)
-                        GlobalStates.launcherOpen = false
+                        GlobalStates.closePanel("launcher")
                     }
                 }
 

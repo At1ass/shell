@@ -29,7 +29,7 @@ Scope {
             active: GlobalStates.launcherOpen
 
             onCleared: {
-                GlobalStates.launcherOpen = false
+                GlobalStates.closePanel("launcher")
             }
         }
 
@@ -52,7 +52,7 @@ Scope {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    GlobalStates.launcherOpen = false
+                    GlobalStates.closePanel("launcher")
                 }
             }
         }

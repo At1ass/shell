@@ -82,8 +82,8 @@ Singleton {
         function onDataChanged() {
             if (manager._initialized) manager.initFromConfig()
         }
-        function onStateDataChanged() {
-            if (manager._initialized && !manager._stateApplied) manager.loadState()
+        function onStateReadyChanged() {
+            if (AppConfig.stateReady && manager._initialized && !manager._stateApplied) manager.loadState()
         }
     }
 
@@ -143,23 +143,24 @@ Singleton {
     }
 
     function _wireSources() {
+        // Track the connected INSTANCE, not just the id: the registry
+        // destroys and recreates sources under the same id on config change,
+        // and a fresh instance needs fresh connections (the old ones died
+        // with the old object).
+        const updated = {}
         for (const id of WallpaperSourceRegistry.sourceIds) {
-            if (_connectedSources[id]) continue
             const source = WallpaperSourceRegistry.getSource(id)
             if (!source) continue
+            if (_connectedSources[id] === source) {
+                updated[id] = source
+                continue
+            }
             source.itemsRefreshed.connect(() => manager._onSourceItemsRefreshed(id))
             source.itemResolved.connect((itemId, localPath) =>
                 manager._onItemResolved(id, itemId, localPath))
-            const updated = Object.assign({}, _connectedSources)
-            updated[id] = true
-            _connectedSources = updated
+            updated[id] = source
         }
-        // Drop refs to removed sources so re-wire fires next time
-        const stillExists = {}
-        for (const id of WallpaperSourceRegistry.sourceIds) stillExists[id] = true
-        const cleaned = {}
-        for (const id in _connectedSources) if (stillExists[id]) cleaned[id] = true
-        _connectedSources = cleaned
+        _connectedSources = updated
     }
 
     function _onSourceItemsRefreshed(sourceId) {
@@ -188,6 +189,12 @@ Singleton {
     // ── State persistence ───────────────────────────────────────────
 
     function loadState() {
+        // Config and state load through independent async FileViews in either
+        // order. Applying "empty" state before state.json is actually read
+        // would permanently skip restoring the persisted wallpaper — wait for
+        // stateReady instead (onStateReadyChanged retries).
+        if (!AppConfig.stateReady) return
+
         const state = AppConfig.wallpaperState
         if (!state || !state.monitors) {
             _stateApplied = true

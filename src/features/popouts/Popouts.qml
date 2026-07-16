@@ -7,16 +7,18 @@ import qs.src.core.services
 import qs.src.ui.containers
 
 
+// Renders whatever popout request PopoutsState currently holds. This window
+// never receives instance calls from consumers — all coordination is data in
+// PopoutsState, so unloading this module degrades requests to no-ops.
 PanelWindow {
     id: root
 
-    property string currentName: ""
-    property string currentMode: "card"
-    property var currentData: null
-    property Item sourceItem: null
+    readonly property string currentName: PopoutsState.name
+    readonly property string currentMode: modeFor(currentName)
+    readonly property QtObject currentData: PopoutsState.data
+    readonly property Item sourceItem: PopoutsState.sourceItem
 
-    readonly property bool hasPopout: currentName !== ""
-    signal popoutClosed
+    readonly property bool hasPopout: PopoutsState.open
 
     anchors {
         left: true
@@ -36,11 +38,10 @@ PanelWindow {
     property bool grabReady: false
 
     HyprlandFocusGrab {
-        // active: root.visible && root.hasPopout && root.grabReady && PopoutsState.open && root. currentMode !== "card"
-        active: root.visible && root.hasPopout && root.grabReady && PopoutsState.open
+        active: root.visible && root.hasPopout && root.grabReady
         windows: [root]
         onCleared: {
-            root.closePopout();
+            PopoutsState.closePopout();
         }
     }
 
@@ -50,48 +51,20 @@ PanelWindow {
         repeat: false
         onTriggered: root.grabReady = true
     }
-    // Focus grab disabled; close handled by click-outside.
 
-    function openPopout(name, data, source) {
-        if (!name)
-            return;
-        if (root.visible && root.sourceItem === source && root.currentName === name) {
-            closePopout();
-            return;
-        }
-
-        root.currentName = name;
-        root.currentMode = modeFor(name);
-        root.currentData = data;
-        root.sourceItem = source;
-        root.screen = getSourceScreen() || getFocusedScreen() || Quickshell.screens[0] || root.screen;
-        root.grabReady = false;
-        grabReadyTimer.start();
-
-        PopoutsState.openPopout(root.currentName, root.screen?.name || "");
-        grabReadyTimer.restart();
-    }
-
-    function closePopout() {
-        root.grabReady = false;
-        grabReadyTimer.stop();
-        PopoutsState.closePopout();
-        clearLocal();
-        root.popoutClosed();
-    }
-
-    function clearLocal() {
-        root.currentName = "";
-        root.currentMode = "card";
-        root.currentData = null;
-        root.sourceItem = null;
-        PopoutsState.setPopoutRect(0, 0, 0, 0, "");
-    }
-
-    Keys.onPressed: event => {
-        if (root.visible && event.key === Qt.Key_Escape) {
-            closePopout();
-            event.accepted = true;
+    // React to every open/close/re-open: pick the screen while the request
+    // is live, re-arm the focus grab, reset published geometry on close.
+    Connections {
+        target: PopoutsState
+        function onEpochChanged() {
+            root.grabReady = false;
+            grabReadyTimer.stop();
+            if (PopoutsState.open) {
+                root.screen = root.getSourceScreen() || root.getFocusedScreen() || Quickshell.screens[0] || root.screen;
+                grabReadyTimer.start();
+            } else {
+                PopoutsState.setPopoutRect(0, 0, 0, 0, "");
+            }
         }
     }
 
@@ -100,6 +73,11 @@ PanelWindow {
         anchors.fill: parent
         visible: root.visible && root.hasPopout && root.currentMode === "card"
         z: 0
+
+        // Keys must live on a focused Item — a PanelWindow has no Keys
+        // attached property support.
+        focus: true
+        Keys.onEscapePressed: PopoutsState.closePopout()
 
         MouseArea {
             anchors.fill: parent
@@ -112,7 +90,7 @@ PanelWindow {
                     return;
                 }
                 mouse.accepted = true;
-                root.closePopout();
+                PopoutsState.closePopout();
             }
         }
     }
@@ -123,8 +101,8 @@ PanelWindow {
         visible: root.visible && root.hasPopout && root.currentMode === "card"
         // z: 1
 
-        readonly property real contentWidth: popoutContent.item?.implicitWidth ?? 0
-        readonly property real contentHeight: popoutContent.item?.implicitHeight ?? 0
+        readonly property real contentWidth: (popoutContent.item as Item)?.implicitWidth ?? 0
+        readonly property real contentHeight: (popoutContent.item as Item)?.implicitHeight ?? 0
         readonly property real cardWidth: Math.max(contentWidth + Tokens.spacing.small * 2, 200)
         readonly property real cardHeight: contentHeight + Tokens.spacing.small * 2
 
@@ -186,7 +164,7 @@ PanelWindow {
                 anchors.margins: Tokens.spacing.small
                 active: root.visible && root.hasPopout && root.currentMode === "card"
                 asynchronous: true
-                sourceComponent: popoutComponentFor(root.currentName)
+                sourceComponent: root.popoutComponentFor(root.currentName)
                 // z: 1
             }
         }
@@ -203,16 +181,16 @@ PanelWindow {
             anchors.fill: parent
             active: panelLayer.visible
             asynchronous: true
-            sourceComponent: popoutComponentFor(root.currentName)
+            sourceComponent: root.popoutComponentFor(root.currentName)
         }
     }
 
     Component {
         id: trayMenuComponent
         TrayMenu {
-            trayItem: root.currentData
+            trayItem: root.currentData as QsMenuHandle
             onMenuClosed: {
-                root.closePopout();
+                PopoutsState.closePopout();
             }
         }
     }
@@ -230,14 +208,6 @@ PanelWindow {
         switch (name) {
         default:
             return "card";
-        }
-    }
-
-    Connections {
-        target: PopoutsState
-        function onEpochChanged() {
-            if (!PopoutsState.open)
-                root.clearLocal();
         }
     }
 

@@ -10,34 +10,58 @@ pragma ComponentBehavior: Bound
 Singleton {
     id: root
 
-    // Main panels
-    property bool dashboardOpen: false
+    // ── Panel state machine ─────────────────────────────────────────
+    // Exactly one mutually-exclusive panel may be open; "" = none.
+    // The open/closed booleans below are DERIVED, so the exclusivity
+    // invariant is structural — there is nothing to keep in sync.
+    property string activePanel: ""
+
+    readonly property bool dashboardOpen: activePanel === "dashboard"
+    readonly property bool launcherOpen: activePanel === "launcher"
+    readonly property bool notificationCenterOpen: activePanel === "notificationCenter"
+    readonly property bool cheatsheetOpen: activePanel === "cheatsheet"
+    readonly property bool powerMenuOpen: activePanel === "powermenu"
+
     property int  dashboardOpenIndex: 0
-    property bool notificationCenterOpen: false
     property bool inhibit: false
-    property bool launcherOpen: false
 
-    // Lockscreen & Power Menu
+    // Lockscreen has its own lifecycle (WlSessionLock), not a panel.
     property bool lockscreenActive: false
-    property bool powerMenuOpen: false
 
-    // Cheatsheet
-    property bool cheatsheetOpen: false
+    // Panel name → modules.* key gating it.
+    readonly property var _panelModule: ({
+        "dashboard": "dashboard",
+        "launcher": "launcher",
+        "notificationCenter": "notifications",
+        "cheatsheet": "cheatsheet",
+        "powermenu": "powerMenu"
+    })
 
-    // Close every mutually-exclusive panel
-    function closeAllPanels() {
-        dashboardOpen = false
-        launcherOpen = false
-        notificationCenterOpen = false
-        cheatsheetOpen = false
+    function openPanel(name) {
+        const mod = _panelModule[name]
+        if (!mod) { console.warn("GlobalStates: unknown panel:", name); return }
+        if (!AppConfig.moduleEnabled(mod)) return
+        activePanel = name
     }
 
-    // Открыть Dashboard на конкретной вкладке
+    function closePanel(name) {
+        if (activePanel === name) activePanel = ""
+    }
+
+    function togglePanel(name) {
+        if (activePanel === name) activePanel = ""
+        else openPanel(name)
+    }
+
+    function closeAllPanels() {
+        activePanel = ""
+    }
+
+    // Open the dashboard on a specific tab.
     // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
     function openDashboardTab(tabIndex) {
-        if (!AppConfig.moduleEnabled("dashboard")) return
         dashboardOpenIndex = tabIndex
-        dashboardOpen = true
+        openPanel("dashboard")
     }
 
     // Handle widget click actions from bar configuration
@@ -46,29 +70,13 @@ Singleton {
             return
 
         switch (action) {
-            case "dashboard-quick":
-                openDashboardTab(0)
-                return
-            case "dashboard-weather":
-                openDashboardTab(1)
-                return
-            case "dashboard-calendar":
-                openDashboardTab(2)
-                return
-            case "dashboard-audio":
-                openDashboardTab(3)
-                return
-            case "dashboard-network":
-                openDashboardTab(4)
-                return
-            case "notification-center":
-                if (!AppConfig.moduleEnabled("notifications")) return
-                notificationCenterOpen = !notificationCenterOpen
-                return
-            case "launcher":
-                if (!AppConfig.moduleEnabled("launcher")) return
-                launcherOpen = !launcherOpen
-                return
+            case "dashboard-quick":    openDashboardTab(0); return
+            case "dashboard-weather":  openDashboardTab(1); return
+            case "dashboard-calendar": openDashboardTab(2); return
+            case "dashboard-audio":    openDashboardTab(3); return
+            case "dashboard-network":  openDashboardTab(4); return
+            case "notification-center": togglePanel("notificationCenter"); return
+            case "launcher":            togglePanel("launcher"); return
             default:
                 console.warn("GlobalStates: unknown clickAction:", action)
         }
@@ -80,7 +88,6 @@ Singleton {
         // lock-session) become no-ops. See README caveat; pair with an external locker.
         if (!AppConfig.moduleEnabled("lockscreen")) return
         closeAllPanels()
-        powerMenuOpen = false
         lockscreenActive = true
     }
 
@@ -98,7 +105,7 @@ Singleton {
     }
 
     function executePowerAction(action) {
-        powerMenuOpen = false
+        closePanel("powermenu")
         switch (action) {
             case "lock":     lockSession(); return
             case "suspend":  powerProc.command = ["systemctl", "suspend"]; break
@@ -110,62 +117,31 @@ Singleton {
         powerProc.running = true
     }
 
-    // DBus lock signal listener (loginctl lock-session)
+    // DBus lock signal listener (loginctl lock-session).
+    // logind emits Lock/Unlock on the CONCRETE session object path
+    // (/org/freedesktop/login1/session/_3xx), not on the /session/auto
+    // alias, so monitor the whole destination and match the member name.
     Process {
         id: lockListenerProc
         command: ["gdbus", "monitor", "--system",
-                  "--dest", "org.freedesktop.login1",
-                  "--object-path", "/org/freedesktop/login1/session/auto"]
+                  "--dest", "org.freedesktop.login1"]
         running: true
         stdout: SplitParser {
             onRead: data => {
-                // Match the bare ".Lock" member name (with trailing space
-                // before "()"). Plain `Lock` substring also matches `.Unlock`.
-                if (data.includes(".Lock ")) root.lockSession()
+                // Member arrives as "...session.Lock ()"; the trailing space
+                // keeps the bare `Lock` from also matching `.Unlock`.
+                if (data.includes(".Session.Lock ") || data.includes(".Lock ()"))
+                    root.lockSession()
             }
         }
+        // dbus-daemon restart or gdbus death would silently kill lock
+        // handling; restart the monitor after a short delay.
+        onExited: lockListenerRestart.start()
     }
-
-    // Panels are mutually exclusive: opening one closes the others
-    onDashboardOpenChanged: {
-        if (dashboardOpen) {
-            launcherOpen = false
-            notificationCenterOpen = false
-            cheatsheetOpen = false
-        }
-    }
-
-    onLauncherOpenChanged: {
-        if (launcherOpen) {
-            dashboardOpen = false
-            notificationCenterOpen = false
-            cheatsheetOpen = false
-        }
-    }
-
-    onNotificationCenterOpenChanged: {
-        if (notificationCenterOpen) {
-            dashboardOpen = false
-            launcherOpen = false
-            cheatsheetOpen = false
-        }
-    }
-
-    onPowerMenuOpenChanged: {
-        if (powerMenuOpen) {
-            dashboardOpen = false
-            launcherOpen = false
-            notificationCenterOpen = false
-            cheatsheetOpen = false
-        }
-    }
-
-    onCheatsheetOpenChanged: {
-        if (cheatsheetOpen) {
-            dashboardOpen = false
-            launcherOpen = false
-            notificationCenterOpen = false
-        }
+    Timer {
+        id: lockListenerRestart
+        interval: 2000
+        onTriggered: if (!lockListenerProc.running) lockListenerProc.running = true
     }
 
     // Global hotkeys
@@ -178,19 +154,19 @@ Singleton {
     GlobalShortcut {
         name: "launcherToggle"
         description: "Toggle launcher"
-        onPressed: if (AppConfig.moduleEnabled("launcher")) root.launcherOpen = !root.launcherOpen
+        onPressed: root.togglePanel("launcher")
     }
 
     GlobalShortcut {
         name: "powerMenuToggle"
         description: "Toggle power menu"
-        onPressed: if (AppConfig.moduleEnabled("powerMenu")) root.powerMenuOpen = !root.powerMenuOpen
+        onPressed: root.togglePanel("powermenu")
     }
 
     GlobalShortcut {
         name: "cheatsheetToggle"
         description: "Toggle cheatsheet overlay"
-        onPressed: if (AppConfig.moduleEnabled("cheatsheet")) root.cheatsheetOpen = !root.cheatsheetOpen
+        onPressed: root.togglePanel("cheatsheet")
     }
 
     GlobalShortcut {
@@ -234,22 +210,23 @@ Singleton {
         target: "globalstates"
 
         function toggleDashboard(): void {
-            if (!AppConfig.moduleEnabled("dashboard")) return
-            root.dashboardOpen = !root.dashboardOpen
+            root.togglePanel("dashboard")
+        }
+
+        function openDashboardTab(tabIndex: int): void {
+            root.openDashboardTab(tabIndex)
         }
 
         function toggleLauncher(): void {
-            if (!AppConfig.moduleEnabled("launcher")) return
-            root.launcherOpen = !root.launcherOpen
+            root.togglePanel("launcher")
         }
 
         function openLauncher(): void {
-            if (!AppConfig.moduleEnabled("launcher")) return
-            root.launcherOpen = true
+            root.openPanel("launcher")
         }
 
         function closeLauncher(): void {
-            root.launcherOpen = false
+            root.closePanel("launcher")
         }
 
         function closeAll(): void {
@@ -257,17 +234,15 @@ Singleton {
         }
 
         function toggleNotificationCenter(): void {
-            if (!AppConfig.moduleEnabled("notifications")) return
-            root.notificationCenterOpen = !root.notificationCenterOpen
+            root.togglePanel("notificationCenter")
         }
 
         function openNotificationCenter(): void {
-            if (!AppConfig.moduleEnabled("notifications")) return
-            root.notificationCenterOpen = true
+            root.openPanel("notificationCenter")
         }
 
         function closeNotificationCenter(): void {
-            root.notificationCenterOpen = false
+            root.closePanel("notificationCenter")
         }
 
         function screenshot(): void {
@@ -293,17 +268,15 @@ Singleton {
         }
 
         function togglePowerMenu(): void {
-            if (!AppConfig.moduleEnabled("powerMenu")) return
-            root.powerMenuOpen = !root.powerMenuOpen
+            root.togglePanel("powermenu")
         }
 
         function openPowerMenu(): void {
-            if (!AppConfig.moduleEnabled("powerMenu")) return
-            root.powerMenuOpen = true
+            root.openPanel("powermenu")
         }
 
         function closePowerMenu(): void {
-            root.powerMenuOpen = false
+            root.closePanel("powermenu")
         }
 
         function lockScreen(): void {
@@ -311,17 +284,15 @@ Singleton {
         }
 
         function toggleCheatsheet(): void {
-            if (!AppConfig.moduleEnabled("cheatsheet")) return
-            root.cheatsheetOpen = !root.cheatsheetOpen
+            root.togglePanel("cheatsheet")
         }
 
         function openCheatsheet(): void {
-            if (!AppConfig.moduleEnabled("cheatsheet")) return
-            root.cheatsheetOpen = true
+            root.openPanel("cheatsheet")
         }
 
         function closeCheatsheet(): void {
-            root.cheatsheetOpen = false
+            root.closePanel("cheatsheet")
         }
 
         function toggleNightLight(): void {

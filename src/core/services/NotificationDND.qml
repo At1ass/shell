@@ -15,9 +15,19 @@ import qs.src.core.config
 Singleton {
     id: root
 
-    // User toggle, persisted via AppConfig stateData
-    property bool enabled: AppConfig.stateData?.notifications?.doNotDisturb ?? false
-    onEnabledChanged: AppConfig.updateState("notifications", { "doNotDisturb": enabled })
+    // User toggle. Persisted state is the single source of truth: `enabled`
+    // only DERIVES from it, setEnabled() only WRITES it. A read-write
+    // property with an onChanged persister loops through stateData and
+    // destroys its own binding on the first imperative write.
+    readonly property bool enabled: AppConfig.stateData?.notifications?.doNotDisturb ?? false
+
+    function setEnabled(on) {
+        if (on !== enabled) AppConfig.updateState("notifications", { "doNotDisturb": on })
+    }
+
+    function toggle() {
+        setEnabled(!enabled)
+    }
 
     // Fullscreen detection — Hyprland's lastIpcObject.fullscreen is 0
     // (none), 1 (maximize), 2 (true fullscreen). Treat any non-zero as
