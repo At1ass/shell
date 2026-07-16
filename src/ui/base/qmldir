@@ -10,3 +10,5 @@ SectionHeader 1.0 SectionHeader.qml
 CircleAvatar 1.0 CircleAvatar.qml
 Sparkline 1.0 Sparkline.qml
 FAB 1.0 FAB.qml
+MotionAnimation 1.0 MotionAnimation.qml
+MonoText 1.0 MonoText.qml

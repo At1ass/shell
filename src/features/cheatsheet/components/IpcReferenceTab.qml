@@ -49,7 +49,7 @@ Item {
                         text: "qs ipc call <handler> <function> [args]"
                         textStyle: "bodyMedium"
                         colorRole: "onPrimaryContainer"
-                        font.family: "monospace"
+                        font.family: Tokens.typography.monoFamily
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -96,7 +96,7 @@ Item {
                             text: handlerDelegate.handler.name
                             textStyle: "titleSmall"
                             colorRole: "primary"
-                            font.family: "monospace"
+                            font.family: Tokens.typography.monoFamily
                             font.weight: Font.Medium
                         }
 

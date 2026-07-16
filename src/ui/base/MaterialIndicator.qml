@@ -41,6 +41,7 @@ Rectangle {
         NumberAnimation {
             duration: Tokens.motion.duration.short2
             easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
@@ -49,6 +50,7 @@ Rectangle {
         NumberAnimation {
             duration: Tokens.motion.duration.short2
             easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 
@@ -57,6 +59,7 @@ Rectangle {
         ColorAnimation {
             duration: Tokens.motion.duration.medium2
             easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
     }
 

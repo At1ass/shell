@@ -97,16 +97,16 @@ Scope {
                 Behavior on opacity {
                     NumberAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Tokens.motion.easing.emphasized
+                        easing.type: Tokens.motion.easing.emphasized
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
                     }
                 }
 
                 Behavior on scale {
                     NumberAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Tokens.motion.easing.emphasized
+                        easing.type: Tokens.motion.easing.emphasized
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
                     }
                 }
 

@@ -97,12 +97,10 @@ PanelWindow {
         }
 
         color: AppConfig.barTransparent ? "transparent" : Qt.alpha(Theme.surfaceContainer, 0.90)
-        // Primary surface tint
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.primary
-            opacity: AppConfig.barTransparent ? 0 : 0.12
-            radius: parent.radius
+        // Primary surface tint (elevation token scale)
+        SurfaceTint {
+            level: 4
+            visible: !AppConfig.barTransparent
         }
 
         // Center zone — pinned to the screen centre, width follows its own content. It is

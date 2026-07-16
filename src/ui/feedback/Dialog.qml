@@ -27,6 +27,7 @@ Rectangle {
         NumberAnimation {
             duration: Tokens.motion.duration.short4
             easing.type: Tokens.motion.easing.emphasizedDecelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
     }
 
@@ -54,6 +55,7 @@ Rectangle {
             NumberAnimation {
                 duration: Tokens.motion.duration.short4
                 easing.type: Tokens.motion.easing.emphasizedDecelerate
+                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
             }
         }
 

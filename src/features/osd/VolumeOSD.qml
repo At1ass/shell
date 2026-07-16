@@ -77,6 +77,7 @@ Scope {
                     NumberAnimation {
                         duration: Tokens.motion.duration.short4
                         easing.type: Tokens.motion.easing.emphasized
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
                     }
                 }
 
@@ -84,6 +85,7 @@ Scope {
                     NumberAnimation {
                         duration: Tokens.motion.duration.short4
                         easing.type: Tokens.motion.easing.emphasized
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
                     }
                 }
 
@@ -190,6 +192,7 @@ Scope {
                                         NumberAnimation {
                                             duration: Tokens.motion.duration.short4
                                             easing.type: Tokens.motion.easing.emphasized
+                                            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
                                         }
                                     }
 

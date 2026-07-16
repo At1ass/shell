@@ -147,6 +147,7 @@ PanelWindow {
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -154,6 +155,7 @@ PanelWindow {
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 

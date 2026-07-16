@@ -164,13 +164,15 @@ Rectangle {
                 target: criticalPulse; property: "opacity"
                 from: 0; to: 0.12
                 duration: Tokens.motion.duration.medium2
-                easing.type: Easing.InOutQuad
+                easing.type: Tokens.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standardPoints
             }
             NumberAnimation {
                 target: criticalPulse; property: "opacity"
                 from: 0.12; to: 0
                 duration: Tokens.motion.duration.medium2
-                easing.type: Easing.InOutQuad
+                easing.type: Tokens.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standardPoints
             }
         }
     }
@@ -367,8 +369,9 @@ Rectangle {
 
             Behavior on width {
                 NumberAnimation {
-                    duration: 50
-                    easing.type: Easing.Linear
+                    duration: Tokens.motion.duration.short1
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
         }

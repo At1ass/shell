@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.src.core.config
 import qs.src.ui.base
+import qs.src.ui.containers
 
 // MD3 Exposed Dropdown Menu (ComboBox)
 Item {
@@ -118,12 +119,10 @@ Item {
             border.color: Theme.outlineVariant
 
             // M3 elevation tint
-            Rectangle {
-                anchors.fill: parent
+            SurfaceTint {
+                level: 2
                 anchors.margins: 1
                 radius: parent.radius - 1
-                color: Theme.primary
-                opacity: 0.08
             }
         }
 

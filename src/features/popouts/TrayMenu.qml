@@ -56,16 +56,16 @@ StackView {
             Behavior on opacity {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Tokens.motion.easing.standard
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
             Behavior on scale {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Tokens.motion.easing.standard
+                    easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 

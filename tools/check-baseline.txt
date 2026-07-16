@@ -1,5 +1,6 @@
 console-log 7
-easing-literals-in-features 10
+easing-literals-in-features 0
+easing-unpaired-tokens 0
 font-pointsize 0
 hardcoded-home-paths 1
 layer-config-imports-services 0
@@ -7,6 +8,6 @@ layer-services-imports-features 0
 layer-services-imports-ui 0
 layer-ui-imports-services 0
 lazyloader-loading 0
-qmllint-warnings 308
+qmllint-warnings 281
 sh-c-concatenation 1
 stacklayout-in-features 3

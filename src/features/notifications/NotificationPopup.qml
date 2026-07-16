@@ -75,6 +75,7 @@ PanelWindow {
             target: popup; property: "_entranceOpacity"; to: 1.0
             duration: Tokens.motion.duration.medium1
             easing.type: Tokens.motion.easing.standard
+            easing.bezierCurve: Tokens.motion.easing.standardPoints
         }
         NumberAnimation {
             target: popup; property: "_entranceScale"; to: 1.0
@@ -102,6 +103,7 @@ PanelWindow {
             to: 0
             duration: Tokens.motion.duration.short3
             easing.type: Tokens.motion.easing.emphasizedAccelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
         }
         NumberAnimation {
             target: popup; property: "_exitScale"

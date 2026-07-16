@@ -43,6 +43,16 @@ count layer-services-imports-ui \
 # Direct Easing.* enums in features bypass Tokens.motion (Phase 3 target).
 count easing-literals-in-features \
     "$(grep -rE 'easing\.(type|bezierCurve):[^/]*Easing\.' "$root/src/features" --include='*.qml' | wc -l)"
+# Every `easing.type: Tokens.motion.easing.X` must be immediately followed by
+# the matching XPoints bezierCurve — a lone half silently degrades to linear.
+count easing-unpaired-tokens \
+    "$(qml | grep -v '/greeter/ui/Tokens.qml' | xargs awk '
+        prev_curve != "" {
+            if ($0 !~ ("bezierCurve: *Tokens\\.motion\\.easing\\." prev_curve "Points")) bad++
+            prev_curve = ""
+        }
+        match($0, /easing\.type: *Tokens\.motion\.easing\.(standard|emphasizedDecelerate|emphasizedAccelerate|emphasized)$/, m) { prev_curve = m[1] }
+        END { print bad + 0 }' 2>/dev/null | awk '{s+=$1} END {print s+0}')"
 count font-pointsize \
     "$(grep -rE 'font\.pointSize' "$root/src" --include='*.qml' | wc -l)"
 

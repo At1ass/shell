@@ -14,7 +14,6 @@ Item {
     property string variant: "outlined" // "outlined" | "filled"
     property string leadingIcon: ""
     property string trailingIcon: ""
-    property bool enabled: true
     property bool password: false
 
     signal accepted()

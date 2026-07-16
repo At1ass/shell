@@ -11,7 +11,6 @@ Item {
 
     property var model: []
     property int currentIndex: 0
-    property bool enabled: true
 
     signal selected(int index)
 

@@ -11,7 +11,6 @@ Item {
     property string iconName: "add"
     property string label: "" // non-empty → extended FAB
     property string size: "regular" // "small" | "regular" | "large"
-    property bool enabled: true
 
     signal clicked()
 

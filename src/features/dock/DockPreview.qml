@@ -74,10 +74,8 @@ Surface {
     clip: true
 
     // Surface tint (parent is Surface's content holder — use root.radius).
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.primary
-        opacity: 0.06
+    SurfaceTint {
+        level: 1
         radius: root.radius
     }
 

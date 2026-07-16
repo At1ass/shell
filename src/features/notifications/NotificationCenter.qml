@@ -48,6 +48,7 @@ Scope {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium2
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -88,6 +89,7 @@ Scope {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium1
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 

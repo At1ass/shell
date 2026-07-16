@@ -7,7 +7,6 @@ Item {
     id: root
 
     property bool checked: false
-    property bool enabled: true
 
     signal clicked()
 
