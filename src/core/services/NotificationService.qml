@@ -5,7 +5,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.src.core.config
-import qs.src.features.notifications
 
 // NotificationService — thin facade over the notification subsystem.
 //

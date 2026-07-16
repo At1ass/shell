@@ -207,15 +207,9 @@ Singleton {
         return "'" + String(s).replace(/'/g, "'\\''") + "'"
     }
 
-    // ── Debug IPC ────────────────────────────────────────────────
+    // ── Maintenance IPC ──────────────────────────────────────────
     IpcHandler {
         target: "wallpaper-cache"
-
-        function test(url: string): string {
-            const id = "test_" + Date.now()
-            cache.store("test", id, "jpg", url)
-            return `Queued download: id=${id}, url=${url}`
-        }
 
         function status(): string {
             const count = Object.keys(cache._known).length

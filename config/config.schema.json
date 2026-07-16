@@ -770,12 +770,10 @@
         "dashboard-quick",
         "dashboard-weather",
         "dashboard-calendar",
-        "dashboard-system",
         "dashboard-audio",
         "dashboard-network",
         "notification-center",
-        "launcher",
-        "control-panel"
+        "launcher"
       ],
       "description": "Panel to open when the widget is left-clicked."
     },

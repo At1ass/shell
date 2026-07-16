@@ -8,7 +8,7 @@ import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
-import "components" as Components
+import qs.src.features.cheatsheet.components as Components
 
 pragma ComponentBehavior: Bound
 
@@ -46,15 +46,10 @@ Item {
         {
             name: "globalstates",
             functions: [
-                { name: "toggleControlPanel", params: "", description: "Toggle control panel visibility" },
-                { name: "openControlPanel", params: "", description: "Open control panel" },
-                { name: "closeControlPanel", params: "", description: "Close control panel" },
                 { name: "toggleDashboard", params: "", description: "Toggle dashboard visibility" },
                 { name: "toggleLauncher", params: "", description: "Toggle app launcher" },
                 { name: "openLauncher", params: "", description: "Open app launcher" },
                 { name: "closeLauncher", params: "", description: "Close app launcher" },
-                { name: "openControlPanelLeft", params: "", description: "Open left control panel" },
-                { name: "closeControlPanelLeft", params: "", description: "Close left control panel" },
                 { name: "closeAll", params: "", description: "Close all open panels" },
                 { name: "toggleNotificationCenter", params: "", description: "Toggle notification center" },
                 { name: "openNotificationCenter", params: "", description: "Open notification center" },

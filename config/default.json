@@ -101,7 +101,7 @@
         "type": "volume",
         "enabled": true,
         "section": "right",
-        "clickAction": "dashboard-system",
+        "clickAction": "dashboard-audio",
         "settings": {
           "scrollable": true,
           "showPercentage": true

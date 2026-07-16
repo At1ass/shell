@@ -52,6 +52,15 @@ Singleton {
     readonly property url currentWallpaper:
         monitorWallpapers[primaryMonitor] || _asUrl(defaultWallpaperPath)
 
+    // Feed the palette seed into the config layer. Theme cannot import
+    // services (one-way dependency graph), so the wallpaper→theme link
+    // lives here, on the services side.
+    Binding {
+        target: Theme
+        property: "seed"
+        value: manager.currentWallpaper
+    }
+
     // ── Internal ─────────────────────────────────────────────────────
     property bool _initialized: false
     property bool _stateApplied: false

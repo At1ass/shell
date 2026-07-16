@@ -1,3 +1,4 @@
 module qs.src.features.popouts
 
 Popouts 1.0 Popouts.qml
+TrayMenu 1.0 TrayMenu.qml

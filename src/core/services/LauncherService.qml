@@ -3,7 +3,7 @@ import QtQuick
 import QtQml
 import Quickshell
 import qs.src.core.config
-import qs.src.features.launcher.providers
+import qs.src.core.services.launcher
 
 // ProviderManager - управляет провайдерами для поиска
 Singleton {

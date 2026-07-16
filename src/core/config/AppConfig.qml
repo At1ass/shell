@@ -129,8 +129,6 @@ Singleton {
     // Wallpaper state (from state.json)
     readonly property var wallpaperState: stateData.wallpaper ?? ({})
 
-    property bool _suppressConfigReload: false
-
     // FileView for config loading
     FileView {
         id: configFile
@@ -138,34 +136,28 @@ Singleton {
         watchChanges: true
 
         onLoaded: {
-            if (root._suppressConfigReload) {
-                root._suppressConfigReload = false
-                return
-            }
-            console.log("Config loaded from:", root.configPath)
-            root.data = root.parseConfigText(text())
+            // Keep the last good config when the file is transiently invalid
+            // (e.g. a hot-reload fired mid-edit on a half-saved JSON).
+            const parsed = root.parseConfigText(text())
+            if (parsed !== null) root.data = parsed
             root.ready = true
         }
 
         onLoadFailed: error => {
-            console.warn("Failed to load config:", error)
-            console.log("Loading default config from:", root.defaultConfigPath)
+            console.warn("Failed to load config:", error, "- falling back to", root.defaultConfigPath)
             root.loadDefaultConfig()
         }
 
-        onFileChanged: {
-            console.log("Config file changed, reloading...")
-            reload()
-        }
+        onFileChanged: reload()
     }
 
+    // Returns the parsed object, or null when the text is not valid JSON.
     function parseConfigText(rawText) {
         try {
-            const parsed = JSON.parse(rawText)
-            return parsed || {}
+            return JSON.parse(rawText) || {}
         } catch (e) {
             console.warn("Config parse: failed to parse JSON", e)
-            return {}
+            return null
         }
     }
 
@@ -177,8 +169,7 @@ Singleton {
         id: defaultConfigLoader
 
         onLoaded: {
-            console.log("Default config loaded from:", root.defaultConfigPath)
-            root.data = root.parseConfigText(text())
+            root.data = root.parseConfigText(text()) ?? {}
             root.ready = true
         }
 
@@ -211,27 +202,10 @@ Singleton {
         }
 
         onLoadFailed: error => {
-            console.log("AppConfig: state.json not found, will be created on first write")
+            // Normal on first run: state.json is created on first write.
             root.stateData = {}
             root._stateLoaded = true
         }
-    }
-
-    Timer {
-        id: configSaveTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            root._suppressConfigReload = true
-            configFile.setText(JSON.stringify(root.data, null, 2))
-        }
-    }
-
-    function updateConfig(section, newData) {
-        let current = Object.assign({}, root.data || {})
-        current[section] = newData
-        root.data = current
-        configSaveTimer.restart()
     }
 
     Timer {

@@ -18,7 +18,9 @@ import qs.src.core.services
 import Calendar
 
 ShellRoot {
-    readonly property var _hws: HyprlandWindowService
+    // Instantiate side-effect singletons (they exist only for their
+    // Connections/Process children, so nothing else references them).
+    Component.onCompleted: HyprlandWindowService.init()
     LazyLoader {
         active: AppConfig.moduleEnabled("popouts")
         Popouts.Popouts {

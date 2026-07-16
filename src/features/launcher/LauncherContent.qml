@@ -8,7 +8,7 @@ import qs.src.ui.base
 import qs.src.ui.inputs
 import qs.src.core.config
 import qs.src.core.services
-import "components" as LauncherComponents
+import qs.src.features.launcher.components as LauncherComponents
 
 Item {
     id: root

@@ -5,7 +5,7 @@ import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.ui.containers
-import qs.src.features.statusbar as StatusBar
+
 
 PanelWindow {
     id: root
@@ -209,7 +209,7 @@ PanelWindow {
 
     Component {
         id: trayMenuComponent
-        StatusBar.TrayMenu {
+        TrayMenu {
             trayItem: root.currentData
             onMenuClosed: {
                 root.closePopout();

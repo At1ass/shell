@@ -1,7 +1,6 @@
 pragma Singleton
 
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 
 // Two-stage rate limiter for notifications.

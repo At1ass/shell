@@ -1,4 +1,4 @@
-module qs.src.features.launcher.providers
+module qs.src.core.services.launcher
 
 BaseProvider 1.0 BaseProvider.qml
 CalculatorProvider 1.0 CalculatorProvider.qml

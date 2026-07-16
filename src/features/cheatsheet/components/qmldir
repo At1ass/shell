@@ -1,0 +1,6 @@
+module qs.src.features.cheatsheet.components
+
+BindRow 1.0 BindRow.qml
+IpcFunctionRow 1.0 IpcFunctionRow.qml
+IpcReferenceTab 1.0 IpcReferenceTab.qml
+KeybindingsTab 1.0 KeybindingsTab.qml
