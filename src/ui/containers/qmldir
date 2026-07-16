@@ -7,3 +7,4 @@ Divider 1.0 Divider.qml
 ListItem 1.0 ListItem.qml
 ScrollableList 1.0 ScrollableList.qml
 CollapsibleSection 1.0 CollapsibleSection.qml
+SurfaceTint 1.0 SurfaceTint.qml

@@ -24,16 +24,6 @@ BarElement {
     property bool mixerOpen: false
 
     readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var pipewireNodes: (Pipewire.nodes && Pipewire.nodes.values) ? Pipewire.nodes.values : []
-    readonly property var sinkNodes: pipewireNodes ? pipewireNodes.filter(function (node) {
-        return node && node.audio && node.isSink && !node.isStream;
-    }) : []
-    readonly property var sourceNodes: pipewireNodes ? pipewireNodes.filter(function (node) {
-        return node && node.audio && !node.isSink && !node.isStream;
-    }) : []
-    readonly property var streamNodes: pipewireNodes ? pipewireNodes.filter(function (node) {
-        return node && node.audio && node.isStream;
-    }) : []
 
     function formatVolume(value) {
         const numeric = Number(value);

@@ -9,13 +9,24 @@ import qs.src.ui.base
 Scope {
     property var modelData
 
-    readonly property var actions: [
+    readonly property var _actionDefs: [
         { icon: "lock",                label: "Lock",     action: "lock",     key: "L" },
         { icon: "dark_mode",           label: "Suspend",  action: "suspend",  key: "S" },
         { icon: "restart_alt",         label: "Reboot",   action: "reboot",   key: "R" },
         { icon: "power_settings_new",  label: "Shutdown", action: "shutdown", key: "D" },
         { icon: "logout",              label: "Logout",   action: "logout",   key: "O" }
     ]
+
+    // powerMenu.actions from config selects and ORDERS the buttons —
+    // config-first: the schema key is the interface, not decoration.
+    readonly property var actions: {
+        const out = []
+        for (const name of AppConfig.powerMenuActions) {
+            const def = _actionDefs.find(a => a.action === name)
+            if (def) out.push(def)
+        }
+        return out.length > 0 ? out : _actionDefs
+    }
 
     PanelWindow {
         id: menuWindow
@@ -37,7 +48,7 @@ Scope {
             active: GlobalStates.powerMenuOpen
 
             onCleared: {
-                GlobalStates.powerMenuOpen = false
+                GlobalStates.closePanel("powermenu")
             }
         }
 
@@ -61,7 +72,7 @@ Scope {
             anchors.fill: parent
             focus: true
 
-            Keys.onEscapePressed: GlobalStates.powerMenuOpen = false
+            Keys.onEscapePressed: GlobalStates.closePanel("powermenu")
 
             Keys.onLeftPressed: {
                 menuWindow.focusedIndex = (menuWindow.focusedIndex - 1 + actions.length) % actions.length
@@ -106,7 +117,7 @@ Scope {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: GlobalStates.powerMenuOpen = false
+                onClicked: GlobalStates.closePanel("powermenu")
             }
         }
 

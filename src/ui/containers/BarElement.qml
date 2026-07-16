@@ -13,7 +13,7 @@ Rectangle {
     // Content properties
     property alias content: contentLoader.sourceComponent
     property list<QtObject> nonVisualChildren
-    default property alias children: contentContainer.children
+    default property alias contents: contentContainer.children
 
     // Interaction states
     property bool hovered: mouseArea.containsMouse
@@ -61,10 +61,8 @@ Rectangle {
     // implicitHeight: height
 
     // Primary surface tint for consistency
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.primary
-        opacity: 0.05
+    SurfaceTint {
+        level: 1
         radius: root.radius
     }
 
@@ -97,9 +95,11 @@ Rectangle {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        anchors.margins: expandOnHover ? -Tokens.spacing.small : 0
-        hoverEnabled: clickable || hoverable || expandOnHover
-        enabled: clickable || hoverable || expandOnHover
+        anchors.margins: root.expandOnHover ? -Tokens.spacing.small : 0
+        hoverEnabled: root.clickable || root.hoverable || root.expandOnHover
+        // Wheel-only widgets (workspace scroll) need the area alive too —
+        // without wheelHandler in this gate the wheel signal can never fire.
+        enabled: root.clickable || root.hoverable || root.expandOnHover || root.wheelHandler !== null
         propagateComposedEvents: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
@@ -112,17 +112,17 @@ Rectangle {
 
             // Let the event fall through to child MouseAreas when this element is not itself
             // clickable and has no handler of its own.
-            if (!clickable && !root.clickHandler) {
+            if (!root.clickable && !root.clickHandler) {
                 mouse.accepted = false
             }
         }
 
         onEntered: {
-            if (expandOnHover) root.expanded = true
+            if (root.expandOnHover) root.expanded = true
             root.entered()
         }
         onExited: {
-            if (expandOnHover) root.expanded = false
+            if (root.expandOnHover) root.expanded = false
             root.exited()
         }
 

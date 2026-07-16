@@ -65,7 +65,7 @@ MaterialCard {
                         icon: "do_not_disturb_on",
                         active: () => NotificationService.doNotDisturb,
                         tooltip: () => NotificationService.doNotDisturb ? "Do Not Disturb Active" : "Do Not Disturb",
-                        action: () => NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+                        action: () => NotificationService.toggleDoNotDisturb()
                     },
                     {
                         icon: "screenshot_region",

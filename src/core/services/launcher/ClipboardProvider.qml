@@ -2,13 +2,13 @@ import QtQuick
 import Quickshell
 import qs.src.core.services
 
-// Провайдер для поиска в истории буфера обмена
+// Provider for searching clipboard history
 BaseProvider {
     id: root
 
     name: "Clipboard"
-    priority: 60  // Высокий приоритет, выше Applications
-    prefixes: [">"]  // Префикс ">" для поиска в clipboard
+    priority: 60  // High priority, above Applications
+    prefixes: [">"]  // ">" prefix for clipboard search
 
     property var launcherService: null
 
@@ -19,7 +19,7 @@ BaseProvider {
         // would mask the just-copied entry behind an old list.
         const searchResults = ClipboardService.fuzzySearch(searchQuery)
         if (ClipboardService.debug) {
-            console.log("[ClipboardProvider.search] query:", JSON.stringify(query),
+            console.info("[ClipboardProvider.search] query:", JSON.stringify(query),
                         "searchQuery:", JSON.stringify(searchQuery),
                         "results:", searchResults.length)
         }
@@ -30,23 +30,23 @@ BaseProvider {
             const content = item.content
             const isImage = ClipboardService.entryIsImage(entry)
 
-            // Ограничиваем длину отображаемого текста
+            // Limit the displayed text length
             let displayText = isImage ? "[Image]" : content
             if (displayText.length > 80) {
                 displayText = displayText.substring(0, 80) + "..."
             }
 
-            // Первые 150 символов для описания
+            // First 150 characters for the description
             let description = isImage ? "" : content
             if (description.length > 150) {
                 description = description.substring(0, 150) + "..."
             }
 
-            // Определяем иконку
+            // Pick an icon
             let icon = "edit-paste"
             if (isImage) {
                 icon = "image-x-generic"
-                // Запрашиваем генерацию миниатюры
+                // Request thumbnail generation
                 ClipboardService.requestThumbnail(entry)
             } else if (content.startsWith("http://") || content.startsWith("https://")) {
                 icon = "internet-web-browser"
@@ -78,7 +78,7 @@ BaseProvider {
     }
 
     function defaultResults() {
-        // Провайдер с префиксом - не показываем результаты по умолчанию
+        // Prefixed provider - do not show default results
         return []
     }
 

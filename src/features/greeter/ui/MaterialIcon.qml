@@ -10,7 +10,6 @@ Rectangle {
     property string iconName: ""
     readonly property string fontFamily: "Material Symbols Rounded"
     property int fontSize: Tokens.typography.bodyLarge.size
-    property bool enabled: true
     property real fill: enabled ? 1 : 0
     property int grade: 0
     property real sizePadding: 1.2  // Multiplier for auto-sizing (fontSize * sizePadding)

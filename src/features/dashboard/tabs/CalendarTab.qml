@@ -593,6 +593,8 @@ Item {
                     text: "Add Event"
                     variant: "tonal"
                     enabled: CalendarBackend.calendars.length > 0
+                    // QtQuick.Controls ToolTip: tabs have no tooltipManager
+                    // plumbing (convention-sanctioned fallback).
                     ToolTip.visible: hovered && !enabled
                     ToolTip.text: "No calendars configured. Add one in ~/.config/khal/config or ensure ~/.local/share/khal/calendars/<name>/ exists."
                     onClicked: eventDialog.openDialog(false, null, root.selectedDate)
@@ -607,7 +609,12 @@ Item {
 
         onEventSaved: (fields) => {
             const isEdit = isEditMode && eventData && eventData.uid
-            if (isEdit && eventData.isRecurringMaster) {
+            if (isEdit && eventData.isOverride) {
+                // A moved occurrence edits ITS OWN override VEVENT —
+                // addressing by uid alone would rewrite the whole series.
+                CalendarBackend.editEvent(eventData.uid, fields, "all",
+                                          eventData.start, eventData.recurrenceId)
+            } else if (isEdit && eventData.isRecurringMaster) {
                 // Ask user: this occurrence or whole series
                 recurrenceChoice.askEdit(eventData, fields)
             } else if (isEdit) {
@@ -618,7 +625,12 @@ Item {
         }
 
         onEventDeleted: (uid, isRecurring) => {
-            if (isRecurring) {
+            if (eventData && eventData.isOverride) {
+                // Deleting a moved occurrence removes the override and
+                // EXDATEs the original slot — never the whole series.
+                CalendarBackend.deleteEvent(uid, "this",
+                                            eventData.start, eventData.recurrenceId)
+            } else if (isRecurring) {
                 recurrenceChoice.askDelete(eventData)
             } else {
                 CalendarBackend.deleteEvent(uid, "all")

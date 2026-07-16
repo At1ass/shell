@@ -5,7 +5,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.src.core.config
-import qs.src.features.notifications
 
 // NotificationService — thin facade over the notification subsystem.
 //
@@ -338,21 +337,9 @@ Singleton {
     function getGroupIcon(name)     { return NotificationHistory.getGroupIcon(name) }
     readonly property var historyList: NotificationHistory.historyList
 
-    // DND delegate (NotificationCenter toggles via this property).
-    // Bidirectional sync with NotificationDND.enabled — direct assignment
-    // breaks the initial binding, so Connections re-syncs on external changes.
-    property bool doNotDisturb: NotificationDND.enabled
-    onDoNotDisturbChanged: {
-        if (NotificationDND.enabled !== doNotDisturb) NotificationDND.enabled = doNotDisturb
-    }
-    Connections {
-        target: NotificationDND
-        function onEnabledChanged() {
-            if (root.doNotDisturb !== NotificationDND.enabled) {
-                root.doNotDisturb = NotificationDND.enabled
-            }
-        }
-    }
+    // DND facade — state lives in NotificationDND, UI toggles via function.
+    readonly property bool doNotDisturb: NotificationDND.enabled
+    function toggleDoNotDisturb() { NotificationDND.toggle() }
 
     // ── Compatibility wrappers (kept for any external IPC) ────────
     function discardNotification(id) { dismissActiveNotification(id) }

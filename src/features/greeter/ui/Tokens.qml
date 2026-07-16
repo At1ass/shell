@@ -44,6 +44,8 @@ Singleton {
 
     component TypographyTokens: QtObject {
         readonly property string fontFamily: "Roboto"
+        // Resolved by fontconfig; used via MonoText for code/IPC/keybind text.
+        readonly property string monoFamily: "monospace"
 
         readonly property TypeStyle displayLarge: TypeStyle {
             size: Math.round(57 * root.fontScale)
@@ -177,6 +179,8 @@ Singleton {
     component StateTokens: QtObject {
         readonly property real disabledContainerOpacity: 0.12
         readonly property real disabledContentOpacity: 0.38
+        // MD3 scrim: black at 32% over content behind modal surfaces.
+        readonly property real scrimOpacity: 0.32
     }
 
     component FocusRingTokens: QtObject {
@@ -193,6 +197,10 @@ Singleton {
         property int shadowRadius: 0
         property int shadowVerticalOffset: 0
         property real shadowOpacity: 0.0
+        // Primary-tint opacity for TRANSLUCENT surfaces where the tonal
+        // surfaceRole cannot apply (bar/dock over wallpaper). Values follow
+        // the pre-tonal M3 elevation overlay scale.
+        property real tintOpacity: 0.0
     }
 
     component ElevationTokens: QtObject {
@@ -202,30 +210,35 @@ Singleton {
             shadowRadius: 3
             shadowVerticalOffset: 1
             shadowOpacity: 0.10
+            tintOpacity: 0.05
         }
         readonly property ElevationLevel level2: ElevationLevel {
             surfaceRole: "surfaceContainer"
             shadowRadius: 6
             shadowVerticalOffset: 2
             shadowOpacity: 0.12
+            tintOpacity: 0.08
         }
         readonly property ElevationLevel level3: ElevationLevel {
             surfaceRole: "surfaceContainerHigh"
             shadowRadius: 12
             shadowVerticalOffset: 4
             shadowOpacity: 0.14
+            tintOpacity: 0.11
         }
         readonly property ElevationLevel level4: ElevationLevel {
             surfaceRole: "surfaceContainerHigh"
             shadowRadius: 16
             shadowVerticalOffset: 6
             shadowOpacity: 0.16
+            tintOpacity: 0.12
         }
         readonly property ElevationLevel level5: ElevationLevel {
             surfaceRole: "surfaceContainerHighest"
             shadowRadius: 24
             shadowVerticalOffset: 8
             shadowOpacity: 0.18
+            tintOpacity: 0.14
         }
 
         // Resolve a level by integer (0–5); clamps out-of-range.

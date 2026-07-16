@@ -14,16 +14,21 @@ Scope {
     property int sidebarWidth: AppConfig.dashboardWidth
     property int sidebarHeight: AppConfig.dashboardHeight
 
+    // Extra window height per tab (Weather and Calendar content run taller).
+    // Indexed by GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
+    readonly property var tabExtraHeight: [0, 20, 60, 0, 0]
+
     PanelWindow {
         id: dashboardWindow
         color: "transparent"
         implicitWidth: root.sidebarWidth
-        implicitHeight: root.sidebarHeight
+        implicitHeight: root.sidebarHeight + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
 
         Behavior on implicitHeight {
             NumberAnimation {
                 duration: Tokens.motion.duration.short4
                 easing.type: Tokens.motion.easing.emphasizedDecelerate
+                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
             }
         }
         anchors {
@@ -36,13 +41,13 @@ Scope {
         WlrLayershell.namespace: "quickshell:dashboard"
         WlrLayershell.layer: WlrLayer.Overlay
 
-        // Автозакрытие при клике вне области
+        // Auto-close on click outside the area
         HyprlandFocusGrab {
             id: focusGrab
             active: dashboardLoader.active && GlobalStates.dashboardOpen
             windows: [dashboardWindow]
             onCleared: () => {
-                GlobalStates.dashboardOpen = false;
+                GlobalStates.closePanel("dashboard")
             }
         }
 
@@ -62,19 +67,11 @@ Scope {
                 anchors.fill: parent
                 implicitWidth: parent.implicitWidth
                 implicitHeight: parent.implicitHeight
-
-                Component.onCompleted: {
-                    dashboardWindow.implicitHeight = root.sidebarHeight
-                }
-
-                onRequestHeightChange: (newHeight) => {
-                    dashboardWindow.implicitHeight = newHeight
-                }
             }
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Escape) {
-                    GlobalStates.dashboardOpen = false;
+                    GlobalStates.closePanel("dashboard")
                 }
             }
         }

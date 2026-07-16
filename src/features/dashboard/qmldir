@@ -1,0 +1,4 @@
+module qs.src.features.dashboard
+
+Dashboard 1.0 Dashboard.qml
+DashboardContent 1.0 DashboardContent.qml

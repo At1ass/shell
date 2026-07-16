@@ -18,8 +18,6 @@ BarElement {
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property var tooltipManager: null
-    readonly property var currentTrayItem: null
-    readonly property var popouts: PopoutsState.popoutsInstance
 
     property int iconSize: widgetSettings.iconSize ?? 20
     property int itemSpacing: widgetSettings.spacing ?? Tokens.spacing.small
@@ -66,25 +64,19 @@ BarElement {
                         event.accepted = true
 
                         if (event.button === Qt.LeftButton) {
-                            if (root.popouts && root.popouts.visible)
-                                root.popouts.closePopout()
+                            PopoutsState.closePopout()
                             trayItem.modelData.activate()
                             return
                         }
 
                         if (event.button === Qt.MiddleButton) {
-                            if (root.popouts && root.popouts.visible)
-                                root.popouts.closePopout()
+                            PopoutsState.closePopout()
                             trayItem.modelData.secondaryActivate()
                             return
                         }
 
                         if (event.button === Qt.RightButton && trayItem.modelData.hasMenu) {
-                            if (root.popouts) {
-                                root.popouts.openPopout("traymenu", trayItem.modelData.menu, trayItem)
-                                return
-                            }
-                            root.showMenu(trayItem.modelData, trayItem)
+                            PopoutsState.openPopout("traymenu", trayItem.modelData.menu, trayItem)
                         }
                     }
 
@@ -97,15 +89,6 @@ BarElement {
 
             }
         }
-    }
-
-    function showMenu(item, sourceItem) {
-        if (!item || !item.hasMenu)
-            return
-
-        const windowItem = root.window.contentItem || root
-        const pos = sourceItem.mapToItem(windowItem, 0, sourceItem.height)
-        item.display(root.window, pos.x, pos.y)
     }
 
     function getTrayIcon(icon) {

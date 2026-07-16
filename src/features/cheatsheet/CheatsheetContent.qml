@@ -8,7 +8,7 @@ import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.core.config
 import qs.src.core.services
-import "components" as Components
+import qs.src.features.cheatsheet.components as Components
 
 pragma ComponentBehavior: Bound
 
@@ -21,7 +21,6 @@ Item {
 
     // Fallback descriptions for shell binds (used when hyprctl description is empty)
     readonly property var _shellDescriptions: ({
-        "controlPanelToggle":  "Toggle control panel",
         "closeAllPanels":      "Close all open panels",
         "launcherToggle":      "Toggle application launcher",
         "screenshot":          "Take area screenshot",
@@ -38,92 +37,9 @@ Item {
 
     property var _shellBindsComputed: []
 
-    // ═══════════════════════════════════════════════════════════════
-    // DATA — IPC reference (static)
-    // ═══════════════════════════════════════════════════════════════
-
-    readonly property var _ipcData: [
-        {
-            name: "globalstates",
-            functions: [
-                { name: "toggleControlPanel", params: "", description: "Toggle control panel visibility" },
-                { name: "openControlPanel", params: "", description: "Open control panel" },
-                { name: "closeControlPanel", params: "", description: "Close control panel" },
-                { name: "toggleDashboard", params: "", description: "Toggle dashboard visibility" },
-                { name: "toggleLauncher", params: "", description: "Toggle app launcher" },
-                { name: "openLauncher", params: "", description: "Open app launcher" },
-                { name: "closeLauncher", params: "", description: "Close app launcher" },
-                { name: "openControlPanelLeft", params: "", description: "Open left control panel" },
-                { name: "closeControlPanelLeft", params: "", description: "Close left control panel" },
-                { name: "closeAll", params: "", description: "Close all open panels" },
-                { name: "toggleNotificationCenter", params: "", description: "Toggle notification center" },
-                { name: "openNotificationCenter", params: "", description: "Open notification center" },
-                { name: "closeNotificationCenter", params: "", description: "Close notification center" },
-                { name: "screenshot", params: "", description: "Take area screenshot" },
-                { name: "toggleGamingMode", params: "", description: "Toggle gaming mode" },
-                { name: "enableGamingMode", params: "", description: "Enable gaming mode" },
-                { name: "disableGamingMode", params: "", description: "Disable gaming mode" },
-                { name: "togglePowerMenu", params: "", description: "Toggle power menu" },
-                { name: "openPowerMenu", params: "", description: "Open power menu" },
-                { name: "closePowerMenu", params: "", description: "Close power menu" },
-                { name: "lockScreen", params: "", description: "Lock the session" },
-                { name: "toggleCheatsheet", params: "", description: "Toggle cheatsheet overlay" },
-                { name: "openCheatsheet", params: "", description: "Open cheatsheet overlay" },
-                { name: "closeCheatsheet", params: "", description: "Close cheatsheet overlay" }
-            ]
-        },
-        {
-            name: "audio",
-            functions: [
-                { name: "volumeUp", params: "", description: "Increase master volume" },
-                { name: "volumeDown", params: "", description: "Decrease master volume" },
-                { name: "toggleMute", params: "", description: "Toggle master mute" },
-                { name: "setVolume", params: "value: real", description: "Set master volume (0.0–1.0)" },
-                { name: "getMasterVolume", params: "", description: "Get current master volume" },
-                { name: "isMuted", params: "", description: "Check if master is muted" }
-            ]
-        },
-        {
-            name: "mpris",
-            functions: [
-                { name: "play", params: "", description: "Start playback" },
-                { name: "pause", params: "", description: "Pause playback" },
-                { name: "stop", params: "", description: "Stop playback" },
-                { name: "togglePlaying", params: "", description: "Toggle play/pause" },
-                { name: "next", params: "", description: "Skip to next track" },
-                { name: "previous", params: "", description: "Go to previous track" },
-                { name: "seek", params: "offset: real", description: "Seek by offset in seconds" },
-                { name: "setPosition", params: "position: real", description: "Set playback position" },
-                { name: "setVolume", params: "volume: real", description: "Set player volume" },
-                { name: "volumeUp", params: "", description: "Increase player volume" },
-                { name: "volumeDown", params: "", description: "Decrease player volume" },
-                { name: "toggleShuffle", params: "", description: "Toggle shuffle mode" },
-                { name: "toggleLoop", params: "", description: "Cycle loop mode" },
-                { name: "raise", params: "", description: "Raise player window" },
-                { name: "quit", params: "", description: "Quit the player" },
-                { name: "getPosition", params: "", description: "Get current position" },
-                { name: "getLength", params: "", description: "Get track length" },
-                { name: "getVolume", params: "", description: "Get player volume" },
-                { name: "isPlaying", params: "", description: "Check if playing" },
-                { name: "getCurrentTrack", params: "", description: "Get current track info" }
-            ]
-        },
-        {
-            name: "wallpaper",
-            functions: [
-                { name: "set", params: "monitor, path", description: "Set wallpaper for monitor" },
-                { name: "setAll", params: "path", description: "Set wallpaper for all monitors" },
-                { name: "setDirectory", params: "monitor, dir", description: "Set wallpaper directory" },
-                { name: "next", params: "monitor", description: "Next wallpaper" },
-                { name: "previous", params: "monitor", description: "Previous wallpaper" },
-                { name: "setAutoChange", params: "enabled, intervalMs", description: "Configure auto-change" },
-                { name: "setRandom", params: "enabled", description: "Toggle random order" },
-                { name: "setFillMode", params: "monitor, fillMode", description: "Set fill mode for monitor" },
-                { name: "setFillModeAll", params: "fillMode", description: "Set fill mode for all monitors" },
-                { name: "status", params: "", description: "Get wallpaper status" }
-            ]
-        }
-    ]
+    // IPC reference lives in components/IpcReferenceData.qml — the single
+    // authoritative list, shared with README.md.
+    readonly property var _ipcData: Components.IpcReferenceData.handlers
 
     // ═══════════════════════════════════════════════════════════════
     // CATEGORY ORDER
@@ -347,7 +263,7 @@ Item {
                 IconButton {
                     iconName: "close"
                     iconSize: Tokens.iconSize.large
-                    onClicked: GlobalStates.cheatsheetOpen = false
+                    onClicked: GlobalStates.closePanel("cheatsheet")
                 }
             }
 
@@ -396,7 +312,7 @@ Item {
                                 if (searchField.text.length > 0) {
                                     searchField.text = ""
                                 } else {
-                                    GlobalStates.cheatsheetOpen = false
+                                    GlobalStates.closePanel("cheatsheet")
                                 }
                                 event.accepted = true
                             } else if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
@@ -515,18 +431,31 @@ Item {
 
             Divider { Layout.fillWidth: true }
 
-            // ─── Tab content ────────────────────────────────────
+            // ─── Tab content — only the active tab exists (§10.14) ───
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: root.currentTab
 
-                Components.KeybindingsTab {
-                    categories: root.filteredBindCategories
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: root.currentTab === 0
+                    sourceComponent: Component {
+                        Components.KeybindingsTab {
+                            categories: root.filteredBindCategories
+                        }
+                    }
                 }
-
-                Components.IpcReferenceTab {
-                    handlers: root.filteredIpcHandlers
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    active: root.currentTab === 1
+                    sourceComponent: Component {
+                        Components.IpcReferenceTab {
+                            handlers: root.filteredIpcHandlers
+                        }
+                    }
                 }
             }
         }

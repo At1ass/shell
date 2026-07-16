@@ -111,7 +111,7 @@ Item {
                         text: root.isShellBind ? root.modelData.action : ""
                         textStyle: "labelSmall"
                         colorRole: "onTertiaryContainer"
-                        font.family: "monospace"
+                        font.family: Tokens.typography.monoFamily
                     }
                 }
             }

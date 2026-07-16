@@ -49,8 +49,13 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
 | `libnotify` | Calendar event reminders (`notify-send`) |
 | `hyprsunset` | Night Light temperature shift |
-| `networkmanager` | Network widget and VPN status |
+| `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
 | `bluez` | Bluetooth status in the Dashboard |
+
+> Bluetooth pairing note: the shell intentionally runs **no** background pairing
+> agent (an always-on auto-confirm agent would accept any nearby pairing
+> request). Simple devices pair directly; devices that require passkey
+> confirmation need an interactive agent such as `blueman`.
 
 ### Build dependencies (C++ plugins)
 
@@ -168,7 +173,7 @@ bar.autoHide             — reveal the bar only at the top screen edge (no rese
 dock                     — application dock (position, auto-hide, icon size, pinned apps)
 dashboard                — control-center dimensions
 notifications            — popups and notification center
-launcher                 — search and providers
+launcher                 — search behaviour, hidden apps
 osd                      — volume / brightness overlays
 lockscreen               — built-in lock screen
 powerMenu                — power menu
@@ -178,7 +183,6 @@ services.weather         — weather (Open-Meteo, no API key)
 services.calendar        — calendar (native libical plugin), reminders, upcoming, day view
 services.nightLight      — hyprsunset wrapper (default temperature, schedule)
 services.vpn             — VPN status (NetworkManager)
-hyprland.workspaceCount  — number of workspaces
 ```
 
 ### Modules (turning elements on or off)

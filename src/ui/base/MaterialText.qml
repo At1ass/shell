@@ -1,21 +1,17 @@
 import QtQuick
 import qs.src.core.config
 
-// Optimized Material Design 3 Text component
-// Caches style lookups to avoid repeated property resolution
+// Material Design 3 text component. Style and color resolve once per
+// textStyle/colorRole change (cached lookups, no per-frame resolution).
 Text {
     id: root
 
     property string textStyle: "bodyMedium"
     property string colorRole: "onSurface"
 
-    // ✅ Кэшируем style один раз при изменении textStyle
     readonly property var currentStyle: Tokens.typography[textStyle] || Tokens.typography.bodyMedium
-
-    // ✅ Кэшируем color один раз при изменении colorRole
     readonly property color resolvedColor: Theme[colorRole] || Theme.onSurface
 
-    // Автоматическое применение Material Design 3 типографики
     font.family: Tokens.typography.fontFamily
     // MD3 type-scale sizes are in sp → map to Qt pixelSize (DPI-independent),
     // NOT pointSize (which is physical points and varies with font DPI).
@@ -23,6 +19,6 @@ Text {
     font.weight: currentStyle.weight
     font.letterSpacing: currentStyle.letterSpacing
 
-    renderType: Text.NativeRendering // Улучшенное сглаживание шрифтов
+    renderType: Text.NativeRendering
     color: resolvedColor
 }

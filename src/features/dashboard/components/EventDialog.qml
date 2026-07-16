@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Calendar
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -89,7 +88,7 @@ Dialog {
         }
 
         root.open()
-        titleField.forceActiveFocus()
+        titleField.inputItem.forceActiveFocus()
         // Reset AFTER field assignments — those fired onTextChanged and
         // would have flipped dirty=true otherwise.
         dirty = false
@@ -124,8 +123,7 @@ Dialog {
             allDay:      false,
             recurrence:  recurrenceValues[recurrenceCombo.currentIndex] || "none"
         }
-        if (recurrenceCombo.currentIndex !== 0 && untilField.text.length === 10
-            && _dateRe.test(untilField.text)) {
+        if (recurrenceCombo.currentIndex !== 0 && _dateRe.test(untilField.text)) {
             fields.recurrenceUntil = new Date(untilField.text)
         }
         return fields
@@ -162,20 +160,11 @@ Dialog {
                     colorRole: "onSurfaceVariant"
                 }
 
-                TextField {
+                MaterialTextField {
                     id: titleField
                     Layout.fillWidth: true
                     placeholderText: "Event title"
-                    color: Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyLarge.size
-                    background: Rectangle {
-                        radius: Tokens.shape.small
-                        color: Theme.surfaceContainerHighest
-                        border.width: titleField.activeFocus ? 2 : 1
-                        border.color: titleField.activeFocus ? Theme.primary : Theme.outline
-                    }
-                    padding: Tokens.spacing.small
-                    onTextChanged: root.dirty = true
+                    onTextEdited: root.dirty = true
                 }
             }
 
@@ -194,21 +183,12 @@ Dialog {
                         colorRole: "onSurfaceVariant"
                     }
 
-                    TextField {
+                    MaterialTextField {
                         id: startTimeField
                         Layout.fillWidth: true
                         placeholderText: "HH:MM"
-                        color: Theme.onSurface
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-                        inputMask: "99:99"
-                        background: Rectangle {
-                            radius: Tokens.shape.small
-                            color: Theme.surfaceContainerHighest
-                            border.width: startTimeField.activeFocus ? 2 : 1
-                            border.color: startTimeField.activeFocus ? Theme.primary : Theme.outline
-                        }
-                        padding: Tokens.spacing.small
-                        onTextChanged: root.dirty = true
+                        validator: RegularExpressionValidator { regularExpression: root._timeRe }
+                        onTextEdited: root.dirty = true
                     }
                 }
 
@@ -222,21 +202,12 @@ Dialog {
                         colorRole: "onSurfaceVariant"
                     }
 
-                    TextField {
+                    MaterialTextField {
                         id: endTimeField
                         Layout.fillWidth: true
                         placeholderText: "HH:MM"
-                        color: Theme.onSurface
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-                        inputMask: "99:99"
-                        background: Rectangle {
-                            radius: Tokens.shape.small
-                            color: Theme.surfaceContainerHighest
-                            border.width: endTimeField.activeFocus ? 2 : 1
-                            border.color: endTimeField.activeFocus ? Theme.primary : Theme.outline
-                        }
-                        padding: Tokens.spacing.small
-                        onTextChanged: root.dirty = true
+                        validator: RegularExpressionValidator { regularExpression: root._timeRe }
+                        onTextEdited: root.dirty = true
                     }
                 }
             }
@@ -252,20 +223,11 @@ Dialog {
                     colorRole: "onSurfaceVariant"
                 }
 
-                TextField {
+                MaterialTextField {
                     id: locationField
                     Layout.fillWidth: true
                     placeholderText: "Add location"
-                    color: Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyLarge.size
-                    background: Rectangle {
-                        radius: Tokens.shape.small
-                        color: Theme.surfaceContainerHighest
-                        border.width: locationField.activeFocus ? 2 : 1
-                        border.color: locationField.activeFocus ? Theme.primary : Theme.outline
-                    }
-                    padding: Tokens.spacing.small
-                    onTextChanged: root.dirty = true
+                    onTextEdited: root.dirty = true
                 }
             }
 
@@ -280,22 +242,12 @@ Dialog {
                     colorRole: "onSurfaceVariant"
                 }
 
-                TextArea {
+                MaterialTextArea {
                     id: descriptionField
                     Layout.fillWidth: true
                     Layout.preferredHeight: 80
                     placeholderText: "Add description"
-                    color: Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyMedium.size
-                    wrapMode: TextArea.Wrap
-                    background: Rectangle {
-                        radius: Tokens.shape.small
-                        color: Theme.surfaceContainerHighest
-                        border.width: descriptionField.activeFocus ? 2 : 1
-                        border.color: descriptionField.activeFocus ? Theme.primary : Theme.outline
-                    }
-                    padding: Tokens.spacing.small
-                    onTextChanged: root.dirty = true
+                    onTextEdited: root.dirty = true
                 }
 
                 // Clickable links extracted from description
@@ -352,21 +304,15 @@ Dialog {
                     colorRole: "onSurfaceVariant"
                 }
 
-                TextField {
+                // No inputMask here: with a mask the "empty" field contains the mask
+                // literals, so the optional-until check `length > 0` was always true
+                // and recurring events could never be saved without a date.
+                MaterialTextField {
                     id: untilField
                     Layout.fillWidth: true
                     placeholderText: "yyyy-MM-dd (optional)"
-                    color: Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyLarge.size
-                    inputMask: "9999-99-99;_"
-                    background: Rectangle {
-                        radius: Tokens.shape.small
-                        color: Theme.surfaceContainerHighest
-                        border.width: untilField.activeFocus ? 2 : 1
-                        border.color: untilField.activeFocus ? Theme.primary : Theme.outline
-                    }
-                    padding: Tokens.spacing.small
-                    onTextChanged: root.dirty = true
+                    validator: RegularExpressionValidator { regularExpression: root._dateRe }
+                    onTextEdited: root.dirty = true
                 }
             }
 
@@ -381,20 +327,11 @@ Dialog {
                     colorRole: "onSurfaceVariant"
                 }
 
-                TextField {
+                MaterialTextField {
                     id: categoriesField
                     Layout.fillWidth: true
                     placeholderText: "work, personal, ..."
-                    color: Theme.onSurface
-                    font.pixelSize: Tokens.typography.bodyLarge.size
-                    background: Rectangle {
-                        radius: Tokens.shape.small
-                        color: Theme.surfaceContainerHighest
-                        border.width: categoriesField.activeFocus ? 2 : 1
-                        border.color: categoriesField.activeFocus ? Theme.primary : Theme.outline
-                    }
-                    padding: Tokens.spacing.small
-                    onTextChanged: root.dirty = true
+                    onTextEdited: root.dirty = true
                 }
             }
 
@@ -408,7 +345,7 @@ Dialog {
                 wrapMode: Text.WordWrap
             }
 
-            Item { height: Tokens.spacing.small }
+            Item { Layout.preferredHeight: Tokens.spacing.small }
 
             // Action buttons
             RowLayout {
@@ -423,8 +360,8 @@ Dialog {
                     iconColor: Theme.error
                     onClicked: {
                         if (root.eventData && root.eventData.uid) {
-                            eventDeleted(root.eventData.uid,
-                                         root.eventData.isRecurringMaster === true)
+                            root.eventDeleted(root.eventData.uid,
+                                              root.eventData.isRecurringMaster === true)
                             root.close()
                         }
                     }
@@ -443,7 +380,7 @@ Dialog {
                     variant: "filled"
                     enabled: root._isValid
                     onClicked: {
-                        eventSaved(root._buildFields())
+                        root.eventSaved(root._buildFields())
                         root.close()
                     }
                 }
@@ -456,7 +393,7 @@ Dialog {
     Rectangle {
         id: discardConfirm
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.45)
+        color: Qt.alpha(Theme.scrim, Tokens.state.scrimOpacity)
         visible: false
         z: 10
 
@@ -476,7 +413,7 @@ Dialog {
                 spacing: Tokens.spacing.medium
 
                 MaterialText {
-                    text: "Отменить изменения?"
+                    text: "Discard changes?"
                     textStyle: "titleMedium"
                     colorRole: "onSurface"
                     font.weight: Font.Medium
@@ -484,7 +421,7 @@ Dialog {
                 }
 
                 MaterialText {
-                    text: "Несохранённые изменения будут потеряны."
+                    text: "Unsaved changes will be lost."
                     textStyle: "bodyMedium"
                     colorRole: "onSurfaceVariant"
                     wrapMode: Text.WordWrap
@@ -498,12 +435,12 @@ Dialog {
                     Item { Layout.fillWidth: true }
 
                     MaterialButton {
-                        text: "Продолжить"
+                        text: "Keep editing"
                         variant: "text"
                         onClicked: discardConfirm.visible = false
                     }
                     MaterialButton {
-                        text: "Отменить"
+                        text: "Discard"
                         variant: "filled"
                         onClicked: {
                             discardConfirm.visible = false

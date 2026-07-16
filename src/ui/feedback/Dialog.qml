@@ -8,7 +8,7 @@ Rectangle {
     anchors.fill: parent
 
     // MD3 Scrim (backdrop) - RGBA(0,0,0,0.32)
-    color: Qt.rgba(0, 0, 0, 0.32)
+    color: Qt.alpha(Theme.scrim, Tokens.state.scrimOpacity)
 
     visible: false
     opacity: 0
@@ -27,6 +27,7 @@ Rectangle {
         NumberAnimation {
             duration: Tokens.motion.duration.short4
             easing.type: Tokens.motion.easing.emphasizedDecelerate
+            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
         }
     }
 
@@ -54,6 +55,7 @@ Rectangle {
             NumberAnimation {
                 duration: Tokens.motion.duration.short4
                 easing.type: Tokens.motion.easing.emphasizedDecelerate
+                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
             }
         }
 

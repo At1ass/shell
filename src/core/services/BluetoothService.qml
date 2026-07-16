@@ -1,126 +1,89 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
-import Quickshell.Io
 import qs.src.core.services
 
+// Bluetooth via Quickshell's native BlueZ model, fully event-driven:
+// device lists rebuild only when a device appears/disappears or one of its
+// relevant properties changes (no polling).
+//
+// SECURITY: no background pairing agent. The old always-on bluetoothctl
+// agent auto-answered "yes" to EVERY passkey/confirmation prompt — including
+// pairing attempts the user never initiated. Pairing now relies on
+// device.pair() (works for simple devices) or an interactive agent
+// (blueman) for confirmation-requiring peers.
 Singleton {
     id: root
 
-    // Bluetooth adapter
     readonly property var adapter: Bluetooth.defaultAdapter
 
-    // Background bluetoothctl agent for pairing confirmation.
-    // KeyboardDisplay capability handles PIN confirmation dialogs (phones etc).
-    // Continuously sends "yes" to auto-confirm any passkey prompts.
-    Process {
-        id: btAgent
-        running: true
-        command: ["sh", "-c", "{ echo 'agent KeyboardDisplay'; echo 'default-agent'; while true; do sleep 0.5; echo 'yes'; done; } | bluetoothctl"]
-    }
+    // Pure bindings — the native model notifies; no manual sync handlers.
+    readonly property bool enabled: adapter?.enabled ?? false
+    readonly property bool scanning: adapter?.discovering ?? false
 
-    // State
-    property bool enabled: adapter ? adapter.enabled : false
     property bool connected: false
     property int connectedDeviceCount: 0
 
-    // All adapter devices (UntypedObjectModel)
-    readonly property var devices: adapter ? adapter.devices : []
-
-    // Filtered device lists for UI
+    // Filtered device lists for UI (rebuilt by _recompute on real changes).
     property var pairedDevices: []
     property var discoveredDevices: []
-    property bool scanning: false
 
-    // Device pending auto-connect after pairing
+    // Device pending auto-connect after pairing.
     property var _pendingConnectDevice: null
 
-    // Address of device currently being connected/disconnected/paired
+    // Address of device currently being connected/disconnected/paired.
     property string busyDeviceAddress: ""
 
-    // Material icon based on state
     readonly property string icon: {
         if (!enabled) return "bluetooth_disabled"
         if (connected) return "bluetooth_connected"
         return "bluetooth"
     }
 
-    // Toggle Bluetooth
     function toggle() {
-        if (adapter) {
-            adapter.enabled = !adapter.enabled
-        }
+        if (adapter) adapter.enabled = !adapter.enabled
     }
 
-    // Start scanning for new devices
     function startScan() {
-        if (adapter && enabled) {
-            adapter.discovering = true
-            scanning = true
-        }
+        if (adapter && enabled) adapter.discovering = true
     }
 
-    // Stop scanning
     function stopScan() {
-        if (adapter) {
-            adapter.discovering = false
-            scanning = false
-        }
+        if (adapter) adapter.discovering = false
     }
 
-    // Connect a paired/bonded device (direct property assignment like caelesia)
+    // Connect a paired/bonded device (direct property assignment).
     function connectDevice(device) {
         busyDeviceAddress = device.address || ""
         device.trusted = true
         device.connected = true
     }
 
-    // Disconnect from a device
     function disconnectDevice(device) {
         busyDeviceAddress = device.address || ""
         device.connected = false
     }
 
-    // Pair a new device — user confirms on the remote device,
-    // then auto-connect fires via _pendingConnectDevice watcher
+    // Pair a new device — completion is observed via the device's
+    // pairedChanged (watched below), then auto-connect fires.
     function pairDevice(device) {
         busyDeviceAddress = device.address || ""
         root._pendingConnectDevice = device
         device.pair()
     }
 
-    // Forget a device
     function forgetDevice(device) {
         device.forget()
     }
 
-    // Open system bluetooth settings
     function openSettings() {
         Quickshell.execDetached(["blueman-manager"])
     }
 
-    // Auto-connect after pairing completes
-    Timer {
-        id: pairWatchTimer
-        interval: 1000
-        repeat: true
-        running: root._pendingConnectDevice !== null
-
-        onTriggered: {
-            const dev = root._pendingConnectDevice
-            if (!dev) { stop(); return }
-
-            if (dev.paired) {
-                dev.trusted = true
-                dev.connected = true
-                root._pendingConnectDevice = null
-                root.busyDeviceAddress = ""
-            }
-        }
-    }
-
-    // Timeout — give up waiting for pairing after 30s
+    // Give up waiting for pairing after 30s.
     Timer {
         id: pairTimeoutTimer
         interval: 30000
@@ -136,7 +99,6 @@ Singleton {
         }
     }
 
-    // Get device type icon
     function deviceIcon(device) {
         if (!device) return "bluetooth"
         const icon = device.icon || ""
@@ -153,93 +115,94 @@ Singleton {
         return "bluetooth"
     }
 
-    // Monitor adapter state
-    Connections {
-        target: root.adapter
+    // ── Event-driven device list ─────────────────────────────────────
+    // One Connections watcher per device; any relevant change coalesces
+    // into a single _recompute via Qt.callLater.
 
-        function onEnabledChanged() {
-            root.enabled = root.adapter.enabled
-        }
+    function _scheduleRecompute() {
+        Qt.callLater(root._recompute)
     }
 
-    // Update device lists and connection count
-    Timer {
-        interval: 2000
-        running: root.enabled
-        repeat: true
-        triggeredOnStart: true
+    Instantiator {
+        model: root.adapter?.devices ?? null
+        delegate: Connections {
+            required property var modelData
+            target: modelData
+            function onConnectedChanged() { root._scheduleRecompute() }
+            function onPairedChanged()    { root._scheduleRecompute() }
+            function onTrustedChanged()   { root._scheduleRecompute() }
+            function onBlockedChanged()   { root._scheduleRecompute() }
+            function onNameChanged()      { root._scheduleRecompute() }
+            function onBatteryChanged()   { root._scheduleRecompute() }
+        }
+        onObjectAdded: root._scheduleRecompute()
+        onObjectRemoved: root._scheduleRecompute()
+    }
 
-        onTriggered: {
-            let count = 0
-            const paired = []
-            const discovered = []
+    onEnabledChanged: _scheduleRecompute()
+    Component.onCompleted: _scheduleRecompute()
 
-            if (!root.adapter || !root.adapter.devices) {
-                root.connected = false
-                root.connectedDeviceCount = 0
-                root.pairedDevices = []
-                root.discoveredDevices = []
-                return
+    function _recompute() {
+        if (!adapter || !adapter.devices || !enabled) {
+            connected = false
+            connectedDeviceCount = 0
+            pairedDevices = []
+            discoveredDevices = []
+            return
+        }
+
+        let count = 0
+        const paired = []
+        const discovered = []
+
+        for (const d of adapter.devices.values) {
+            if (!d) continue
+
+            if (d.connected) count++
+
+            if (d.paired || d.trusted) {
+                paired.push({
+                    name: d.name || "",
+                    address: d.address || "",
+                    connected: d.connected || false,
+                    battery: d.batteryAvailable ? d.battery : -1,
+                    icon: d.icon || "",
+                    iconName: deviceIcon(d),
+                    device: d
+                })
+            } else if (!d.blocked) {
+                // Filter out unnamed / MAC-only devices.
+                const name = (d.name || "").trim()
+                if (name.length === 0 || name === d.address) continue
+
+                discovered.push({
+                    name: name,
+                    address: d.address || "",
+                    connected: false,
+                    battery: -1,
+                    icon: d.icon || "",
+                    iconName: deviceIcon(d),
+                    device: d
+                })
             }
-
-            const devs = root.adapter.devices.values
-
-            for (const d of devs) {
-                if (!d) continue
-
-                if (d.connected) count++
-
-                if (d.paired || d.trusted) {
-                    paired.push({
-                        name: d.name || "",
-                        address: d.address || "",
-                        connected: d.connected || false,
-                        battery: d.batteryAvailable ? d.battery : -1,
-                        icon: d.icon || "",
-                        iconName: root.deviceIcon(d),
-                        device: d
-                    })
-                } else if (!d.blocked) {
-                    // Filter out unnamed / MAC-only devices
-                    const name = (d.name || "").trim()
-                    if (name.length === 0 || name === d.address) continue
-
-                    discovered.push({
-                        name: name,
-                        address: d.address || "",
-                        connected: false,
-                        battery: -1,
-                        icon: d.icon || "",
-                        iconName: root.deviceIcon(d),
-                        device: d
-                    })
-                }
-            }
-
-            root.connected = count > 0
-            root.connectedDeviceCount = count
-            root.pairedDevices = paired
-            root.discoveredDevices = discovered
-
-            // Clear busy state once the device list reflects the change
-            if (root.busyDeviceAddress && !root._pendingConnectDevice)
-                root.busyDeviceAddress = ""
         }
-    }
 
-    onEnabledChanged: {
-        if (!enabled) {
-            root.connected = false
-            root.connectedDeviceCount = 0
-            root.pairedDevices = []
-            root.discoveredDevices = []
-            root.scanning = false
-        }
-    }
+        connected = count > 0
+        connectedDeviceCount = count
+        pairedDevices = paired
+        discoveredDevices = discovered
 
-    Component.onCompleted: {
-        if (adapter) {
-            enabled = adapter.enabled
+        // Auto-connect once pairing completed (was a 1 s polling timer).
+        const pending = _pendingConnectDevice
+        if (pending && pending.paired) {
+            pending.trusted = true
+            pending.connected = true
+            _pendingConnectDevice = null
+            busyDeviceAddress = ""
         }
+
+        // Clear busy state once the device list reflects the change.
+        if (busyDeviceAddress && !_pendingConnectDevice)
+            busyDeviceAddress = ""
     }
 }

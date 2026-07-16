@@ -10,7 +10,11 @@
 
 #include "../IcalParser.h"
 #include "../EventTypes.h"
+#include "../CalendarStore.h"
 #include "Fixtures.h"
+
+#include <QtCore/QTemporaryDir>
+#include <QtTest/QSignalSpy>
 
 class CalendarTests : public QObject {
     Q_OBJECT
@@ -27,6 +31,14 @@ private:
         const QString path = f.fileName();
         f.close();
         return IcalParser::parseFile(path, calendar);
+    }
+
+    // Helper: write raw bytes to an exact path.
+    void writeFile(const QString& path, const QByteArray& text) {
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write(text);
+        f.close();
     }
 
     // Helper: count occurrences in a date range.
@@ -252,6 +264,209 @@ private slots:
         QVERIFY(recurrenceFromString(QStringLiteral("yearly")) == Recurrence::Yearly);
         QVERIFY(recurrenceFromString(QStringLiteral("none")) == Recurrence::None);
         QVERIFY(recurrenceFromString(QStringLiteral("garbage")) == Recurrence::None);
+    }
+
+    // ── Floating time (no TZID, no Z) ──────────────────────────────
+
+    void floatingTimeIsLocalWallClock() {
+        // RFC 5545 floating time = wall clock in the viewer's zone. It was
+        // previously read as UTC, shifting display by the local UTC offset.
+        const QByteArray ics =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:floating@test\r\n"
+            "DTSTART:20260301T090000\r\n"
+            "DTEND:20260301T100000\r\n"
+            "SUMMARY:Floating\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        auto events = parseFixture(ics);
+        QCOMPARE(events.size(), size_t(1));
+        QCOMPARE(events[0].start.time(), QTime(9, 0));
+        QCOMPARE(events[0].start.date(), QDate(2026, 3, 1));
+        QVERIFY(events[0].timezone.isFloating);
+    }
+
+    // ── Override identity exposure ─────────────────────────────────
+
+    void overrideIdentityExposed() {
+        const QByteArray ics =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series@test\r\n"
+            "RECURRENCE-ID:20260504T090000Z\r\n"
+            "DTSTART:20260504T140000Z\r\n"
+            "DTEND:20260504T150000Z\r\n"
+            "SUMMARY:Moved instance\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        auto events = parseFixture(ics);
+        QCOMPARE(events.size(), size_t(1));
+        QVERIFY(events[0].isOverride());
+        const QVariantMap m = events[0].toVariantMap();
+        QVERIFY(m.value(QStringLiteral("isOverride")).toBool());
+        QVERIFY(m.value(QStringLiteral("recurrenceId")).toDateTime().isValid());
+    }
+
+    // ── Iterator fast-forward for old series ───────────────────────
+
+    void oldDailySeriesStillExpands() {
+        // A daily series started in 2010 needs ~5800 iterations to reach
+        // 2026 — beyond the old 5000-iteration cap, so it silently
+        // disappeared. set_start fast-forwards past the gap.
+        const QByteArray ics =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:old-daily@test\r\n"
+            "DTSTART:20100104T090000Z\r\n"
+            "DTEND:20100104T093000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Ancient standup\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        auto events = parseFixture(ics);
+        QCOMPARE(events.size(), size_t(1));
+        const int n = countInRange(events, QDate(2026, 6, 1), QDate(2026, 6, 7));
+        QCOMPARE(n, 7);
+    }
+
+    // ── Store-level override flows (the data-loss regression) ──────
+
+    void storeOverrideDeleteKeepsSeries() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString calDir = tmp.path() + QStringLiteral("/cal1");
+
+        const QString masterPath = calDir + QStringLiteral("/series.ics");
+        const QString overridePath = calDir + QStringLiteral("/series-override.ics");
+        writeFile(masterPath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        writeFile(overridePath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series@test\r\n"
+            "RECURRENCE-ID:20260505T090000Z\r\n"
+            "DTSTART:20260505T140000Z\r\n"
+            "DTEND:20260505T150000Z\r\n"
+            "SUMMARY:Moved\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+
+        // Delete the MOVED occurrence, addressed by (uid, recurrenceId).
+        const QDateTime rid = QDateTime::fromString(
+            QStringLiteral("2026-05-05T09:00:00Z"), Qt::ISODate);
+        store.deleteEventCmd(QStringLiteral("series@test"),
+                             QStringLiteral("this"),
+                             QDateTime(), rid);
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(),
+                 qPrintable(done.at(0).at(1).toString()));
+
+        // The series master MUST survive; the override file must be gone.
+        QVERIFY(QFile::exists(masterPath));
+        QVERIFY(!QFile::exists(overridePath));
+
+        // The master gained an EXDATE at the ORIGINAL slot, so neither the
+        // moved nor the original occurrence renders on that day.
+        auto events = IcalParser::parseFile(masterPath, QStringLiteral("cal1"));
+        QCOMPARE(events.size(), size_t(1));
+        QCOMPARE(events[0].exdates.size(), size_t(1));
+        const auto day = IcalParser::expandRange(events, QDate(2026, 5, 5), QDate(2026, 5, 5));
+        QCOMPARE(day.size(), 0);
+        // ...while the rest of the series is intact.
+        const auto week = IcalParser::expandRange(events, QDate(2026, 5, 4), QDate(2026, 5, 10));
+        QCOMPARE(week.size(), 6);
+    }
+
+    void storeSeriesDeleteRemovesOrphanOverrides() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString calDir = tmp.path() + QStringLiteral("/cal1");
+
+        const QString masterPath = calDir + QStringLiteral("/series.ics");
+        const QString overridePath = calDir + QStringLiteral("/series-override.ics");
+        writeFile(masterPath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series2@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        writeFile(overridePath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series2@test\r\n"
+            "RECURRENCE-ID:20260505T090000Z\r\n"
+            "DTSTART:20260505T140000Z\r\n"
+            "DTEND:20260505T150000Z\r\n"
+            "SUMMARY:Moved\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+        store.deleteEventCmd(QStringLiteral("series2@test"),
+                             QStringLiteral("all"),
+                             QDateTime(), QDateTime());
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(),
+                 qPrintable(done.at(0).at(1).toString()));
+        // No orphan override may survive the series deletion.
+        QVERIFY(!QFile::exists(masterPath));
+        QVERIFY(!QFile::exists(overridePath));
+    }
+
+    void storeOverrideEditTouchesOnlyOverride() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString calDir = tmp.path() + QStringLiteral("/cal1");
+
+        const QString masterPath = calDir + QStringLiteral("/series.ics");
+        const QString overridePath = calDir + QStringLiteral("/series-override.ics");
+        writeFile(masterPath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series3@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        writeFile(overridePath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:series3@test\r\n"
+            "RECURRENCE-ID:20260505T090000Z\r\n"
+            "DTSTART:20260505T140000Z\r\n"
+            "DTEND:20260505T150000Z\r\n"
+            "SUMMARY:Moved\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+
+        QVariantMap fields;
+        fields.insert(QStringLiteral("title"), QStringLiteral("Renamed instance"));
+        const QDateTime rid = QDateTime::fromString(
+            QStringLiteral("2026-05-05T09:00:00Z"), Qt::ISODate);
+        store.editEventCmd(QStringLiteral("series3@test"), fields,
+                           QStringLiteral("all"), QDateTime(), rid);
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(),
+                 qPrintable(done.at(0).at(1).toString()));
+
+        auto master = IcalParser::parseFile(masterPath, QStringLiteral("cal1"));
+        QCOMPARE(master.size(), size_t(1));
+        QCOMPARE(master[0].title, QStringLiteral("Series"));   // untouched
+
+        auto override_ = IcalParser::parseFile(overridePath, QStringLiteral("cal1"));
+        QCOMPARE(override_.size(), size_t(1));
+        QCOMPARE(override_[0].title, QStringLiteral("Renamed instance"));
+        QVERIFY(override_[0].isOverride());
     }
 };
 

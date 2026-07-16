@@ -19,7 +19,7 @@ Item {
     signal close()
 
     readonly property alias contentItem: contentItem
-    default property alias data: contentItem.data
+    default property alias contents: contentItem.data
 
     property Component backgroundComponent: null
 

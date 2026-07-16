@@ -1,0 +1,7 @@
+module qs.src.features.dashboard.components.maintab_elements
+
+ClockElement 1.0 ClockElement.qml
+QuickActionsElement 1.0 QuickActionsElement.qml
+SystemMonitoringElement 1.0 SystemMonitoringElement.qml
+UserInfoElement 1.0 UserInfoElement.qml
+WeatherElement 1.0 WeatherElement.qml

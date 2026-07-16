@@ -34,13 +34,13 @@ Scope {
         HyprlandFocusGrab {
             active: GlobalStates.notificationCenterOpen
             windows: [centerWindow]
-            onCleared: GlobalStates.notificationCenterOpen = false
+            onCleared: GlobalStates.closePanel("notificationCenter")
         }
 
         // Scrim overlay
         Rectangle {
             anchors.fill: parent
-            color: "black"
+            color: Theme.scrim
             opacity: panelSlide.visible ? 0.32 : 0
             visible: GlobalStates.notificationCenterOpen
 
@@ -48,12 +48,13 @@ Scope {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium2
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: GlobalStates.notificationCenterOpen = false
+                onClicked: GlobalStates.closePanel("notificationCenter")
             }
         }
 
@@ -88,6 +89,7 @@ Scope {
                 NumberAnimation {
                     duration: Tokens.motion.duration.medium1
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -96,7 +98,7 @@ Scope {
             // Keyboard navigation
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Escape) {
-                    GlobalStates.notificationCenterOpen = false
+                    GlobalStates.closePanel("notificationCenter")
                     event.accepted = true
                 } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
                     notifList.decrementCurrentIndex()
@@ -166,7 +168,7 @@ Scope {
                             iconName: NotificationService.doNotDisturb ? "notifications_off" : "do_not_disturb_on"
                             iconSize: Tokens.iconSize.large
                             variant: "standard"
-                            onClicked: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+                            onClicked: NotificationService.toggleDoNotDisturb()
 
                             Rectangle {
                                 anchors.fill: parent
@@ -259,7 +261,7 @@ Scope {
                                 required property string appIcon
                                 required property string image
                                 required property int urgency
-                                required property int timestamp
+                                required property real timestamp
 
                                 readonly property bool itemVisible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
 
@@ -276,7 +278,7 @@ Scope {
                                         "appName": appName,
                                         "appIcon": appIcon,
                                         "image": image,
-                                        "actions": [],
+                                        "actions": NotificationHistory.actionsAt(index),
                                         "urgency": urgency,
                                         "timestamp": timestamp
                                     })

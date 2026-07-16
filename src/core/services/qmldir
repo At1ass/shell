@@ -1,4 +1,5 @@
 module qs.src.core.services
+NotifData 1.0 NotifData.qml
 singleton ActiveWindowService 1.0 ActiveWindowService.qml
 singleton AppFrequencyService 1.0 AppFrequencyService.qml
 singleton AudioService 1.0 AudioService.qml
@@ -16,6 +17,7 @@ singleton IdleInhibitorService 1.0 IdleInhibitorService.qml
 singleton KeyboardLayoutService 1.0 KeyboardLayoutService.qml
 singleton LauncherService 1.0 LauncherService.qml
 singleton MprisController 1.0 MprisController.qml
+singleton NetworkEventMonitor 1.0 NetworkEventMonitor.qml
 singleton NetworkService 1.0 NetworkService.qml
 singleton NightLightService 1.0 NightLightService.qml
 singleton NotificationDND 1.0 NotificationDND.qml

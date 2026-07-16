@@ -7,7 +7,6 @@ Item {
     id: root
 
     property bool checked: false
-    property bool enabled: true
     // Optional check glyph inside the thumb when on.
     property bool showCheckIcon: false
 

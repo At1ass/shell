@@ -38,9 +38,13 @@ Singleton {
         network.connect()
     }
 
-    // Connect to a new network with password (only place nmcli is needed)
+    // Connect to a new network with password (only place nmcli is needed).
+    // The passphrase goes through STDIN (`--ask`), never through argv —
+    // /proc/<pid>/cmdline is world-readable (CWE-214).
     function connectToNewNetwork(ssid, password) {
-        newConnectProc.command = ["nmcli", "device", "wifi", "connect", ssid, "password", password]
+        if (newConnectProc.running) return
+        newConnectProc._password = password
+        newConnectProc.command = ["nmcli", "--ask", "device", "wifi", "connect", ssid]
         newConnectProc.running = true
     }
 
@@ -85,6 +89,16 @@ Singleton {
     // Process for connecting to new networks with password
     Process {
         id: newConnectProc
+
+        property string _password: ""
+
+        stdinEnabled: true
+        onStarted: {
+            // nmcli --ask reads the passphrase from stdin when not on a TTY.
+            write(_password + "\n")
+            _password = ""
+            stdinEnabled = false
+        }
 
         stdout: StdioCollector {
             onStreamFinished: {

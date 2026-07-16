@@ -11,7 +11,7 @@
 #include <vector>
 #include <algorithm>
 
-// MCU headers (как у тебя)
+// MCU headers
 #include <cpp/scheme/scheme_tonal_spot.h>
 #include <cpp/scheme/scheme_vibrant.h>
 #include <cpp/scheme/scheme_expressive.h>
@@ -28,17 +28,22 @@ static QImage readDownscaled(const QString& path, int maxSide = 160) {
     QImageReader r(path);
     r.setAutoTransform(true);
 #if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-    r.setAllocationLimit(128); // МБ — защита от гигантов
+    r.setAllocationLimit(128); // MB — guard against gigantic images
 #endif
-    const QSize s = r.size();  // может быть (0,0) для некоторых форматов
+    const QSize s = r.size();  // may be (0,0) for some formats
     if (s.isValid()) {
         QSize t = s;
         t.scale(QSize(maxSide, maxSide), Qt::KeepAspectRatio);
-        r.setScaledSize(t);    // даунскейл на этапе декодирования
+        r.setScaledSize(t);    // downscale during decode
     }
     QImage img = r.read();
     if (img.isNull()) {
         return img;
+    }
+    // Formats that cannot report their size upfront decode at full
+    // resolution — scale down before quantization runs on megapixels.
+    if (!s.isValid() && (img.width() > maxSide || img.height() > maxSide)) {
+        img = img.scaled(maxSide, maxSide, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
     if (img.format() != QImage::Format_ARGB32)
         img = img.convertToFormat(QImage::Format_ARGB32);
@@ -46,23 +51,34 @@ static QImage readDownscaled(const QString& path, int maxSide = 160) {
 }
 
 McuTheme::McuTheme(QObject* parent) : QObject(parent) {
-    // дефолт: цвет-«семя»
+    // Default seed color
     setSource(QColor("#6750A4"));
 }
 
 McuTheme::~McuTheme() {
-    // Инвалидируем счётчики генерации, чтобы отложенные коллбеки
-    // не выполняли работу (QPointer защитит от use-after-free,
-    // а generation guard — от устаревших обновлений).
+    // Invalidate generation counters so queued callbacks do no work
+    // (QPointer protects against use-after-free, the generation guard
+    // against stale updates).
     m_generation = UINT64_MAX;
     m_seedRequest = UINT64_MAX;
 
-    // Ждём завершения фьючеров для чистого шатдауна
-    // (лямбды используют QPointer, поэтому обращения к this не будет).
-    if (m_future.isRunning())
-        m_future.waitForFinished();
-    if (m_seedFuture.isRunning())
-        m_seedFuture.waitForFinished();
+    // Wait for EVERY in-flight task for a clean shutdown — superseded
+    // futures included (their lambdas only touch QPointer + statics).
+    for (auto& f : m_inflight) {
+        if (f.isRunning())
+            f.waitForFinished();
+    }
+}
+
+void McuTheme::setValidInternal(bool v) {
+    if (m_valid == v) return;
+    m_valid = v;
+    emit validChanged();
+}
+
+void McuTheme::trackFuture(const QFuture<void>& f) {
+    m_inflight.removeIf([](const QFuture<void>& g) { return g.isFinished(); });
+    m_inflight.append(f);
 }
 
 uint32_t McuTheme::qcolorToArgb(const QColor& c) {
@@ -90,7 +106,7 @@ void McuTheme::setSource(const QVariant& v) {
     const int id = v.metaType().id();
 
     if (id == QMetaType::QColor) {
-        // Цвет — быстрый путь
+        // Color — fast path
         const QColor c = v.value<QColor>();
         if (!c.isValid()) {
             qWarning() << "McuTheme: invalid QColor in source";
@@ -99,9 +115,9 @@ void McuTheme::setSource(const QVariant& v) {
         m_source   = v;
         m_kind     = SourceKind::Color;
         m_seedArgb = qcolorToArgb(c);
-        m_valid    = false; // будет true после generateColorScheme
+        setValidInternal(false); // true again after generateColorScheme
 
-        // Luminance из QColor (Rec. 709)
+        // Luminance from QColor (Rec. 709)
         const qreal lum = 0.2126 * c.redF() + 0.7152 * c.greenF() + 0.0722 * c.blueF();
         if (!qFuzzyCompare(m_luminance, lum)) {
             m_luminance = lum;
@@ -115,13 +131,13 @@ void McuTheme::setSource(const QVariant& v) {
 
     if (id == QMetaType::QUrl) {
         const QUrl u = v.toUrl();
-        if (!u.isValid()) {
+        if (!u.isValid() || u.isEmpty()) {
             qWarning() << "McuTheme: invalid QUrl in source";
             return;
         }
         m_source = v;
         m_kind   = SourceKind::Image;
-        m_valid  = false;
+        setValidInternal(false);
         emit sourceChanged();
 
         const auto requestId = ++m_seedRequest;
@@ -130,7 +146,7 @@ void McuTheme::setSource(const QVariant& v) {
             emit loadingChanged();
         }
 
-        m_seedFuture = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, u]() {
+        auto future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, u]() {
             uint32_t seed = 0;
             qreal luminance = 0.5;
             const bool ok = extractSeedFromImage(u, seed, luminance);
@@ -156,10 +172,11 @@ void McuTheme::setSource(const QVariant& v) {
                 guard->applySeed();
             }, Qt::QueuedConnection);
         });
+        trackFuture(future);
         return;
     }
 
-    // Никаких строк: это основная причина двусмысленности.
+    // No strings: they are the main source of ambiguity.
     qWarning() << "McuTheme: source must be QColor or QUrl; QString not supported."
                << "Got type:" << v.metaType().name();
 }
@@ -168,7 +185,7 @@ void McuTheme::setDarkMode(bool dark) {
     if (m_darkMode == dark) return;
     m_darkMode = dark;
     emit darkModeChanged();
-    applySeed(); // без повторного квантования
+    applySeed(); // no re-quantization needed
 }
 
 void McuTheme::setVariant(const QString& variant) {
@@ -201,7 +218,7 @@ bool McuTheme::extractSeedFromImage(const QUrl& url, uint32_t& outSeed, qreal& o
     const size_t pixelCount = size_t(w) * size_t(h);
     std::vector<uint32_t> pixels(pixelCount);
 
-    // Копируем пиксели и одновременно считаем luminance (Rec. 709)
+    // Copy pixels and accumulate luminance (Rec. 709) in one pass
     double lumSum = 0.0;
     size_t lumCount = 0;
     for (int y = 0; y < h; ++y) {
@@ -243,11 +260,10 @@ void McuTheme::applySeed() {
         emit loadingChanged();
     }
 
-    // Генерация в пуле потоков, чтобы не блокировать GUI.
-    // QPointer guard защищает от use-after-free: если McuTheme уничтожен
-    // до обработки коллбека, guard станет null и коллбек не выполнится.
-    // buildScheme — статическая функция, не обращается к this.
-    m_future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, seed, dark, variant, contrast]() {
+    // Generate in the thread pool to keep the GUI thread free. The QPointer
+    // guard prevents use-after-free; the generation guard drops stale
+    // results. buildScheme is static and never touches `this`.
+    auto future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, seed, dark, variant, contrast]() {
         const QVariantMap colors = buildScheme(seed, dark, variant, contrast);
 
         auto* app = QCoreApplication::instance();
@@ -258,8 +274,7 @@ void McuTheme::applySeed() {
                 return;
 
             guard->m_colors = colors;
-            guard->m_valid = true;
-            emit guard->validChanged();
+            guard->setValidInternal(true);
             emit guard->colorsChanged();
 
             if (guard->m_loading) {
@@ -268,6 +283,7 @@ void McuTheme::applySeed() {
             }
         }, Qt::QueuedConnection);
     });
+    trackFuture(future);
 }
 
 QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) {

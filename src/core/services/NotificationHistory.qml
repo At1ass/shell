@@ -44,6 +44,19 @@ Singleton {
         root._expandedGroups[appName] = !(root._expandedGroups[appName] !== false)
         root._groupVersion++
     }
+    // Returns the actions of row i as a plain JS array. ListModel stores
+    // nested arrays as sub-models, which delegate code cannot .filter().
+    function actionsAt(i) {
+        const nested = historyList.get(i)?.actions
+        if (!nested || typeof nested.count !== "number") return []
+        const out = []
+        for (let j = 0; j < nested.count; j++) {
+            const a = nested.get(j)
+            out.push({ "identifier": a.identifier || "", "text": a.text || "" })
+        }
+        return out
+    }
+
     function getGroupCount(appName) {
         let count = 0
         for (var i = 0; i < historyList.count; i++) {

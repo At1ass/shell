@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.services
+import qs.src.core.config
 
 Scope {
     WlSessionLock {
@@ -9,7 +10,7 @@ Scope {
 
         WlSessionLockSurface {
             id: lockSurface
-            color: "black"
+            color: Theme.surface
 
             LockSurface {
                 anchors.fill: parent

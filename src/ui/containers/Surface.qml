@@ -38,7 +38,7 @@ Item {
         z: -1
         visible: root._hasShadow
         shadowEnabled: root._hasShadow
-        shadowColor: Qt.rgba(0, 0, 0, root._level.shadowOpacity)
+        shadowColor: Qt.alpha(Theme.shadow, root._level.shadowOpacity)
         blurMax: 64
         shadowBlur: Math.min(1.0, root._level.shadowRadius / 64)
         shadowVerticalOffset: root._level.shadowVerticalOffset

@@ -58,10 +58,8 @@ Surface {
     }
 
     // Primary surface tint (parent is Surface's content holder — use root.radius).
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.primary
-        opacity: 0.08
+    SurfaceTint {
+        level: 2
         radius: root.radius
     }
 

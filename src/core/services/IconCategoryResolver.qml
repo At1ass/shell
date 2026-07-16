@@ -5,15 +5,15 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 /**
- * Определение Material Design Icons по категориям приложений
- * Взято из Caelestia: utils/Icons.qml
+ * Resolves Material Design Icons by application category
+ * Adapted from Caelestia: utils/Icons.qml
  */
 Singleton {
     id: root
 
     /**
-     * Маппинг категорий .desktop файлов на Material Icons
-     * Взято из ../caelestia/utils/Icons.qml
+     * Mapping of .desktop file categories to Material Icons
+     * Adapted from ../caelestia/utils/Icons.qml
      */
     readonly property var categoryIcons: ({
         WebBrowser: "web",
@@ -59,21 +59,21 @@ Singleton {
     })
 
     /**
-     * Получить Material Icon для класса окна по категории
-     * @param windowClass - класс окна из Hyprland (например "Firefox", "code")
-     * @param fallback - иконка по умолчанию
-     * @return string - название Material Icon (например "web", "code", "terminal")
+     * Get Material Icon for a window class by category
+     * @param windowClass - window class from Hyprland (e.g. "Firefox", "code")
+     * @param fallback - default icon
+     * @return string - Material Icon name (e.g. "web", "code", "terminal")
      */
     function getAppCategoryIcon(windowClass, fallback) {
         if (!windowClass || windowClass.length === 0) {
             return fallback || "terminal"
         }
 
-        // Попытка найти через Desktop Entry
+        // Try to find via Desktop Entry
         const entry = DesktopEntries.heuristicLookup(windowClass)
 
         if (entry && entry.categories) {
-            // Проходим по всем категориям
+            // Iterate over all categories
             for (const [key, value] of Object.entries(categoryIcons)) {
                 if (entry.categories.includes(key)) {
                     return value
@@ -81,15 +81,15 @@ Singleton {
             }
         }
 
-        // Fallback - возвращаем иконку по умолчанию
+        // Fallback - return the default icon
         return fallback || "terminal"
     }
 
     /**
-     * Получить Material Icon для массива категорий
-     * @param categories - массив категорий из .desktop файла
-     * @param fallback - иконка по умолчанию
-     * @return string - название Material Icon
+     * Get Material Icon for an array of categories
+     * @param categories - category array from a .desktop file
+     * @param fallback - default icon
+     * @return string - Material Icon name
      */
     function getCategoryIcon(categories, fallback) {
         if (!categories || categories.length === 0) {

@@ -133,8 +133,8 @@ Item {
         Behavior on scale {
             NumberAnimation {
                 duration: Tokens.motion.duration.short3
-                easing.type: Easing.OutBack
-                easing.overshoot: 2
+                easing.type: Tokens.motion.easing.emphasizedDecelerate
+                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
             }
         }
 
@@ -148,8 +148,8 @@ Item {
             SequentialAnimation on opacity {
                 running: root.isUrgent
                 loops: Animation.Infinite
-                NumberAnimation { from: 0.0; to: 0.5; duration: 650; easing.type: Easing.InOutSine }
-                NumberAnimation { from: 0.5; to: 0.0; duration: 650; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.0; to: 0.5; duration: Tokens.motion.duration.extraLong1; easing.type: Tokens.motion.easing.standard; easing.bezierCurve: Tokens.motion.easing.standardPoints }
+                NumberAnimation { from: 0.5; to: 0.0; duration: Tokens.motion.duration.extraLong1; easing.type: Tokens.motion.easing.standard; easing.bezierCurve: Tokens.motion.easing.standardPoints }
             }
         }
 

@@ -3,14 +3,17 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Mcu 1.0
-import qs.src.core.services
 
 Singleton {
     id: root
 
+    // Palette seed (wallpaper URL). Pushed by WallpaperManager via Binding —
+    // config never imports services (one-way dependency graph, AGENTS §3).
+    property url seed
+
     McuTheme {
         id: mcuTheme
-        source: WallpaperManager.currentWallpaper !== "" ? WallpaperManager.currentWallpaper : Qt.alpha("#6200EE", 0)
+        source: root.seed.toString() !== "" ? root.seed : Qt.alpha("#6200EE", 0)
         darkMode: AppConfig.darkMode
         variant: AppConfig.themeVariant
         contrast: 0.5
@@ -66,7 +69,7 @@ Singleton {
     property color neutralVariantPaletteKeyColor
     property color shadow
     property color scrim
-    // M3 не определяет цвет текста поверх скрима; скрим всегда тёмный
+    // M3 defines no on-scrim role; the scrim is always dark.
     readonly property color scrimForeground: "#FFFFFF"
     property color surfaceTint
     property color primaryFixed

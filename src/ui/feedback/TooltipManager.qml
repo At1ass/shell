@@ -151,7 +151,7 @@ Scope {
                     try {
                         const ownerGlobal = bar.contentItem.mapFromItem(shownItem.owner, 0, 0)
                         const targetCenter = ownerGlobal.x + shownItem.owner.width / 2
-                        // Центрируем tooltip под элементом, но не даем выехать за границы
+                        // Center the tooltip under the item, but keep it within bounds
                         const tooltipLeft = targetCenter - targetWidth / 2
                         const screenMargin = Tokens.spacing.medium
                         const maxLeft = bar.width - targetWidth - screenMargin

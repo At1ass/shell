@@ -35,7 +35,6 @@ Singleton {
     // === Typed accessors ===
 
     // Appearance
-    readonly property string themeSource: data.appearance?.theme?.source ?? "wallpaper"
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
@@ -69,12 +68,13 @@ Singleton {
     readonly property int launcherWidth: data.launcher?.width ?? 600
     readonly property int launcherListMaxHeight: data.launcher?.listMaxHeight ?? 400
     readonly property int launcherTopMargin: data.launcher?.topMargin ?? 56
+    readonly property var launcherHiddenApps: data.launcher?.hiddenApps ?? []
 
     // Services
     readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
     readonly property string weatherLocation: data.services?.weather?.location ?? "London"
-    readonly property real weatherLatitude: data.services?.weather?.latitude ?? 53.2
-    readonly property real weatherLongitude: data.services?.weather?.longitude ?? 45.0
+    readonly property real weatherLatitude: data.services?.weather?.latitude ?? 51.5
+    readonly property real weatherLongitude: data.services?.weather?.longitude ?? -0.12
     readonly property int weatherRefreshMinutes: data.services?.weather?.refreshMinutes ?? 15
     readonly property string weatherUnits: data.services?.weather?.units ?? "metric"
     readonly property bool calendarRemindersEnabled: data.services?.calendar?.reminders?.enabled ?? true
@@ -94,7 +94,7 @@ Singleton {
 
     // Power Menu
     readonly property bool powerMenuConfirmActions: data.powerMenu?.confirmActions ?? true
-    readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown"]
+    readonly property var powerMenuActions: data.powerMenu?.actions ?? ["lock", "suspend", "reboot", "shutdown", "logout"]
 
     // Gaming Mode
     readonly property bool gmDisableAnimations: data.gamingMode?.disableAnimations ?? true
@@ -116,9 +116,6 @@ Singleton {
     // Night Light
     readonly property int nightLightTemperature: data.services?.nightLight?.temperature ?? 4500
 
-    // Hyprland
-    readonly property int hyprlandWorkspaceCount: data.hyprland?.workspaceCount ?? 10
-
     // Wallpaper — top-level keys read by WallpaperManager.
     // Per-monitor settings (sourceId, fillMode, autoChange, randomOrder) are
     // read directly via data.wallpaper.monitors[name] inside WallpaperManager.
@@ -129,8 +126,6 @@ Singleton {
     // Wallpaper state (from state.json)
     readonly property var wallpaperState: stateData.wallpaper ?? ({})
 
-    property bool _suppressConfigReload: false
-
     // FileView for config loading
     FileView {
         id: configFile
@@ -138,34 +133,28 @@ Singleton {
         watchChanges: true
 
         onLoaded: {
-            if (root._suppressConfigReload) {
-                root._suppressConfigReload = false
-                return
-            }
-            console.log("Config loaded from:", root.configPath)
-            root.data = root.parseConfigText(text())
+            // Keep the last good config when the file is transiently invalid
+            // (e.g. a hot-reload fired mid-edit on a half-saved JSON).
+            const parsed = root.parseConfigText(text())
+            if (parsed !== null) root.data = parsed
             root.ready = true
         }
 
         onLoadFailed: error => {
-            console.warn("Failed to load config:", error)
-            console.log("Loading default config from:", root.defaultConfigPath)
+            console.warn("Failed to load config:", error, "- falling back to", root.defaultConfigPath)
             root.loadDefaultConfig()
         }
 
-        onFileChanged: {
-            console.log("Config file changed, reloading...")
-            reload()
-        }
+        onFileChanged: reload()
     }
 
+    // Returns the parsed object, or null when the text is not valid JSON.
     function parseConfigText(rawText) {
         try {
-            const parsed = JSON.parse(rawText)
-            return parsed || {}
+            return JSON.parse(rawText) || {}
         } catch (e) {
             console.warn("Config parse: failed to parse JSON", e)
-            return {}
+            return null
         }
     }
 
@@ -177,8 +166,7 @@ Singleton {
         id: defaultConfigLoader
 
         onLoaded: {
-            console.log("Default config loaded from:", root.defaultConfigPath)
-            root.data = root.parseConfigText(text())
+            root.data = root.parseConfigText(text()) ?? {}
             root.ready = true
         }
 
@@ -196,6 +184,18 @@ Singleton {
     property bool _stateLoaded: false
     readonly property bool stateReady: _stateLoaded
 
+    // Writes that arrive before state.json finished loading. Applying them
+    // immediately would merge into an EMPTY stateData; if the save timer then
+    // fired first, the file on disk would be overwritten with that single
+    // section (dock pins / gaming mode / DND destroyed).
+    property var _pendingStateWrites: []
+
+    function _flushPendingStateWrites() {
+        const pending = _pendingStateWrites
+        _pendingStateWrites = []
+        for (const w of pending) updateState(w.section, w.data)
+    }
+
     FileView {
         id: stateFile
         watchChanges: false
@@ -208,30 +208,15 @@ Singleton {
                 root.stateData = {}
             }
             root._stateLoaded = true
+            root._flushPendingStateWrites()
         }
 
         onLoadFailed: error => {
-            console.log("AppConfig: state.json not found, will be created on first write")
+            // Normal on first run: state.json is created on first write.
             root.stateData = {}
             root._stateLoaded = true
+            root._flushPendingStateWrites()
         }
-    }
-
-    Timer {
-        id: configSaveTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            root._suppressConfigReload = true
-            configFile.setText(JSON.stringify(root.data, null, 2))
-        }
-    }
-
-    function updateConfig(section, newData) {
-        let current = Object.assign({}, root.data || {})
-        current[section] = newData
-        root.data = current
-        configSaveTimer.restart()
     }
 
     Timer {
@@ -244,6 +229,10 @@ Singleton {
     }
 
     function updateState(section, data) {
+        if (!_stateLoaded) {
+            _pendingStateWrites.push({ section: section, data: data })
+            return
+        }
         // Assign a NEW top-level object so the `var` property emits stateDataChanged
         // (reassigning the same reference does not — bindings would not re-evaluate).
         let current = Object.assign({}, root.stateData || {})

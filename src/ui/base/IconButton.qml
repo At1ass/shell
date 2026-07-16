@@ -11,7 +11,6 @@ Item {
     property string iconName: "star"
     property int iconSize: Tokens.iconSize.large  // 24dp default
     property color iconColor: defaultIconColor()
-    property bool enabled: true
 
     // Size properties
     property int containerSize: 40
@@ -44,6 +43,7 @@ Item {
             ColorAnimation {
                 duration: Tokens.motion.duration.short4
                 easing.type: Tokens.motion.easing.standard
+                easing.bezierCurve: Tokens.motion.easing.standardPoints
             }
         }
 

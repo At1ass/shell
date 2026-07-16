@@ -65,7 +65,7 @@ Rectangle {
             maskSource: maskItem
         }
 
-        // Маска для скругления
+        // Rounding mask
         Item {
             id: maskItem
             anchors.fill: parent
@@ -74,7 +74,7 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: root.radius  // Использует тот же радиус (auto или custom)
+                radius: root.radius  // Uses the same radius (auto or custom)
                 color: "white"
             }
         }

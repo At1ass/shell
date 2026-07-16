@@ -114,6 +114,6 @@ ColumnLayout {
         title: "No wired connection"
         subtitle: "Connect an Ethernet cable"
         iconContainerSize: 56
-        iconSize: 32
+        iconSize: Tokens.iconSize.extraLarge
     }
 }

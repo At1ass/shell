@@ -74,6 +74,7 @@ Item {
                     NumberAnimation {
                         duration: Tokens.motion.duration.long2
                         easing.type: Tokens.motion.easing.emphasizedDecelerate
+                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
                     }
                 }
 

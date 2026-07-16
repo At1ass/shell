@@ -42,7 +42,7 @@ Dialog {
         spacing: Tokens.spacing.medium
 
         MaterialText {
-            text: root.intent === "edit" ? "Изменить событие" : "Удалить событие"
+            text: root.intent === "edit" ? "Edit event" : "Delete event"
             textStyle: "headlineSmall"
             colorRole: "onSurface"
             font.weight: Font.Bold
@@ -51,8 +51,8 @@ Dialog {
 
         MaterialText {
             text: root.intent === "edit"
-                ? "Это повторяющееся событие. Применить изменение к одному экземпляру или ко всей серии?"
-                : "Это повторяющееся событие. Удалить только этот экземпляр или всю серию?"
+                ? "This is a recurring event. Apply the change to a single occurrence or to the whole series?"
+                : "This is a recurring event. Delete only this occurrence or the whole series?"
             textStyle: "bodyMedium"
             colorRole: "onSurfaceVariant"
             wrapMode: Text.WordWrap
@@ -66,7 +66,7 @@ Dialog {
             spacing: Tokens.spacing.small
 
             MaterialButton {
-                text: "Отмена"
+                text: "Cancel"
                 variant: "text"
                 onClicked: root.close()
             }
@@ -74,7 +74,7 @@ Dialog {
             Item { Layout.fillWidth: true }
 
             MaterialButton {
-                text: "Только это"
+                text: "Only this"
                 variant: "tonal"
                 onClicked: {
                     root.choiceMade("this", root.intent, root.target, root.pendingFields)
@@ -83,7 +83,7 @@ Dialog {
             }
 
             MaterialButton {
-                text: "Всю серию"
+                text: "Whole series"
                 variant: "filled"
                 onClicked: {
                     root.choiceMade("all", root.intent, root.target, root.pendingFields)

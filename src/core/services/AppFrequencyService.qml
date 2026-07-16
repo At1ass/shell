@@ -3,11 +3,11 @@ import QtQuick
 import QtQuick.LocalStorage
 import Quickshell
 
-// Singleton для отслеживания частоты запуска приложений
+// Singleton tracking application launch frequency
 Singleton {
     id: root
 
-    // Кэш топ приложений (обновляется при изменении)
+    // Cache of top apps (updated on change)
     property var topApps: []
 
     signal frequencyChanged()
@@ -29,7 +29,7 @@ Singleton {
     function initDatabase() {
         var db = getDatabase()
         db.transaction(tx => {
-            // Создаем таблицу для частоты запуска приложений
+            // Create the app launch frequency table
             tx.executeSql(`
                 CREATE TABLE IF NOT EXISTS app_frequency (
                     app_id TEXT PRIMARY KEY,
@@ -38,12 +38,12 @@ Singleton {
                 )
             `)
 
-            // Индекс для сортировки по частоте
+            // Index for sorting by frequency
             tx.executeSql('CREATE INDEX IF NOT EXISTS idx_frequency ON app_frequency(frequency DESC)')
         })
     }
 
-    // Инкрементируем частоту при запуске приложения
+    // Increment frequency when an app is launched
     function incrementFrequency(appId) {
         if (!appId) return
 
@@ -51,7 +51,7 @@ Singleton {
         const now = new Date().toISOString()
 
         db.transaction(tx => {
-            // SQLite UPSERT: INSERT или UPDATE если существует
+            // SQLite UPSERT: INSERT or UPDATE if it exists
             tx.executeSql(`
                 INSERT INTO app_frequency (app_id, frequency, last_launched)
                 VALUES (?, 1, ?)
@@ -61,12 +61,12 @@ Singleton {
             `, [appId, now, now])
         })
 
-        // Перезагружаем топ приложения
+        // Reload the top apps
         loadTopApps()
         frequencyChanged()
     }
 
-    // Получить частоту для конкретного приложения
+    // Get the frequency for a specific app
     function getFrequency(appId) {
         var db = getDatabase()
         var frequency = 0
@@ -85,7 +85,7 @@ Singleton {
         return frequency
     }
 
-    // Загрузить топ N приложений по частоте
+    // Load top N apps by frequency
     function loadTopApps(limit = 10) {
         var db = getDatabase()
         var apps = []
@@ -109,7 +109,7 @@ Singleton {
         return apps
     }
 
-    // Получить все частоты (для сортировки в ApplicationProvider)
+    // Get all frequencies (for sorting in ApplicationProvider)
     function getAllFrequencies() {
         var db = getDatabase()
         var frequencies = ({})
@@ -126,7 +126,7 @@ Singleton {
         return frequencies
     }
 
-    // Очистить статистику (для отладки)
+    // Clear stats (for debugging)
     function clearStats() {
         var db = getDatabase()
         db.transaction(tx => {

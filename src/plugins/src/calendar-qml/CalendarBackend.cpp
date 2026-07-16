@@ -32,7 +32,13 @@ CalendarBackend::CalendarBackend(QObject* parent)
 
 CalendarBackend::~CalendarBackend() {
     m_workerThread.quit();
-    m_workerThread.wait();
+    // Bounded wait: a rescan stuck on dead network storage must not hang
+    // shell shutdown forever (project convention: wait(3000)).
+    if (!m_workerThread.wait(3000)) {
+        qWarning("CalendarBackend: worker thread did not stop in 3s");
+        m_workerThread.terminate();
+        m_workerThread.wait(1000);
+    }
 }
 
 // ── Setters ───────────────────────────────────────────────────────────
@@ -84,24 +90,28 @@ void CalendarBackend::addEvent(const QVariantMap& fields) {
 }
 
 void CalendarBackend::editEvent(const QString& uid, const QVariantMap& fields,
-                                const QString& scope, const QDateTime& occurrenceStart)
+                                const QString& scope, const QDateTime& occurrenceStart,
+                                const QDateTime& recurrenceId)
 {
     setLoading(true);
     QMetaObject::invokeMethod(m_store, "editEventCmd", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
                               Q_ARG(QVariantMap, fields),
                               Q_ARG(QString, scope),
-                              Q_ARG(QDateTime, occurrenceStart));
+                              Q_ARG(QDateTime, occurrenceStart),
+                              Q_ARG(QDateTime, recurrenceId));
 }
 
 void CalendarBackend::deleteEvent(const QString& uid, const QString& scope,
-                                  const QDateTime& occurrenceStart)
+                                  const QDateTime& occurrenceStart,
+                                  const QDateTime& recurrenceId)
 {
     setLoading(true);
     QMetaObject::invokeMethod(m_store, "deleteEventCmd", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
                               Q_ARG(QString, scope),
-                              Q_ARG(QDateTime, occurrenceStart));
+                              Q_ARG(QDateTime, occurrenceStart),
+                              Q_ARG(QDateTime, recurrenceId));
 }
 
 void CalendarBackend::refresh() {

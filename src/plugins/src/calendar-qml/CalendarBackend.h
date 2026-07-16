@@ -56,12 +56,17 @@ public:
     Q_INVOKABLE void loadEventsForRange(const QDate& start, const QDate& end);
     Q_INVOKABLE void loadEventsForDate(const QDate& date);
     Q_INVOKABLE void addEvent(const QVariantMap& fields);
+    // recurrenceId addresses an OVERRIDE (moved occurrence) — pass the
+    // value the event map exposes as `recurrenceId` when `isOverride` is
+    // true. Without it, uid alone resolves to the master series.
     Q_INVOKABLE void editEvent(const QString& uid, const QVariantMap& fields,
                                const QString& scope = QStringLiteral("all"),
-                               const QDateTime& occurrenceStart = QDateTime());
+                               const QDateTime& occurrenceStart = QDateTime(),
+                               const QDateTime& recurrenceId = QDateTime());
     Q_INVOKABLE void deleteEvent(const QString& uid,
                                  const QString& scope = QStringLiteral("all"),
-                                 const QDateTime& occurrenceStart = QDateTime());
+                                 const QDateTime& occurrenceStart = QDateTime(),
+                                 const QDateTime& recurrenceId = QDateTime());
     Q_INVOKABLE void refresh();
 
 signals:

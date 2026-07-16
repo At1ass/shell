@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
 import qs.src.ui.base
@@ -74,10 +75,8 @@ Surface {
     clip: true
 
     // Surface tint (parent is Surface's content holder — use root.radius).
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.primary
-        opacity: 0.06
+    SurfaceTint {
+        level: 1
         radius: root.radius
     }
 
@@ -145,7 +144,10 @@ Surface {
             columnSpacing: Tokens.spacing.small
 
             Repeater {
-                model: root.model
+                // ScriptModel diffs by object identity, so delegates (and
+                // their live ScreencopyViews) survive unrelated window events
+                // instead of being torn down on every reconcile.
+                model: ScriptModel { values: root.model }
 
                 delegate: Item {
                     id: previewDelegate

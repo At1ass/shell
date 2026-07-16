@@ -46,7 +46,7 @@ Item {
                 text: root.modelData.name || ""
                 textStyle: "bodyMedium"
                 colorRole: "primary"
-                font.family: "monospace"
+                font.family: Tokens.typography.monoFamily
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
@@ -58,7 +58,7 @@ Item {
                 text: root.modelData.params ? "(" + root.modelData.params + ")" : "()"
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
-                font.family: "monospace"
+                font.family: Tokens.typography.monoFamily
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }

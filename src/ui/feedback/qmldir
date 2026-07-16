@@ -9,3 +9,4 @@ Badge 1.0 Badge.qml
 ProgressIndicator 1.0 ProgressIndicator.qml
 Snackbar 1.0 Snackbar.qml
 MaterialMenu 1.0 MaterialMenu.qml
+Scrim 1.0 Scrim.qml

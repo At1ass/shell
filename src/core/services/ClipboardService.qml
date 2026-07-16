@@ -4,19 +4,19 @@ import Quickshell
 import Quickshell.Io
 import FuzzySearch
 
-// Сервис для работы с историей буфера обмена через cliphist
+// Clipboard history service backed by cliphist
 Singleton {
     id: root
 
-    // Команда cliphist
+    // cliphist command
     property string cliphistBinary: "cliphist"
 
-    // История буфера обмена
+    // Clipboard history
     property list<string> entries: []
 
-    // Подготовленные записи для поиска
+    // Entries prepared for search
     readonly property var preparedEntries: entries.map(entry => {
-        // Убираем ID в начале (формат cliphist: "ID\tCONTENT")
+        // Strip the leading ID (cliphist format: "ID\tCONTENT")
         const content = entry.replace(/^\s*\S+\s+/, "")
         return {
             content: content,
@@ -24,11 +24,11 @@ Singleton {
         }
     })
 
-    // Обновление истории при изменении clipboard
+    // Refresh history when the clipboard changes
     Connections {
         target: Quickshell
         function onClipboardTextChanged() {
-            // Небольшая задержка для race condition с cliphist
+            // Small delay to avoid a race condition with cliphist
             delayedUpdateTimer.restart()
         }
     }
@@ -42,7 +42,7 @@ Singleton {
         }
     }
 
-    // Процесс чтения истории
+    // History read process
     Process {
         id: readProc
         property list<string> buffer: []
@@ -95,7 +95,7 @@ Singleton {
         deleteProc.running = true
     }
 
-    // Обновление истории
+    // Refresh history
     function refresh() {
         readProc.buffer = []
         readProc.running = true
@@ -107,7 +107,9 @@ Singleton {
         property string pendingEntry: ""
         stdinEnabled: true
 
-        command: ["sh", "-c", root.cliphistBinary + " decode | wl-copy"]
+        // Positional argv — never concatenate variables into the script
+        // (AGENTS ban 25). $1 is the cliphist binary path.
+        command: ["sh", "-c", '"$1" decode | wl-copy', "sh", root.cliphistBinary]
 
         onStarted: {
             copyProc.write(copyProc.pendingEntry + "\n")
@@ -122,7 +124,7 @@ Singleton {
         }
     }
 
-    // Копирование записи в clipboard
+    // Copy an entry to the clipboard
     function copy(entry) {
         if (copyProc.running) {
             console.warn("[ClipboardService] Copy already in progress")
@@ -132,7 +134,7 @@ Singleton {
         copyProc.running = true
     }
 
-    // Удаление записи
+    // Delete an entry
     function deleteEntry(entry) {
         safeDeleteEntry(entry)
     }
@@ -146,10 +148,10 @@ Singleton {
     // are dropped since their placeholder text would never match meaningfully.
     function fuzzySearch(query) {
         if (debug) {
-            console.log("[ClipboardService.fuzzySearch] entries:", entries.length,
+            console.info("[ClipboardService.fuzzySearch] entries:", entries.length,
                         "query:", JSON.stringify(query))
             for (let k = 0; k < Math.min(entries.length, 10); k++)
-                console.log("  cliphist[" + k + "]:",
+                console.info("  cliphist[" + k + "]:",
                             entries[k].substring(0, 60).replace(/\n/g, "\\n"))
         }
         if (!query || query.trim() === "") {
@@ -184,18 +186,18 @@ Singleton {
         }))
     }
 
-    // Проверка, является ли запись изображением
+    // Check whether an entry is an image
     function entryIsImage(entry) {
         return /^\d+\t\[\[.*binary data.*\d+x\d+.*\]\]$/.test(entry)
     }
 
-    // Извлечение ID из записи cliphist (формат: "ID\tCONTENT")
+    // Extract the ID from a cliphist entry (format: "ID\tCONTENT")
     function _extractEntryId(entry) {
         const match = entry.match(/^(\d+)\t/)
         return match ? match[1] : ""
     }
 
-    // === Thumbnail cache для изображений ===
+    // === Thumbnail cache for images ===
     readonly property string _thumbnailDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/quickshell-clipboard-thumbs"
     property var _thumbnailCache: ({})
     property int _thumbnailVersion: 0
@@ -209,7 +211,7 @@ Singleton {
     function requestThumbnail(entry) {
         const id = _extractEntryId(entry)
         if (!id || _thumbnailCache[id]) return
-        // Не добавлять дубли в очередь
+        // Do not queue duplicates
         for (let i = 0; i < _thumbQueue.length; i++) {
             if (_thumbQueue[i].id === id) return
         }
@@ -261,7 +263,7 @@ Singleton {
         }
     }
 
-    // Инициализация при старте
+    // Initialize on startup
     Component.onCompleted: {
         refresh()
     }

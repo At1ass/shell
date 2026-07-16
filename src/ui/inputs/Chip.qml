@@ -14,7 +14,6 @@ Item {
     property string icon: "" // leading icon (Material Symbols)
     property bool selectable: false
     property bool selected: false
-    property bool enabled: true
 
     signal clicked()
 

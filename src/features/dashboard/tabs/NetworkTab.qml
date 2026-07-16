@@ -67,16 +67,37 @@ Item {
             }
         }
 
-        // Detail panel
+        // Detail panel — only the selected panel exists (each panel owns
+        // device lists and dialogs; keeping all four alive is banned §10.14).
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.selectedPanel
 
-            WifiPanel {}
-            BluetoothPanel {}
-            VpnPanel {}
-            EthernetPanel {}
+            Loader {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                active: root.selectedPanel === 0
+                sourceComponent: Component { WifiPanel {} }
+            }
+            Loader {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                active: root.selectedPanel === 1
+                sourceComponent: Component { BluetoothPanel {} }
+            }
+            Loader {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                active: root.selectedPanel === 2
+                sourceComponent: Component { VpnPanel {} }
+            }
+            Loader {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                active: root.selectedPanel === 3
+                sourceComponent: Component { EthernetPanel {} }
+            }
         }
     }
 }

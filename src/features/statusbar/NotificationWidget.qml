@@ -21,11 +21,11 @@ BarElement {
             if (widgetConfig?.clickAction) {
                 GlobalStates.handleClickAction(widgetConfig.clickAction)
             } else {
-                GlobalStates.notificationCenterOpen = !GlobalStates.notificationCenterOpen
+                GlobalStates.togglePanel("notificationCenter")
             }
             mouse.accepted = true
         } else if (mouse.button === Qt.RightButton) {
-            NotificationService.doNotDisturb = !NotificationService.doNotDisturb
+            NotificationService.toggleDoNotDisturb()
             mouse.accepted = true
         } else {
             mouse.accepted = false
@@ -36,8 +36,8 @@ BarElement {
         spacing: Tokens.spacing.extraSmall
 
         Item {
-            width: 24
-            height: 24
+            implicitWidth: Tokens.iconSize.large
+            implicitHeight: Tokens.iconSize.large
 
             MaterialIcon {
                 anchors.centerIn: parent

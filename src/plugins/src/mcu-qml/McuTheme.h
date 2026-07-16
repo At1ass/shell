@@ -6,6 +6,7 @@
 #include <QVariantMap>
 #include <QQmlEngine>
 #include <QFuture>
+#include <QList>
 #include <QPointer>
 #include <memory>
 
@@ -13,33 +14,32 @@ class McuTheme : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
-    // Единственный вход: ТОЛЬКО QColor (семя) или QUrl (картинка). QString не поддерживаем.
+    // The only input: QColor (seed) or QUrl (image). QString is rejected —
+    // it is the main source of ambiguity between the two.
     Q_PROPERTY(QVariant source   READ source   WRITE setSource   NOTIFY sourceChanged)
 
-    // Параметры схемы
+    // Scheme parameters
     Q_PROPERTY(bool     darkMode READ darkMode WRITE setDarkMode NOTIFY darkModeChanged)
     Q_PROPERTY(QString  variant  READ variant  WRITE setVariant  NOTIFY variantChanged)
     Q_PROPERTY(double   contrast READ contrast WRITE setContrast NOTIFY contrastChanged)
 
-    // Итоговая цветовая схема (как JSON-словарь для удобного биндинга в QML)
+    // Resulting color scheme (role name -> "#RRGGBB")
     Q_PROPERTY(QVariantMap colors READ colors NOTIFY colorsChanged)
 
-    // Состояние
+    // State
     Q_PROPERTY(bool valid   READ valid   NOTIFY validChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
-    // Яркость изображения-источника (Rec. 709, диапазон 0.0–1.0)
+    // Source image luminance (Rec. 709, 0.0-1.0)
     Q_PROPERTY(qreal luminance READ luminance NOTIFY luminanceChanged)
 
 public:
     explicit McuTheme(QObject* parent = nullptr);
     ~McuTheme() override;
 
-    // Source
     QVariant source() const { return m_source; }
     Q_INVOKABLE void setSource(const QVariant& v);
 
-    // Параметры
     bool darkMode() const { return m_darkMode; }
     Q_INVOKABLE void setDarkMode(bool dark);
 
@@ -49,10 +49,8 @@ public:
     double contrast() const { return m_contrast; }
     Q_INVOKABLE void setContrast(double contrast);
 
-    // Цвета
     QVariantMap colors() const { return m_colors; }
 
-    // Состояние
     bool valid()   const { return m_valid; }
     bool loading() const { return m_loading; }
     qreal luminance() const { return m_luminance; }
@@ -70,35 +68,38 @@ signals:
 private:
     enum class SourceKind { None, Color, Image };
 
-    // Внутренние утилиты
     static uint32_t qcolorToArgb(const QColor& c);
     static QString  argbToHex(uint32_t argb);
     static bool     extractSeedFromImage(const QUrl& url, uint32_t& outSeed, qreal& outLuminance);
 
-    // Основные шаги пайплайна
-    void applySeed();                              // Пересчитать схему из m_seedArgb (без повторного чтения)
+    // Recompute the scheme from m_seedArgb (no image re-read).
+    void applySeed();
     static QVariantMap buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast);
 
+    // valid is bound in QML — every transition must notify.
+    void setValidInternal(bool v);
+
+    // Remember every started future so the destructor can wait for ALL of
+    // them, not just the most recent (superseded tasks otherwise outlive
+    // the object into application teardown).
+    void trackFuture(const QFuture<void>& f);
+
 private:
-    // Входные параметры
-    QVariant m_source;                // хранит последний валидный вход (QColor или QUrl)
+    QVariant m_source;                // last valid input (QColor or QUrl)
     bool     m_darkMode = false;
-    QString  m_variant  = QStringLiteral("tonalSpot"); // единый стиль имени (без дефиса)
+    QString  m_variant  = QStringLiteral("tonalSpot");
     double   m_contrast = 0.0;
 
-    // Состояние
     bool       m_valid    = false;
     bool       m_loading  = false;
     SourceKind m_kind     = SourceKind::None;
-    uint32_t   m_seedArgb = 0;        // кэш «семени» (из цвета или картинки)
-    qreal      m_luminance = 0.5;    // яркость источника (Rec. 709)
+    uint32_t   m_seedArgb = 0;        // cached seed (from color or image)
+    qreal      m_luminance = 0.5;
 
-    // Результат
     QVariantMap m_colors;
 
-    // Асинхронная генерация
-    quint64 m_generation = 0;         // версия запроса для генерации схемы
-    quint64 m_seedRequest = 0;        // версия запроса извлечения семени из картинки
-    QFuture<void> m_future;           // генерация цветовой схемы
-    QFuture<void> m_seedFuture;       // извлечение семени из картинки
+    // Async generation bookkeeping
+    quint64 m_generation = 0;         // scheme-generation request version
+    quint64 m_seedRequest = 0;        // image-seed-extraction request version
+    QList<QFuture<void>> m_inflight;  // every not-yet-finished task
 };

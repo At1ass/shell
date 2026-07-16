@@ -48,6 +48,7 @@ Item {
                 ColorAnimation {
                     duration: Tokens.motion.duration.short4
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
 
@@ -55,6 +56,7 @@ Item {
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                     easing.type: Tokens.motion.easing.standard
+                    easing.bezierCurve: Tokens.motion.easing.standardPoints
                 }
             }
         }
@@ -67,7 +69,7 @@ Item {
         }
     }
 
-    // Индикатор активной вкладки
+    // Active tab indicator
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
@@ -81,6 +83,7 @@ Item {
             NumberAnimation {
                 duration: Tokens.motion.duration.medium2
                 easing.type: Tokens.motion.easing.emphasizedDecelerate
+                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
             }
         }
     }

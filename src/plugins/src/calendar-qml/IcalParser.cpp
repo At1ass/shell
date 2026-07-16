@@ -23,6 +23,15 @@ QDateTime convertWithZone(const icaltimetype& t) {
                          QTime(0, 0), QTimeZone::LocalTime);
     }
 
+    // Floating time (no zone, no Z): RFC 5545 wall-clock in whatever zone
+    // the viewer is in. Passing zone=nullptr to icaltime_as_timet_with_zone
+    // would read it as UTC and shift display by the local UTC offset.
+    if (!t.zone && !icaltime_is_utc(t)) {
+        return QDateTime(QDate(t.year, t.month, t.day),
+                         QTime(t.hour, t.minute, t.second),
+                         QTimeZone::LocalTime);
+    }
+
     icaltimetype copy = t;
     time_t epoch = icaltime_as_timet_with_zone(copy, copy.zone);
     if (epoch == 0 && (t.year < 1970 || t.year > 2100)) {
@@ -327,6 +336,22 @@ QVariantList expandRange(const std::vector<Event>& events,
         ical::RecurIterPtr it = ical::wrapRecurIter(icalrecur_iterator_new(rule.get(), dtstart));
         if (!it) continue;
 
+        // Fast-forward to just before the requested range. Without this,
+        // every request replays the series from DTSTART — a decade-old
+        // daily event costs thousands of iterations per call and the
+        // safety cap silently drops occurrences past ~13.7 years. COUNT
+        // rules must iterate from the start to number the occurrences.
+        if (rule.get()->count == 0 && !ev.allDay) {
+            const QDateTime ffLocal = rangeStart.addSecs(
+                durationSecs > 0 ? -durationSecs : 0);
+            if (ffLocal > ev.start) {
+                icaltimetype ff = icaltime_from_timet_with_zone(
+                    ffLocal.toSecsSinceEpoch(), 0, eventTz);
+                ff.zone = eventTz;
+                icalrecur_iterator_set_start(it.get(), ff);
+            }
+        }
+
         int safety = 0;
         for (icaltimetype occ = icalrecur_iterator_next(it.get());
              !icaltime_is_null_time(occ) && safety < 5000;
@@ -468,6 +493,11 @@ QVariantMap Event::toVariantMap(const QDateTime& occurrenceStart,
     m.insert(QStringLiteral("isRecurringInstance"),
              !rruleRaw.isEmpty() && occurrenceStart.isValid() && occurrenceStart != start);
     m.insert(QStringLiteral("isRecurringMaster"), !rruleRaw.isEmpty());
+    // Override identity: QML must hand recurrenceId back on edit/delete so
+    // the store can address the override VEVENT instead of the master
+    // (uid alone deleted the WHOLE SERIES when targeting a moved instance).
+    m.insert(QStringLiteral("isOverride"), isOverride());
+    m.insert(QStringLiteral("recurrenceId"), recurrenceId);
     m.insert(QStringLiteral("sourceFile"), sourceFile);
     return m;
 }

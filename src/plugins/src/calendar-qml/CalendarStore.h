@@ -54,8 +54,10 @@ public slots:
     // success, also storeRefreshed (after the FSW debounce window).
     void addEventCmd(QString calendarName, QVariantMap fields);
     void editEventCmd(QString uid, QVariantMap fields,
-                      QString scopeStr, QDateTime occurrenceStart);
-    void deleteEventCmd(QString uid, QString scopeStr, QDateTime occurrenceStart);
+                      QString scopeStr, QDateTime occurrenceStart,
+                      QDateTime recurrenceId);
+    void deleteEventCmd(QString uid, QString scopeStr, QDateTime occurrenceStart,
+                        QDateTime recurrenceId);
 
 signals:
     void storeRefreshed(QStringList calendars);
@@ -79,6 +81,9 @@ private:
     // Find master VEVENT by UID. nullptr if not found.
     const Event* findMaster(const QString& uid) const;
 
+    // Find an override VEVENT by (UID, RECURRENCE-ID). nullptr if not found.
+    const Event* findOverride(const QString& uid, const QDateTime& recurrenceId) const;
+
     QString calendarPath(const QString& name) const;
     QString newIcsPath(const QString& calendarName, const QString& uid) const;
 
@@ -99,10 +104,25 @@ private:
                                 const QDateTime& occurrenceStart,
                                 QString* errorOut);
 
+    // Override primitives: the target VEVENT is addressed by
+    // (UID, RECURRENCE-ID) inside the override's own file.
+    bool editOverrideInPlace(const Event& override_, const QVariantMap& fields,
+                             QString* errorOut);
+    bool deleteOverride(const Event& override_, QString* errorOut);
+
+    // Remove every VEVENT of `uid` from `path`; deletes the file when no
+    // VEVENT remains. Used for series deletion incl. orphaned overrides.
+    bool removeUidFromFile(const QString& path, const QString& uid, QString* errorOut);
+
     static std::vector<CalendarInfo> discoverCalendars();
 
     void rebuildWatchPaths();
-    void markSelfMutated();    // suppresses next FSW event window
+
+    // Replace DTSTART/DTEND preserving the event's authoring zone.
+    static void setDtInAuthoringZone(icalcomponent* ve, int propKind,
+                                     const QDateTime& dt, bool asDate,
+                                     const EventTimezone& tz,
+                                     icalcomponent* vcal);
 
     std::vector<CalendarInfo> m_calendars;
     std::vector<Event>        m_events;
@@ -110,8 +130,4 @@ private:
 
     QFileSystemWatcher* m_watcher = nullptr;
     QTimer*             m_debounce = nullptr;
-
-    // Suppress FSW-driven rescan immediately after our own write —
-    // we already triggered rescanAll synchronously from the mutation.
-    qint64 m_ignoreFsUntil = 0;
 };

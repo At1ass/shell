@@ -67,6 +67,17 @@ Singleton {
         return (s || "").toString().toLowerCase().replace(/\.desktop$/, "").trim()
     }
 
+    // class/pin → DesktopEntry memo. desiredModel re-evaluates on every
+    // window IPC event (title changes fire on each browser navigation!), and
+    // heuristicLookup plus two linear scans over all desktop entries per
+    // toplevel is far too heavy for that. Negative results are cached too.
+    property var _entryCache: ({})
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() { root._entryCache = ({}) }
+    }
+
     // Resolve a desktop entry from a window class, desktop id, or display name.
     // Forgiving on purpose so a user can pin by any of "Telegram", "telegram", or
     // "org.telegram.desktop" and still collapse with the running window (class
@@ -76,24 +87,26 @@ Singleton {
     //   3. dotted-id segment match, e.g. "telegram" ∈ "org.telegram.desktop"
     function resolveEntry(s) {
         if (!s) return null
-        let e = DesktopEntries.heuristicLookup(s)
-        if (e) return e
-
         const n = normalize(s)
         if (!n) return null
-        const apps = DesktopEntries.applications?.values ?? []
+        if (_entryCache[n] !== undefined) return _entryCache[n]
 
-        for (let i = 0; i < apps.length; i++) {
-            const a = apps[i]
-            if (normalize(a.id) === n || normalize(a.name) === n
-                || (a.startupClass && normalize(a.startupClass) === n))
-                return a
+        let found = DesktopEntries.heuristicLookup(s)
+        if (!found) {
+            const apps = DesktopEntries.applications?.values ?? []
+            for (let i = 0; i < apps.length && !found; i++) {
+                const a = apps[i]
+                if (normalize(a.id) === n || normalize(a.name) === n
+                    || (a.startupClass && normalize(a.startupClass) === n))
+                    found = a
+            }
+            for (let i = 0; i < apps.length && !found; i++) {
+                const segments = normalize(apps[i].id).split(".")
+                if (segments.indexOf(n) !== -1) found = apps[i]
+            }
         }
-        for (let i = 0; i < apps.length; i++) {
-            const segments = normalize(apps[i].id).split(".")
-            if (segments.indexOf(n) !== -1) return apps[i]
-        }
-        return null
+        _entryCache[n] = found ?? null
+        return found ?? null
     }
 
     function keyForEntry(entry) {
