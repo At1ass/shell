@@ -1,210 +1,41 @@
 import QtQuick
-import QtQuick.Layouts
-import Quickshell
-import Quickshell.Wayland
-import qs.src.ui.containers
-import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
 
-Scope {
+// Volume OSD — service wiring around the shared OsdMeter surface.
+OsdMeter {
     id: root
 
-    property bool osdVisible: false
     property real currentVolume: 0
     property bool currentMuted: false
 
-    // Таймер автоскрытия
+    namespacePart: "volumeosd"
+    title: currentMuted ? "Muted" : "Volume"
+    progress: currentVolume
+    badgeColor: currentMuted ? Theme.errorContainer : Theme.primaryContainer
+    badgeContentColor: currentMuted ? Theme.onErrorContainer : Theme.onPrimaryContainer
+    progressColor: currentMuted ? Theme.error : Theme.primary
+    iconName: {
+        if (currentMuted) return "volume_off"
+        if (currentVolume <= 0.001) return "volume_mute"
+        if (currentVolume < 0.34) return "volume_down"
+        return "volume_up"
+    }
+
     Timer {
         id: hideTimer
         interval: AppConfig.osdTimeout
         repeat: false
-        onTriggered: root.osdVisible = false
+        onTriggered: root.shown = false
     }
 
-    // Слушаем изменения громкости
     Connections {
         target: AudioService
         function onVolumeChanged(volume, muted) {
             root.currentVolume = volume
             root.currentMuted = muted
-            root.osdVisible = true
+            root.shown = true
             hideTimer.restart()
-        }
-    }
-
-    Variants {
-        model: Quickshell.screens
-
-        PanelWindow {
-            id: osdWindow
-            visible: root.osdVisible
-            required property var modelData
-
-            color: "transparent"
-            anchors {
-                top: true
-                left: false
-                right: false
-                bottom: false
-            }
-
-            margins {
-                top: 80
-            }
-
-            implicitWidth: 380
-            implicitHeight: 120
-
-            WlrLayershell.namespace: "quickshell:volumeosd"
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-            exclusionMode: ExclusionMode.Ignore
-
-            // OSD контейнер с анимацией
-            Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                width: osdCard.width
-                height: osdCard.height
-
-                // Анимация появления/исчезновения
-                opacity: root.osdVisible ? 1 : 0
-                scale: root.osdVisible ? 1 : 0.9
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                    }
-                }
-
-                Behavior on scale {
-                    NumberAnimation {
-                        duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                    }
-                }
-
-                MaterialCard {
-                    id: osdCard
-                    width: 380
-                    height: 100
-                    color: Theme.surfaceContainerHigh
-                    radius: Tokens.shape.extraLarge
-
-                    // M3 elevation через surface tint (вместо DropShadow)
-                    // border уже есть в MaterialCard через outlined: true
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: osdCard.radius
-                        color: Theme.primary
-                        opacity: Tokens.stateLayer.hoverOpacity
-                    }
-                    // Optional outline
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: osdCard.radius
-                        border.color: Theme.outlineVariant
-                        border.width: 1
-                        color: "transparent"
-                    }
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Tokens.spacing.large
-                        spacing: Tokens.spacing.large
-
-                        // Иконка громкости
-                        Rectangle {
-                            width: 56
-                            height: 56
-                            radius: Tokens.shape.full
-                            color: root.currentMuted ? Theme.errorContainer : Theme.primaryContainer
-
-                            Behavior on color {
-                                ColorAnimation { duration: Tokens.motion.duration.short4 }
-                            }
-
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                iconName: {
-                                    if (root.currentMuted) return "volume_off"
-                                    const v = root.currentVolume
-                                    if (v <= 0.001) return "volume_mute"
-                                    if (v < 0.34) return "volume_down"
-                                    return "volume_up"
-                                }
-                                fontSize: Tokens.iconSize.extraLarge
-                                iconColor: root.currentMuted ? Theme.onErrorContainer : Theme.onPrimaryContainer
-                                backgroundColor: "transparent"
-
-                                Behavior on iconColor {
-                                    ColorAnimation { duration: Tokens.motion.duration.short4 }
-                                }
-                            }
-                        }
-
-                        // Информация о громкости
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.extraSmall
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Tokens.spacing.small
-
-                                MaterialText {
-                                    text: root.currentMuted ? "Muted" : "Volume"
-                                    textStyle: "headlineSmall"
-                                    colorRole: "onSurface"
-                                    font.weight: Font.Bold
-                                }
-
-                                Item { Layout.fillWidth: true }
-
-                                MaterialText {
-                                    text: Math.round(root.currentVolume * 100) + "%"
-                                    textStyle: "titleLarge"
-                                    colorRole: "primary"
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            // Прогресс-бар
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 8
-                                radius: Tokens.shape.full
-                                color: Theme.surfaceContainerHighest
-
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width * root.currentVolume
-                                    height: parent.height
-                                    radius: Tokens.shape.full
-                                    color: root.currentMuted ? Theme.error : Theme.primary
-
-                                    Behavior on width {
-                                        NumberAnimation {
-                                            duration: Tokens.motion.duration.short4
-                                            easing.type: Tokens.motion.easing.emphasized
-                                            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                                        }
-                                    }
-
-                                    Behavior on color {
-                                        ColorAnimation { duration: Tokens.motion.duration.short4 }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

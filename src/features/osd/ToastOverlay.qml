@@ -1,29 +1,34 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Wayland
-import qs.src.ui.containers
-import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
+import qs.src.ui.base
 
-Scope {
+// Toast overlay — queued one-at-a-time toasts on the shared OsdSurface
+// shell (bottom edge). The queue is bounded: a toast storm drops the
+// oldest queued entries instead of growing memory without limit.
+OsdSurface {
     id: root
 
     property var _queue: []
-    property bool _visible: false
     property string _message: ""
     property string _icon: "info"
     property int _level: ToastService.levelInfo
 
+    readonly property int maxQueue: 16
+
+    namespacePart: "toast"
+    edge: "bottom"
+    cardColor: _bgColor(_level)
+
     Connections {
         target: ToastService
         function onToastRequested(message, icon, level, duration) {
+            if (root._queue.length >= root.maxQueue) root._queue.shift()
             root._queue.push({ message: message, icon: icon, level: level, duration: duration })
             root._queue = root._queue
-            if (!root._visible) root._showNext()
+            if (!root.shown) root._showNext()
         }
     }
 
@@ -34,7 +39,7 @@ Scope {
         _message = item.message
         _icon = item.icon
         _level = item.level
-        _visible = true
+        shown = true
         hideTimer.interval = item.duration
         hideTimer.restart()
     }
@@ -43,7 +48,7 @@ Scope {
         id: hideTimer
         repeat: false
         onTriggered: {
-            root._visible = false
+            root.shown = false
             root._showNext()
         }
     }
@@ -66,76 +71,28 @@ Scope {
         }
     }
 
-    Variants {
-        model: Quickshell.screens
+    contentComponent: Component {
+        Item {
+            implicitWidth: toastRow.implicitWidth + Tokens.spacing.large * 2
+            implicitHeight: toastRow.implicitHeight + Tokens.spacing.medium * 2
 
-        PanelWindow {
-            id: toastWindow
-            required property var modelData
+            RowLayout {
+                id: toastRow
+                anchors.centerIn: parent
+                spacing: Tokens.spacing.small
 
-            visible: root._visible
-            color: "transparent"
-            exclusionMode: ExclusionMode.Ignore
-
-            WlrLayershell.namespace: "quickshell:toast"
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-            anchors { bottom: true; left: false; right: false; top: false }
-            margins { bottom: 48 }
-
-            implicitWidth: toastCard.implicitWidth
-            implicitHeight: toastCard.implicitHeight
-
-            Item {
-                width: toastCard.implicitWidth
-                height: toastCard.implicitHeight
-
-                opacity: root._visible ? 1 : 0
-                scale: root._visible ? 1 : 0.92
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                    }
+                MaterialIcon {
+                    iconName: root._icon
+                    fontSize: Tokens.typography.titleMedium.size
+                    iconColor: root._fgColor(root._level)
+                    backgroundColor: "transparent"
                 }
 
-                Behavior on scale {
-                    NumberAnimation {
-                        duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                    }
-                }
-
-                MaterialCard {
-                    id: toastCard
-                    color: root._bgColor(root._level)
-                    radius: Tokens.shape.extraLarge
-                    implicitWidth: toastRow.implicitWidth + Tokens.spacing.large * 2
-                    implicitHeight: toastRow.implicitHeight + Tokens.spacing.medium * 2
-
-                    RowLayout {
-                        id: toastRow
-                        anchors.centerIn: parent
-                        spacing: Tokens.spacing.small
-
-                        MaterialIcon {
-                            iconName: root._icon
-                            fontSize: Tokens.typography.titleMedium.size
-                            iconColor: root._fgColor(root._level)
-                            backgroundColor: "transparent"
-                        }
-
-                        MaterialText {
-                            text: root._message
-                            textStyle: "bodyMedium"
-                            color: root._fgColor(root._level)
-                            wrapMode: Text.NoWrap
-                        }
-                    }
+                MaterialText {
+                    text: root._message
+                    textStyle: "bodyMedium"
+                    color: root._fgColor(root._level)
+                    wrapMode: Text.NoWrap
                 }
             }
         }
