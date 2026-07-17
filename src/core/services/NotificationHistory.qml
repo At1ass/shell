@@ -74,7 +74,16 @@ Singleton {
 
     // ── Public API ───────────────────────────────────────────────
 
+    // Adds arriving before the initial file load would be wiped by
+    // _load()'s clear(); buffer them and flush after.
+    property bool _loadDone: false
+    property var _pendingAdds: []
+
     function add(data) {
+        if (!_loadDone) {
+            _pendingAdds.push(data)
+            return
+        }
         if (AppConfig.notificationGroupByApp) {
             _sortedInsert(data)
         } else {
@@ -102,9 +111,13 @@ Singleton {
             historyList.clear()
             save()
         } else {
-            const indices = []
-            for (var i = historyList.count - 1; i >= 0; i--) indices.push(i)
-            _batchClearQueue = indices
+            // Queue IDs, not indices: an add() during the multi-tick drain
+            // shifts rows, and captured indices would delete the fresh
+            // notification while leaving a stale row behind.
+            const ids = []
+            for (var i = 0; i < historyList.count; i++)
+                ids.push(historyList.get(i).notificationId)
+            _batchClearQueue = ids
         }
         root._expandedGroups = ({})
         root._groupVersion++
@@ -129,7 +142,14 @@ Singleton {
         path: historyFile
         printErrors: false
         onLoaded: _load()
-        onLoadFailed: error => { if (error === 2) writeAdapter() }
+        onLoadFailed: error => {
+            if (error === 2) writeAdapter()   // FileNotFound: create it
+            // Buffered adds must flush even without a readable file.
+            root._loadDone = true
+            const pending = root._pendingAdds
+            root._pendingAdds = []
+            for (const d of pending) root.add(d)
+        }
 
         JsonAdapter {
             id: historyAdapter
@@ -160,7 +180,7 @@ Singleton {
                     "appName": e.appName,
                     "appIcon": e.appIcon,
                     "image": e.image,
-                    "actions": e.actions || [],
+                    "actions": actionsAt(i),   // nested sub-model serializes to null
                     "urgency": e.urgency,
                     "expireTimeout": e.expireTimeout,
                     "timestamp": e.timestamp,
@@ -205,6 +225,10 @@ Singleton {
         } catch (err) {
             console.warn("NotificationHistory: load failed:", err)
         }
+        _loadDone = true
+        const pending = _pendingAdds
+        _pendingAdds = []
+        for (const d of pending) add(d)
     }
 
     function _normaliseEntry(item) {
@@ -288,8 +312,13 @@ Singleton {
         onTriggered: {
             const count = Math.min(8, root._batchClearQueue.length)
             for (let i = 0; i < count; i++) {
-                const idx = root._batchClearQueue.shift()
-                if (idx < historyList.count) historyList.remove(idx)
+                const id = root._batchClearQueue.shift()
+                for (var r = 0; r < historyList.count; r++) {
+                    if (historyList.get(r).notificationId === id) {
+                        historyList.remove(r)
+                        break
+                    }
+                }
             }
             root._batchClearQueue = root._batchClearQueue
             if (root._batchClearQueue.length === 0) save()

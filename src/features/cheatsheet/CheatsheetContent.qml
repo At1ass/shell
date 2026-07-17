@@ -32,6 +32,7 @@ Item {
         "brightnessDown":      "Decrease screen brightness",
         "audioVolumeUp":       "Increase audio volume",
         "audioVolumeDown":     "Decrease audio volume",
+        "nightLightToggle":    "Toggle night light",
         "audioVolumeMute":     "Toggle audio mute"
     })
 
@@ -68,6 +69,11 @@ Item {
     Process {
         id: hyprBindsProc
         command: ["hyprctl", "-j", "binds"]
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("Cheatsheet: hyprctl -j binds failed (exit " + exitCode + ")")
+        }
 
         stdout: StdioCollector {
             onStreamFinished: {

@@ -48,6 +48,16 @@ Singleton {
     // Per-monitor resolved wallpaper URL (consumer-facing).
     property var monitorWallpapers: ({})
 
+    // Cache eviction must never delete what is currently displayed.
+    onMonitorWallpapersChanged: {
+        const paths = []
+        for (const mon in monitorWallpapers) {
+            const p = _normalizeFilesystemPath(String(monitorWallpapers[mon]))
+            if (p) paths.push(p)
+        }
+        WallpaperCache.protectedPaths = paths
+    }
+
     // Used by Theme.qml for color extraction.
     readonly property url currentWallpaper:
         monitorWallpapers[primaryMonitor] || _asUrl(defaultWallpaperPath)
@@ -80,7 +90,13 @@ Singleton {
             if (AppConfig.ready && !manager._initialized) manager.initFromConfig()
         }
         function onDataChanged() {
-            if (manager._initialized) manager.initFromConfig()
+            // Any config.json edit fires onDataChanged; rebuilding
+            // unconditionally reset every monitor to default->random->saved
+            // (visible flash + double post-script run) on unrelated edits.
+            if (!manager._initialized) return
+            const snapshot = JSON.stringify(AppConfig.data.wallpaper ?? {})
+            if (snapshot === manager._lastConfigSnapshot) return
+            manager.initFromConfig()
         }
         function onStateReadyChanged() {
             if (AppConfig.stateReady && manager._initialized && !manager._stateApplied) manager.loadState()
@@ -103,17 +119,24 @@ Singleton {
 
     // ── Init / config apply ──────────────────────────────────────────
 
+    property string _lastConfigSnapshot: ""
+
     function initFromConfig() {
         const wp = AppConfig.data.wallpaper || {}
         const monitorsConf = wp.monitors || {}
+        _lastConfigSnapshot = JSON.stringify(wp)
 
         const newBindings = {}
         for (const mon in monitorsConf) {
             const c = monitorsConf[mon] || {}
+            // Keep the currently shown item when the monitor's source stays
+            // the same — a config edit is not a request to reshuffle.
+            const prev = monitorBindings[mon]
+            const keepCurrent = prev && prev.sourceId === (c.sourceId || "")
             newBindings[mon] = {
                 "sourceId":         c.sourceId || "",
-                "currentItemId":    "",
-                "currentItemIndex": 0,
+                "currentItemId":    keepCurrent ? prev.currentItemId : "",
+                "currentItemIndex": keepCurrent ? prev.currentItemIndex : 0,
                 "fillMode":         c.fillMode !== undefined ? c.fillMode : Image.PreserveAspectCrop,
                 "randomOrder":      c.randomOrder !== false,
                 "autoChange": {
@@ -126,10 +149,15 @@ Singleton {
         monitorBindings = newBindings
 
         // Initial wallpapers default to the static defaultWallpaperPath
-        // until source items arrive (then _applyForMonitor takes over).
+        // until source items arrive (then _applyForMonitor takes over) —
+        // but a monitor that kept its item keeps its pixmap too.
         const baseUrl = _asUrl(defaultWallpaperPath)
         const newWallpapers = {}
-        for (const mon in newBindings) newWallpapers[mon] = baseUrl
+        for (const mon in newBindings) {
+            newWallpapers[mon] = newBindings[mon].currentItemId
+                ? (monitorWallpapers[mon] ?? baseUrl)
+                : baseUrl
+        }
         monitorWallpapers = newWallpapers
 
         _initialized = true
@@ -158,6 +186,8 @@ Singleton {
             source.itemsRefreshed.connect(() => manager._onSourceItemsRefreshed(id))
             source.itemResolved.connect((itemId, localPath) =>
                 manager._onItemResolved(id, itemId, localPath))
+            source.errorOccurred.connect((message) =>
+                ToastService.warning("Wallpaper source " + id + ": " + message))
             updated[id] = source
         }
         _connectedSources = updated
@@ -426,27 +456,22 @@ Singleton {
             return
         }
         const next = _postScriptQueue.shift()
-        const cmd = _buildShellCommand(postSetScriptPath, next.monitor, next.path)
-        if (!cmd) {
-            _runNextPostScript()
-            return
-        }
-        postScriptProcess.command = ["bash", "-lc", cmd]
+        const script = postSetScriptPath.trim()
+        if (!script) return
+        // Schema contract: postSetScript is a SHELL COMMAND run with
+        // $WALLPAPER_PATH/$WALLPAPER_MONITOR in the environment (plus
+        // "$1"=monitor "$2"=path for compatibility). Runtime data flows
+        // only via env/argv; the script string is the user's own config -
+        // nothing is interpolated into it.
+        postScriptProcess.environment = ({
+            "WALLPAPER_PATH": next.path,
+            "WALLPAPER_MONITOR": next.monitor
+        })
+        postScriptProcess.command = ["sh", "-c", script, "sh", next.monitor, next.path]
         postScriptProcess.running = true
+        postScriptTimeout.restart()
     }
 
-    function _buildShellCommand(scriptPath, monitor, path) {
-        const trimmed = scriptPath.trim()
-        if (!trimmed) return ""
-        return `${_escapeShellArg(trimmed)} ${_escapeShellArg(monitor || "")} ${_escapeShellArg(path || "")}`
-    }
-
-    function _escapeShellArg(input) {
-        if (input === undefined || input === null) return "''"
-        const s = String(input)
-        if (!s) return "''"
-        return `'${s.replace(/'/g, `'\\''`)}'`
-    }
 
     function _normalizeFilesystemPath(path) {
         if (!path) return ""
@@ -532,7 +557,11 @@ Singleton {
             if (!b) return `No binding for monitor ${monitor}`
             const enable = enabled === "true"
             b.autoChange.enabled = enable
-            if (intervalMs) b.autoChange.intervalMs = parseInt(intervalMs)
+            if (intervalMs) {
+                const ms = parseInt(intervalMs)
+                if (isNaN(ms) || ms < 5000) return "intervalMs must be a number >= 5000"
+                b.autoChange.intervalMs = ms
+            }
             manager.monitorBindings = Object.assign({}, manager.monitorBindings)
             return `Auto-change ${enable ? "enabled" : "disabled"} for ${monitor}`
         }

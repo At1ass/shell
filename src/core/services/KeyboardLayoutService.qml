@@ -60,10 +60,14 @@ Singleton {
                         return true
                     }
 
+                    // Variant line: "variantname  layoutcode: Description" —
+                    // the badge shows the base layout code (old code glued
+                    // "ru:"+"phonetic" into RU:PHONETIC garbage).
                     const mv = line.match(/^\s*(\S+)\s+(\S+)\s+(.+)$/)
                     if (mv && mv[3] === target) {
-                        root.cachedLayoutCodes[mv[3]] = mv[2] + mv[1]
-                        root.currentLayoutCode = mv[2] + mv[1]
+                        const code = mv[2].replace(":", "")
+                        root.cachedLayoutCodes[mv[3]] = code
+                        root.currentLayoutCode = code
                         return true
                     }
                     return false
@@ -75,6 +79,10 @@ Singleton {
     // Layout switch process
     Process {
         id: switchProcess
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("KeyboardLayoutService: layout switch failed (exit " + exitCode + ")")
+        }
     }
 
     // Listen for layout changes from Hyprland
@@ -82,7 +90,9 @@ Singleton {
         target: Hyprland
         function onRawEvent(event) {
             if (event.name === "activelayout") {
-                root.currentLayoutName = event.data.split(",")[1]
+                const sep = event.data.indexOf(",")
+                if (sep >= 0)
+                    root.currentLayoutName = event.data.substring(sep + 1)
             }
         }
     }

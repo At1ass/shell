@@ -39,12 +39,18 @@ Singleton {
     // ===== SIGNALS =====
     signal volumeChanged(real volume, bool muted)
 
+    // The first master-volume delivery is the Pipewire BIND (0 -> actual),
+    // not a user action — emitting it flashed the OSD at every shell start.
+    property bool _volumeSeen: false
+
     // Track ANY volume changes (from any source)
     onMasterVolumeChanged: {
+        if (!_volumeSeen) { _volumeSeen = true; return }
         volumeChanged(masterVolume, masterMuted)
     }
 
     onMasterMutedChanged: {
+        if (!_volumeSeen) return
         volumeChanged(masterVolume, masterMuted)
     }
 

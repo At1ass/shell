@@ -54,13 +54,20 @@ Scope {
     }
 
     function doLastHide() {
-        lastActiveItem.targetVisible = false
+        // The owning widget can be destroyed during the hang window
+        // (config hot-reload rebuilds a bar section) — the typed property
+        // auto-nulls and an unguarded write threw.
+        if (lastActiveItem) lastActiveItem.targetVisible = false
     }
 
     function onHidden(item: TooltipItem) {
         if (item == lastActiveItem) {
             lastActiveItem = null
         }
+    }
+
+    onLastActiveItemChanged: {
+        if (!lastActiveItem) hangTimer.stop()
     }
 
     Timer {

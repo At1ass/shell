@@ -88,7 +88,17 @@ Scope {
             Keys.onEnterPressed: menuWindow.activateFocused()
 
             Keys.onPressed: event => {
-                let key = event.text.toUpperCase()
+                // Match by physical key (XKB scancode = evdev + 8) so the
+                // advertised L/S/R/D/O hotkeys work on any layout;
+                // event.text fails on non-Latin layouts.
+                const scanToChar = ({
+                    46: "L",  // l
+                    39: "S",  // s
+                    27: "R",  // r
+                    40: "D",  // d
+                    32: "O"   // o
+                })
+                const key = scanToChar[event.nativeScanCode] ?? event.text.toUpperCase()
                 for (let i = 0; i < actions.length; i++) {
                     if (actions[i].key === key) {
                         menuWindow.focusedIndex = i

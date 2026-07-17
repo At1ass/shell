@@ -142,6 +142,10 @@ Singleton {
             const pid = pinned[i]
             const entry = resolveEntry(pid)
             const key = entry ? keyForEntry(entry) : normalize(pid)
+            // Two pin spellings resolving to one app ("Telegram" +
+            // "org.telegram.desktop") must not push the same pooled object
+            // into ScriptModel twice — duplicates are documented UB there.
+            if (used[key]) continue
             const g = groups[key]
             used[key] = true
             items.push({
@@ -232,6 +236,13 @@ Singleton {
     // Match by the stable key, with a raw-class fallback.
     function toplevelsFor(item) {
         if (!item) return []
+        // HyprlandToplevel carries its exact Wayland handle — string
+        // re-matching by appId both over-matched (same normalized key,
+        // different group) and under-matched (multi-class groups).
+        const direct = (item.windows ?? []).map(w => w.wayland).filter(w => !!w)
+        if (direct.length > 0) return direct
+
+        // Fallback for handles not yet exported by the compositor.
         const all = ToplevelManager.toplevels?.values ?? []
         const k = item.key
         const c = normalize(item.cls)

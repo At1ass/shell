@@ -18,8 +18,13 @@ Item {
     implicitWidth: getImplicitSize(loader.item, "implicitWidth")
     implicitHeight: getImplicitSize(loader.item, "implicitHeight")
 
-    visible: widgetEnabled && widgetType !== ""
-    // visible: false
+    // Follow the loaded widget's own `shown` contract property: RowLayout
+    // only skips its DIRECT child, so a self-hidden widget (no player / no
+    // window / one layout) left a full-width phantom gap otherwise.
+    // NOTE: item.visible must NOT be read here — QQuickItem.visible reads
+    // back EFFECTIVE visibility, and with the loader initially hidden that
+    // binding self-locks at false (empty bar).
+    visible: widgetEnabled && widgetType !== "" && loader.active && (loader.item?.shown ?? true)
 
     Loader {
         id: loader

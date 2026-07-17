@@ -16,7 +16,7 @@ BarElement {
     property int maxWidth: widgetSettings.maxWidth ?? 300
     property bool showIcon: widgetSettings.showIcon ?? true
 
-    visible: ActiveWindowService.windowTitle !== ""
+    property bool shown: ActiveWindowService.windowTitle !== ""
     hoverable: true
     clickable: true
     clip: true

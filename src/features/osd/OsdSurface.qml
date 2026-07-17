@@ -37,7 +37,9 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: root.shown
+            // Stay mapped through the fade-out; unmapping at shown=false
+            // cut the exit animation to a hard vanish.
+            visible: root.shown || osdContent.opacity > 0.01
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
 
@@ -58,6 +60,7 @@ Scope {
             implicitHeight: card.height
 
             Item {
+                id: osdContent
                 anchors.centerIn: parent
                 width: card.width
                 height: card.height

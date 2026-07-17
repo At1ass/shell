@@ -23,7 +23,7 @@ BarElement {
     property var tooltipManager: null
 
     // Show when there's an active player
-    visible: MprisController.activePlayer !== null
+    property bool shown: MprisController.activePlayer !== null
 
     implicitWidth: content.implicitWidth + Tokens.spacing.small * 2
 
@@ -88,7 +88,7 @@ BarElement {
             elide: Text.ElideRight
             maximumLineCount: 1
             visible: Layout.preferredWidth > 0
-            Layout.preferredWidth: root.hovered ? 260 : 0
+            Layout.preferredWidth: root.hovered ? (root.maxWidth > 0 ? root.maxWidth + 140 : 260) : 0
             Layout.alignment: Qt.AlignVCenter
 
             Behavior on Layout.preferredWidth {

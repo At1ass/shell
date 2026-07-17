@@ -23,7 +23,7 @@ BarElement {
     animated: true
 
     // Show only if multiple layouts available
-    visible: KeyboardLayoutService.layoutCodes.length > 1
+    property bool shown: KeyboardLayoutService.layoutCodes.length > 1
 
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {

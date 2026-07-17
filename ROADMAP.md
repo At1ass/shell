@@ -31,6 +31,24 @@ single-sourced (`IpcReferenceData.qml`).
 **Reinstall plugins after pulling this branch:**
 `cd src/plugins && cmake --build build && sudo cmake --install build`
 
+### Follow-ups from the 2026-07 deep per-system audit (small, non-blocking)
+- WorkspaceWidget: surface `HyprlandWorkspace.urgent` (urgent windows never
+  light up) and optional per-monitor workspace filtering.
+- ClockWidget: gate its 1 Hz seconds timer on tooltip visibility (the badge
+  is HH:mm; DateTime.clock minute precision suffices otherwise).
+- Cheatsheet: binds on this system are all `__lua` dispatchers — everything
+  lands in "Other" and the Shell section is empty; consider parsing
+  descriptions or submap display.
+- KeyboardLayoutService: move base.lst parsing to C++/FileView; gate the 5 s
+  hyprctl devices poll on a consumer existing.
+- RecurrenceEditChoice: cancel discards an already-composed edit (reopen the
+  dialog instead?).
+- MediaPlayer: migrate the hand-rolled source menu to MaterialMenu + grab.
+- Dock: urgent-window reveal for auto-hidden dock; drag-reorder passing over
+  icons fires their hover previews.
+- LockSurface: dedicated PAM config instead of "login"; single shared
+  PamContext across monitors (contention with fingerprint/U2F stacks).
+
 ### Follow-ups (small, non-blocking)
 - Adopt `ScrollableList` where stock `ScrollView`/`ScrollBar` remain
   (cheatsheet tabs, CalendarTab, LauncherContent, NotificationCenter).

@@ -50,10 +50,7 @@ Rectangle {
         onFinished: root.timeoutExpired()
     }
 
-    onHoveredChanged: {
-        if (hovered) NotificationService.incrementHover(notifId)
-        else NotificationService.decrementHover(notifId)
-    }
+
 
     // Swipe-to-dismiss state. _dragStartX and the deltas below are kept in
     // scene (window) coordinates via mapToItem(null, ...). Local MouseArea

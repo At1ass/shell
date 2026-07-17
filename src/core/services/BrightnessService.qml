@@ -104,12 +104,23 @@ Singleton {
     property int _setIndex: 0
     property int _setPending: -1
 
+    // Set while a chain is in flight: restart CLEANLY from monitor 0 after
+    // the current process exits. Resetting _setIndex mid-chain raced the
+    // in-flight onExited increment — monitor 0 kept the old value while
+    // monitor 1 got the new one.
+    property bool _setRestartPending: false
+
     Process {
         id: setProc
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0)
                 console.warn("BrightnessService: ddcutil setvcp failed (exit " + exitCode + ")")
-            root._setIndex++
+            if (root._setRestartPending) {
+                root._setRestartPending = false
+                root._setIndex = 0
+            } else {
+                root._setIndex++
+            }
             root._doSetNext()
         }
     }
@@ -124,8 +135,12 @@ Singleton {
         monitors = updated
         brightnessAdjusted(clamped)
         _setPending = Math.round(clamped * 100)
-        _setIndex = 0
-        _doSetNext()
+        if (setProc.running) {
+            _setRestartPending = true
+        } else {
+            _setIndex = 0
+            _doSetNext()
+        }
     }
 
     function _doSetNext() {

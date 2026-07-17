@@ -48,24 +48,6 @@ QtObject {
         }
     }
 
-    // ── Hover / pause state ────────────────────────────────────────────
-    // Single source of truth — PopupItem reads/writes via pauseTimeout/resume.
-    property int hoverCount: 0
-    property real pauseStartedAt: 0
-    property real displayPauseAccumulated: 0
-
-    function pauseTimeout() {
-        if (hoverCount === 0) pauseStartedAt = Date.now()
-        hoverCount++
-    }
-    function resumeTimeout() {
-        if (hoverCount <= 0) return
-        hoverCount--
-        if (hoverCount === 0) {
-            displayPauseAccumulated += Date.now() - pauseStartedAt
-        }
-    }
-
     // ── Close lifecycle ────────────────────────────────────────────────
     // closeReason is set when the underlying notification's closed(reason)
     // fires. Consumers connect to this NotifData's `closed` signal — by the

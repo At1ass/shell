@@ -116,7 +116,8 @@ Singleton {
             case "logout":   powerProc.command = ["hyprctl", "dispatch", "exit"]; break
             default: return
         }
-        powerProc.running = true
+        if (!powerProc.running) powerProc.running = true
+        else ToastService.warning("Power action already in progress")
     }
 
     // DBus lock signal listener (loginctl lock-session).
@@ -134,6 +135,8 @@ Singleton {
                 // keeps the bare `Lock` from also matching `.Unlock`.
                 if (data.includes(".Session.Lock ") || data.includes(".Lock ()"))
                     root.lockSession()
+                else if (data.includes(".Session.Unlock ") || data.includes(".Unlock ()"))
+                    root.unlockSession()
             }
         }
         // dbus-daemon restart or gdbus death would silently kill lock

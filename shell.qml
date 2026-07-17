@@ -148,9 +148,13 @@ ShellRoot {
         ScreenshotOverlay {}
     }
 
-    // Lockscreen (WlSessionLock creates surfaces for each screen internally)
+    // Lockscreen (WlSessionLock creates surfaces for each screen internally).
+    // Gated ONLY on lockscreenActive: destroying an active WlSessionLock
+    // sends protocol destroy (NOT unlock_and_destroy), which permanently
+    // locks the session with no surfaces to type into. Entering the lock is
+    // already module-gated inside GlobalStates.lockSession().
     LazyLoader {
-        active: AppConfig.moduleEnabled("lockscreen") && GlobalStates.lockscreenActive
+        active: GlobalStates.lockscreenActive
         Lockscreen {}
     }
 

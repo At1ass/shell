@@ -104,7 +104,9 @@ Item {
         onTriggered: (index) => {
             const fn = root._actions[index]
             root.close()
-            if (fn) fn()
+            // The pooled entry may have been destroyed while the menu was
+            // open (last window closed -> reconcile) — actions touch it.
+            if (fn && root.app) fn()
         }
     }
 }

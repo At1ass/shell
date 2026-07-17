@@ -10,7 +10,14 @@ Singleton {
     id: root
 
     property bool enabled: false
-    property int temperature: AppConfig.nightLightTemperature
+
+    // Runtime override (IPC) wins while set; config hot-reload keeps
+    // working because the base stays a live binding — a plain read-write
+    // property would sever it on the first setTemperature() call.
+    property int _temperatureOverride: 0
+    readonly property int temperature: _temperatureOverride > 0
+        ? _temperatureOverride
+        : AppConfig.nightLightTemperature
 
     // Whether hyprsunset is available on the system
     readonly property bool available: _detected
@@ -31,6 +38,12 @@ Singleton {
         onExited: (exitCode) => {
             if (exitCode !== 0 && root.enabled)
                 console.warn("NightLightService: hyprsunset exited with code", exitCode)
+            // Whatever ended this run (temperature restart, crash), if the
+            // user still wants night light — bring it back. The old code
+            // bailed when the previous instance had not exited yet and
+            // never retried, leaving enabled=true with no hyprsunset.
+            if (root.enabled)
+                _restartTimer.restart()
         }
     }
 
@@ -54,15 +67,21 @@ Singleton {
         id: _restartTimer
         interval: 150
         repeat: false
-        onTriggered: root._startSunset()
+        onTriggered: {
+            if (root.enabled) root._startSunset()
+        }
     }
 
     function toggle() {
+        if (!_detected) {
+            ToastService.warning("hyprsunset not found - night light unavailable")
+            return
+        }
         enabled = !enabled
     }
 
     function setTemperature(temp) {
-        temperature = Math.max(1000, Math.min(6500, temp))
+        _temperatureOverride = Math.max(1000, Math.min(6500, temp))
     }
 
     function _startSunset() {

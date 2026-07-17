@@ -110,25 +110,33 @@ BaseWallpaperSource {
         const xhr = new XMLHttpRequest()
         xhr.open("GET", url, true)
         xhr.timeout = 30000
+        // A failed page fetch must roll back the paging state, or the next
+        // refresh silently APPENDS (and the failed page is skipped forever).
+        const fail = function(msg) {
+            if (source._appendOnNextRefresh) {
+                source._appendOnNextRefresh = false
+                if (source._page > 1) source._page = source._page - 1
+            }
+            source._setError(msg)
+        }
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE) return
             if (xhr.status === 0) {
-                source._setError("Wallhaven: network error")
+                fail("Wallhaven: network error")
                 return
             }
             if (xhr.status !== 200) {
-                source._setError("Wallhaven HTTP " + xhr.status)
+                fail("Wallhaven HTTP " + xhr.status)
                 return
             }
             try {
                 source._populate(JSON.parse(xhr.responseText))
             } catch (e) {
-                source._setError("Wallhaven parse: " + e.message)
+                fail("Wallhaven parse: " + e.message)
             }
         }
-        xhr.ontimeout = function() {
-            source._setError("Wallhaven: request timed out")
-        }
+        // Timeout also surfaces as readyState DONE with status 0 — the
+        // handler above covers it; a separate ontimeout double-fired.
         xhr.send()
     }
 

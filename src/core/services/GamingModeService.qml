@@ -32,14 +32,22 @@ Singleton {
         root.gamingModeActive = true
     }
 
+    // Increments whenever an enable/disable supersedes the running save
+    // chain — a stale chain completing after disable used to re-apply
+    // gaming keywords and write {active:true} into state.json.
+    property int _chainGeneration: 0
+
     Process {
         id: hyprGetProc
         property var _keys: []
         property int _index: 0
+        property int _generation: -1
 
         stdout: StdioCollector {
             id: hyprGetCollector
             onStreamFinished: {
+                if (hyprGetProc._generation !== root._chainGeneration)
+                    return   // superseded by a later toggle
                 try {
                     const parsed = JSON.parse(text)
                     const key = hyprGetProc._keys[hyprGetProc._index]
@@ -56,14 +64,22 @@ Singleton {
                 } catch (e) {
                     console.warn("Gaming mode: failed to parse hyprctl output:", e)
                 }
+            }
+        }
 
-                hyprGetProc._index++
-                if (hyprGetProc._index < hyprGetProc._keys.length) {
-                    hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
-                    hyprGetProc.running = true
-                } else {
-                    root._applyHyprlandGaming()
-                }
+        // Chain restarts belong in onExited — restarting from
+        // onStreamFinished races the process teardown (ban 18 territory).
+        onExited: (exitCode) => {
+            if (hyprGetProc._generation !== root._chainGeneration)
+                return
+            if (exitCode !== 0)
+                console.warn("Gaming mode: hyprctl getoption failed (exit " + exitCode + ")")
+            hyprGetProc._index++
+            if (hyprGetProc._index < hyprGetProc._keys.length) {
+                hyprGetProc.command = ["hyprctl", "-j", "getoption", hyprGetProc._keys[hyprGetProc._index]]
+                hyprGetProc.running = true
+            } else {
+                root._applyHyprlandGaming()
             }
         }
     }
@@ -92,6 +108,7 @@ Singleton {
     }
 
     function disableGamingMode() {
+        _chainGeneration++   // cancel any in-flight save chain
         _restoreHyprland()
         Tokens.durationScale = 1.0
         gamingModeActive = false
@@ -114,10 +131,12 @@ Singleton {
         }
 
         _savedHyprState = ({})
+        _chainGeneration++
+        hyprGetProc._generation = _chainGeneration
         hyprGetProc._keys = keys
         hyprGetProc._index = 0
         hyprGetProc.command = ["hyprctl", "-j", "getoption", keys[0]]
-        hyprGetProc.running = true
+        if (!hyprGetProc.running) hyprGetProc.running = true
     }
 
     function _applyHyprlandGaming() {

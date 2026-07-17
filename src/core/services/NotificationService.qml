@@ -133,6 +133,14 @@ Singleton {
         const data = createData(notification)
         NotificationHistory.add(data)
 
+        // With the notifications module off there is no popup manager to
+        // ever expire tracked notifications — they'd accumulate forever.
+        // History above still records them.
+        if (!AppConfig.moduleEnabled("notifications")) {
+            notification.tracked = false
+            return
+        }
+
         if (NotificationDND.active) {
             // History captured the entry; release the server-side ref.
             notification.tracked = false
@@ -149,8 +157,13 @@ Singleton {
 
         const duplicateId = _findDuplicatePopup(data.contentId)
         if (duplicateId) {
+            // Release the evicted notification server-side BEFORE dropping
+            // the id mappings — cleanup-first left it tracked forever (one
+            // leaked Notification per duplicate for the whole session).
+            const oldNd = _notifDataByInternalId[duplicateId]
             popupDismissRequested(duplicateId)
             cleanupNotification(duplicateId)
+            if (oldNd?.notification) oldNd.notification.expire()
         }
 
         NotificationRateLimiter.popupShow(notification, data)
@@ -277,17 +290,6 @@ Singleton {
 
     // ── Hover delegation ──────────────────────────────────────────
     // Single source of truth lives on NotifData; service just routes by id.
-    function incrementHover(id) {
-        const nd = _notifDataByInternalId[id]
-        if (nd) nd.pauseTimeout()
-    }
-    function decrementHover(id) {
-        const nd = _notifDataByInternalId[id]
-        if (nd) nd.resumeTimeout()
-    }
-    // Backward-compatible aliases
-    function pauseTimeout(id) { incrementHover(id) }
-    function resumeTimeout(id) { decrementHover(id) }
 
     // ── Public API ────────────────────────────────────────────────
     //
@@ -317,7 +319,12 @@ Singleton {
 
     function attemptInvokeAction(id, actionId) {
         const nd = _notifDataByInternalId[id]
-        if (!nd) return
+        if (!nd) {
+            // History entries outlive their notifications by design —
+            // silence here read as a broken button.
+            ToastService.info("Notification is no longer active")
+            return
+        }
         nd.invokeAction(actionId)   // also dismisses
         cleanupNotification(id)
         popupDismissRequested(id)

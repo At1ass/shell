@@ -65,7 +65,12 @@ BarElement {
 
                         if (event.button === Qt.LeftButton) {
                             PopoutsState.closePopout()
-                            trayItem.modelData.activate()
+                            // SNI ItemIsMenu: activate() is a no-op for
+                            // menu-only items — open the menu instead.
+                            if (trayItem.modelData.onlyMenu && trayItem.modelData.hasMenu)
+                                PopoutsState.openPopout("traymenu", trayItem.modelData.menu, trayItem)
+                            else
+                                trayItem.modelData.activate()
                             return
                         }
 
@@ -80,10 +85,17 @@ BarElement {
                         }
                     }
 
+                    // scroll() takes INTEGER steps — touchpad deltas (<120)
+                    // truncated to 0 and were discarded; accumulate them.
+                    property real _wheelAccum: 0
                     onWheel: event => {
                         event.accepted = true
-                        const points = event.angleDelta.y / 120
-                        trayItem.modelData.scroll(points, false)
+                        _wheelAccum += event.angleDelta.y / 120
+                        const steps = _wheelAccum > 0 ? Math.floor(_wheelAccum) : Math.ceil(_wheelAccum)
+                        if (steps !== 0) {
+                            _wheelAccum -= steps
+                            trayItem.modelData.scroll(steps, false)
+                        }
                     }
                 }
 
@@ -92,12 +104,9 @@ BarElement {
     }
 
     function getTrayIcon(icon) {
-        if (!icon)
-            return ""
-        if (icon.includes("?path=")) {
-            const [name, path] = icon.split("?path=")
-            return Qt.resolvedUrl(`${path}/${name.slice(name.lastIndexOf("/") + 1)}`)
-        }
-        return icon
+        // Quickshell's icon image provider resolves ?path= itself (theme
+        // lookup FIRST, then the shipped directory) — the old manual split
+        // skipped the theme lookup and broke nm-applet-style items.
+        return icon || ""
     }
 }

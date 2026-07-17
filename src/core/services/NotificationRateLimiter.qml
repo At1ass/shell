@@ -35,6 +35,13 @@ Singleton {
     // notification is already ingressed and lands in history regardless.
     property int  maxGateQueueSize: 8
 
+
+    // A queued Notification can be destroyed under us (client closed it
+    // while waiting) — property access on the dead wrapper throws.
+    function _alive(n) {
+        try { return n !== null && n !== undefined && n.id !== undefined } catch (e) { return false }
+    }
+
     // ── Outgoing events ──────────────────────────────────────────
     // ingressAccepted fires when a notification has cleared the bucket
     // (either immediately or after queue drain). The receiving service
@@ -68,7 +75,7 @@ Singleton {
             const notif = root._ingressQueue.shift()
             root._tokens--
             root._ingressQueue = root._ingressQueue   // notify listeners
-            root.ingressAccepted(notif)
+            if (root._alive(notif)) root.ingressAccepted(notif)
         }
     }
 
@@ -81,6 +88,7 @@ Singleton {
             if (root._gateQueue.length > 0) {
                 const item = root._gateQueue.shift()
                 root._gateQueue = root._gateQueue
+                if (!root._alive(item.notification)) return
                 gateTimer.restart()  // gate stays closed for another period
                 root.popupReady(item.notification, item.data)
             } else {
@@ -95,7 +103,9 @@ Singleton {
     // Returns nothing — callers listen for ingressAccepted/ingressDropped.
     function ingest(notification) {
         const isCritical = notification.urgency === 2
-        if (isCritical || root._tokens > 0) {
+        // Token path only while the queue is EMPTY — a refilled token must
+        // not let a fresh notification jump ahead of queued ones.
+        if (isCritical || (root._tokens > 0 && root._ingressQueue.length === 0)) {
             if (!isCritical) root._tokens--
             ingressAccepted(notification)
             return

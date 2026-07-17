@@ -119,14 +119,17 @@ Scope {
     }
 
     function _recalculateStack() {
-        let y = baseMargin
+        // Independent column per screen — a single global accumulator
+        // floated screen B's popups by the height of screen A's stack.
+        const yByScreen = ({})
         for (let i = 0; i < popupWindows.length; i++) {
             const popup = popupWindows[i]
             if (!popup) continue
             if (_destroyingSet[popup.notificationData?.notificationId]) continue
-            popup.screenY = y
-            const h = (popup.implicitHeight > 0 ? popup.implicitHeight : 100) + popupSpacing
-            y += h
+            const key = popup.screen?.name ?? ""
+            if (yByScreen[key] === undefined) yByScreen[key] = baseMargin
+            popup.screenY = yByScreen[key]
+            yByScreen[key] += (popup.implicitHeight > 0 ? popup.implicitHeight : 100) + popupSpacing
         }
     }
 

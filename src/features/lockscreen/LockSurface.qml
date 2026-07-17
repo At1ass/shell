@@ -27,12 +27,22 @@ Item {
         onCompleted: result => {
             if (result === PamResult.Success) {
                 root.unlocked()
+                return
+            }
+            root._authFailed = true
+            root._errorMessage = result === PamResult.MaxTries
+                ? "Too many attempts" : "Authentication failed"
+            passwordField.text = ""
+            shakeAnim.start()
+            if (result === PamResult.Error) {
+                // A broken PAM stack completes with Error immediately —
+                // an unconditional restart here spins start->error->start.
+                // Retry on a delay so the session stays recoverable
+                // without burning a core.
+                pamRetryTimer.start()
             } else {
-                root._authFailed = true
-                root._errorMessage = "Authentication failed"
-                passwordField.text = ""
-                shakeAnim.start()
-                pam.start()
+                if (!pam.start())
+                    pamRetryTimer.start()
             }
         }
 
@@ -93,7 +103,7 @@ Item {
         Text {
             id: clockText
             Layout.alignment: Qt.AlignHCenter
-            text: Qt.formatTime(new Date(), "HH:mm")
+            text: Qt.formatTime(DateTime.clock.date, "HH:mm")
             font.family: Tokens.typography.fontFamily
             font.pixelSize: 96
             font.weight: Font.Light
@@ -317,19 +327,21 @@ Item {
         NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50 }
     }
 
-    // Timer for clock updates
+
+
     Timer {
-        interval: 1000
-        running: true
-        repeat: true
+        id: pamRetryTimer
+        interval: 2000
         onTriggered: {
-            clockText.text = Qt.formatTime(new Date(), "HH:mm")
+            if (!pam.active && !pam.start())
+                pamRetryTimer.start()
         }
     }
 
     // Start PAM on surface appear
     Component.onCompleted: {
-        pam.start()
+        if (!pam.start())
+            pamRetryTimer.start()
         passwordField.forceActiveFocus()
     }
 

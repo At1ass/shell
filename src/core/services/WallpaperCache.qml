@@ -44,6 +44,10 @@ Singleton {
     property var _queue: []
     property var _current: null
 
+    // Absolute paths eviction must never delete (currently displayed
+    // wallpapers) — set by WallpaperManager on every apply.
+    property var protectedPaths: []
+
     signal storeComplete(string sourceId, string itemId, bool success, string localPath)
 
     Component.onCompleted: _initIndex()
@@ -59,6 +63,12 @@ Singleton {
     }
 
     function store(sourceId, itemId, ext, url) {
+        // Dedupe: already cached, queued or downloading — a failed-resolve
+        // retry storm used to download the same file repeatedly.
+        if (has(sourceId, itemId, ext || "jpg")) return
+        const same = (e) => e.sourceId === sourceId && e.itemId === itemId
+        if (_queue.some(same)) return
+        if (_current && same(_current)) return
         _queue.push({
             "sourceId": sourceId,
             "itemId":   itemId,
@@ -156,6 +166,10 @@ Singleton {
         const toRemove = []
         for (const f of files) {
             if (total <= maxBytes) break
+            // Never delete what is on screen, nor an in-flight .tmp
+            // (its mv would fail and the download would be reported dead).
+            if (f.path.endsWith(".tmp")) continue
+            if (protectedPaths.indexOf(f.path) !== -1) continue
             toRemove.push(f.path)
             total -= f.size
         }

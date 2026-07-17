@@ -19,7 +19,9 @@ BarElement {
 
     readonly property var device: UPower.displayDevice
     readonly property bool deviceReady: device && (device.ready === undefined || device.ready)
-    readonly property int percentage: device && device.percentage !== undefined ? Math.round(device.percentage) : 0
+    // UPowerDevice.percentage is 0.0-1.0 (upstream scales the wire value
+    // by 0.01) — rounding it raw pinned the widget at "0%/1%" forever.
+    readonly property int percentage: device && device.percentage !== undefined ? Math.round(device.percentage * 100) : 0
     readonly property bool charging: device && (device.state === UPowerDeviceState.Charging ||
                                                device.state === UPowerDeviceState.PendingCharge)
 

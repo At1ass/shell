@@ -49,39 +49,41 @@ BaseWallpaperSource {
     property Process _scan: Process {
         id: scanProc
 
+        // stdout/stderr/exit arrive in NO guaranteed order — success is
+        // decided only in onExited, or a failing find could look like a
+        // clean empty scan (stdout handler clearing the error last).
+        property string _pendingStdout: ""
+        property string _pendingStderr: ""
+
         stdout: StdioCollector {
-            id: scanCollector
-            onStreamFinished: {
-                const trimmed = text.trim()
-                const files = trimmed.length > 0
-                    ? trimmed.split("\n").filter(f => f.length > 0).sort()
-                    : []
-                source.items = files.map(p => ({
-                    "id": p,                          // path is unique within this source
-                    "name": p.substring(p.lastIndexOf("/") + 1),
-                    "url": p,
-                    "thumbnail": p,
-                    "metadata": {}
-                }))
-                source.lastError = ""
-                source.ready = true
-                source.loading = false
-                source.itemsRefreshed()
-            }
+            onStreamFinished: scanProc._pendingStdout = text
         }
 
         stderr: StdioCollector {
-            onStreamFinished: {
-                const err = text.trim()
-                if (err) source._setError("find: " + err)
-            }
+            onStreamFinished: scanProc._pendingStderr = text
         }
 
         onExited: (exitCode) => {
             source.loading = false
-            if (exitCode !== 0 && source.lastError === "") {
-                source._setError("find exited with code " + exitCode)
+            if (exitCode !== 0) {
+                const err = scanProc._pendingStderr.trim()
+                source._setError(err ? "find: " + err : "find exited with code " + exitCode)
+                return
             }
+            const trimmed = scanProc._pendingStdout.trim()
+            const files = trimmed.length > 0
+                ? trimmed.split("\n").filter(f => f.length > 0).sort()
+                : []
+            source.items = files.map(p => ({
+                "id": p,                          // path is unique within this source
+                "name": p.substring(p.lastIndexOf("/") + 1),
+                "url": p,
+                "thumbnail": p,
+                "metadata": {}
+            }))
+            source.lastError = ""
+            source.ready = true
+            source.itemsRefreshed()
         }
     }
 }

@@ -246,7 +246,9 @@ Scope {
                                 width: notifList.width
                                 height: implicitHeight + Tokens.spacing.small
                                 groupAppName: section
-                                groupCount: NotificationService.getGroupCount(section)
+                                // historyList.count read makes this re-evaluate on adds/removals
+                                groupCount: NotificationHistory.historyList.count >= 0
+                                            ? NotificationService.getGroupCount(section) : 0
                                 groupAppIcon: NotificationService.getGroupIcon(section)
                                 expanded: NotificationService.isGroupExpanded(section)
                                 onToggleExpanded: NotificationService.toggleGroupExpanded(section)

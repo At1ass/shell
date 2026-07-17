@@ -6,6 +6,9 @@ import qs.src.core.config
 import qs.src.core.services
 
 BarElement {
+    // No fabricated "0°C" before the first fetch / with weather disabled.
+    property bool shown: Weather.data !== null
+
     id: root
     clickable: true
     hoverable: true

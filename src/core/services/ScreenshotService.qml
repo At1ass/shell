@@ -55,9 +55,11 @@ Singleton {
         root.screenshotOverlayActive = false
         if (root._useSwappy) {
             root._useSwappy = false
-            screenshotSwappyProc.running = true
+            if (!screenshotSwappyProc.running) screenshotSwappyProc.running = true
+            else ToastService.warning("Screenshot already in progress")
         } else {
-            screenshotRegionProc.running = true
+            if (!screenshotRegionProc.running) screenshotRegionProc.running = true
+            else ToastService.warning("Screenshot already in progress")
         }
     }
 

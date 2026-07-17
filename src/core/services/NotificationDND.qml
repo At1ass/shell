@@ -29,13 +29,11 @@ Singleton {
         setEnabled(!enabled)
     }
 
-    // Fullscreen detection — Hyprland's lastIpcObject.fullscreen is 0
-    // (none), 1 (maximize), 2 (true fullscreen). Treat any non-zero as
-    // "user wants no interruptions".
-    readonly property bool _fullscreenActive: {
-        const tl = Hyprland.activeToplevel
-        return (tl?.lastIpcObject.fullscreen ?? 0) > 0
-    }
+    // Fullscreen detection: don't interrupt games/videos.
+    // focusedWorkspace.hasFullscreen is updated directly by the Hyprland
+    // fullscreen event; activeToplevel.lastIpcObject was a connect-time
+    // snapshot that never populated for windows opened after shell start.
+    readonly property bool _fullscreenActive: Hyprland.focusedWorkspace?.hasFullscreen ?? false
 
     readonly property bool active: enabled || _fullscreenActive
 }
