@@ -23,7 +23,7 @@ BarElement {
     property var tooltipManager: null
 
     // Show when there's an active player
-    visible: (typeof MprisController !== 'undefined') && MprisController.activePlayer !== null
+    visible: MprisController.activePlayer !== null
 
     implicitWidth: content.implicitWidth + Tokens.spacing.small * 2
 
@@ -35,11 +35,11 @@ BarElement {
             owner: root
             isMenu: false
             hoverable: true
-            show: root.hovered && (typeof MprisController !== 'undefined') && !!MprisController.activePlayer
+            show: root.hovered && !!MprisController.activePlayer
 
             MaterialText {
                 text: {
-                    if (typeof MprisController === 'undefined' || !MprisController.activeTrack)
+                    if (!MprisController.activeTrack)
                         return "Nothing playing";
                     const title = MprisController.activeTrack.title || "Unknown Title";
                     const artist = MprisController.activeTrack.artist || "Unknown Artist";
@@ -77,7 +77,7 @@ BarElement {
         MaterialText {
             id: trackInfoText
             text: {
-                if (typeof MprisController === "undefined" || !MprisController.activeTrack)
+                if (!MprisController.activeTrack)
                     return "Nothing playing";
                 const title = MprisController.activeTrack.title || "Unknown Title";
                 const artist = MprisController.activeTrack.artist || "Unknown Artist";
@@ -107,13 +107,12 @@ BarElement {
             iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoPrevious
+            enabled: MprisController.canGoPrevious
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
-                    if (typeof MprisController !== 'undefined')
-                        MprisController.previous();
+                    MprisController.previous();
                 }
             }
 
@@ -131,13 +130,12 @@ BarElement {
             iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canTogglePlaying
+            enabled: MprisController.canTogglePlaying
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             visible: true
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
-                    if (typeof MprisController !== 'undefined')
-                        MprisController.togglePlaying();
+                    MprisController.togglePlaying();
                 }
             }
         }
@@ -149,13 +147,12 @@ BarElement {
             iconSize: Tokens.iconSize.large
             containerSize: 32
             touchTargetSize: 40
-            enabled: (typeof MprisController !== 'undefined') && MprisController.canGoNext
+            enabled: MprisController.canGoNext
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             opacity: enabled ? 1.0 : 0.38
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
-                    if (typeof MprisController !== 'undefined')
-                        MprisController.next();
+                    MprisController.next();
                 }
             }
 

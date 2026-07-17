@@ -161,6 +161,18 @@ MaterialCard {
                         colorRole: "onSurface"
                         weight: Font.Bold
                         align: Text.AlignHCenter
+
+                        // Player switcher fallback: with no album art the
+                        // art click target does not exist, leaving
+                        // multi-player switching unreachable — the title
+                        // doubles as the trigger then.
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: MprisController.availablePlayers.length > 1
+                                     && (MprisController.activeTrack?.artUrl ?? "") === ""
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: sourceMenu.visible = !sourceMenu.visible
+                        }
                     }
                     MaterialMarqueeText {
                         Layout.alignment: Qt.AlignHCenter
@@ -181,13 +193,16 @@ MaterialCard {
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.extraSmall
 
-                // Interactive slider
+                // Interactive slider. Absolute seeking needs a REAL
+                // duration — with length unknown (0) the track has no
+                // endpoint to map the handle onto.
                 MaterialSlider {
                     id: positionSlider
                     Layout.fillWidth: true
                     from: 0
                     to: MprisController.length > 0 ? MprisController.length : 1
                     enabled: MprisController.canSeek && MprisController.positionSupported
+                             && MprisController.length > 0
 
                     // Gate on `pressed`: the 1 Hz position tick would snap the
                     // handle back under the cursor mid-drag otherwise.
@@ -197,8 +212,16 @@ MaterialCard {
                         restoreMode: Binding.RestoreBindingOrValue
                     }
 
-                    onMoved: {
-                        MprisController.setPosition(value);
+                    // Commit the seek ON RELEASE. Live per-step commits sent
+                    // one D-Bus SetPosition per pixel of drag; _pendingSeek
+                    // also dodges the value-restore race at release.
+                    property real _pendingSeek: -1
+                    onMoved: _pendingSeek = value
+                    onPressedChanged: {
+                        if (!pressed && _pendingSeek >= 0) {
+                            MprisController.setPosition(_pendingSeek);
+                            _pendingSeek = -1;
+                        }
                     }
                 }
 
@@ -208,7 +231,10 @@ MaterialCard {
                     spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
-                        text: formatTime(MprisController.position)
+                        // Live drag preview while scrubbing.
+                        text: positionSlider.pressed && positionSlider._pendingSeek >= 0
+                              ? root.formatTime(positionSlider._pendingSeek)
+                              : root.formatTime(MprisController.position)
                         textStyle: "labelSmall"
                         colorRole: "onSurfaceVariant"
                     }
@@ -218,7 +244,10 @@ MaterialCard {
                     }
 
                     MaterialText {
-                        text: formatTime(MprisController.length)
+                        // Unknown duration stays blank — the upstream
+                        // fallback mirrors the position and would count up.
+                        text: MprisController.length > 0
+                              ? root.formatTime(MprisController.length) : ""
                         textStyle: "labelSmall"
                         colorRole: "onSurfaceVariant"
                     }

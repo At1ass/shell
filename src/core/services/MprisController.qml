@@ -11,8 +11,31 @@ Singleton {
     id: root
 
     // ===== PLAYER MANAGEMENT =====
+    // playerctld is a proxy that mirrors whichever player is active — it
+    // must never be selected or listed (duplicate entry, commands routed
+    // to a moving target). kdeconnect exports one bus name per phone
+    // player; they are listed but deprioritized in auto-pick.
+    function _isProxy(p) {
+        return (p?.dbusName ?? "") === "org.mpris.MediaPlayer2.playerctld"
+    }
+    function _isRemote(p) {
+        return (p?.dbusName ?? "").startsWith("org.mpris.MediaPlayer2.kdeconnect")
+    }
+
+    // Best default: playing local > playing > any local > any (never proxy).
+    function _defaultPick(values) {
+        const real = values.filter(p => !_isProxy(p))
+        return real.find(p => p.isPlaying && !_isRemote(p))
+            ?? real.find(p => p.isPlaying)
+            ?? real.find(p => !_isRemote(p))
+            ?? real[0] ?? null
+    }
+
+    // Set by explicit user selection; auto-retracking backs off then.
+    property bool _userPinned: false
+
     property MprisPlayer trackedPlayer: null
-    property MprisPlayer activePlayer: trackedPlayer ?? Mpris.players.values[0] ?? null
+    property MprisPlayer activePlayer: trackedPlayer ?? _defaultPick(Mpris.players.values)
 
     // ===== TRACK INFO =====
     signal trackChanged(reverse: bool)
@@ -25,21 +48,44 @@ Singleton {
     readonly property var playbackState: activePlayer?.playbackState ?? MprisPlaybackState.Stopped
 
     // ===== POSITION & LENGTH (in seconds with millisecond precision) =====
-    readonly property real position: activePlayer?.position ?? 0
+    // Upstream semantics (Quickshell 0.3.0, service/mpris/player.cpp):
+    //  - position EXTRAPOLATES (last known + elapsed x rate); it resyncs
+    //    ONLY on Seeked, playback-status changes (with a 100 ms re-query),
+    //    detected track changes, and local setPosition writes. Emitting
+    //    positionChanged() just re-evaluates bindings — no D-Bus query.
+    //  - length RETURNS POSITION VERBATIM when the player's metadata has
+    //    no mpris:length (lengthSupported false) — treating that mirror
+    //    as a real duration is how the runaway shorts display happened.
     readonly property bool positionSupported: activePlayer?.positionSupported ?? false
-    readonly property real length: activePlayer?.length ?? 0
     readonly property bool lengthSupported: activePlayer?.lengthSupported ?? false
 
+    // 0 = unknown duration. Never the position-mirror fallback.
+    readonly property real length: {
+        if (!lengthSupported) return 0
+        const l = activePlayer?.length ?? 0
+        return (isFinite(l) && l > 0) ? l : 0
+    }
+
+    // Folded into [0, length) for loop-without-Seeked players when a REAL
+    // duration exists; raw (approximate) when duration is unknown.
+    readonly property real position: {
+        const raw = activePlayer?.position ?? 0
+        const len = length
+        if (len > 0 && isPlaying && raw > len)
+            return raw % len
+        return len > 0 ? Math.min(raw, len) : raw
+    }
+
     // ===== LOOP & SHUFFLE =====
-    property var loopState: activePlayer?.loopState ?? MprisLoopState.None
+    readonly property var loopState: activePlayer?.loopState ?? MprisLoopState.None
     readonly property bool loopSupported: activePlayer?.loopSupported ?? false
-    property bool shuffle: activePlayer?.shuffle ?? false
+    readonly property bool shuffle: activePlayer?.shuffle ?? false
     readonly property bool shuffleSupported: activePlayer?.shuffleSupported ?? false
 
     // ===== VOLUME & RATE =====
-    property real volume: activePlayer?.volume ?? 1.0
+    readonly property real volume: activePlayer?.volume ?? 1.0
     readonly property bool volumeSupported: activePlayer?.volumeSupported ?? false
-    property real rate: activePlayer?.rate ?? 1.0
+    readonly property real rate: activePlayer?.rate ?? 1.0
     readonly property real minRate: activePlayer?.minRate ?? 1.0
     readonly property real maxRate: activePlayer?.maxRate ?? 1.0
 
@@ -62,15 +108,17 @@ Singleton {
     readonly property bool canSetFullscreen: activePlayer?.canSetFullscreen ?? false
 
     // ===== PLAYER MANAGEMENT =====
-    readonly property var availablePlayers: Mpris.players.values ?? []
+    readonly property var availablePlayers: (Mpris.players.values ?? []).filter(p => !root._isProxy(p))
 
     function setActivePlayer(player: MprisPlayer) {
         root.trackedPlayer = player
+        root._userPinned = player !== null
     }
 
     function switchToPlayer(index: int) {
         if (index >= 0 && index < availablePlayers.length) {
             root.trackedPlayer = availablePlayers[index]
+            root._userPinned = true
         }
     }
 
@@ -82,12 +130,18 @@ Singleton {
             // If the current player disconnected
             if (root.trackedPlayer && !Mpris.players.values.includes(root.trackedPlayer)) {
                 root.trackedPlayer = null
+                root._userPinned = false
             }
 
-            // Automatically pick a new player
-            if (!root.trackedPlayer && Mpris.players.values.length > 0) {
-                const playingPlayer = Mpris.players.values.find(p => p.isPlaying)
-                root.trackedPlayer = playingPlayer ?? Mpris.players.values[0]
+            // Auto-pick (players register one by one at startup — the pick
+            // re-runs on every arrival, so a later playing player replaces
+            // an idle first-comer unless the user pinned one explicitly).
+            if (!root._userPinned) {
+                const pick = root._defaultPick(Mpris.players.values)
+                if (pick && pick !== root.trackedPlayer
+                    && !(root.trackedPlayer?.isPlaying ?? false)) {
+                    root.trackedPlayer = pick
+                }
             }
         }
     }
@@ -100,12 +154,17 @@ Singleton {
             root.updateTrack()
         }
 
-        function onTrackArtUrlChanged() {
-            if (root.activePlayer?.uniqueId == root.activeTrack?.uniqueId) {
-                const r = root.__reverse
-                root.updateTrack()
-                root.__reverse = r
-            }
+        // Players update metadata IN PLACE all the time: the initial GetAll
+        // lands after the player object appears (startup art/title),
+        // browsers switch videos without a detectable track change (static
+        // trackid), duration arrives once the stream knows it. None of
+        // those emit postTrackChanged — refresh the snapshot on every
+        // metadata delivery, preserving the slide direction for the real
+        // track-change handler.
+        function onMetadataChanged() {
+            const r = root.__reverse
+            root.updateTrack()
+            root.__reverse = r
         }
     }
 
@@ -128,7 +187,7 @@ Singleton {
             artUrl: activePlayer.trackArtUrl || (sameTrack ? (prev.artUrl || "") : ""),
             title: activePlayer.trackTitle || (sameTrack ? (prev.title || "") : "") || "Unknown Title",
             artist: activePlayer.trackArtist || (sameTrack ? (prev.artist || "") : "") || "Unknown Artist",
-            album: activePlayer.trackAlbum || "Unknown Album"
+            album: activePlayer.trackAlbum || (sameTrack ? (prev.album || "") : "") || "Unknown Album"
         }
 
         const hasChanges = prev.uniqueId !== newTrack.uniqueId ||
@@ -140,6 +199,11 @@ Singleton {
         if (hasChanges) {
             activeTrack = newTrack
             trackChanged(__reverse)
+            // Snap position consumers to the new track right away. The
+            // 1 Hz poke timer only runs WHILE PLAYING — switching tracks
+            // while paused left the position label stale indefinitely.
+            if (activePlayer.positionSupported)
+                activePlayer.positionChanged()
         }
 
         __reverse = false
@@ -265,7 +329,10 @@ Singleton {
     // Recommended in the docs for live position updates
     Timer {
         id: positionTimer
-        running: root.isPlaying && root.positionSupported
+        // The only position consumers live in the dashboard; ticking all
+        // day during playback is pure churn (and each tick re-emits
+        // lengthChanged upstream for length-less players).
+        running: root.isPlaying && root.positionSupported && GlobalStates.dashboardOpen
         interval: 1000  // Update every second
         repeat: true
         onTriggered: {
@@ -340,7 +407,9 @@ Singleton {
         }
 
         function getPosition(): real {
-            return root.position
+            // Direct read — the C++ getter computes the live position;
+            // root.position only refreshes on poke ticks.
+            return root.activePlayer?.position ?? 0
         }
 
         function getLength(): real {
