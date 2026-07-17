@@ -1,6 +1,6 @@
 module qs.src.features.dashboard.components
 
-TabButton 1.0 TabButton.qml
+DashboardTabButton 1.0 DashboardTabButton.qml
 EventDialog 1.0 EventDialog.qml
 DeviceSelectionDialog 1.0 DeviceSelectionDialog.qml
 RecurrenceEditChoice 1.0 RecurrenceEditChoice.qml

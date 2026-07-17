@@ -423,6 +423,19 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
         : master.allDay;
     QDateTime start = fields.value(QStringLiteral("start")).toDateTime();
     QDateTime end   = fields.value(QStringLiteral("end")).toDateTime();
+
+    // RECURRING masters keep their anchor DATE. The editor is usually
+    // looking at some occurrence (its `start` carries that occurrence's
+    // date) — writing it verbatim would rebase DTSTART to the viewed
+    // occurrence and silently drop every earlier occurrence. A series-wide
+    // edit may only adjust the time of day and the duration.
+    if (master.isMaster() && !allDay && start.isValid()) {
+        const qint64 duration = end.isValid() ? start.secsTo(end)
+                                              : master.start.secsTo(master.end);
+        start = QDateTime(master.start.date(), start.time(), start.timeRepresentation());
+        end = start.addSecs(duration > 0 ? duration : 0);
+    }
+
     // Preserve the AUTHORING zone: rewriting a TZID=Europe/X series as UTC
     // re-anchors every occurrence and shifts the series by an hour after
     // the next DST transition.
@@ -439,12 +452,13 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
         }
     }
 
-    // RRULE: only touch if recurrence keyword changed compared to master.
-    // This preserves complex clauses (BYDAY, INTERVAL>1, COUNT, BYSETPOS)
-    // when the user edits an unrelated field like the title.
+    // RRULE: only touch when the key is PRESENT and the keyword actually
+    // changed (absent key = leave as is, like every other field — a partial
+    // map must not strip the RRULE). Keyword-equal edits still preserve
+    // complex clauses (BYDAY, INTERVAL>1, COUNT, BYSETPOS).
     const Recurrence newRec = recurrenceFromString(
         fields.value(QStringLiteral("recurrence")).toString());
-    if (newRec != master.recurrence) {
+    if (fields.contains(QStringLiteral("recurrence")) && newRec != master.recurrence) {
         clearRrule(ve);
         if (newRec != Recurrence::None) {
             ical::RecurrencePtr rule = ical::wrapRecurrence(icalrecurrencetype_new());
@@ -459,7 +473,7 @@ bool CalendarStore::editAllInPlace(const Event& master, const QVariantMap& field
             }
             icalcomponent_add_property(ve, icalproperty_new_rrule(rule.get()));
         }
-    } else if (newRec != Recurrence::None) {
+    } else if (fields.contains(QStringLiteral("recurrence")) && newRec != Recurrence::None) {
         // Recurrence keyword unchanged, but UNTIL might have changed.
         // Update UNTIL on the existing RRULE if user provided one.
         QDate newUntil = fields.value(QStringLiteral("recurrenceUntil")).toDate();

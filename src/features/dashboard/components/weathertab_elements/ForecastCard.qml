@@ -9,13 +9,19 @@ MaterialCard {
     id: card
 
     required property string date
+
+    // "yyyy-MM-dd" -> local Date at midnight, or null.
+    function _localDate(text) {
+        if (!text) return null
+        const parts = text.split("-")
+        if (parts.length !== 3) return null
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+        return isNaN(d.getTime()) ? null : d
+    }
     required property real tempMax
     required property real tempMin
     required property int weatherCode
-    required property real precipSum
     required property int precipProbMax
-    required property string sunrise
-    required property string sunset
 
     color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
     radius: Tokens.shape.medium
@@ -28,22 +34,23 @@ MaterialCard {
         // Day name (bold, primary color)
         MaterialText {
             text: {
-                if (!date || date === "") return "N/A";
+                // Parse "yyyy-MM-dd" as LOCAL (new Date(string) reads UTC —
+                // one day early west of Greenwich). DateTime.clock makes
+                // Today/Tmrw roll over at midnight while the tab is open.
+                const d = card._localDate(card.date)
+                if (!d) return "N/A";
 
-                var d = new Date(date);
-                if (isNaN(d.getTime())) return "N/A";
-
-                var today = new Date();
-                today.setHours(0, 0, 0, 0);
-                d.setHours(0, 0, 0, 0);
+                const today = new Date(DateTime.clock.date.getFullYear(),
+                                       DateTime.clock.date.getMonth(),
+                                       DateTime.clock.date.getDate());
 
                 if (d.getTime() === today.getTime()) return "Today";
 
-                var tomorrow = new Date(today);
+                const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 if (d.getTime() === tomorrow.getTime()) return "Tmrw";
 
-                var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 return days[d.getDay()];
             }
             textStyle: "titleMedium"
@@ -55,10 +62,8 @@ MaterialCard {
         // Date (small, under day name)
         MaterialText {
             text: {
-                if (!date || date === "") return "";
-                var d = new Date(date);
-                if (isNaN(d.getTime())) return "";
-                return d.toLocaleDateString(Qt.locale(), "MMM d");
+                const d = card._localDate(card.date);
+                return d ? d.toLocaleDateString(Qt.locale(), "MMM d") : "";
             }
             textStyle: "bodySmall"
             colorRole: "onSurfaceVariant"
@@ -67,9 +72,9 @@ MaterialCard {
             Layout.topMargin: -Tokens.spacing.extraSmall
         }
 
-        // Weather icon (secondary color like caelesia)
+        // Weather icon (secondary color like caelestia)
         MaterialIcon {
-            iconName: WeatherIcons.codeToName[weatherCode] || "cloud"
+            iconName: WeatherIcons.codeToName[card.weatherCode] || "cloud"
             fontSize: 48
             iconColor: Theme.secondary
             backgroundColor: "transparent"
@@ -82,7 +87,7 @@ MaterialCard {
             spacing: 4
 
             MaterialText {
-                text: Math.round(tempMax) + "°"
+                text: Math.round(card.tempMax) + "°"
                 textStyle: "titleMedium"
                 colorRole: "tertiary"
                 font.weight: Font.Bold
@@ -96,7 +101,7 @@ MaterialCard {
             }
 
             MaterialText {
-                text: Math.round(tempMin) + "°"
+                text: Math.round(card.tempMin) + "°"
                 textStyle: "titleMedium"
                 colorRole: "tertiary"
                 font.weight: Font.Bold
@@ -107,21 +112,20 @@ MaterialCard {
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: 2
-            // visible: precipProbMax > 0
 
             MaterialIcon {
                 iconName: "water_drop"
-                visible: precipProbMax > 0
+                visible: card.precipProbMax > 0
                 fontSize: 12
                 iconColor: Theme.primary
                 backgroundColor: "transparent"
             }
 
             MaterialText {
-                text: precipProbMax + "%"
+                text: card.precipProbMax + "%"
                 textStyle: "labelSmall"
                 colorRole: "onSurfaceVariant"
-                visible: precipProbMax > 0
+                visible: card.precipProbMax > 0
             }
         }
     }

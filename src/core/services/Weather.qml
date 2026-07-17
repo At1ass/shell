@@ -26,7 +26,9 @@ Singleton {
     readonly property string tempUnit: isImperial ? "°F" : "°C"
     readonly property string windUnit: isImperial ? "mph" : "km/h"
 
-    onIsImperialChanged: store.fetchNow()
+    // Bypass the fetchNow rate limit: after a unit switch the displayed
+    // numbers are in the WRONG unit until refetched.
+    onIsImperialChanged: store._doFetch()
 
     // === Current Weather ===
     readonly property real tempC: data?.current?.temperature_2m ?? 0
@@ -41,15 +43,9 @@ Singleton {
     readonly property int weatherCode: data?.current?.weather_code ?? 0
     readonly property string weatherDesc: _weatherCodeToDesc(weatherCode)
     readonly property string icon: WeatherIcons.codeToName[weatherCode] || "cloud"
-    readonly property bool isFresh: (Date.now() - lastSuccessAt.getTime()) < (refreshMinutes * 60 * 1000)
-
-    // === Hourly Forecast (next 24 hours) ===
-    readonly property var hourlyTime: data?.hourly?.time || []
-    readonly property var hourlyTemp: data?.hourly?.temperature_2m || []
-    readonly property var hourlyPrecipProb: data?.hourly?.precipitation_probability || []
-    readonly property var hourlyPrecip: data?.hourly?.precipitation || []
-    readonly property var hourlyWeatherCode: data?.hourly?.weather_code || []
-    readonly property var hourlyWindSpeed: data?.hourly?.wind_speed_10m || []
+    // DateTime.clock is the reactive time source — a bare Date.now() would
+    // freeze this at whatever it was on the last fetch attempt.
+    readonly property bool isFresh: (DateTime.clock.date.getTime() - lastSuccessAt.getTime()) < (refreshMinutes * 60 * 1000)
 
     // === Daily Forecast (7 days) ===
     readonly property var dailyTime: data?.daily?.time || []
@@ -195,8 +191,9 @@ Singleton {
         if (_retryMs === 0) ToastService.warning("Weather unavailable: " + msg)
         // 5s → 10s → 20s → … up to 5 minutes
         _retryMs = Math.min(_retryMs > 0 ? _retryMs * 2 : 5000, 5 * 60 * 1000);
-        if (!retryTimer.running)
+        // No retry churn during gaming mode (the periodic poll is already
+        // gated on it).
+        if (!retryTimer.running && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather))
             retryTimer.start();
     }
-    // }
 }

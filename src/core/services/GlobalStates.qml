@@ -60,7 +60,9 @@ Singleton {
     // Open the dashboard on a specific tab.
     // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
     function openDashboardTab(tabIndex) {
-        dashboardOpenIndex = tabIndex
+        // Clamp: an out-of-range index (IPC typo) would deactivate every
+        // tab Loader and open a blank dashboard.
+        dashboardOpenIndex = Math.max(0, Math.min(4, tabIndex))
         openPanel("dashboard")
     }
 

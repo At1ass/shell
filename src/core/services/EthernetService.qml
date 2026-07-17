@@ -11,7 +11,8 @@ Singleton {
     property string ipAddress: ""
     property string gateway: ""
     property string speed: ""
-    readonly property string icon: connected ? "lan" : "lan_disconnect"
+    // Material Symbols has no lan_disconnect glyph; settings_ethernet reads as "port, no link".
+    readonly property string icon: connected ? "lan" : "settings_ethernet"
 
     // Refresh on demand — NetworkEventMonitor calls this on NM events.
     function refresh() {
@@ -44,7 +45,7 @@ Singleton {
                         deviceDetailProc.command = ["nmcli", "-t", "-f",
                             "IP4.ADDRESS,IP4.GATEWAY,GENERAL.HWADDR",
                             "device", "show", parts[0]]
-                        deviceDetailProc.running = true
+                        if (!deviceDetailProc.running) deviceDetailProc.running = true
                         break
                     }
                 }
@@ -64,11 +65,17 @@ Singleton {
     Process {
         id: deviceDetailProc
 
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                console.warn("EthernetService: nmcli device show failed (exit " + exitCode + ")")
+        }
+
         stdout: StdioCollector {
             id: detailCollector
             onStreamFinished: {
                 const lines = detailCollector.text.trim().split('\n')
 
+                let gotAddress = false
                 for (const line of lines) {
                     const sep = line.indexOf(':')
                     if (sep === -1) continue
@@ -77,12 +84,14 @@ Singleton {
 
                     if (key === "IP4.ADDRESS[1]") {
                         root.ipAddress = value.split('/')[0] || value
+                        gotAddress = value.length > 0
                     } else if (key === "IP4.GATEWAY") {
                         root.gateway = value
                     }
                 }
 
-                root.connected = true
+                // "connected" means usable: require an actual IPv4 address.
+                root.connected = gotAddress
                 // Defense-in-depth: interfaceName comes from nmcli (trusted)
                 // but we still validate the shape before splicing it into a
                 // /sys path. Linux ifnames are alnum + _ - . (max 15 chars).

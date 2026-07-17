@@ -4,7 +4,7 @@ import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 
-// Compact detail card for weather info (similar to caelesia)
+// Compact detail card for weather info (similar to caelestia)
 MaterialCard {
     id: root
 

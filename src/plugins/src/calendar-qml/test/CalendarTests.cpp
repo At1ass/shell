@@ -468,6 +468,51 @@ private slots:
         QCOMPARE(override_[0].title, QStringLiteral("Renamed instance"));
         QVERIFY(override_[0].isOverride());
     }
+
+    void storeSeriesEditKeepsAnchorDate() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString masterPath = tmp.path() + QStringLiteral("/cal1/series.ics");
+        writeFile(masterPath,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:anchor@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+
+        // Editing FROM the May 6 occurrence: the dialog composes start/end
+        // on that occurrence's date. The series anchor must not move.
+        QVariantMap fields;
+        fields.insert(QStringLiteral("title"), QStringLiteral("Renamed"));
+        fields.insert(QStringLiteral("start"),
+                      QDateTime::fromString(QStringLiteral("2026-05-06T10:30:00Z"), Qt::ISODate));
+        fields.insert(QStringLiteral("end"),
+                      QDateTime::fromString(QStringLiteral("2026-05-06T11:30:00Z"), Qt::ISODate));
+        store.editEventCmd(QStringLiteral("anchor@test"), fields,
+                           QStringLiteral("all"), QDateTime(), QDateTime());
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(), qPrintable(done.at(0).at(1).toString()));
+
+        auto events = IcalParser::parseFile(masterPath, QStringLiteral("cal1"));
+        QCOMPARE(events.size(), size_t(1));
+        QCOMPARE(events[0].title, QStringLiteral("Renamed"));
+        // Anchor date preserved; only time-of-day and duration moved.
+        QCOMPARE(events[0].start.toUTC().date(), QDate(2026, 5, 4));
+        QCOMPARE(events[0].start.toUTC().time(), QTime(10, 30));
+        QCOMPARE(events[0].start.secsTo(events[0].end), qint64(3600));
+        // Occurrences before the viewed one still exist.
+        const auto early = IcalParser::expandRange(events, QDate(2026, 5, 4), QDate(2026, 5, 5));
+        QCOMPARE(early.size(), 2);
+    }
 };
 
 QTEST_MAIN(CalendarTests)

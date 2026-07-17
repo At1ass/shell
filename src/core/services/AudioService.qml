@@ -28,6 +28,14 @@ Singleton {
     readonly property real micVolume: defaultSource?.audio?.volume ?? 0
     readonly property bool micMuted: defaultSource?.audio?.muted ?? false
 
+    // PwNode properties (audio.volume/muted) are only live on BOUND nodes.
+    // The service exposes volume APIs and hotkeys, so it must own the
+    // binding itself — relying on the bar's volume widget meant hotkeys
+    // and IPC read 0 whenever that widget was disabled.
+    readonly property PwObjectTracker _tracker: PwObjectTracker {
+        objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource].filter(n => n !== null)
+    }
+
     // ===== SIGNALS =====
     signal volumeChanged(real volume, bool muted)
 

@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
@@ -12,6 +11,16 @@ Item {
     id: root
     focus: true
 
+    // Active tab's modal state: while a dialog is up, dashboard-level keys
+    // must not switch tabs or close the panel (Escape used to bypass the
+    // EventDialog dirty-discard prompt and nuke the whole dashboard).
+    readonly property var _tabLoaders: [quickLoader, weatherLoader, calendarLoader, audioLoader, networkLoader]
+    readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
+    function _closeTopModal() {
+        const item = _tabLoaders[tabView.currentIndex]?.item
+        if (item && item.closeTopModal) item.closeTopModal()
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // KEYBOARD NAVIGATION
     // ═══════════════════════════════════════════════════════════════
@@ -21,26 +30,33 @@ Item {
     // (imperative writes to currentIndex would sever the binding).
 
     Keys.onTabPressed: (event) => {
+        if (root._modalOpen) { event.accepted = true; return }
         GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 1) % 5
         event.accepted = true
     }
 
     Keys.onBacktabPressed: (event) => {
+        if (root._modalOpen) { event.accepted = true; return }
         GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 4) % 5
         event.accepted = true
     }
 
     Keys.onPressed: (event) => {
-        // Direct tab jump (1-4)
-        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
-            GlobalStates.dashboardOpenIndex = event.key - Qt.Key_1
+        // Escape: an open modal consumes it (dirty-guard prompt included);
+        // otherwise it closes the dashboard.
+        if (event.key === Qt.Key_Escape) {
+            if (root._modalOpen) root._closeTopModal()
+            else GlobalStates.closePanel("dashboard")
             event.accepted = true
             return
         }
 
-        // Escape closes dashboard
-        if (event.key === Qt.Key_Escape) {
-            GlobalStates.closePanel("dashboard")
+        // Every other dashboard-level key is inert while a modal is up.
+        if (root._modalOpen) return
+
+        // Direct tab jump (keys 1-5)
+        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
+            GlobalStates.dashboardOpenIndex = event.key - Qt.Key_1
             event.accepted = true
             return
         }
@@ -54,8 +70,8 @@ Item {
             return
         }
 
-        // Vi-like tab switching: H/L (shifted) when NOT on calendar tab
-        if (tabView.currentIndex !== 2) {
+        // Vi-like tab switching: H/L (no modifiers) when NOT on calendar tab
+        if (tabView.currentIndex !== 2 && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier))) {
             if (event.key === Qt.Key_H || event.key === Qt.Key_Left) {
                 GlobalStates.dashboardOpenIndex = Math.max(0, tabView.currentIndex - 1)
                 event.accepted = true
@@ -127,10 +143,9 @@ Item {
             spacing: 0
 
             // ===== TAB BAR =====
-            Rectangle {
+            Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 92
-                color: "transparent"
 
                 RowLayout {
                     anchors.fill: parent
@@ -146,7 +161,7 @@ Item {
                             { icon: "wifi",              label: "Network" }
                         ]
 
-                        delegate: TabButton {
+                        delegate: DashboardTabButton {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             isActive: tabView.currentIndex === index

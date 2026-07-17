@@ -27,7 +27,7 @@ MaterialCard {
 
             Repeater {
                 model: [
-                    // Row 1
+                    // Group 1 (grid is 2 columns wide)
                     {
                         icon: () => NetworkService.icon,
                         active: () => NetworkService.wifiEnabled,
@@ -60,7 +60,7 @@ MaterialCard {
                         tooltip: () => IdleInhibitorService.inhibit ? "Caffeine Mode Active" : "Caffeine Mode Inactive",
                         action: () => IdleInhibitorService.toggleInhibit()
                     },
-                    // Row 2
+                    // Group 2
                     {
                         icon: "do_not_disturb_on",
                         active: () => NotificationService.doNotDisturb,
@@ -105,7 +105,11 @@ MaterialCard {
                     color: isActive ? Theme.primaryContainer : Theme.surfaceContainerHighest
 
                     Behavior on color {
-                        ColorAnimation { duration: Tokens.motion.duration.short4 }
+                        ColorAnimation {
+                            duration: Tokens.motion.duration.short4
+                            easing.type: Tokens.motion.easing.standard
+                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        }
                     }
 
                     MaterialIcon {
@@ -116,7 +120,11 @@ MaterialCard {
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
-                            ColorAnimation { duration: Tokens.motion.duration.short4 }
+                            ColorAnimation {
+                            duration: Tokens.motion.duration.short4
+                            easing.type: Tokens.motion.easing.standard
+                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        }
                         }
                     }
 

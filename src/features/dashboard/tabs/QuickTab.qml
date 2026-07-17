@@ -12,7 +12,7 @@ Item {
     GridLayout {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.medium
-        columns: 5
+        columns: 4
         rows: 4
         columnSpacing: Tokens.spacing.small
         rowSpacing: Tokens.spacing.small
@@ -129,16 +129,13 @@ Item {
                     Layout.fillHeight: true
                 }
 
-                MaterialIcon {
+                IconButton {
+                    variant: "standard"
                     iconName: AudioService.masterMuted ? "volume_off" : "volume_up"
                     iconColor: Theme.onSurfaceVariant
-                    fontSize: Tokens.typography.headlineSmall.size
-                    backgroundColor: "transparent"
+                    iconSize: Tokens.iconSize.large
                     Layout.alignment: Qt.AlignHCenter
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: AudioService.toggleMasterMute()
-                    }
+                    onClicked: AudioService.toggleMasterMute()
                 }
 
                 MaterialSlider {

@@ -1,12 +1,12 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Quickshell
 import Calendar
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
 import qs.src.core.config
+import qs.src.core.services
 import qs.src.features.dashboard.components
 
 
@@ -16,7 +16,22 @@ Item {
     property int currentMonth: new Date().getMonth()
     property int currentYear: new Date().getFullYear()
     property date selectedDate: new Date()
-    property date today: new Date()
+
+    // Midnight-reactive: SystemClock ticks each minute but the derived
+    // date VALUE only changes at midnight, so onTodayChanged fires exactly
+    // once per day (a tab left open no longer highlights yesterday).
+    readonly property date today: new Date(DateTime.clock.date.getFullYear(),
+                                           DateTime.clock.date.getMonth(),
+                                           DateTime.clock.date.getDate())
+    onTodayChanged: updateCalendar()
+
+    // Modal state for DashboardContent's key routing: while a dialog is up,
+    // dashboard-level keys (Escape/tab digits) must not fire.
+    readonly property bool modalOpen: eventDialog.visible || recurrenceChoice.visible
+    function closeTopModal() {
+        if (recurrenceChoice.visible) recurrenceChoice.close()
+        else if (eventDialog.visible) eventDialog.requestClose()
+    }
     property var selectedDayEvents: CalendarBackend.dayEvents
 
     // Day-header labels rotated to start from AppConfig.calendarFirstDayOfWeek.
@@ -70,6 +85,7 @@ Item {
     }
 
     function openNewEvent() {
+        if (CalendarBackend.calendars.length === 0) return
         eventDialog.openDialog(false, null, root.selectedDate)
     }
 
@@ -88,10 +104,8 @@ Item {
     }
 
     Connections {
-        target: CalendarBackend
-        function onDayEventsChanged() {
-            root.selectedDayEvents = CalendarBackend.dayEvents
-        }
+        target: AppConfig
+        function onCalendarFirstDayOfWeekChanged() { root.updateCalendar() }
     }
 
     function generateCalendar() {
@@ -233,6 +247,7 @@ Item {
                         model: calendarDays
 
                         delegate: Rectangle {
+                            id: dayCell
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
                             radius: Tokens.shape.full
@@ -240,6 +255,9 @@ Item {
                             property bool isToday: root.isSameDate(model.date, root.today)
                             property bool isSelected: root.isSameDate(model.date, root.selectedDate)
                             property bool isFocused: index === root.focusedCellIndex
+                            // The dot Repeater's model is an INT — inside it,
+                            // `model.<role>` is shadowed and reads undefined.
+                            readonly property bool inCurrentMonth: model.isCurrentMonth
                             // Reading eventsByDate makes this binding reactive
                             property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(model.date, "yyyy-MM-dd")] || []
                             property int eventCount: dayList.length
@@ -257,7 +275,11 @@ Item {
                             border.color: isFocused ? Theme.tertiary : Theme.onPrimary
 
                             Behavior on color {
-                                ColorAnimation { duration: Tokens.motion.duration.short4 }
+                                ColorAnimation {
+                                    duration: Tokens.motion.duration.short4
+                                    easing.type: Tokens.motion.easing.standard
+                                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                                }
                             }
 
                             Column {
@@ -291,10 +313,10 @@ Item {
                                             width: 4
                                             height: 4
                                             radius: 2
-                                            color: isToday ? Theme.onPrimary
-                                                : isSelected ? Theme.onSecondaryContainer
+                                            color: dayCell.isToday ? Theme.onPrimary
+                                                : dayCell.isSelected ? Theme.onSecondaryContainer
                                                 : Theme.primary
-                                            opacity: model.isCurrentMonth ? 1.0 : 0.5
+                                            opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
                                         }
                                     }
                                 }
@@ -456,7 +478,11 @@ Item {
                                 }
                             }
 
-                            // Current time indicator
+                            // Current time indicator. DateTime.clock ticks
+                            // per minute, so `y` is a plain reactive binding —
+                            // no timer needed (the old one also ran while the
+                            // line was hidden: Timer has no `visible`, so
+                            // `running: visible` bound to the TAB's).
                             Rectangle {
                                 visible: root.isSameDate(root.selectedDate, root.today)
                                 x: 38
@@ -464,10 +490,9 @@ Item {
                                 height: 2
                                 radius: 1
                                 color: Theme.error
-                                y: {
-                                    const now = new Date()
-                                    return (now.getHours() + now.getMinutes() / 60) * AppConfig.calendarDayViewHourHeight
-                                }
+                                y: (DateTime.clock.date.getHours()
+                                    + DateTime.clock.date.getMinutes() / 60)
+                                   * AppConfig.calendarDayViewHourHeight
 
                                 Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
@@ -478,37 +503,67 @@ Item {
                                     radius: 4
                                     color: Theme.error
                                 }
-
-                                Timer {
-                                    interval: 60000
-                                    repeat: true
-                                    running: visible
-                                    onTriggered: parent.y = Qt.binding(() => {
-                                        const now = new Date()
-                                        return (now.getHours() + now.getMinutes() / 60) * AppConfig.calendarDayViewHourHeight
-                                    })
-                                }
                             }
 
-                            // Event cards
+                            // Event cards. Hours are clamped to the VIEWED
+                            // day (multi-day events drew at their start-day
+                            // clock position on continuation days), and
+                            // overlapping events are laid out into columns —
+                            // parallel meetings used to fully occlude each
+                            // other, making the covered one unclickable.
                             Repeater {
                                 model: {
-                                    return root.selectedDayEvents.filter(ev => !ev.allDay && ev.start)
+                                    const dayStart = new Date(root.selectedDate)
+                                    dayStart.setHours(0, 0, 0, 0)
+                                    const dayEnd = new Date(dayStart)
+                                    dayEnd.setDate(dayEnd.getDate() + 1)
+
+                                    const items = root.selectedDayEvents
+                                        .filter(ev => !ev.allDay && ev.start)
+                                        .map(ev => {
+                                            const s = ev.start < dayStart ? 0
+                                                : ev.start.getHours() + ev.start.getMinutes() / 60
+                                            let e
+                                            if (!ev.end) e = s + 1
+                                            else if (ev.end >= dayEnd) e = 24
+                                            else e = ev.end.getHours() + ev.end.getMinutes() / 60
+                                            if (e <= s) e = s + 0.5
+                                            return { ev: ev, s: s, e: e, col: 0, cols: 1 }
+                                        })
+                                        .sort((a, b) => (a.s - b.s) || (b.e - a.e))
+
+                                    // Greedy column assignment inside overlap clusters.
+                                    let cluster = []
+                                    let clusterEnd = -1
+                                    const flush = () => {
+                                        const n = Math.max(...cluster.map(i => i.col)) + 1
+                                        for (const i of cluster) i.cols = n
+                                        cluster = []
+                                        clusterEnd = -1
+                                    }
+                                    for (const it of items) {
+                                        if (cluster.length > 0 && it.s >= clusterEnd) flush()
+                                        const used = cluster.filter(c => c.e > it.s).map(c => c.col)
+                                        let col = 0
+                                        while (used.indexOf(col) !== -1) col++
+                                        it.col = col
+                                        cluster.push(it)
+                                        clusterEnd = Math.max(clusterEnd, it.e)
+                                    }
+                                    if (cluster.length > 0) flush()
+                                    return items
                                 }
 
                                 Rectangle {
-                                    readonly property var ev: modelData
-                                    readonly property real startHour: ev.start
-                                        ? (ev.start.getHours() + ev.start.getMinutes() / 60)
-                                        : 0
-                                    readonly property real endHour: ev.end
-                                        ? (ev.end.getHours() + ev.end.getMinutes() / 60)
-                                        : startHour + 1
+                                    readonly property var ev: modelData.ev
+                                    readonly property real startHour: modelData.s
+                                    readonly property real endHour: modelData.e
                                     readonly property real durationHours: Math.max(0.5, endHour - startHour)
+                                    readonly property real _colWidth: (timelineColumn.width - 48) / modelData.cols
 
-                                    x: 44
+                                    x: 44 + modelData.col * _colWidth
                                     y: startHour * AppConfig.calendarDayViewHourHeight
-                                    width: timelineColumn.width - 48
+                                    width: _colWidth - (modelData.cols > 1 ? 2 : 0)
                                     height: Math.max(30, durationHours * AppConfig.calendarDayViewHourHeight - 2)
                                     radius: Tokens.shape.small
                                     color: Theme.primaryContainer

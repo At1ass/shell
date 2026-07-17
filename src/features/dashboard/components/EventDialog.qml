@@ -18,6 +18,16 @@ Dialog {
     property date selectedDate: new Date()
     property bool dirty: false
 
+    // All-day events have no time-of-day; the time row hides and validation
+    // skips time checks (they used to hard-block editing all-day events).
+    property bool allDayMode: false
+
+    // Whether the user actually touched start/end/all-day. Untouched times
+    // are OMITTED from the field map on edits — the backend treats absent
+    // keys as "leave as is", which keeps series anchors and multi-day
+    // events intact when only the title changes.
+    property bool _timesEdited: false
+
     // fields: QVariantMap matching IcalParser::buildIcsString shape
     signal eventSaved(var fields)
     signal eventDeleted(string uid, bool isRecurring)
@@ -34,19 +44,28 @@ Dialog {
 
     readonly property string _validationError: {
         if (titleField.text.trim() === "") return "Title is required"
-        if (!_timeRe.test(startTimeField.text)) return "Invalid start time (HH:MM)"
-        if (!_timeRe.test(endTimeField.text))   return "Invalid end time (HH:MM)"
-        const sParts = startTimeField.text.split(":")
-        const eParts = endTimeField.text.split(":")
-        const sMin = parseInt(sParts[0])*60 + parseInt(sParts[1])
-        const eMin = parseInt(eParts[0])*60 + parseInt(eParts[1])
-        if (eMin <= sMin) return "End must be after start"
+        if (!allDayMode) {
+            if (!_timeRe.test(startTimeField.text)) return "Invalid start time (HH:MM)"
+            if (!_timeRe.test(endTimeField.text))   return "Invalid end time (HH:MM)"
+            const sParts = startTimeField.text.split(":")
+            const eParts = endTimeField.text.split(":")
+            const sMin = parseInt(sParts[0])*60 + parseInt(sParts[1])
+            const eMin = parseInt(eParts[0])*60 + parseInt(eParts[1])
+            if (eMin <= sMin) return "End must be after start"
+        }
         if (recurrenceCombo.currentIndex !== 0 && untilField.text.length > 0) {
             if (!_dateRe.test(untilField.text)) return "Until: yyyy-MM-dd"
-            const u = new Date(untilField.text)
-            if (isNaN(u.getTime())) return "Invalid until date"
+            if (!_parseLocalDate(untilField.text)) return "Invalid until date"
         }
         return ""
+    }
+
+    // Parse "yyyy-MM-dd" as a LOCAL date. `new Date(string)` reads it as
+    // UTC midnight, which lands one day early west of Greenwich.
+    function _parseLocalDate(text) {
+        const p = text.split("-")
+        const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]))
+        return isNaN(d.getTime()) ? null : d
     }
     readonly property bool _isValid: _validationError === ""
 
@@ -57,6 +76,7 @@ Dialog {
 
         if (editMode && data) {
             titleField.text = data.title || ""
+            allDayMode = data.allDay === true
             startTimeField.text = data.start ? Qt.formatTime(data.start, "HH:mm") : ""
             endTimeField.text   = data.end   ? Qt.formatTime(data.end,   "HH:mm") : ""
             descriptionField.text = data.description || ""
@@ -75,6 +95,7 @@ Dialog {
             calendarCombo.currentIndex = calIdx >= 0 ? calIdx : 0
         } else {
             titleField.text = ""
+            allDayMode = false
             descriptionField.text = ""
             locationField.text = ""
             categoriesField.text = ""
@@ -92,21 +113,14 @@ Dialog {
         // Reset AFTER field assignments — those fired onTextChanged and
         // would have flipped dirty=true otherwise.
         dirty = false
+        _timesEdited = false
     }
 
     // Build a QVariantMap for CalendarBackend.addEvent / editEvent.
-    // Times are merged into selectedDate.
+    // Times are merged into selectedDate. On EDITS, untouched times are
+    // omitted entirely (absent key = leave as is on the backend).
     function _buildFields() {
         const recurrenceValues = ["none", "daily", "weekly", "monthly", "yearly"]
-        const startParts = startTimeField.text.split(":")
-        const endParts   = endTimeField.text.split(":")
-
-        const startDt = new Date(selectedDate)
-        startDt.setHours(parseInt(startParts[0]) || 0,
-                         parseInt(startParts[1]) || 0, 0, 0)
-        const endDt = new Date(selectedDate)
-        endDt.setHours(parseInt(endParts[0]) || 0,
-                       parseInt(endParts[1]) || 0, 0, 0)
 
         const cats = categoriesField.text.trim().length > 0
             ? categoriesField.text.split(",").map(s => s.trim()).filter(s => s.length > 0)
@@ -118,13 +132,34 @@ Dialog {
             description: descriptionField.text.trim(),
             location:    locationField.text.trim(),
             categories:  cats,
-            start:       startDt,
-            end:         endDt,
-            allDay:      false,
             recurrence:  recurrenceValues[recurrenceCombo.currentIndex] || "none"
         }
+
+        if (!isEditMode || _timesEdited) {
+            fields.allDay = allDayMode
+            if (allDayMode) {
+                const dayStart = new Date(selectedDate)
+                dayStart.setHours(0, 0, 0, 0)
+                const dayEnd = new Date(dayStart)
+                dayEnd.setDate(dayEnd.getDate() + 1)   // exclusive per RFC 5545
+                fields.start = dayStart
+                fields.end = dayEnd
+            } else {
+                const startParts = startTimeField.text.split(":")
+                const endParts   = endTimeField.text.split(":")
+                const startDt = new Date(selectedDate)
+                startDt.setHours(parseInt(startParts[0]) || 0,
+                                 parseInt(startParts[1]) || 0, 0, 0)
+                const endDt = new Date(selectedDate)
+                endDt.setHours(parseInt(endParts[0]) || 0,
+                               parseInt(endParts[1]) || 0, 0, 0)
+                fields.start = startDt
+                fields.end = endDt
+            }
+        }
+
         if (recurrenceCombo.currentIndex !== 0 && _dateRe.test(untilField.text)) {
-            fields.recurrenceUntil = new Date(untilField.text)
+            fields.recurrenceUntil = _parseLocalDate(untilField.text)
         }
         return fields
     }
@@ -168,8 +203,31 @@ Dialog {
                 }
             }
 
+            // All-day toggle
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                MaterialText {
+                    text: "All-day"
+                    textStyle: "labelMedium"
+                    colorRole: "onSurfaceVariant"
+                    Layout.fillWidth: true
+                }
+
+                MaterialSwitch {
+                    checked: root.allDayMode
+                    onToggled: (state) => {
+                        root.allDayMode = state
+                        root._timesEdited = true
+                        root.dirty = true
+                    }
+                }
+            }
+
             // Time fields
             RowLayout {
+                visible: !root.allDayMode
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.medium
 
@@ -189,6 +247,7 @@ Dialog {
                         placeholderText: "HH:MM"
                         validator: RegularExpressionValidator { regularExpression: root._timeRe }
                         onTextEdited: root.dirty = true
+                        inputItem.onTextEdited: root._timesEdited = true
                     }
                 }
 
@@ -208,6 +267,7 @@ Dialog {
                         placeholderText: "HH:MM"
                         validator: RegularExpressionValidator { regularExpression: root._timeRe }
                         onTextEdited: root.dirty = true
+                        inputItem.onTextEdited: root._timesEdited = true
                     }
                 }
             }
@@ -280,6 +340,9 @@ Dialog {
                     Layout.fillWidth: true
                     model: CalendarBackend.calendars
                     label: "Calendar"
+                    // Backend edits never move files between calendars;
+                    // offering the choice on edit would be a silent no-op.
+                    enabled: !root.isEditMode
                     onCurrentIndexChanged: root.dirty = true
                 }
 

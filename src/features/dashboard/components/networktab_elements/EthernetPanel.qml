@@ -93,7 +93,7 @@ ColumnLayout {
                     Layout.fillHeight: true
                     values: SystemMonitorService.netRxHistory
                     lineColor: Theme.primary
-                    fillColor: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1)
+                    fillColor: Qt.alpha(Theme.primary, 0.1)
                 }
                 Sparkline {
                     Layout.fillWidth: true
@@ -110,7 +110,7 @@ ColumnLayout {
         visible: !EthernetService.connected
         Layout.fillWidth: true
         Layout.fillHeight: true
-        iconName: "lan_disconnect"
+        iconName: "settings_ethernet"  // no lan_disconnect glyph in Material Symbols
         title: "No wired connection"
         subtitle: "Connect an Ethernet cable"
         iconContainerSize: 56

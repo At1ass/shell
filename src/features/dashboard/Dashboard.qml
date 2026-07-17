@@ -16,7 +16,7 @@ Scope {
 
     // Extra window height per tab (Weather and Calendar content run taller).
     // Indexed by GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
-    readonly property var tabExtraHeight: [0, 20, 60, 0, 0]
+    readonly property list<int> tabExtraHeight: [0, 20, 60, 0, 0]
 
     PanelWindow {
         id: dashboardWindow
@@ -59,14 +59,13 @@ Scope {
 
             anchors {
                 fill: parent
-                margins: 10
-                leftMargin: 10
+                margins: Tokens.spacing.small
             }
 
+            // No implicit-size bindings back to the Loader: it forwards its
+            // item's implicit size, so those would be circular.
             sourceComponent: DashboardContent {
                 anchors.fill: parent
-                implicitWidth: parent.implicitWidth
-                implicitHeight: parent.implicitHeight
             }
 
             Keys.onPressed: event => {

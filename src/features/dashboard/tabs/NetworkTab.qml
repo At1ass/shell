@@ -9,6 +9,11 @@ Item {
 
     property int selectedPanel: 0
 
+    // Modal state for DashboardContent's key routing (only the Wi-Fi panel
+    // hosts a dialog today).
+    readonly property bool modalOpen: wifiPanelLoader.item?.modalOpen ?? false
+    function closeTopModal() { wifiPanelLoader.item?.closeTopModal() }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.medium
@@ -75,6 +80,7 @@ Item {
             currentIndex: root.selectedPanel
 
             Loader {
+                id: wifiPanelLoader
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 active: root.selectedPanel === 0

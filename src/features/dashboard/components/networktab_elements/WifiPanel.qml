@@ -11,6 +11,14 @@ import qs.src.ui.inputs
 Item {
     id: root
 
+    // Modal state for NetworkTab/DashboardContent key routing.
+    readonly property bool modalOpen: wifiPasswordDialog.visible
+    function closeTopModal() { wifiPasswordDialog.close() }
+
+    // A scan must not outlive the panel (tab switch / dashboard close
+    // otherwise leaves the Wi-Fi radio scanning indefinitely).
+    Component.onDestruction: NetworkService.stopScan()
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Tokens.spacing.small
@@ -50,7 +58,6 @@ Item {
                         } else if (modelData.known) {
                             NetworkService.connectToNetwork(modelData)
                         } else if (modelData.security !== WifiSecurityType.Open) {
-                            wifiPasswordDialog.targetNetwork = modelData
                             wifiPasswordDialog.targetSSID = modelData.name
                             wifiPasswordDialog.open()
                         } else {
@@ -92,7 +99,6 @@ Item {
         dialogHeight: 220
 
         property string targetSSID: ""
-        property var targetNetwork: null
 
         // Wipe the plaintext password on EVERY close path (scrim click,
         // Escape, buttons) — not just the button handlers.
@@ -100,7 +106,6 @@ Item {
             if (!visible) {
                 passwordInput.text = ""
                 passwordInput.password = true
-                targetNetwork = null
             }
         }
 
@@ -137,7 +142,7 @@ Item {
                 MaterialButton {
                     text: "Connect"
                     variant: "filled"
-                    enabled: passwordInput.text.length >= 8
+                    enabled: passwordInput.text.length >= 5  // WPA needs 8+, WEP keys can be 5
                     onClicked: {
                         NetworkService.connectToNewNetwork(wifiPasswordDialog.targetSSID, passwordInput.text)
                         passwordInput.text = ""

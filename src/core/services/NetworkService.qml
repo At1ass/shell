@@ -44,6 +44,9 @@ Singleton {
     function connectToNewNetwork(ssid, password) {
         if (newConnectProc.running) return
         newConnectProc._password = password
+        // Re-assert stdin each launch: onStarted closes it to give nmcli
+        // EOF, and that imperative write severs any declarative binding.
+        newConnectProc.stdinEnabled = true
         newConnectProc.command = ["nmcli", "--ask", "device", "wifi", "connect", ssid]
         newConnectProc.running = true
     }
@@ -92,7 +95,6 @@ Singleton {
 
         property string _password: ""
 
-        stdinEnabled: true
         onStarted: {
             // nmcli --ask reads the passphrase from stdin when not on a TTY.
             write(_password + "\n")

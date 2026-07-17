@@ -117,21 +117,25 @@ Singleton {
             return
         }
 
-        const prevTrack = activeTrack || {}
+        // Carry stale fields over ONLY for the same track (covers transient
+        // empty artUrl while art loads). A different track/player must not
+        // inherit the previous metadata.
+        const prev = activeTrack || {}
+        const id = activePlayer.uniqueId ?? 0
+        const sameTrack = prev.uniqueId === id
         const newTrack = {
-            uniqueId: activePlayer.uniqueId ?? 0,
-            artUrl: activePlayer.trackArtUrl || (prevTrack.artUrl || ""),
-            title: activePlayer.trackTitle || (prevTrack.title || "Unknown Title"),
-            artist: activePlayer.trackArtist || (prevTrack.artist || "Unknown Artist"),
+            uniqueId: id,
+            artUrl: activePlayer.trackArtUrl || (sameTrack ? (prev.artUrl || "") : ""),
+            title: activePlayer.trackTitle || (sameTrack ? (prev.title || "") : "") || "Unknown Title",
+            artist: activePlayer.trackArtist || (sameTrack ? (prev.artist || "") : "") || "Unknown Artist",
             album: activePlayer.trackAlbum || "Unknown Album"
         }
 
-        const hasChanges = !prevTrack ||
-                          prevTrack.uniqueId !== newTrack.uniqueId ||
-                          prevTrack.title !== newTrack.title ||
-                          prevTrack.artist !== newTrack.artist ||
-                          prevTrack.album !== newTrack.album ||
-                          prevTrack.artUrl !== newTrack.artUrl
+        const hasChanges = prev.uniqueId !== newTrack.uniqueId ||
+                          prev.title !== newTrack.title ||
+                          prev.artist !== newTrack.artist ||
+                          prev.album !== newTrack.album ||
+                          prev.artUrl !== newTrack.artUrl
 
         if (hasChanges) {
             activeTrack = newTrack

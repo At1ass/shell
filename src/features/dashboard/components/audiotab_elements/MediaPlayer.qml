@@ -42,7 +42,7 @@ MaterialCard {
         Item {
             id: backgroundLayer
             anchors.fill: parent
-            visible: MprisController.activeTrack?.artUrl !== ""
+            visible: (MprisController.activeTrack?.artUrl ?? "") !== ""
 
             // Album art image (hidden)
             Image {
@@ -89,7 +89,7 @@ MaterialCard {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: 200
                     Layout.preferredHeight: 200
-                    visible: MprisController.activeTrack?.artUrl !== ""
+                    visible: (MprisController.activeTrack?.artUrl ?? "") !== ""
 
                     // Source image (hidden)
                     Image {
@@ -187,8 +187,15 @@ MaterialCard {
                     Layout.fillWidth: true
                     from: 0
                     to: MprisController.length > 0 ? MprisController.length : 1
-                    value: MprisController.position
                     enabled: MprisController.canSeek && MprisController.positionSupported
+
+                    // Gate on `pressed`: the 1 Hz position tick would snap the
+                    // handle back under the cursor mid-drag otherwise.
+                    Binding on value {
+                        when: !positionSlider.pressed
+                        value: MprisController.position
+                        restoreMode: Binding.RestoreBindingOrValue
+                    }
 
                     onMoved: {
                         MprisController.setPosition(value);
@@ -302,12 +309,10 @@ MaterialCard {
             border.width: 1
             border.color: Theme.outlineVariant
 
-            Rectangle {
-                anchors.fill: parent
+            SurfaceTint {
+                level: 1
                 anchors.margins: 1
                 radius: parent.radius - 1
-                color: Theme.primary
-                opacity: 0.05
             }
 
             ColumnLayout {

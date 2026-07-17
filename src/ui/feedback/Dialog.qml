@@ -75,6 +75,9 @@ Rectangle {
 
     // Public API
     function open() {
+        // A pending close (scrim dismiss + immediate reopen) would hide the
+        // freshly opened dialog when its 200 ms timer fired.
+        closeTimer.stop()
         root.visible = true
         root.opacity = 1
         opened()

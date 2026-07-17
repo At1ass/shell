@@ -11,6 +11,10 @@ ColumnLayout {
     id: root
     spacing: Tokens.spacing.small
 
+    // Discovery must not outlive the panel (tab switch / dashboard close
+    // otherwise leaves BT discovery churning forever).
+    Component.onDestruction: BluetoothService.stopScan()
+
     ScrollableList {
         visible: BluetoothService.enabled
         Layout.fillWidth: true

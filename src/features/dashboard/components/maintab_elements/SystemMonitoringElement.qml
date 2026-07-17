@@ -38,7 +38,7 @@ Item {
 
                 property string currentExtra: {
                     switch (modelData.type) {
-                        case "cpu":  return SystemMonitorService.cpuTemp + "\u00B0";
+                        case "cpu":  return SystemMonitorService.hasCpuTemp ? SystemMonitorService.cpuTemp + "\u00B0" : "--";
                         case "gpu":  return SystemMonitorService.gpuTemp + "\u00B0";
                         case "ram":  return SystemMonitorService.ramUsed + "G";
                         case "disk": return SystemMonitorService.diskUsed;
@@ -79,7 +79,11 @@ Item {
                 }
 
                 Behavior on thresholdColor {
-                    ColorAnimation { duration: Tokens.motion.duration.medium2 }
+                    ColorAnimation {
+                        duration: Tokens.motion.duration.medium2
+                        easing.type: Tokens.motion.easing.standard
+                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    }
                 }
 
                 // Sparkline background — fills bottom portion
@@ -89,8 +93,8 @@ Item {
                     anchors.bottom: parent.bottom
                     height: parent.height * 0.55
                     values: historyValues
-                    lineColor: Qt.rgba(thresholdColor.r, thresholdColor.g, thresholdColor.b, 0.3)
-                    fillColor: Qt.rgba(thresholdColor.r, thresholdColor.g, thresholdColor.b, 0.08)
+                    lineColor: Qt.alpha(thresholdColor, 0.3)
+                    fillColor: Qt.alpha(thresholdColor, 0.08)
                     lineWidth: 1
                     visible: historyValues.length > 1
                 }
@@ -120,7 +124,7 @@ Item {
 
                         MaterialIcon {
                             iconName: modelData.icon
-                            fontSize: 16
+                            fontSize: Tokens.iconSize.small
                             iconColor: Theme.onSurfaceVariant
                             backgroundColor: "transparent"
                         }

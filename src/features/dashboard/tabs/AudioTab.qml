@@ -13,6 +13,13 @@ import qs.src.features.dashboard.components
 Item {
     id: root
 
+    // Modal state for DashboardContent's key routing.
+    readonly property bool modalOpen: sinkDialog.visible || sourceDialog.visible
+    function closeTopModal() {
+        if (sinkDialog.visible) sinkDialog.close()
+        else if (sourceDialog.visible) sourceDialog.close()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.medium
@@ -89,7 +96,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: sinkDialog.openDialog(AudioService.sinkNodes, AudioService.defaultSink, "Select Output Device", "output")
+                    onClicked: sinkDialog.openDialog("Select Output Device", "output")
                 }
             }
 
@@ -159,7 +166,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: sourceDialog.openDialog(AudioService.sourceNodes, AudioService.defaultSource, "Select Input Device", "input")
+                    onClicked: sourceDialog.openDialog("Select Input Device", "input")
                 }
             }
         }
@@ -236,7 +243,9 @@ Item {
                                             Layout.fillWidth: true
                                             spacing: 0
                                             MaterialText {
-                                                text: stream && stream.properties && stream.properties["application.name"] ? stream.properties["application.name"] : (stream.appName || stream.name || stream.clientName || "Application")
+                                                text: (stream && stream.properties && stream.properties["application.name"])
+                                          ? stream.properties["application.name"]
+                                          : (stream?.name || "Application")
                                                 textStyle: "labelLarge"
                                                 colorRole: "onSurface"
                                                 font.weight: Font.Medium

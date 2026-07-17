@@ -31,7 +31,7 @@ Item {
                 }
 
                 MaterialText {
-                    text: new Date().toLocaleDateString(Qt.locale(), "dddd, MMMM d")
+                    text: DateTime.clock.date.toLocaleDateString(Qt.locale(), "dddd, MMMM d")
                     textStyle: "bodyMedium"
                     colorRole: "onSurfaceVariant"
                 }
@@ -245,10 +245,7 @@ Item {
                     tempMax: Weather.dailyTempMax[index] || 0
                     tempMin: Weather.dailyTempMin[index] || 0
                     weatherCode: Weather.dailyWeatherCode[index] || 0
-                    precipSum: Weather.dailyPrecipSum[index] || 0
                     precipProbMax: Weather.dailyPrecipProbMax[index] || 0
-                    sunrise: Weather.dailySunrise[index] || ""
-                    sunset: Weather.dailySunset[index] || ""
                 }
             }
         }

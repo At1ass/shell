@@ -76,9 +76,15 @@ Singleton {
     property var netTxHistory: []
     readonly property int _maxHistory: 120
 
-    function _push(arr, val) {
-        arr.push(val);
-        if (arr.length > _maxHistory) arr.shift();
+    // Immutable append: returns a NEW array. Mutating in place and
+    // self-assigning does not work — writing the same JS array reference
+    // back into a `var` property is dropped by the engine (strictlyEquals
+    // short-circuit), so no change signal fires and every consumer binding
+    // (delegates, Sparkline.values) stays frozen on the old snapshot.
+    function _pushed(arr, val) {
+        const next = arr.length >= _maxHistory ? arr.slice(arr.length - _maxHistory + 1) : arr.slice();
+        next.push(val);
+        return next;
     }
 
     // Re-export methods
@@ -95,18 +101,11 @@ Singleton {
         target: SystemMonitor
 
         function onStatsUpdated() {
-            root._push(root.cpuHistory, root.cpuUsage / 100);
-            root._push(root.gpuHistory, root.gpuUsage / 100);
-            root._push(root.ramHistory, root.ramUsage / 100);
-            root._push(root.netRxHistory, Math.min(root.netRxSpeed / 104857600, 1.0));
-            root._push(root.netTxHistory, Math.min(root.netTxSpeed / 104857600, 1.0));
-
-            // Trigger binding notifications by reassignment
-            root.cpuHistory = root.cpuHistory;
-            root.gpuHistory = root.gpuHistory;
-            root.ramHistory = root.ramHistory;
-            root.netRxHistory = root.netRxHistory;
-            root.netTxHistory = root.netTxHistory;
+            root.cpuHistory = root._pushed(root.cpuHistory, root.cpuUsage / 100);
+            root.gpuHistory = root._pushed(root.gpuHistory, root.gpuUsage / 100);
+            root.ramHistory = root._pushed(root.ramHistory, root.ramUsage / 100);
+            root.netRxHistory = root._pushed(root.netRxHistory, Math.min(root.netRxSpeed / 104857600, 1.0));
+            root.netTxHistory = root._pushed(root.netTxHistory, Math.min(root.netTxSpeed / 104857600, 1.0));
         }
 
         function onErrorOccurred(message) {

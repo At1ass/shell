@@ -55,22 +55,33 @@ Singleton {
         if (adapter) adapter.discovering = false
     }
 
+    // Target connected-state of the in-flight operation; busy clears only
+    // when the busy device actually reaches it (any unrelated recompute —
+    // battery ticks, other devices — used to wipe the busy flag instantly).
+    property bool _busyTargetConnected: false
+
     // Connect a paired/bonded device (direct property assignment).
     function connectDevice(device) {
+        if (!device) return
         busyDeviceAddress = device.address || ""
+        _busyTargetConnected = true
         device.trusted = true
         device.connected = true
     }
 
     function disconnectDevice(device) {
+        if (!device) return
         busyDeviceAddress = device.address || ""
+        _busyTargetConnected = false
         device.connected = false
     }
 
     // Pair a new device — completion is observed via the device's
     // pairedChanged (watched below), then auto-connect fires.
     function pairDevice(device) {
+        if (!device) return
         busyDeviceAddress = device.address || ""
+        _busyTargetConnected = true
         root._pendingConnectDevice = device
         device.pair()
     }
@@ -201,8 +212,22 @@ Singleton {
             busyDeviceAddress = ""
         }
 
-        // Clear busy state once the device list reflects the change.
-        if (busyDeviceAddress && !_pendingConnectDevice)
-            busyDeviceAddress = ""
+        // Clear busy state only when the busy DEVICE reached the target
+        // state (or vanished) — not on unrelated recomputes.
+        if (busyDeviceAddress && !_pendingConnectDevice) {
+            let busyDev = null
+            for (const d of adapter.devices.values) {
+                if (d && d.address === busyDeviceAddress) { busyDev = d; break }
+            }
+            if (!busyDev || busyDev.connected === _busyTargetConnected)
+                busyDeviceAddress = ""
+        }
+    }
+
+    // Never leave a stuck busy indicator if the operation silently dies.
+    Timer {
+        interval: 20000
+        running: root.busyDeviceAddress !== ""
+        onTriggered: root.busyDeviceAddress = ""
     }
 }
