@@ -13,9 +13,7 @@ import qs.src.features.launcher.components as LauncherComponents
 Item {
     id: root
 
-    property var screen
-
-    implicitHeight: Math.min(AppConfig.launcherWidth, 56 + appListView.contentHeight + Tokens.spacing.large * 3) + 4  // +4 for the shadow
+    implicitHeight: 56 + Math.min(appListView.contentHeight, AppConfig.launcherListMaxHeight) + Tokens.spacing.large * 3 + 4  // +4 for the shadow
 
     // MD3 Shadow (Elevation Level 2)
 
@@ -116,8 +114,10 @@ Item {
                                 }
                                 event.accepted = true
                             } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                if (appListView.currentItem) {
-                                    LauncherService.launch(appListView.currentItem.modelData)
+                                const result = appListView.currentItem?.modelData ?? null
+                                // Actionless rows (calculator errors) stay open.
+                                if (result?.action) {
+                                    LauncherService.launch(result)
                                     GlobalStates.closePanel("launcher")
                                 }
                                 event.accepted = true
@@ -160,7 +160,7 @@ Item {
                 // ScriptModel to track item changes
                 model: ScriptModel {
                     id: scriptModel
-                    objectProp: "id"  // Fixed: all providers use "id"
+                    objectProp: "resultId"  // Fixed: all providers use "id"
                     values: LauncherService.filteredApps
 
                     onValuesChanged: appListView.currentIndex = 0
@@ -322,36 +322,6 @@ Item {
         }
     }
 
-    // Reset search and focus when launcher opens/closes
-    onVisibleChanged: {
-        if (visible) {
-            // Disable transitions while opening
-            appListView.transitionsEnabled = false
-
-            // Pull fresh cliphist state — the clipboard-change watcher uses
-            // a 100ms debounce, which races a fast Mod+Space after a copy.
-            ClipboardService.refresh()
-
-            // Clear and reset
-            searchField.text = ""
-            LauncherService.search("")
-            appListView.currentIndex = 0
-
-            // Re-enable transitions after a short delay
-            Qt.callLater(function() {
-                appListView.transitionsEnabled = true
-                searchField.forceActiveFocus()
-            })
-        } else {
-            // Disable transitions while closing
-            appListView.transitionsEnabled = false
-
-            // Clear on close
-            searchField.text = ""
-            LauncherService.search("")
-        }
-    }
-
     // Re-run the search when cliphist entries change in clipboard-prefix mode
     // (covers the case where ClipboardService.refresh in onVisibleChanged got
     // back stale data, then the 100ms debounce refresh delivered the new
@@ -364,8 +334,14 @@ Item {
         }
     }
 
-    // Initialize on creation
+    // Initialize on creation. The content is recreated per open (LazyLoader
+    // + Loader both gate on launcherOpen), so this IS the open hook — an
+    // onVisibleChanged reset block would be dead code here (visible never
+    // changes during the item's lifetime).
     Component.onCompleted: {
+        // Pull fresh cliphist state — the clipboard-change watcher uses a
+        // 100 ms debounce, which races a fast Mod+Space right after a copy.
+        ClipboardService.refresh()
         LauncherService.search("")
         appListView.currentIndex = 0
     }

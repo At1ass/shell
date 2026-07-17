@@ -1,7 +1,7 @@
-# Включаем новую политику ресурса для QML
+# QML resource policy
 qt_policy(SET QTP0001 NEW)
 
-# Найти libqalculate через pkg-config
+# Find libqalculate via pkg-config
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(QALCULATE REQUIRED IMPORTED_TARGET libqalculate)
 

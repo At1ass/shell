@@ -8,13 +8,11 @@ Singleton {
     id: root
 
     // Cache of top apps (updated on change)
-    property var topApps: []
 
     signal frequencyChanged()
 
     Component.onCompleted: {
         initDatabase()
-        loadTopApps()
     }
 
     function getDatabase() {
@@ -62,7 +60,6 @@ Singleton {
         })
 
         // Reload the top apps
-        loadTopApps()
         frequencyChanged()
     }
 
@@ -86,28 +83,6 @@ Singleton {
     }
 
     // Load top N apps by frequency
-    function loadTopApps(limit = 10) {
-        var db = getDatabase()
-        var apps = []
-
-        db.transaction(tx => {
-            var result = tx.executeSql(
-                'SELECT app_id, frequency FROM app_frequency ORDER BY frequency DESC LIMIT ?',
-                [limit]
-            )
-
-            for (var i = 0; i < result.rows.length; i++) {
-                var row = result.rows.item(i)
-                apps.push({
-                    appId: row.app_id,
-                    frequency: row.frequency
-                })
-            }
-        })
-
-        topApps = apps
-        return apps
-    }
 
     // Get all frequencies (for sorting in ApplicationProvider)
     function getAllFrequencies() {
@@ -133,7 +108,6 @@ Singleton {
             tx.executeSql('DELETE FROM app_frequency')
         })
 
-        loadTopApps()
         frequencyChanged()
     }
 }

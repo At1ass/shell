@@ -96,32 +96,10 @@ Item {
             Layout.preferredHeight: 40
             visible: !clipboardThumb.visible
 
-            source: {
-                let iconName = modelData?.icon || "application-x-executable"
-                let path = Quickshell.iconPath(iconName, "image-missing")
-                if (!path) return ""
-
-                // Strip the fallback part (if any)
-                let mainPath = path.split("?")[0]
-
-                // Verify it is a valid source (path or URI)
-                if (mainPath.startsWith("/") || mainPath.startsWith("image://")) {
-                    return mainPath
-                }
-
-                // Icon not found - try the fallback
-                if (path.includes("?fallback=")) {
-                    let fallbackName = path.split("?fallback=")[1]
-                    let fallbackPath = Quickshell.iconPath(fallbackName, "")
-                    fallbackPath = fallbackPath.split("?")[0]
-
-                    if (fallbackPath && (fallbackPath.startsWith("/") || fallbackPath.startsWith("image://"))) {
-                        return fallbackPath
-                    }
-                }
-
-                return ""
-            }
+            // The ?fallback= query is resolved by Quickshell's icon image
+            // provider itself — stripping it (as this code once did) threw
+            // the fallback away and rendered a blank gap for unknown icons.
+            source: Quickshell.iconPath(modelData?.icon || "application-x-executable", "image-missing")
 
             sourceSize.width: 40
             sourceSize.height: 40

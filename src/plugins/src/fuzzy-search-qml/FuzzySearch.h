@@ -13,10 +13,10 @@ class FuzzySearch : public QObject {
 public:
     explicit FuzzySearch(QObject* parent = nullptr);
 
-    // Score для пары query/candidate (0.0–100.0).
+    // Score for a query/candidate pair (0.0-100.0).
     Q_INVOKABLE double score(const QString& query, const QString& candidate) const;
 
-    // Batch-поиск по одному полю: [{index, score}].
+    // Batch search over one field: [{index, score}].
     Q_INVOKABLE QVariantList match(
         const QString& query,
         const QStringList& candidates,
@@ -24,12 +24,12 @@ public:
         double scoreCutoff = 30.0
     ) const;
 
-    // Взвешенный поиск: совпадение в names весит больше, чем в fullTexts.
-    // Для каждого элемента i:
-    //   nameScore  = rapidfuzz(query, names[i])  — с бонусом за prefix
+    // Weighted search: a match in names weighs more than one in fullTexts.
+    // For each element i:
+    //   nameScore  = rapidfuzz(query, names[i])  with a prefix bonus
     //   textScore  = rapidfuzz(query, fullTexts[i])
     //   finalScore = max(nameScore * nameWeight, textScore)
-    // Возвращает [{index, score}] — топ maxResults.
+    // Returns [{index, score}] - top maxResults.
     Q_INVOKABLE QVariantList matchWeighted(
         const QString& query,
         const QStringList& names,

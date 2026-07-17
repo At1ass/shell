@@ -14,12 +14,15 @@ Singleton {
     // Clipboard history
     property list<string> entries: []
 
-    // Entries prepared for search
+    // Entries prepared for search. The leading cliphist ID is kept as the
+    // STABLE identity — consumers must key results on it (index/content
+    // prefixes churn the launcher's wrapper cache on every keystroke).
     readonly property var preparedEntries: entries.map(entry => {
-        // Strip the leading ID (cliphist format: "ID\tCONTENT")
-        const content = entry.replace(/^\s*\S+\s+/, "")
+        // cliphist format: "ID\tCONTENT"
+        const tab = entry.indexOf("\t")
         return {
-            content: content,
+            id: tab > 0 ? entry.substring(0, tab).trim() : entry.substring(0, 16),
+            content: tab > 0 ? entry.substring(tab + 1) : entry,
             entry: entry
         }
     })
@@ -48,6 +51,8 @@ Singleton {
         property list<string> buffer: []
 
         command: [root.cliphistBinary, "list"]
+
+        onStarted: buffer = []
 
         stdout: SplitParser {
             onRead: (line) => {
@@ -97,7 +102,9 @@ Singleton {
 
     // Refresh history
     function refresh() {
-        readProc.buffer = []
+        // running=true on a live process queues a restart (upstream
+        // semantics) — the buffer is cleared in onStarted so a mid-stream
+        // refresh cannot truncate the in-flight read's results.
         readProc.running = true
     }
 
@@ -198,10 +205,27 @@ Singleton {
     }
 
     // === Thumbnail cache for images ===
+    // cliphist decode writes the FULL image, not a thumbnail — without a
+    // cap the tmpfs directory grows by megabytes per browsed screenshot.
     readonly property string _thumbnailDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/quickshell-clipboard-thumbs"
     property var _thumbnailCache: ({})
     property int _thumbnailVersion: 0
     property var _thumbQueue: []
+    property var _thumbOrder: []          // insertion order for eviction
+    readonly property int _maxThumbnails: 48
+    property var _staleThumbPaths: []
+
+    function _evictThumbFiles() {
+        if (thumbEvictProc.running || _staleThumbPaths.length === 0) return
+        thumbEvictProc.command = ["rm", "-f", "--"].concat(_staleThumbPaths)
+        _staleThumbPaths = []
+        thumbEvictProc.running = true
+    }
+
+    Process {
+        id: thumbEvictProc
+        onExited: root._evictThumbFiles()
+    }
 
     function thumbnailFor(entry) {
         const id = _extractEntryId(entry)
@@ -235,7 +259,9 @@ Singleton {
 
     Process {
         id: thumbDirInitProc
-        command: ["mkdir", "-p", root._thumbnailDir]
+        // Literal script + positional argv; also clears thumbnails left
+        // over from the previous session (they are keyed to a dead cache).
+        command: ["sh", "-c", 'mkdir -p "$1" && rm -f -- "$1"/* 2>/dev/null; true', "sh", root._thumbnailDir]
         running: true
     }
 
@@ -255,8 +281,18 @@ Singleton {
             if (exitCode === 0 && thumbDecodeProc._entryId) {
                 let cache = Object.assign({}, root._thumbnailCache)
                 cache[thumbDecodeProc._entryId] = thumbDecodeProc._outPath
+                root._thumbOrder.push(thumbDecodeProc._entryId)
+                // Evict oldest beyond the cap (files removed asynchronously).
+                while (root._thumbOrder.length > root._maxThumbnails) {
+                    const old = root._thumbOrder.shift()
+                    if (cache[old]) {
+                        root._staleThumbPaths.push(cache[old])
+                        delete cache[old]
+                    }
+                }
                 root._thumbnailCache = cache
                 root._thumbnailVersion++
+                root._evictThumbFiles()
             }
             thumbDecodeProc.stdinEnabled = true
             root._processNextThumb()

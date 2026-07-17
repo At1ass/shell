@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import qs.src.core.services
 
 // Provider for searching clipboard history
@@ -9,8 +8,6 @@ BaseProvider {
     name: "Clipboard"
     priority: 60  // High priority, above Applications
     prefixes: [">"]  // ">" prefix for clipboard search
-
-    property var launcherService: null
 
     function search(query) {
         let searchQuery = removePrefix(query).trim()
@@ -61,7 +58,7 @@ BaseProvider {
             // match scores are deliberately discarded so that text matches
             // never bubble above newer screenshots.
             results.push({
-                id: "clipboard:" + i + ":" + content.substring(0, 20),
+                id: "clipboard:" + (entry.id ?? i),
                 text: displayText,
                 description: description,
                 icon: icon,

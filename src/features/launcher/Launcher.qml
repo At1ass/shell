@@ -5,7 +5,6 @@ import qs.src.core.config
 import qs.src.core.services
 
 Scope {
-    property var modelData
 
     PanelWindow {
         id: launcherWindow
@@ -100,7 +99,6 @@ Scope {
                 LauncherContent {
                     id: launcherContent
                     anchors.fill: parent
-                    screen: launcherWindow.screen
                 }
             }
         }

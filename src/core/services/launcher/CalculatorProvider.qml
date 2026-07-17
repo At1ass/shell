@@ -23,6 +23,14 @@ BaseProvider {
     // Whether the query that requested it carried the explicit "=" prefix.
     property bool _inflightHadPrefix: false
 
+    readonly property Timer _evalDebounce: Timer {
+        interval: 150
+        onTriggered: {
+            if (root._inflightExpr !== "")
+                QalculateWrapper.evalAsync(root._inflightExpr, false)
+        }
+    }
+
     readonly property Connections _evalWatch: Connections {
         target: QalculateWrapper
         function onEvaluated(expression, result) {
@@ -51,8 +59,11 @@ BaseProvider {
 
         if (_inflightExpr !== expr) {
             _inflightExpr = expr
-            _inflightHadPrefix = query.startsWith("=")
-            QalculateWrapper.evalAsync(expr, false)
+            _inflightHadPrefix = true
+            // Debounce: each eval serializes on a global calculator mutex
+            // with a 100 ms budget — per-keystroke dispatch piles tasks up
+            // on the thread pool during fast typing.
+            _evalDebounce.restart()
         }
 
         // Stale-but-instant: previous rows until `evaluated` lands.

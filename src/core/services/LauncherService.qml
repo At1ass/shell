@@ -46,19 +46,23 @@ Singleton {
         let keys = Object.keys(_wrapperCache)
         if (keys.length === 0) return
 
-        let oldestKey = keys[0]
-        let oldestTime = _cacheAccessTime[oldestKey] || 0
+        // Never destroy a wrapper the live model still references —
+        // delegates (including ones mid-removal-transition) bind to it.
+        const live = {}
+        for (const w of filteredApps) live[w.resultId] = true
 
-        for (let i = 1; i < keys.length; i++) {
-            let key = keys[i]
-            let time = _cacheAccessTime[key] || 0
+        let oldestKey = ""
+        let oldestTime = Infinity
+        for (const key of keys) {
+            if (live[key]) continue
+            const time = _cacheAccessTime[key] || 0
             if (time < oldestTime) {
                 oldestTime = time
                 oldestKey = key
             }
         }
+        if (!oldestKey) return   // everything cached is live; skip eviction
 
-        // Remove the oldest entry
         let wrapper = _wrapperCache[oldestKey]
         if (wrapper) {
             wrapper.destroy()

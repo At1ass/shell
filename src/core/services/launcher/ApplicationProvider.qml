@@ -38,6 +38,10 @@ BaseProvider {
         for (let i = 0; i < applications.length; i++) {
             const app = applications[i]
             if (app.noDisplay) continue
+            // Terminal=true apps: DesktopEntry.execute() spawns without a
+            // TTY (upstream never uses runInTerminal), so they die
+            // instantly. Listing them would be a lie.
+            if (app.runInTerminal) continue
             if (hidden.indexOf((app.id || "").toLowerCase().replace(/\.desktop$/, "")) !== -1) continue
             visible.push(app)
             names.push(app.name || "")
@@ -106,9 +110,7 @@ BaseProvider {
 
     function createResult(app, score) {
         const entryId = app.id
-            || app.filePath
-            || app.desktopFile
-            || ((app.name || "") + ":" + (app.execString || "") + ":" + (Array.isArray(app.command) ? app.command.join(" ") : ""))
+            || ((app.name || "") + ":" + (app.execString || ""))
 
         return {
             id: "application:" + entryId,

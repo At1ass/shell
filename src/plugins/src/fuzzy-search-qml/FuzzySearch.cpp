@@ -121,19 +121,19 @@ QVariantList FuzzySearch::matchWeighted(
     for (int i = 0; i < count; ++i) {
         const std::wstring name = names[i].toLower().toStdWString();
 
-        // Бонус за точный prefix в имени — максимальный приоритет
+        // Exact name prefix bonus - highest priority
         double nameScore;
         if (startsWith(name, q)) {
-            // Бонус за точность: точное совпадение имени > prefix > partial
+            // Accuracy bonus: exact name match > prefix > partial
             nameScore = (name.size() == q.size()) ? 110.0 : 100.0;
         } else {
             nameScore = scorer.similarity(name, 0.0);
         }
 
-        // Применяем вес к name score
+        // Apply the weight to the name score
         double finalScore = nameScore * nameWeight;
 
-        // Проверяем fullText только если name score недостаточен
+        // Check fullText only when the name score is insufficient
         if (hasFullTexts && finalScore < scoreCutoff) {
             const std::wstring text = fullTexts[i].toLower().toStdWString();
             double textScore = startsWith(text, q)
