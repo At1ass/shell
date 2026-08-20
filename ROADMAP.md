@@ -13,6 +13,117 @@ Recent history that informs the items below:
 
 ---
 
+## Memory profile (2026-08)
+
+Measured, not estimated. Startup figures are RSS ~10 s after launch from probe
+instances driven with a substituted `XDG_CONFIG_HOME`, so the live shell was
+never modified. Run-to-run variance is ~15 MB; smaller differences are noise.
+
+### Startup composition
+
+| what | RSS | delta |
+|---|---|---|
+| Qt6 + QML + Quickshell + NVIDIA GL, empty `ShellRoot` | 259 MB | the floor |
+| project tree present, `shell.qml` emptied | 260 MB | +0 |
+| + config layer (Theme / Tokens / AppConfig) | 278 MB | +18 |
+| + `GlobalStates` and the services it pulls | 286 MB | +8 |
+| + `CalendarBackend` | 291 MB | |
+| + `WallpaperManager` | 329-341 MB | +51-63 |
+| whole shell, every module OFF | 462 MB | |
+| whole shell, every module ON | 549 MB | +87 for ALL UI |
+
+**Two thirds of a ~400 MB startup is framework floor** that no config can
+change. Every C++ plugin is +0..4 MB on import, Quickshell's own native
+services +0..6 MB, a surface ~10 MB — none of those are the cost.
+
+### Growth over 135 minutes
+
+  half-hour means:  848 -> 823 -> 896 -> 915 -> 920 MB
+  RSS band:         720-984 MB, moving both directions
+  HWM steps:        876 -> 984 (+14m) -> 1895 (+52m), then flat for 83 min
+
+A slow drift of roughly +35 MB/hour, plus one transient ~1 GB allocation.
+
+**A wallpaper-rotation hypothesis was RAISED AND REFUTED.** The minute log
+showed jumps 15 minutes apart, matching `intervalMs: 900000`, which looked
+conclusive. A 5-second sampler watching `state.json` then caught two real
+rotations and measured them at -8/-14 MB and +4/+10 MB with the peak unmoved.
+The pattern was noise read as signal; recorded because the coarse log invited
+exactly that mistake.
+
+Panel cycling is likewise NOT a leak: 15 launcher open/close cycles added
+58 MB, and the NEXT 15 added 80 KB — one-time initialisation. A single-batch
+test would have misreported it.
+
+### QML-level profiling (Qt's own tooling)
+
+Quickshell exposes a QML debugger port and `qmlprofiler` attaches to it:
+
+```bash
+qs -c shell --debug 3768
+qmlprofiler -a localhost -p 3768 --interactive \
+    --include memory,pixmapcache,creating          # then: f <file>, q
+```
+
+Features: javascript, memory, pixmapcache, scenegraph, animations, painting,
+compiling, creating, binding, handlingsignal, inputevents, debugmessages. The
+trace is XML and parses without Qt Creator.
+
+**The JS heap is not where the memory goes** — 45 s under load moved ~11 MB
+(186 k SmallItem = 5.3 MB, 80 HeapPage = 5.8 MB) against a process holding
+800+. 186 k allocations in 45 s is real GC pressure even so.
+
+**SECURITY: `--debug` listens on `*:PORT`, all interfaces**, and a QML debugger
+connection can execute arbitrary JavaScript in the shell. Use it only while
+profiling; never leave it running.
+
+The `creating` feature found one concrete defect: opening the calendar tab
+created 1382 objects, its 42-cell delegates 168 times — four full grid
+rebuilds, because `generateCalendar()` cleared and refilled the ListModel.
+Fixed by updating rows in place; re-measured at 794 objects, and month
+navigation no longer tears delegates down at all.
+
+### heaptrack — the spike is IMAGE DECODING
+
+`heaptrack qs -c shell`, 104 s of exercised load:
+
+  allocation calls        3 199 850  (30 652/s)
+  temporary allocations     661 130  (~20% pure churn)
+  peak heap                  460 MB
+  still held at exit         157 MB
+
+**`QImageData::create` is 307 MB of the 460 MB peak**, split almost evenly
+between two decoders of the SAME wallpaper: `McuTheme::extractSeedFromImage`
+for the palette and QtQuick's `Image` for display. That attributes the 1.9 GB
+peak the RSS capture could not explain.
+
+Why it gets that large, measured:
+
+- The collection is 369 files totalling **9.5 GB fully decoded**, averaging
+  26 MB. `UbuntuGnome.png` alone is **506 MB decoded**; one JPEG is 8640x4860
+  for a 3440x1440 monitor.
+- **PNG supports NEITHER ScaledSize NOR ClipRect NOR ScaledClipRect** in Qt's
+  handler, so `sourceSize` cannot bound it: the full image is decoded and only
+  then scaled. 163 of the 369 files are PNG.
+- JPEG does support scaled decoding and `McuTheme::readDownscaled` uses it
+  correctly — fed `leaves.jpg` (68 MB full) it returns 160x106 / 0.06 MB with
+  no peak. The plugin is not at fault there.
+
+A rotation landing on a large PNG therefore decodes it twice with no
+in-process way to bound either. Fix options, in order of value:
+
+1. Downscale the collection to screen resolution — no code needed.
+2. Generate downscaled proxies on disk so neither decoder sees the original;
+   `WallpaperCache` already owns a disk cache and is the natural home.
+3. `McuTheme` already survives it (`setAllocationLimit(128)` fails loudly
+   rather than allocating); QtQuick's `Image` has no such guard.
+
+`tools/mem-watch.sh` logs RSS/HWM/threads/fds every minute for sessions longer
+than a profiling window.
+
+---
+
+
 ## Done — calendar: all-day events off by a day, and duplicated (2026-08)
 
 Reported symptom: a birthday authored on 20 Oct showed on the 19th, while khal
@@ -381,15 +492,17 @@ is now checked via `sync-ui.sh --check`; the two dead config keys
 `cd src/plugins && cmake --build build && sudo cmake --install build`
 
 ### Follow-ups from the 2026-07 deep per-system audit (small, non-blocking)
-- WorkspaceWidget: surface `HyprlandWorkspace.urgent` (urgent windows never
-  light up) and optional per-monitor workspace filtering.
-- ClockWidget: gate its 1 Hz seconds timer on tooltip visibility (the badge
-  is HH:mm; DateTime.clock minute precision suffices otherwise).
-- Cheatsheet: binds on this system are all `__lua` dispatchers — everything
-  lands in "Other" and the Shell section is empty; consider parsing
-  descriptions or submap display.
-- KeyboardLayoutService: move base.lst parsing to C++/FileView; gate the 5 s
-  hyprctl devices poll on a consumer existing.
+- WorkspaceWidget: urgent windows never light up. NOTE: the entry used to say
+  "surface `HyprlandWorkspace.urgent`" — that property does not exist in this
+  Quickshell build (checked: no `urgent` anywhere in
+  quickshell-hyprland.qmltypes). Doing it means tracking Hyprland's `urgent`
+  socket event and clearing on focus, which is a different job. Also optional
+  per-monitor workspace filtering.
+- Cheatsheet: submap display (binds inside a submap are listed flat, so
+  "Resize mode" and the keys it enables look unrelated).
+- KeyboardLayoutService: base.lst parsing is heavier than it needs to be (a
+  ~1000-line file scanned in QML), though it now runs at most once per unseen
+  layout name rather than per poll.
 - RecurrenceEditChoice: cancel discards an already-composed edit (reopen the
   dialog instead?).
 - MediaPlayer: migrate the hand-rolled source menu to MaterialMenu + grab.

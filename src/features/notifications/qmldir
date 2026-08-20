@@ -2,6 +2,7 @@ module qs.src.features.notifications
 
 NotificationPopupManager 1.0 NotificationPopupManager.qml
 NotificationPopup 1.0 NotificationPopup.qml
+NotificationPopupSurface 1.0 NotificationPopupSurface.qml
 NotificationPopupItem 1.0 NotificationPopupItem.qml
 NotificationCenter 1.0 NotificationCenter.qml
 NotificationHistoryItem 1.0 NotificationHistoryItem.qml

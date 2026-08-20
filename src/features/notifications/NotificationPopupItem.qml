@@ -46,7 +46,11 @@ Rectangle {
         property: "progressValue"
         from: 1.0
         to: 0.0
-        duration: root.duration
+        // clamped: durationMs uses -1 as the "persistent, never expires"
+        // sentinel (expireTimeout === 0 per spec). `running` below already
+        // keeps the animation off for it, but assigning a negative duration
+        // is still invalid and Qt warns on every such notification.
+        duration: Math.max(0, root.duration)
         running: root.duration > 0 && root.visible
         paused: running && root.hovered
         onFinished: root.timeoutExpired()

@@ -25,6 +25,12 @@ BarElement {
     // Show only if multiple layouts available
     property bool shown: KeyboardLayoutService.layoutCodes.length > 1
 
+    // This widget is the only thing that displays CapsLock/NumLock, and the
+    // service can only learn them by polling (Hyprland emits no event). Hold a
+    // watcher so the poll exists exactly while something shows its result.
+    Component.onCompleted: KeyboardLayoutService.addLockStateWatcher()
+    Component.onDestruction: KeyboardLayoutService.removeLockStateWatcher()
+
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
             KeyboardLayoutService.switchLayout()

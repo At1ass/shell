@@ -19,6 +19,10 @@ Scope {
 
     property var popupWindows: []
     property var _destroyingSet: ({})  // notifId -> true
+    // screen name -> NotificationPopupSurface. One layer-shell surface per
+    // screen now hosts the whole stack; cards are Items inside it. See
+    // NotificationPopupSurface for why.
+    property var _surfaces: ({})
     readonly property string position: AppConfig.notificationPopupPosition
     readonly property bool isTop: position.startsWith("top")
     readonly property int topMargin: AppConfig.barHeight + AppConfig.barMargin
@@ -28,6 +32,20 @@ Scope {
 
     property Component popupComponent: Component {
         NotificationPopup {}
+    }
+
+    property Component surfaceComponent: Component {
+        NotificationPopupSurface {}
+    }
+
+    function _surfaceFor(scr) {
+        const key = scr?.name ?? ""
+        let s = _surfaces[key]
+        if (!s) {
+            s = surfaceComponent.createObject(manager, { "screen": scr })
+            _surfaces[key] = s
+        }
+        return s
     }
 
     Connections {
@@ -68,7 +86,9 @@ Scope {
     function _stackScreen() {
         for (let i = 0; i < popupWindows.length; i++) {
             const p = popupWindows[i]
-            if (p && !_destroyingSet[p.notifId] && p.screen) return p.screen
+            if (!p || _destroyingSet[p.notifId]) continue
+            const s = manager._surfaces[p.screenName]
+            if (s && s.screen) return s.screen
         }
         return null
     }
@@ -82,12 +102,16 @@ Scope {
     }
 
     function _createPopup(notifId, data) {
-        const popup = popupComponent.createObject(manager, {
+        const scr = _targetScreen()
+        const surface = _surfaceFor(scr)
+        const popup = popupComponent.createObject(surface.cardLayer, {
             "notifId": notifId,
             "notificationData": data,
-            "screen": _targetScreen(),
-            "screenY": baseMargin
+            "y": 0
         })
+        // Remembered so the stack can be grouped per screen without asking a
+        // card which window it is in — it no longer is one.
+        popup.screenName = scr?.name ?? ""
 
         popup.exitFinished.connect(() => manager._onPopupExitFinished(popup))
         // Async image loads grow popupItem.implicitHeight after the popup is
@@ -133,15 +157,23 @@ Scope {
     function _recalculateStack() {
         // Independent column per screen — a single global accumulator
         // floated screen B's popups by the height of screen A's stack.
+        // Offsets are now RELATIVE TO THE SURFACE, which already sits at
+        // baseMargin, so the column starts at 0.
         const yByScreen = ({})
         for (let i = 0; i < popupWindows.length; i++) {
             const popup = popupWindows[i]
             if (!popup) continue
             if (_destroyingSet[popup.notifId]) continue
-            const key = popup.screen?.name ?? ""
-            if (yByScreen[key] === undefined) yByScreen[key] = baseMargin
-            popup.screenY = yByScreen[key]
+            const key = popup.screenName ?? ""
+            if (yByScreen[key] === undefined) yByScreen[key] = 0
+            popup.y = yByScreen[key]
             yByScreen[key] += (popup.implicitHeight > 0 ? popup.implicitHeight : 100) + popupSpacing
+        }
+        // Surface height follows the stack; trailing spacing is not part of it.
+        for (const key in manager._surfaces) {
+            const total = yByScreen[key]
+            manager._surfaces[key].stackHeight =
+                total === undefined ? 0 : Math.max(0, total - popupSpacing)
         }
     }
 }

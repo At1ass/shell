@@ -15,9 +15,28 @@ BarElement {
 
     property var tooltipManager: null
 
-    property string currentTime: ""
-    property string currentDate: ""
-    property string currentDateTime: ""
+    // Driven by the SHARED SystemClock (minute precision) instead of a private
+    // 1 Hz Timer. The bar is instantiated PER SCREEN, so that timer was one
+    // wakeup per second per monitor — ~86k a day each — to refresh a string
+    // that changes 1440 times. DateTime.clock is one clock for the whole
+    // shell and Quickshell wakes it on the minute boundary, not on a drifting
+    // interval.
+    //
+    // Seconds are the exception: they are needed when the user's own format
+    // asks for them, and by the tooltip, which only exists while hovered. The
+    // Timer below covers exactly those two cases and is otherwise stopped.
+    readonly property bool _needsSeconds: timeFormat.indexOf("s") >= 0
+
+    // NOT `property date _now: DateTime.clock.date`. The seconds Timer below
+    // assigns to _now, and an imperative write SEVERS a binding permanently —
+    // the clock would freeze after the first hover. Both sources push into a
+    // plain property instead.
+    property date _now: new Date()
+
+    readonly property string currentTime: Qt.formatTime(_now, timeFormat)
+    readonly property string currentDate: Qt.formatDate(_now, "dd MMM")
+    readonly property string currentDateTime:
+        Qt.formatDateTime(_now, "hh:mm:ss\ndddd, d MMMM yyyy")
     property string timeFormat: widgetSettings.format ?? "HH:mm"
     property bool showDate: widgetSettings.showDate ?? true
 
@@ -28,18 +47,17 @@ BarElement {
     minWidth: 70
 
     nonVisualChildren: [
+        Connections {
+            target: DateTime.clock
+            function onDateChanged() { clockWidget._now = DateTime.clock.date }
+        },
+
         Timer {
             interval: 1000
-            running: true
+            running: clockWidget._needsSeconds || clockWidget.hovered
             repeat: true
             triggeredOnStart: true
-
-            onTriggered: {
-                const now = new Date()
-                clockWidget.currentTime = Qt.formatTime(now, clockWidget.timeFormat)
-                clockWidget.currentDate = Qt.formatDate(now, "dd MMM")
-                clockWidget.currentDateTime = Qt.formatDateTime(now, "hh:mm:ss\ndddd, d MMMM yyyy")
-            }
+            onTriggered: clockWidget._now = new Date()
         },
 
         // Tooltip with detailed date/time information

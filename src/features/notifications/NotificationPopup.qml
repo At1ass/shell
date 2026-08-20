@@ -1,18 +1,23 @@
 import QtQuick
-import Quickshell
-import Quickshell.Wayland
 import qs.src.core.services
 import qs.src.core.config
 import qs.src.ui.base
 
-PanelWindow {
+// ONE CARD in the stack, not a window. This used to be a PanelWindow of its
+// own, positioned by `margins.top`, and the stack slide animated that margin —
+// a layer-shell reconfigure per frame. It now lives inside
+// NotificationPopupSurface (one surface per screen) and slides by animating
+// `y`, which never leaves the client. See that file for the measurement.
+Item {
     id: popup
 
     // Server-side Notification.id. Mutable: a duplicate merge re-keys this
     // popup onto the newer notification rather than swapping cards.
     property int notifId: 0
+    // Which screen's stack this card belongs to. The card is no longer a
+    // window, so it cannot be asked for its output.
+    property string screenName: ""
     required property var notificationData
-    required property int screenY
     property bool exiting: false
     property bool _isDestroying: false
     property bool _finalized: false
@@ -26,32 +31,15 @@ PanelWindow {
     signal exitFinished()
 
     visible: hasValidData && !_isDestroying
-    color: "transparent"
 
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "shell:notification-popup"
-    exclusiveZone: 0
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-    anchors {
-        top: popup.isTop
-        bottom: !popup.isTop
-        right: popup.isRight
-        left: !popup.isRight
-    }
-
-    margins {
-        top: popup.isTop ? screenY : 0
-        bottom: !popup.isTop ? screenY : 0
-        right: popup.isRight ? AppConfig.barMargin : 0
-        left: !popup.isRight ? AppConfig.barMargin : 0
-    }
-
-    implicitWidth: AppConfig.notificationPopupWidth
+    // Offset within the surface, set by the manager. Purely client-side now.
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
     implicitHeight: popupItem.implicitHeight
+    height: implicitHeight
 
-    // Smooth Y displacement when stack reorganizes
-    Behavior on screenY {
+    // Smooth Y displacement when the stack reorganizes.
+    Behavior on y {
         enabled: !popup.exiting && !popup._isDestroying
         MotionAnimation {
             duration: Tokens.motion.duration.medium1
@@ -133,6 +121,8 @@ PanelWindow {
 
     NotificationPopupItem {
         id: popupItem
+        anchors.left: parent.left
+        anchors.right: parent.right
         notificationData: popup.notificationData
         duration: NotificationService.activeDuration(popup.notifId)
 

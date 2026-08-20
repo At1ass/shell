@@ -48,7 +48,7 @@ Item {
 
     readonly property var _categoryOrder: [
         "Applications", "Window Control", "Workspaces",
-        "Focus and Movement", "Layout", "Modes",
+        "Focus and Movement", "Layout", "Modes", "Media",
         "Animations and Effects", "Misc Commands", "System",
         "Shell", "Other"
     ]
@@ -127,7 +127,54 @@ Item {
             "setcursor": "Misc Commands",
             "animationstyle": "Animations and Effects"
         }
-        return map[dispatcher] || "Other"
+        return map[dispatcher] || ""
+    }
+
+    // Categorise by DESCRIPTION when the dispatcher says nothing.
+    //
+    // Hyprland reports the dispatcher a bind was declared with, and a config
+    // driven by the Lua plugin declares every single one as `__lua` with `arg`
+    // reduced to an opaque handle ("5"). On this machine that is 91 binds out
+    // of 91: the dispatcher map matched none of them, so the entire cheatsheet
+    // collapsed into "Other" and the Shell section was empty — the widget
+    // stopped doing its one job.
+    //
+    // The descriptions survive that indirection and are what the user actually
+    // reads, so they are the honest key. Rules are ordered: the first match
+    // wins, so put the specific ones first ("move window to workspace" before
+    // "move window").
+    readonly property var _descriptionRules: [
+        // Shell-owned features first — these would otherwise look like plain
+        // application launches or media keys.
+        { re: /cheat ?sheet|dashboard|notification|clipboard|logout|power menu|gaming mode|wallpaper|launcher|screenshot|night ?light/, cat: "Shell" },
+
+        { re: /workspace/,                                cat: "Workspaces" },
+        { re: /move focus|swap window|move window (left|right|up|down)/, cat: "Focus and Movement" },
+        { re: /volume|microphone|mute|track|play\/pause|brightness/, cat: "Media" },
+        // Modes BEFORE Window Control: "Resize mode" is a submap, "Resize left"
+        // is a window operation, and both contain "resize".
+        { re: /\bmode\b|submap/,                          cat: "Modes" },
+        { re: /kill|fullscreen|floating|\bresize\b|move window|pin\b|center/, cat: "Window Control" },
+        { re: /split|group|layout|pseudo/,                cat: "Layout" },
+        { re: /exit|reload|quit/,                         cat: "System" },
+        { re: /open |launch |terminal|browser|firefox|file manager|translate/, cat: "Applications" }
+    ]
+
+    function categorizeDescription(description) {
+        const d = (description || "").toLowerCase()
+        if (d === "") return "Other"
+        for (const rule of root._descriptionRules) {
+            if (rule.re.test(d)) return rule.cat
+        }
+        return "Other"
+    }
+
+    // A bind belongs to the shell when the dispatcher says so (`global`, the
+    // direct form) or when its description names a shell feature (the Lua
+    // form, where the dispatcher is opaque).
+    function isShellBind(b) {
+        return b.dispatcher === "global"
+            || categorizeDescription(b.description) === "Shell"
     }
 
     function _processBinds(jsonText) {
@@ -136,20 +183,28 @@ Item {
             const binds = []
             const shellBinds = []
             for (const b of parsed) {
-                if (b.dispatcher === "global") {
-                    // b.arg format: "quickshell:actionName"
+                if (root.isShellBind(b)) {
+                    // Direct form: arg is "quickshell:actionName". Lua form:
+                    // arg is an opaque handle, so the action name is unknown
+                    // and the description carries the meaning.
                     const parts = (b.arg || "").split(":")
-                    const action = parts.length > 1 ? parts[1] : b.arg
+                    const action = parts.length > 1 ? parts[1] : ""
                     shellBinds.push({
                         type: "shell",
                         modifiers: decodeModmask(b.modmask),
                         key: b.key || ("keycode:" + b.keycode),
-                        description: b.description || root._shellDescriptions[action] || action,
+                        description: b.description
+                            || root._shellDescriptions[action]
+                            || action
+                            || "(no description)",
                         action: action,
                         category: "Shell"
                     })
                     continue
                 }
+                // Dispatcher first (it is exact when present), description
+                // second (it is all that survives a Lua-declared bind).
+                const byDispatcher = categorizeDispatcher(b.dispatcher)
                 binds.push({
                     type: "hyprland",
                     modifiers: decodeModmask(b.modmask),
@@ -157,7 +212,9 @@ Item {
                     description: b.description || "",
                     dispatcher: b.dispatcher,
                     arg: b.arg || "",
-                    category: categorizeDispatcher(b.dispatcher),
+                    category: byDispatcher !== ""
+                        ? byDispatcher
+                        : root.categorizeDescription(b.description),
                     submap: b.submap || ""
                 })
             }

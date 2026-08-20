@@ -36,6 +36,16 @@ Item {
     }
     property var selectedDayEvents: CalendarBackend.dayEvents
 
+    // Explicit property rather than calling isSameDate() inside a binding.
+    // QML cannot see through a function call to know what it depends on, and
+    // the "current time" indicator's `visible` read both selectedDate and
+    // today while onTodayChanged -> updateCalendar() writes selectedDate —
+    // which QML reported as a binding loop on `visible`.
+    readonly property bool todayIsSelected:
+        selectedDate.getFullYear() === today.getFullYear()
+        && selectedDate.getMonth() === today.getMonth()
+        && selectedDate.getDate() === today.getDate()
+
     // Day-header labels rotated to start from AppConfig.calendarFirstDayOfWeek.
     property var _dayNames: {
         const all = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -111,8 +121,12 @@ Item {
     }
 
     function generateCalendar() {
-        calendarDays.clear()
-
+        // The grid is ALWAYS 42 cells, so the model is updated in place
+        // instead of cleared and refilled. clear() + append() destroys and
+        // recreates every delegate, and the QML profiler measured the cost:
+        // one open of this tab rebuilt the grid 4 times and created 1382
+        // objects, and every month-arrow click paid for 42 more delegate
+        // tear-downs. set() keeps the delegates alive and just changes data.
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth + 1, 0)
         const daysInMonth = lastDay.getDate()
@@ -121,32 +135,27 @@ Item {
         // JS getDay(): 0=Sunday..6=Saturday. We want the column index of the
         // 1st of the month under a week starting at AppConfig.calendarFirstDayOfWeek.
         const offset = (firstDay.getDay() - AppConfig.calendarFirstDayOfWeek + 7) % 7
-
         const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate()
+
+        const cells = []
         for (let i = offset - 1; i >= 0; i--) {
-            calendarDays.append({
-                day: prevMonthLastDay - i,
-                isCurrentMonth: false,
-                date: new Date(currentYear, currentMonth - 1, prevMonthLastDay - i)
-            })
+            cells.push({ day: prevMonthLastDay - i, isCurrentMonth: false,
+                         date: new Date(currentYear, currentMonth - 1, prevMonthLastDay - i) })
         }
-
         for (let day = 1; day <= daysInMonth; day++) {
-            calendarDays.append({
-                day: day,
-                isCurrentMonth: true,
-                date: new Date(currentYear, currentMonth, day)
-            })
+            cells.push({ day: day, isCurrentMonth: true,
+                         date: new Date(currentYear, currentMonth, day) })
+        }
+        for (let day = 1; cells.length < 42; day++) {
+            cells.push({ day: day, isCurrentMonth: false,
+                         date: new Date(currentYear, currentMonth + 1, day) })
         }
 
-        const remainingCells = 42 - calendarDays.count
-        for (let day = 1; day <= remainingCells; day++) {
-            calendarDays.append({
-                day: day,
-                isCurrentMonth: false,
-                date: new Date(currentYear, currentMonth + 1, day)
-            })
+        for (let i = 0; i < cells.length; i++) {
+            if (i < calendarDays.count) calendarDays.set(i, cells[i])
+            else calendarDays.append(cells[i])
         }
+        while (calendarDays.count > cells.length) calendarDays.remove(calendarDays.count - 1)
     }
 
     function updateCalendar() {
@@ -158,7 +167,10 @@ Item {
         // Sync selectedDate with focused cell so the day pane follows
         // month navigation (lands on today if visible, else day 1).
         if (focusedCellIndex >= 0 && focusedCellIndex < calendarDays.count) {
-            selectedDate = calendarDays.get(focusedCellIndex).date
+            // Only on a real change: rewriting the same date still emits
+            // selectedDateChanged and re-entered the chain above.
+            const d = calendarDays.get(focusedCellIndex).date
+            if (!isSameDate(d, selectedDate)) selectedDate = d
         }
 
         const firstDate = calendarDays.get(0).date
@@ -501,7 +513,7 @@ Item {
                             // line was hidden: Timer has no `visible`, so
                             // `running: visible` bound to the TAB's).
                             Rectangle {
-                                visible: root.isSameDate(root.selectedDate, root.today)
+                                visible: root.todayIsSelected
                                 x: 38
                                 width: timelineColumn.width - 38
                                 height: 2

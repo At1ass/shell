@@ -15,6 +15,7 @@ layer-ui-imports-services 0
 layout-dependent-keys 0
 lazyloader-loading 0
 qml-compile-failures 0
+qmldir-unregistered 0
 qmllint-warnings 49
 raw-rectangle-in-features 81
 sh-c-concatenation 0

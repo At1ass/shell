@@ -165,6 +165,22 @@ count layout-dependent-keys \
         | grep -vE ':[0-9]+:[[:space:]]*(//|\*)' \
         | wc -l)"
 
+# A .qml file sitting in a directory that has a qmldir, but missing FROM it, is
+# invisible as a type. Nothing catches this: qmllint does not read the caller,
+# and compile-check does not either when the type is referenced only inside a
+# `Component { }` — Component bodies are not resolved until instantiated. That
+# combination took the shell down after a new popup surface was added.
+# shell.qml files are entry points, not module types, and are exempt.
+count qmldir-unregistered \
+    "$(find "$root/src" -name qmldir -not -path '*/plugins/*' -printf '%h\n' | while read -r d; do
+        for f in "$d"/*.qml; do
+            [ -e "$f" ] || continue
+            b="$(basename "$f")"
+            [ "$b" = "shell.qml" ] && continue
+            grep -q "$b\$" "$d/qmldir" || echo x
+        done
+    done | wc -l)"
+
 # --- Hygiene (§10.17) -----------------------------------------------------------
 count console-log \
     "$(grep -rE 'console\.log\(' "$root/src" --include='*.qml' "$root/shell.qml" | wc -l)"

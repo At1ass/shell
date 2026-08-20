@@ -16,6 +16,13 @@ Singleton {
     property bool capsLockEnabled: false
     property bool numLockEnabled: false
 
+    // Consumers that actually DISPLAY lock state hold a watcher while alive.
+    // Nothing else needs it, and the poll below is the only way to observe it,
+    // so a shell without the layout widget should not be paying for it.
+    property int lockStateWatchers: 0
+    function addLockStateWatcher()    { root.lockStateWatchers++ }
+    function removeLockStateWatcher() { root.lockStateWatchers = Math.max(0, root.lockStateWatchers - 1) }
+
     // Fetch keyboard devices from Hyprland
     Process {
         id: fetchLayoutsProcess
@@ -40,40 +47,46 @@ Singleton {
         }
     }
 
-    // Resolve layout name → short code via xkb base.lst
-    Process {
-        id: getLayoutCodeProcess
-        command: ["cat", "/usr/share/X11/xkb/rules/base.lst"]
+    // Resolve layout name → short code via the xkb rules file.
+    //
+    // FileView, not `Process { command: ["cat", ...] }`: base.lst is a static
+    // file and Quickshell reads files natively, so the old form was a
+    // fork+exec for nothing. Caching is CORRECT here — the file does not
+    // change while the shell runs — which is also why the same approach does
+    // not work for lock state, see below.
+    FileView {
+        id: baseLstFile
+        path: "/usr/share/X11/xkb/rules/base.lst"
+        onLoaded: root._resolveLayoutCode()
+        onLoadFailed: console.warn("KeyboardLayoutService: cannot read " + baseLstFile.path)
+    }
 
-        stdout: StdioCollector {
-            id: layoutCollector
-            onStreamFinished: {
-                const lines = layoutCollector.text.split("\n")
-                const target = root.currentLayoutName
-                lines.find(line => {
-                    if (!line.trim() || line.trim().startsWith('!')) return false
+    function _resolveLayoutCode() {
+        const target = root.currentLayoutName
+        if (!target) return
+        const lines = baseLstFile.text().split("\n")
+        lines.find(line => {
+            if (!line.trim() || line.trim().startsWith('!')) return false
 
-                    const m = line.match(/^\s*(\S+)\s+(.+)$/)
-                    if (m && m[2] === target) {
-                        root.cachedLayoutCodes[m[2]] = m[1]
-                        root.currentLayoutCode = m[1]
-                        return true
-                    }
-
-                    // Variant line: "variantname  layoutcode: Description" —
-                    // the badge shows the base layout code (old code glued
-                    // "ru:"+"phonetic" into RU:PHONETIC garbage).
-                    const mv = line.match(/^\s*(\S+)\s+(\S+)\s+(.+)$/)
-                    if (mv && mv[3] === target) {
-                        const code = mv[2].replace(":", "")
-                        root.cachedLayoutCodes[mv[3]] = code
-                        root.currentLayoutCode = code
-                        return true
-                    }
-                    return false
-                })
+            const m = line.match(/^\s*(\S+)\s+(.+)$/)
+            if (m && m[2] === target) {
+                root.cachedLayoutCodes[m[2]] = m[1]
+                root.currentLayoutCode = m[1]
+                return true
             }
-        }
+
+            // Variant line: "variantname  layoutcode: Description" — the badge
+            // shows the base layout code (old code glued "ru:" + "phonetic"
+            // into RU:PHONETIC garbage).
+            const mv = line.match(/^\s*(\S+)\s+(\S+)\s+(.+)$/)
+            if (mv && mv[3] === target) {
+                const code = mv[2].replace(":", "")
+                root.cachedLayoutCodes[mv[3]] = code
+                root.currentLayoutCode = code
+                return true
+            }
+            return false
+        })
     }
 
     // Layout switch process
@@ -97,12 +110,25 @@ Singleton {
         }
     }
 
-    // Periodic polling for CapsLock/NumLock state
+    // Poll for CapsLock/NumLock.
+    //
+    // VERIFIED 2026-08: Hyprland emits NO event for lock keys — pressing
+    // CapsLock produces nothing on .socket2.sock, while `hyprctl -j devices`
+    // reports the change correctly. So polling is the only correct source and
+    // this spawn-in-a-loop is a deliberate exception to §10, not an oversight.
+    //
+    // The kernel's /sys/class/leds/*::capslock is NOT a substitute: those
+    // nodes belong to PHYSICAL keyboards, while the "main" keyboard here is a
+    // virtual one owned by fcitx5, so the two can disagree. Correctness beats
+    // the saved fork.
+    //
+    // What IS avoidable is paying for it when nobody displays it, hence the
+    // watcher gate: no layout widget, no polling at all.
     Timer {
         interval: 5000
-        running: true
+        running: root.lockStateWatchers > 0
         repeat: true
-        triggeredOnStart: false
+        triggeredOnStart: true
         onTriggered: {
             if (!fetchLayoutsProcess.running)
                 fetchLayoutsProcess.running = true
@@ -114,8 +140,8 @@ Singleton {
     function _updateLayoutCode() {
         if (cachedLayoutCodes.hasOwnProperty(currentLayoutName)) {
             currentLayoutCode = cachedLayoutCodes[currentLayoutName]
-        } else if (!getLayoutCodeProcess.running) {
-            getLayoutCodeProcess.running = true
+        } else {
+            root._resolveLayoutCode()
         }
     }
 
