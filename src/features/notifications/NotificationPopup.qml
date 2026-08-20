@@ -75,15 +75,16 @@ Item {
     // Exit animation
     property real _exitScale: 1.0
 
+    // Exit is fade + shrink toward the card's own anchored edge, with NO
+    // vertical translate. The translate used to move the card 20px into the
+    // slot of its neighbour; while each popup was its own PanelWindow that
+    // overshoot was clipped by the window bounds, but cards now share one
+    // surface, so it drew straight over the card above — two same-coloured
+    // rounded rects fusing into one block, read as the neighbour's bottom
+    // edge being yanked down and snapping back.
     ParallelAnimation {
         id: exitAnim
         running: false
-        MotionAnimation {
-            target: popup; property: "_entranceTranslateY"
-            to: popup.isTop ? -20 : 20
-            duration: Tokens.motion.duration.short4
-            curve: "emphasizedAccelerate"
-        }
         MotionAnimation {
             target: popup; property: "_entranceOpacity"
             to: 0
@@ -121,10 +122,12 @@ Item {
 
     NotificationPopupItem {
         id: popupItem
-        anchors.left: parent.left
-        anchors.right: parent.right
         notificationData: popup.notificationData
         duration: NotificationService.activeDuration(popup.notifId)
+
+        // Width from the parent, NOT left/right anchors: an anchored item
+        // ignores writes to `x`, which is what swipe-to-dismiss animates.
+        width: parent.width
 
         transform: [
             Translate { y: popup._entranceTranslateY },
@@ -135,7 +138,9 @@ Item {
                 yScale: popup._exitScale * popup._entranceScale
             }
         ]
-        opacity: popup._entranceOpacity
+        // Entrance/exit fade and the swipe fade are independent; multiply
+        // rather than letting either one overwrite the other.
+        opacity: popup._entranceOpacity * popupItem.swipeOpacity
 
         // User intent only — the service decides what closing means and
         // whether the notification survives (a `resident` one does).

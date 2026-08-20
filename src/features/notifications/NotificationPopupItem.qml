@@ -63,9 +63,21 @@ Rectangle {
     // coordinates are unstable here because root.x mutates during drag,
     // which translates the MouseArea and feeds back into mouse.x.
     property real _dragStartX: 0
-    property real _dragInitialRootX: 0
+    property real _dragInitialSwipeX: 0
     property bool _swiping: false
     property real _swipeDirection: 0
+
+    // Swipe offset and fade, owned here and applied via bindings. The card
+    // cannot write `x` or `opacity` directly any more: it is an Item inside
+    // NotificationPopupSurface, laid out by its parent, and its opacity is
+    // driven by NotificationPopup's entrance/exit. An `x` write lost to the
+    // parent's anchor and an `opacity` write severed the parent's binding —
+    // which is exactly how swipe-to-dismiss died when cards stopped being
+    // windows. The parent multiplies swipeOpacity into its own fade.
+    property real swipeX: 0
+    property real swipeOpacity: 1.0
+
+    x: root.swipeX
 
     implicitWidth: AppConfig.notificationPopupWidth
     readonly property real nonAnimHeight: column.implicitHeight + Tokens.spacing.medium * 2
@@ -81,12 +93,12 @@ Rectangle {
     ParallelAnimation {
         id: snapBackAnim
         MotionAnimation {
-            target: root; property: "x"; to: 0
+            target: root; property: "swipeX"; to: 0
             duration: Tokens.motion.duration.short4
             curve: "standard"
         }
         NumberAnimation {
-            target: root; property: "opacity"; to: 1.0
+            target: root; property: "swipeOpacity"; to: 1.0
             duration: Tokens.motion.duration.short3
         }
     }
@@ -96,13 +108,13 @@ Rectangle {
         id: swipeDismissAnim
         property real targetX: root.implicitWidth
         MotionAnimation {
-            target: root; property: "x"
+            target: root; property: "swipeX"
             to: swipeDismissAnim.targetX
             duration: Tokens.motion.duration.short3
             curve: "emphasizedAccelerate"
         }
         NumberAnimation {
-            target: root; property: "opacity"
+            target: root; property: "swipeOpacity"
             to: 0; duration: Tokens.motion.duration.short1
         }
         ScriptAction {
@@ -179,7 +191,7 @@ Rectangle {
         onPressed: (mouse) => {
             const scene = mouseArea.mapToItem(null, mouse.x, mouse.y)
             root._dragStartX = scene.x
-            root._dragInitialRootX = root.x
+            root._dragInitialSwipeX = root.swipeX
             root._swiping = false
             root._swipeDirection = 0
         }
@@ -192,12 +204,12 @@ Rectangle {
                 root._swipeDirection = dx > 0 ? 1 : -1
             }
             if (root._swiping) {
-                root.x = root._dragInitialRootX + dx
-                root.opacity = 1.0 - (Math.abs(root.x) / root.implicitWidth) * 0.5
+                root.swipeX = root._dragInitialSwipeX + dx
+                root.swipeOpacity = 1.0 - (Math.abs(root.swipeX) / root.implicitWidth) * 0.5
             }
         }
         onReleased: (mouse) => {
-            if (root._swiping && Math.abs(root.x) > 50) {
+            if (root._swiping && Math.abs(root.swipeX) > 50) {
                 swipeDismissAnim.targetX = root._swipeDirection > 0 ? root.implicitWidth : -root.implicitWidth
                 swipeDismissAnim.start()
             } else if (root._swiping) {

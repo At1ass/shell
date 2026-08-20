@@ -13,6 +13,34 @@ Recent history that informs the items below:
 
 ---
 
+## Notification popup stack (2026-08)
+
+The popup stack is one wlr-layer surface per screen with the cards as Items
+inside it, not a `PanelWindow` per card. That removed 84 `set_margin` round
+trips per burst, and introduced three defects that only a frame-by-frame
+capture could find:
+
+- **Swipe-to-dismiss was dead.** The card animates its own `x`, but the slot
+  anchored it left AND right, and an anchored item ignores writes to `x`. The
+  card now owns `swipeX`/`swipeOpacity`; the slot supplies `width` and
+  multiplies the swipe fade into its own entrance/exit fade.
+- **Exit slid the card 20px into its neighbour.** A per-card window used to
+  clip that overshoot; a shared surface does not, so two same-coloured cards
+  fused into one block and the upper card's bottom edge appeared to be yanked
+  down. Exit is now fade + shrink, no vertical translate.
+- **Surface height fought the layout.** It was set to the target layout while
+  cards were still sliding into it (clipping them), and every shrink made
+  Hyprland animate the layer geometry (`animation = layers`, easeOutQuint,
+  ~380 ms) over stale pixels — a card-shaped ghost in the slot just vacated.
+  The surface now grows only, collapses when the stack empties, and masks its
+  input region to the cards.
+
+Verified by capturing the popup corner with `grim` at ~40 ms and printing the
+occupied row bands per frame: every frame of a removal is now exactly one card
+height, with no fusion and no ghost.
+
+---
+
 ## Memory profile (2026-08)
 
 Measured, not estimated. Startup figures are RSS ~10 s after launch from probe
