@@ -22,9 +22,33 @@ import qs.src.core.config
 Singleton {
     id: root
 
-    property int maxHistory: 200
+    readonly property int maxHistory: AppConfig.notificationMaxHistory
 
     property ListModel historyList: ListModel {}
+
+    // ── Unread tracking ──────────────────────────────────────────
+    // Kept as a counter rather than recomputed from the model: the bar badge
+    // binds to it, and a linear scan per add/remove/read would be O(n) on a
+    // 200-row model for every notification.
+    property int unreadCount: 0
+
+    function _recountUnread() {
+        let n = 0
+        for (var i = 0; i < historyList.count; i++)
+            if (historyList.get(i).unread) n++
+        unreadCount = n
+    }
+
+    // Called when the notification centre opens — that is what "read" means
+    // here: the user looked at the list.
+    function markAllRead() {
+        if (unreadCount === 0) return
+        for (var i = 0; i < historyList.count; i++) {
+            if (historyList.get(i).unread) historyList.setProperty(i, "unread", false)
+        }
+        unreadCount = 0
+        save()
+    }
 
     readonly property string historyFile:
         StandardPaths.writableLocation(StandardPaths.ConfigLocation)
@@ -57,19 +81,39 @@ Singleton {
         return out
     }
 
-    function getGroupCount(appName) {
-        let count = 0
-        for (var i = 0; i < historyList.count; i++) {
-            if ((historyList.get(i).appName || "") === appName) count++
-        }
-        return count
-    }
-    function getGroupIcon(appName) {
+    // ── Group index ──────────────────────────────────────────────
+    // appName → { count, icon }. Rebuilt once per mutation instead of scanned
+    // per group: the centre's section delegate asks for count AND icon for
+    // every group, and both used to walk the whole model, so rendering N groups
+    // over n rows cost O(N·n) on every single add, remove or prune.
+    property var _groupIndex: ({})
+
+    function _rebuildGroupIndex() {
+        const idx = ({})
         for (var i = 0; i < historyList.count; i++) {
             const item = historyList.get(i)
-            if ((item.appName || "") === appName) return item.appIcon || ""
+            const name = item.appName || ""
+            const g = idx[name]
+            if (g) g.count++
+            else idx[name] = { "count": 1, "icon": item.appIcon || "" }
         }
-        return ""
+        _groupIndex = idx
+    }
+
+    // Coalesce: a mass clear or a load touches the model many times in one turn.
+    Timer {
+        id: groupIndexTimer
+        interval: 0
+        repeat: false
+        onTriggered: root._rebuildGroupIndex()
+    }
+    function _invalidateGroupIndex() { groupIndexTimer.restart() }
+
+    function getGroupCount(appName) {
+        return _groupIndex[appName]?.count ?? 0
+    }
+    function getGroupIcon(appName) {
+        return _groupIndex[appName]?.icon ?? ""
     }
 
     // ── Public API ───────────────────────────────────────────────
@@ -89,16 +133,41 @@ Singleton {
         } else {
             historyList.insert(0, data)
         }
+        if (data.unread) unreadCount++
+        _invalidateGroupIndex()
         while (historyList.count > maxHistory) {
+            if (historyList.get(historyList.count - 1).unread) unreadCount--
             historyList.remove(historyList.count - 1)
         }
         save()
     }
 
+    // In-place update for a replaced notification (replaces_id). Without this
+    // the centre kept showing whatever text the app sent FIRST — the only
+    // add() call sits on the first-appearance path, and the server does not
+    // re-emit notification() for a replacement.
+    function update(id, fields) {
+        for (var i = 0; i < historyList.count; i++) {
+            if (historyList.get(i).notificationId !== id) continue
+            for (const key in fields) {
+                // `actions` is a nested list: ListModel cannot setProperty it,
+                // so the row is rebuilt when actions actually change.
+                if (key === "actions") continue
+                historyList.setProperty(i, key, fields[key])
+            }
+            _invalidateGroupIndex()
+            save()
+            return true
+        }
+        return false
+    }
+
     function remove(id) {
         for (var i = 0; i < historyList.count; i++) {
             if (historyList.get(i).notificationId === id) {
+                if (historyList.get(i).unread && unreadCount > 0) unreadCount--
                 historyList.remove(i)
+                _invalidateGroupIndex()
                 save()
                 return true
             }
@@ -107,6 +176,8 @@ Singleton {
     }
 
     function clear() {
+        unreadCount = 0
+        _invalidateGroupIndex()
         if (historyList.count <= 16) {
             historyList.clear()
             save()
@@ -184,7 +255,9 @@ Singleton {
                     "urgency": e.urgency,
                     "expireTimeout": e.expireTimeout,
                     "timestamp": e.timestamp,
-                    "closeReason": e.closeReason ?? -1
+                    "closeReason": e.closeReason ?? -1,
+                    "count": e.count ?? 1,
+                    "unread": e.unread ?? false
                 })
             }
             historyAdapter.notifications = items
@@ -225,6 +298,8 @@ Singleton {
         } catch (err) {
             console.warn("NotificationHistory: load failed:", err)
         }
+        _recountUnread()
+        _rebuildGroupIndex()
         _loadDone = true
         const pending = _pendingAdds
         _pendingAdds = []
@@ -236,6 +311,11 @@ Singleton {
         return {
             "notificationId": id,
             "id": id,
+            // notifId only matters while the notification is still live, which
+            // it never is after a reload — 0 marks "actions no longer usable".
+            "notifId": item.notifId ?? 0,
+            "count": item.count ?? 1,
+            "unread": item.unread ?? false,
             "summary": item.summary || "",
             "body": item.body || "",
             "appName": item.appName || "",
@@ -293,11 +373,12 @@ Singleton {
         let removed = false
         for (let i = historyList.count - 1; i >= 0; i--) {
             if ((historyList.get(i).timestamp || 0) < cutoff) {
+                if (historyList.get(i).unread && unreadCount > 0) unreadCount--
                 historyList.remove(i)
                 removed = true
             }
         }
-        if (removed) save()
+        if (removed) { _invalidateGroupIndex(); save() }
     }
 
     // ── Batched mass-clear ──────────────────────────────────────
@@ -310,9 +391,15 @@ Singleton {
         repeat: true
         running: root._batchClearQueue.length > 0
         onTriggered: {
-            const count = Math.min(8, root._batchClearQueue.length)
+            // Drain through a FRESH array. Shifting in place and assigning the
+            // same reference back does not emit the change signal, so `running`
+            // above never re-evaluated: the timer kept firing at 125 Hz after
+            // the queue emptied, and its save() restarted the 200 ms debounce
+            // every 8 ms — history silently stopped persisting for the session.
+            const queue = root._batchClearQueue.slice()
+            const count = Math.min(8, queue.length)
             for (let i = 0; i < count; i++) {
-                const id = root._batchClearQueue.shift()
+                const id = queue.shift()
                 for (var r = 0; r < historyList.count; r++) {
                     if (historyList.get(r).notificationId === id) {
                         historyList.remove(r)
@@ -320,8 +407,9 @@ Singleton {
                     }
                 }
             }
-            root._batchClearQueue = root._batchClearQueue
-            if (root._batchClearQueue.length === 0) save()
+            root._batchClearQueue = queue
+            _invalidateGroupIndex()
+            if (queue.length === 0) save()
         }
     }
 }

@@ -84,24 +84,21 @@ Surface {
         NumberAnimation { duration: Tokens.motion.duration.short4 }
     }
     Behavior on scale {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.medium1
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
     Behavior on x {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.emphasized
-            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+            curve: "emphasized"
         }
     }
     Behavior on y {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.emphasized
-            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+            curve: "emphasized"
         }
     }
 

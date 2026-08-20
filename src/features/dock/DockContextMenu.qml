@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.core.services
 import qs.src.ui.feedback
 
@@ -94,19 +95,23 @@ Item {
             NumberAnimation { duration: Tokens.motion.duration.short3 }
         }
         Behavior on scale {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.emphasizedDecelerate
-                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                curve: "emphasizedDecelerate"
             }
         }
 
         onTriggered: (index) => {
+            // Capture BEFORE close(): close() nulls root.app, so a guard that
+            // read root.app afterwards was always false and no menu action ever
+            // ran. The pooled entry can also be destroyed while the menu is open
+            // (last window closed -> DockService reconcile), which is what the
+            // guard is actually for — the action closures capture `appItem`
+            // themselves, so testing the captured handle is the correct check.
             const fn = root._actions[index]
+            const app = root.app
             root.close()
-            // The pooled entry may have been destroyed while the menu was
-            // open (last window closed -> reconcile) — actions touch it.
-            if (fn && root.app) fn()
+            if (fn && app) fn()
         }
     }
 }

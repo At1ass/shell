@@ -11,7 +11,13 @@ Rectangle {
     property color badgeColor: Theme.error
     property color textColor: Theme.onError
 
-    // Positioning relative to parent
+    // Overlay (default) pins the badge to the parent's top-right corner — the
+    // MD3 "badge on an icon" case. `inline: true` drops those anchors so the
+    // same pill can sit in a Row/RowLayout as a plain count chip; without it,
+    // every inline counter in the shell was a hand-rolled Rectangle + Text.
+    property bool inline: false
+
+    // Positioning relative to parent (overlay mode only)
     property int offsetX: -4
     property int offsetY: -4
 
@@ -28,10 +34,10 @@ Rectangle {
     radius: width / 2  // Full radius (pill shape)
     color: root.badgeColor
 
-    // Position at top-right corner of parent
+    // Position at top-right corner of parent (skipped when inline)
     anchors {
-        top: parent ? parent.top : undefined
-        right: parent ? parent.right : undefined
+        top: (root.inline || !parent) ? undefined : parent.top
+        right: (root.inline || !parent) ? undefined : parent.right
         topMargin: root.offsetY
         rightMargin: root.offsetX
     }

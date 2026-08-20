@@ -34,6 +34,8 @@ class CalendarBackend : public QObject {
     Q_PROPERTY(bool remindersEnabled        READ remindersEnabled        WRITE setRemindersEnabled        NOTIFY remindersEnabledChanged)
     Q_PROPERTY(int  reminderMinutes         READ reminderMinutes         WRITE setReminderMinutes         NOTIFY reminderMinutesChanged)
     Q_PROPERTY(int  reminderLookaheadDays   READ reminderLookaheadDays   WRITE setReminderLookaheadDays   NOTIFY reminderLookaheadDaysChanged)
+    // "HH:mm" — when an all-day event raises its "today" reminder.
+    Q_PROPERTY(QString reminderAllDayTime   READ reminderAllDayTime      WRITE setReminderAllDayTime      NOTIFY reminderAllDayTimeChanged)
 
 public:
     explicit CalendarBackend(QObject* parent = nullptr);
@@ -49,9 +51,11 @@ public:
     bool remindersEnabled()      const { return m_remindersEnabled; }
     int  reminderMinutes()       const { return m_reminderMinutes; }
     int  reminderLookaheadDays() const { return m_reminderLookaheadDays; }
+    QString reminderAllDayTime() const { return m_reminderAllDayTime; }
     void setRemindersEnabled(bool e);
     void setReminderMinutes(int m);
     void setReminderLookaheadDays(int d);
+    void setReminderAllDayTime(const QString& hhmm);
 
     Q_INVOKABLE void loadEventsForRange(const QDate& start, const QDate& end);
     Q_INVOKABLE void loadEventsForDate(const QDate& date);
@@ -80,6 +84,7 @@ signals:
     void remindersEnabledChanged();
     void reminderMinutesChanged();
     void reminderLookaheadDaysChanged();
+    void reminderAllDayTimeChanged();
 
 private slots:
     void handleStoreRefreshed(QStringList calendars);
@@ -113,5 +118,6 @@ private:
 
     bool m_remindersEnabled       = true;
     int  m_reminderMinutes        = 15;
+    QString m_reminderAllDayTime = QStringLiteral("09:00");
     int  m_reminderLookaheadDays  = 2;
 };

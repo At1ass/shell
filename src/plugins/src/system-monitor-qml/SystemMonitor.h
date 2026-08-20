@@ -117,8 +117,9 @@ class SystemMonitor : public QObject {
     Q_PROPERTY(QString osName READ osName CONSTANT)
     Q_PROPERTY(QString wmName READ wmName CONSTANT)
 
-    // Status
-    Q_PROPERTY(bool isMonitoring READ isMonitoring NOTIFY isMonitoringChanged)
+    // Status / control. Writable: polling is pure cost when nothing is bound to
+    // the stats, so the QML facade parks the worker while the dashboard is shut.
+    Q_PROPERTY(bool isMonitoring READ isMonitoring WRITE setMonitoring NOTIFY isMonitoringChanged)
     Q_PROPERTY(bool hasCpuTemp READ hasCpuTemp NOTIFY hasCpuTempChanged)
     Q_PROPERTY(bool hasGpuStats READ hasGpuStats NOTIFY hasGpuStatsChanged)
 
@@ -191,6 +192,12 @@ public:
 public slots:
     void setUpdateInterval(int milliseconds);
     void refresh();
+
+    // Start/stop the worker's poll timers. The thread itself stays alive (and
+    // keeps its /proc fds, sensors handle and NVML mapping open), so toggling is
+    // cheap and re-entry needs no re-detection. Speed baselines self-heal:
+    // pollFast resets them whenever the measured gap dwarfs the nominal one.
+    void setMonitoring(bool enabled);
 
 signals:
     void cpuUsageChanged();

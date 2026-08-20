@@ -23,14 +23,13 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Tokens.shape.medium
-        color: isCurrentItem ? Theme.secondaryContainer : "transparent"
-        opacity: isCurrentItem ? 0.12 : 0
+        color: root.isCurrentItem ? Theme.secondaryContainer : "transparent"
+        opacity: root.isCurrentItem ? 0.12 : 0
 
         Behavior on opacity {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
     }
@@ -64,11 +63,11 @@ Item {
             visible: _thumbSource !== ""
 
             readonly property string _thumbSource: {
-                if (modelData?.data?.isImage !== true) return ""
+                if (root.modelData?.data?.isImage !== true) return ""
                 // Depend on version to re-evaluate when new thumbnails arrive
                 let v = ClipboardService._thumbnailVersion
                 void(v)
-                return ClipboardService.thumbnailFor(modelData.data.entry) || ""
+                return ClipboardService.thumbnailFor(root.modelData.data.entry) || ""
             }
 
             source: _thumbSource ? "file://" + _thumbSource : ""
@@ -99,7 +98,7 @@ Item {
             // The ?fallback= query is resolved by Quickshell's icon image
             // provider itself — stripping it (as this code once did) threw
             // the fallback away and rendered a blank gap for unknown icons.
-            source: Quickshell.iconPath(modelData?.icon || "application-x-executable", "image-missing")
+            source: Quickshell.iconPath(root.modelData?.icon || "application-x-executable", "image-missing")
 
             sourceSize.width: 40
             sourceSize.height: 40
@@ -118,7 +117,7 @@ Item {
             // Result Name
             MaterialText {
                 Layout.fillWidth: true
-                text: modelData?.text || ""
+                text: root.modelData?.text || ""
                 textStyle: "titleMedium"
                 colorRole: "onSurface"
                 elide: Text.ElideRight
@@ -127,7 +126,7 @@ Item {
             // Result Description
             MaterialText {
                 Layout.fillWidth: true
-                text: modelData?.description || ""
+                text: root.modelData?.description || ""
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
                 elide: Text.ElideRight

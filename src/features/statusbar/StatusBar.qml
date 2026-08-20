@@ -4,6 +4,8 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
+import qs.src.ui.base
+import qs.src.core.services
 import qs.src.features.statusbar
 import qs.src.ui.containers
 import qs.src.ui.feedback
@@ -43,8 +45,36 @@ PanelWindow {
     // property ShellScreen screen: null
 
     readonly property bool autoHide: AppConfig.barAutoHide
-    // Reveal when auto-hide is off, or while the cursor is over the bar / top trigger strip.
+
+    // Reveal when auto-hide is off, while the cursor is over the bar / top
+    // trigger strip, OR while this bar owns something on screen.
+    //
+    // That last clause is the whole point: clicking a tray icon opens the
+    // popouts window — a FULLSCREEN layer surface above the bar with a focus
+    // grab — so the pointer is no longer over the bar, `barHover.hovered` drops,
+    // and the bar slid away out from under the menu the click had just opened.
+    // The dock has always had the equivalent (`_previewShowing || contextMenu.open`);
+    // the bar tracked hover and nothing else.
     readonly property bool revealed: !autoHide || barHover.hovered
+                                     || _ownsPopout || _ownsMenu
+
+    // A popout is ours when the item that requested it lives in this bar's
+    // scene. Checking by screen would be wrong (two bars, one popout) and
+    // checking PopoutsState.open alone would pin every bar open at once.
+    readonly property bool _ownsPopout: PopoutsState.open
+                                        && statusBar._isOwnItem(PopoutsState.sourceItem)
+
+    // Tooltip MENUS (not plain tooltips) also take a grab and pull the pointer
+    // off the bar. tooltipManager belongs to this bar, so anything it holds
+    // open is ours by construction.
+    readonly property bool _ownsMenu: tooltipManager.activeMenu !== null
+
+    function _isOwnItem(item) {
+        for (let p = item; p; p = p.parent) {
+            if (p === statusBar.contentItem) return true
+        }
+        return false
+    }
 
     // The window keeps a constant height (no preview/menu like the dock), so the input mask
     // does all the passthrough work and there is no resize-induced HoverHandler flicker.
@@ -109,12 +139,9 @@ PanelWindow {
         visible: opacity > 0
 
         Behavior on scale {
-            NumberAnimation {
+            MotionAnimation {
                 duration: statusBar.revealed ? Tokens.motion.duration.medium2 : Tokens.motion.duration.short4
-                easing.type: statusBar.revealed ? Tokens.motion.easing.emphasizedDecelerate
-                                                : Tokens.motion.easing.emphasizedAccelerate
-                easing.bezierCurve: statusBar.revealed ? Tokens.motion.easing.emphasizedDeceleratePoints
-                                                       : Tokens.motion.easing.emphasizedAcceleratePoints
+                curve: statusBar.revealed ? "emphasizedDecelerate" : "emphasizedAccelerate"
             }
         }
         Behavior on opacity {

@@ -1,10 +1,10 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.base
 import qs.src.ui.feedback
 import qs.src.core.config
-
-pragma ComponentBehavior: Bound
 
 Item {
     id: root

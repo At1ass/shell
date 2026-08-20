@@ -11,6 +11,11 @@ Button {
 
     property string variant: "tonal" // filled, tonal, elevated, outlined, text
 
+    // Reachable by Tab. QtQuick.Controls already handles Space/Enter activation
+    // and tracks `visualFocus` for us; what was missing was the policy to let
+    // focus arrive at all, and anything on screen to show it once it did.
+    focusPolicy: Qt.StrongFocus
+
     // MD3 button padding: 24dp horizontal, pill shape, 40dp min height.
     leftPadding: Tokens.spacing.large
     rightPadding: Tokens.spacing.large
@@ -75,17 +80,15 @@ Button {
                     : "transparent"
 
             Behavior on color {
-                ColorAnimation {
+                MotionColorAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
             Behavior on border.color {
-                ColorAnimation {
+                MotionColorAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
@@ -96,13 +99,13 @@ Button {
                 color: control._contentColor()
                 opacity: !control.enabled ? 0.0
                        : control.down ? Tokens.stateLayer.pressedOpacity
+                       : control.visualFocus ? Tokens.stateLayer.focusOpacity
                        : control.hovered ? Tokens.stateLayer.hoverOpacity : 0.0
 
                 Behavior on opacity {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
             }

@@ -320,13 +320,19 @@ void CalendarStore::editEventCmd(QString uid, QVariantMap fields,
     if (!master) {
         error = QStringLiteral("Event not found: ") + uid;
     } else {
-        const EditScope scope = editScopeFromString(scopeStr);
+        EditScope scope = EditScope::All;
+        if (!editScopeFromString(scopeStr, &scope)) {
+            error = QStringLiteral("Unknown edit scope: ") + scopeStr;
+            emit mutationDone(false, error);
+            return;
+        }
         fields.insert(QStringLiteral("uid"), uid);
 
-        if (scope == EditScope::ThisInstance &&
-            !master->rruleRaw.isEmpty() && occurrenceStart.isValid())
-        {
+        const bool recurring = !master->rruleRaw.isEmpty() && occurrenceStart.isValid();
+        if (scope == EditScope::ThisInstance && recurring) {
             ok = editSingleOverride(*master, fields, occurrenceStart, &error);
+        } else if (scope == EditScope::ThisAndFuture && recurring) {
+            ok = editFutureOccurrences(*master, fields, occurrenceStart, &error);
         } else {
             ok = editAllInPlace(*master, fields, &error);
         }
@@ -365,11 +371,17 @@ void CalendarStore::deleteEventCmd(QString uid, QString scopeStr, QDateTime occu
     if (!master) {
         error = QStringLiteral("Event not found: ") + uid;
     } else {
-        const EditScope scope = editScopeFromString(scopeStr);
-        if (scope == EditScope::ThisInstance &&
-            !master->rruleRaw.isEmpty() && occurrenceStart.isValid())
-        {
+        EditScope scope = EditScope::All;
+        if (!editScopeFromString(scopeStr, &scope)) {
+            error = QStringLiteral("Unknown delete scope: ") + scopeStr;
+            emit mutationDone(false, error);
+            return;
+        }
+        const bool recurring = !master->rruleRaw.isEmpty() && occurrenceStart.isValid();
+        if (scope == EditScope::ThisInstance && recurring) {
             ok = deleteSingleOccurrence(*master, occurrenceStart, &error);
+        } else if (scope == EditScope::ThisAndFuture && recurring) {
+            ok = deleteFutureOccurrences(*master, occurrenceStart, &error);
         } else {
             ok = deleteWholeSeries(*master, &error);
         }
@@ -740,6 +752,143 @@ bool CalendarStore::editSingleOverride(const Event& master, const QVariantMap& f
     return Atomic::writeFile(path, text.toUtf8(), errorOut);
 }
 
+bool CalendarStore::truncateSeriesBefore(const Event& master, const QDateTime& from,
+                                         QString* errorOut)
+{
+    QFile in(master.sourceFile);
+    if (!in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (errorOut) *errorOut = QStringLiteral("Cannot read ") + master.sourceFile;
+        return false;
+    }
+    const QByteArray data = in.readAll();
+    in.close();
+
+    ical::ComponentPtr root = IcalParser::parseToComponent(data);
+    if (!root) {
+        if (errorOut) *errorOut = QStringLiteral("Parse error in ") + master.sourceFile;
+        return false;
+    }
+    icalcomponent* ve = findMasterVevent(root.get(), master.uid);
+    if (!ve) {
+        if (errorOut) *errorOut = QStringLiteral("Master VEVENT not found: ") + master.uid;
+        return false;
+    }
+    icalproperty* rrule = icalcomponent_get_first_property(ve, ICAL_RRULE_PROPERTY);
+    if (!rrule) {
+        if (errorOut) *errorOut = QStringLiteral("Not a recurring series: ") + master.uid;
+        return false;
+    }
+
+    struct icalrecurrencetype* rule = icalproperty_get_rrule(rrule);   // borrowed
+    if (!rule) {
+        if (errorOut) *errorOut = QStringLiteral("Unreadable RRULE: ") + master.uid;
+        return false;
+    }
+
+    // UNTIL is INCLUSIVE, so it must land strictly before the cut. An all-day
+    // series stops on the previous DAY; a timed one a second earlier, written
+    // as the UTC DATE-TIME the spec requires when DTSTART is a DATE-TIME.
+    if (master.allDay) {
+        const QDate last = from.date().addDays(-1);
+        icaltimetype u = icaltime_null_date();
+        u.year = last.year(); u.month = last.month(); u.day = last.day();
+        u.is_date = 1;
+        rule->until = u;
+    } else {
+        const QDateTime last = from.addSecs(-1).toUTC();
+        icaltimetype u = icaltime_null_time();
+        u.year   = last.date().year();
+        u.month  = last.date().month();
+        u.day    = last.date().day();
+        u.hour   = last.time().hour();
+        u.minute = last.time().minute();
+        u.second = last.time().second();
+        u.is_date = 0;
+        u.zone    = icaltimezone_get_utc_timezone();
+        rule->until = u;
+    }
+    // COUNT and UNTIL are mutually exclusive; a surviving COUNT would win.
+    rule->count = 0;
+    icalproperty_set_rrule(rrule, rule);
+
+    // Drop overrides at or after the cut. expandRange emits overrides
+    // independently of their master, so leaving them would keep exactly the
+    // occurrences the user just asked to remove.
+    icalcomponent* c = icalcomponent_get_first_component(root.get(), ICAL_VEVENT_COMPONENT);
+    while (c) {
+        icalcomponent* next = icalcomponent_get_next_component(root.get(), ICAL_VEVENT_COMPONENT);
+        icalproperty* rid = icalcomponent_get_first_property(c, ICAL_RECURRENCEID_PROPERTY);
+        if (rid && QString::fromUtf8(icalcomponent_get_uid(c)) == master.uid) {
+            const icaltimetype t = icalproperty_get_recurrenceid(rid);
+            const QDateTime at(QDate(t.year, t.month, t.day),
+                               t.is_date ? QTime(0, 0) : QTime(t.hour, t.minute, t.second),
+                               QTimeZone::LocalTime);
+            if (at >= from) {
+                icalcomponent_remove_component(root.get(), c);
+                icalcomponent_free(c);
+            }
+        }
+        c = next;
+    }
+
+    const QString text = IcalParser::serializeComponent(root.get());
+    if (text.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Serialise failed");
+        return false;
+    }
+    return Atomic::writeFile(master.sourceFile, text.toUtf8(), errorOut);
+}
+
+bool CalendarStore::deleteFutureOccurrences(const Event& master, const QDateTime& from,
+                                            QString* errorOut)
+{
+    // Cutting at or before the first occurrence leaves nothing behind, so the
+    // honest result is deleting the series rather than an empty stub.
+    if (from <= master.start) return deleteWholeSeries(master, errorOut);
+    return truncateSeriesBefore(master, from, errorOut);
+}
+
+bool CalendarStore::editFutureOccurrences(const Event& master, const QVariantMap& fields,
+                                          const QDateTime& from, QString* errorOut)
+{
+    // Editing from the first occurrence onwards IS editing the whole series;
+    // splitting would leave an empty master behind.
+    if (from <= master.start) return editAllInPlace(master, fields, errorOut);
+
+    if (!truncateSeriesBefore(master, from, errorOut)) return false;
+
+    // The tail becomes its own series: a new VEVENT with a new UID, the same
+    // recurrence, anchored at the occurrence the user was looking at.
+    QVariantMap tail = fields;
+    tail.remove(QStringLiteral("uid"));
+    tail.insert(QStringLiteral("uid"),
+                QUuid::createUuid().toString(QUuid::WithoutBraces) +
+                QStringLiteral("@quickshell"));
+    if (!tail.contains(QStringLiteral("recurrence")))
+        tail.insert(QStringLiteral("recurrence"), toString(master.recurrence));
+    if (!tail.contains(QStringLiteral("allDay")))
+        tail.insert(QStringLiteral("allDay"), master.allDay);
+    if (!tail.value(QStringLiteral("start")).toDateTime().isValid()) {
+        tail.insert(QStringLiteral("start"), from);
+        tail.insert(QStringLiteral("end"), from.addSecs(master.start.secsTo(master.end)));
+    }
+    if (!tail.contains(QStringLiteral("calendar")))
+        tail.insert(QStringLiteral("calendar"), master.calendar);
+
+    const QString text = IcalParser::buildIcsString(tail);
+    if (text.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Failed to build the split series");
+        return false;
+    }
+    const QString path = newIcsPath(tail.value(QStringLiteral("calendar")).toString(),
+                                    tail.value(QStringLiteral("uid")).toString());
+    if (path.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("Calendar path not resolvable");
+        return false;
+    }
+    return Atomic::writeFile(path, text.toUtf8(), errorOut);
+}
+
 bool CalendarStore::deleteWholeSeries(const Event& master, QString* errorOut) {
     // Overrides may live in separate files — leaving them behind kept
     // deleted series rendering forever with no way to remove them.
@@ -806,6 +955,9 @@ void CalendarStore::debouncedRescan() {
 void CalendarStore::rebuildWatchPaths() {
     if (!m_watcher->directories().isEmpty())
         m_watcher->removePaths(m_watcher->directories());
+    // Files too — see below.
+    if (!m_watcher->files().isEmpty())
+        m_watcher->removePaths(m_watcher->files());
 
     // Watch the FULL directory tree — the scanner descends arbitrarily
     // deep, so a one-level watch missed external edits further down.
@@ -826,6 +978,20 @@ void CalendarStore::rebuildWatchPaths() {
         walk(cal.path);
     }
     if (!dirs.isEmpty()) m_watcher->addPaths(dirs);
+
+    // Watch the .ics FILES as well, not just their directories. Qt emits
+    // directoryChanged for add/remove/rename but NOT for a content edit in
+    // place, so an editor that truncates and rewrites an existing .ics went
+    // unnoticed until something else forced a rescan. vdirsyncer and khal
+    // write atomically (temp + rename), which is why this never showed up.
+    QStringList files;
+    for (const QString& dirPath : std::as_const(dirs)) {
+        const QDir d(dirPath);
+        const auto entries = d.entryInfoList(QStringList{ QStringLiteral("*.ics") },
+                                             QDir::Files);
+        for (const QFileInfo& fi : entries) files << fi.absoluteFilePath();
+    }
+    if (!files.isEmpty()) m_watcher->addPaths(files);
 }
 
 // ── Calendar discovery ────────────────────────────────────────────────

@@ -68,6 +68,20 @@ Singleton {
 
     readonly property bool isMonitoring: SystemMonitor.isMonitoring
 
+    // Poll only while something is on screen to read the numbers.
+    //
+    // The C++ singleton used to start its worker timers in the constructor and
+    // never stop: a 2 s /proc + sysfs + NVML sweep (and five 120-sample history
+    // arrays rebuilt per tick, here) ran for the whole session even with the
+    // dashboard shut. Every consumer of these stats lives in the dashboard, so
+    // that is the gate. The worker thread stays alive across the toggle — only
+    // its timers stop — so re-entry costs nothing and needs no re-detection.
+    Binding {
+        target: SystemMonitor
+        property: "isMonitoring"
+        value: GlobalStates.dashboardOpen
+    }
+
     // History arrays (4 min @ 2s interval = 120 samples)
     property var cpuHistory: []
     property var gpuHistory: []

@@ -54,18 +54,16 @@ StackView {
             StackView.onRemoved: destroy()
 
             Behavior on opacity {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
             Behavior on scale {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 

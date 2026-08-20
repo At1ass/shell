@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.ui.containers
 
 // Material Design 3 Dialog
@@ -24,10 +25,9 @@ Rectangle {
 
     // MD3 animation
     Behavior on opacity {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short4
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
 
@@ -52,10 +52,9 @@ Rectangle {
         scale: root.opacity * 0.2 + 0.8
 
         Behavior on scale {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.emphasizedDecelerate
-                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                curve: "emphasizedDecelerate"
             }
         }
 
@@ -96,7 +95,7 @@ Rectangle {
         interval: Tokens.motion.duration.short4
         onTriggered: {
             root.visible = false
-            closed()
+            root.closed()
         }
     }
 }

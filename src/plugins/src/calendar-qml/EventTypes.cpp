@@ -2,15 +2,18 @@
 
 QString toString(EditScope s) {
     switch (s) {
-        case EditScope::All:          return QStringLiteral("all");
-        case EditScope::ThisInstance: return QStringLiteral("this");
+        case EditScope::All:           return QStringLiteral("all");
+        case EditScope::ThisInstance:  return QStringLiteral("this");
+        case EditScope::ThisAndFuture: return QStringLiteral("future");
     }
     return QStringLiteral("all");
 }
 
-EditScope editScopeFromString(const QString& s) {
-    if (s == QLatin1String("this")) return EditScope::ThisInstance;
-    return EditScope::All;
+bool editScopeFromString(const QString& s, EditScope* out) {
+    if (s == QLatin1String("this"))   { if (out) *out = EditScope::ThisInstance;  return true; }
+    if (s == QLatin1String("future")) { if (out) *out = EditScope::ThisAndFuture; return true; }
+    if (s == QLatin1String("all"))    { if (out) *out = EditScope::All;           return true; }
+    return false;
 }
 
 QString toString(Recurrence r) {

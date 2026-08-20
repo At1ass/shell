@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
@@ -78,36 +80,34 @@ Dialog {
                 model: root.devices
 
                 delegate: ListItem {
+                    id: deviceRow
                     required property var modelData
                     // PwNode refs can die under the dialog (device unplug);
                     // every access below is null-tolerant.
-                    readonly property var device: modelData
-                    readonly property bool isSelected: (device?.id ?? -1) === (root.activeDevice?.id ?? -2)
+                    readonly property var device: deviceRow.modelData
+                    readonly property bool isSelected: (deviceRow.device?.id ?? -1) === (root.activeDevice?.id ?? -2)
 
                     Layout.fillWidth: true
                     radius: Tokens.shape.medium
-                    color: isSelected ? Theme.secondaryContainer : "transparent"
-                    headline: device?.description || device?.name || "Unknown Device"
-                    supportingText: isSelected ? "Active" : ""
-                    trailingIcon: isSelected ? "check" : ""
+                    color: deviceRow.isSelected ? Theme.secondaryContainer : "transparent"
+                    headline: deviceRow.device?.description || deviceRow.device?.name || "Unknown Device"
+                    supportingText: deviceRow.isSelected ? "Active" : ""
+                    trailingIcon: deviceRow.isSelected ? "check" : ""
                     trailingIconColor: Theme.primary
 
                     leadingContent: [
                         MaterialRadioButton {
-                            checked: isSelected
-                            onClicked: {
-                                if (!device) return
-                                root._selectionMade = true
-                                root.deviceSelected(device)
-                                root.close()
-                            }
+                            checked: deviceRow.isSelected
+                            onClicked: deviceRow._choose()
                         }
                     ]
 
-                    onClicked: {
-                        if (!device) return
+                    onClicked: deviceRow._choose()
+
+                    function _choose() {
+                        if (!deviceRow.device) return
                         root._selectionMade = true
-                        root.deviceSelected(device)
+                        root.deviceSelected(deviceRow.device)
                         root.close()
                     }
                 }

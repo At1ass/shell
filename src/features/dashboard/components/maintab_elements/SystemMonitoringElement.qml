@@ -18,6 +18,7 @@ Item {
             ]
 
             delegate: Rectangle {
+                id: metricCell
                 required property var modelData
 
                 visible: modelData.type !== "gpu" || SystemMonitorService.hasGpuStats
@@ -71,18 +72,16 @@ Item {
                 }
 
                 Behavior on animatedProgress {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.long2
-                        easing.type: Tokens.motion.easing.emphasizedDecelerate
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                        curve: "emphasizedDecelerate"
                     }
                 }
 
                 Behavior on thresholdColor {
-                    ColorAnimation {
+                    MotionColorAnimation {
                         duration: Tokens.motion.duration.medium2
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
@@ -92,11 +91,11 @@ Item {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: parent.height * 0.55
-                    values: historyValues
-                    lineColor: Qt.alpha(thresholdColor, 0.3)
-                    fillColor: Qt.alpha(thresholdColor, 0.08)
+                    values: metricCell.historyValues
+                    lineColor: Qt.alpha(metricCell.thresholdColor, 0.3)
+                    fillColor: Qt.alpha(metricCell.thresholdColor, 0.08)
                     lineWidth: 1
-                    visible: historyValues.length > 1
+                    visible: metricCell.historyValues.length > 1
                 }
 
                 // Color-coded left border
@@ -123,7 +122,7 @@ Item {
                         spacing: Tokens.spacing.small
 
                         MaterialIcon {
-                            iconName: modelData.icon
+                            iconName: metricCell.modelData.icon
                             fontSize: Tokens.iconSize.small
                             iconColor: Theme.onSurfaceVariant
                             backgroundColor: "transparent"
@@ -132,14 +131,14 @@ Item {
                         Item { Layout.fillWidth: true }
 
                         MaterialText {
-                            text: Math.round(currentPercent) + "%"
+                            text: Math.round(metricCell.currentPercent) + "%"
                             textStyle: "titleMedium"
                             colorRole: "onSurface"
                             font.weight: Font.Bold
                         }
 
                         MaterialText {
-                            text: currentExtra
+                            text: metricCell.currentExtra
                             textStyle: "labelMedium"
                             colorRole: "onSurfaceVariant"
                         }
@@ -148,7 +147,7 @@ Item {
                     // Line 2: subtitle (model name / total)
                     MaterialText {
                         Layout.fillWidth: true
-                        text: subtitle
+                        text: metricCell.subtitle
                         textStyle: "labelSmall"
                         colorRole: "onSurfaceVariant"
                         opacity: 0.7

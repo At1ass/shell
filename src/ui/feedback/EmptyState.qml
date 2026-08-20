@@ -20,8 +20,9 @@ Item {
         // Icon container (MD3 spec: 64-80dp circle)
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
-            width: root.iconContainerSize
-            height: root.iconContainerSize
+            // Layout.preferred*, not width/height — see QtQuick.Layouts docs.
+            Layout.preferredWidth: root.iconContainerSize
+            Layout.preferredHeight: root.iconContainerSize
             radius: root.iconContainerSize / 2
             color: Theme.surfaceContainerHighest
 
@@ -31,7 +32,9 @@ Item {
                 fontSize: root.iconSize
                 iconColor: Theme.onSurfaceVariant
                 backgroundColor: "transparent"
-                opacity: 0.6
+                // Placeholder art is deliberately recessive; the disabled-content
+                // token is the scale the rest of the kit uses for that.
+                opacity: Tokens.state.disabledContentOpacity
             }
         }
 

@@ -2,6 +2,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import qs.src.core.config
+import qs.src.ui.base
+import qs.src.ui.feedback
 import qs.src.core.services
 
 Scope {
@@ -9,6 +11,12 @@ Scope {
     PanelWindow {
         id: launcherWindow
         visible: GlobalStates.launcherOpen
+
+        // Open on the focused monitor (see GlobalStates.focusedScreen).
+        Component.onCompleted: {
+            const s = GlobalStates.focusedScreen()
+            if (s) launcherWindow.screen = s
+        }
 
         color: "transparent"
         exclusiveZone: 0
@@ -33,19 +41,10 @@ Scope {
         }
 
         // MD3 Scrim (background dimming)
-        Rectangle {
+        Scrim {
             id: scrim
-            anchors.fill: parent
-            color: Theme.scrim
-            opacity: GlobalStates.launcherOpen ? 0.32 : 0.0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.motion.duration.medium4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
+            shown: GlobalStates.launcherOpen
+            duration: Tokens.motion.duration.medium4
 
             // MouseArea to close on scrim clicks
             MouseArea {
@@ -73,18 +72,16 @@ Scope {
                 y: GlobalStates.launcherOpen ? 0 : -20
 
                 Behavior on opacity {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.emphasizedDecelerate
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                        curve: "emphasizedDecelerate"
                     }
                 }
 
                 Behavior on y {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.emphasizedDecelerate
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                        curve: "emphasizedDecelerate"
                     }
                 }
 

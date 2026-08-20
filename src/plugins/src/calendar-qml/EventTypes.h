@@ -9,7 +9,8 @@
 
 enum class EditScope {
     All,            // edit / delete the whole VEVENT series
-    ThisInstance    // edit / delete a single occurrence (RECURRENCE-ID)
+    ThisInstance,   // edit / delete a single occurrence (RECURRENCE-ID)
+    ThisAndFuture   // split the series: master stops before this occurrence
 };
 
 enum class Recurrence {
@@ -32,7 +33,11 @@ struct EventTimezone {
 // ── Conversions ──────────────────────────────────────────────────────
 
 QString toString(EditScope);
-EditScope editScopeFromString(const QString& s);
+// Parses "this" / "all". Returns false for anything else INSTEAD of falling
+// back to a default: the fallback used to be EditScope::All, i.e. a typo or a
+// stale caller silently rewrote or deleted an entire series. For a destructive
+// operation the safe response to "I don't recognise this" is to refuse.
+bool editScopeFromString(const QString& s, EditScope* out);
 
 QString toString(Recurrence);
 Recurrence recurrenceFromString(const QString& s);

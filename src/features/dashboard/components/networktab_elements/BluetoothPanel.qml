@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -35,31 +37,32 @@ ColumnLayout {
             model: BluetoothService.pairedDevices
 
             delegate: ListItem {
+                id: btRow
                 required property var modelData
-                readonly property bool isBusy: BluetoothService.busyDeviceAddress === modelData.address
+                readonly property bool isBusy: BluetoothService.busyDeviceAddress === btRow.modelData.address
                 Layout.fillWidth: true
-                headline: modelData.name || modelData.address
+                headline: btRow.modelData.name || btRow.modelData.address
                 supportingText: {
-                    if (isBusy && !modelData.connected) return "Connecting..."
-                    if (isBusy && modelData.connected) return "Disconnecting..."
-                    return modelData.connected ? "Connected" : "Disconnected"
+                    if (btRow.isBusy && !btRow.modelData.connected) return "Connecting..."
+                    if (btRow.isBusy && btRow.modelData.connected) return "Disconnecting..."
+                    return btRow.modelData.connected ? "Connected" : "Disconnected"
                 }
-                leadingImageSource: modelData.icon ? Quickshell.iconPath(modelData.icon, "bluetooth") : ""
-                leadingIcon: !modelData.icon ? modelData.iconName : ""
-                leadingIconColor: modelData.connected ? Theme.primary : Theme.onSurfaceVariant
-                trailingSupportingText: modelData.battery >= 0 ? Math.round(modelData.battery * 100) + "%" : ""
+                leadingImageSource: btRow.modelData.icon ? Quickshell.iconPath(btRow.modelData.icon, "bluetooth") : ""
+                leadingIcon: !btRow.modelData.icon ? btRow.modelData.iconName : ""
+                leadingIconColor: btRow.modelData.connected ? Theme.primary : Theme.onSurfaceVariant
+                trailingSupportingText: btRow.modelData.battery >= 0 ? Math.round(btRow.modelData.battery * 100) + "%" : ""
                 margin: Tokens.spacing.small
 
                 trailingContent: [
                     IconButton {
-                        iconName: modelData.connected ? "link_off" : "link"
+                        iconName: btRow.modelData.connected ? "link_off" : "link"
                         variant: "standard"
-                        enabled: !isBusy
+                        enabled: !btRow.isBusy
                         onClicked: {
-                            if (modelData.connected)
-                                BluetoothService.disconnectDevice(modelData.device)
+                            if (btRow.modelData.connected)
+                                BluetoothService.disconnectDevice(btRow.modelData.device)
                             else
-                                BluetoothService.connectDevice(modelData.device)
+                                BluetoothService.connectDevice(btRow.modelData.device)
                         }
                     }
                 ]
@@ -81,13 +84,14 @@ ColumnLayout {
             model: BluetoothService.discoveredDevices
 
             delegate: ListItem {
+                id: btPairRow
                 required property var modelData
-                readonly property bool isBusy: BluetoothService.busyDeviceAddress === modelData.address
+                readonly property bool isBusy: BluetoothService.busyDeviceAddress === btPairRow.modelData.address
                 Layout.fillWidth: true
-                headline: modelData.name || modelData.address
-                supportingText: isBusy ? "Pairing..." : ""
-                leadingImageSource: modelData.icon ? Quickshell.iconPath(modelData.icon, "bluetooth") : ""
-                leadingIcon: !modelData.icon ? modelData.iconName : ""
+                headline: btPairRow.modelData.name || btPairRow.modelData.address
+                supportingText: btPairRow.isBusy ? "Pairing..." : ""
+                leadingImageSource: btPairRow.modelData.icon ? Quickshell.iconPath(btPairRow.modelData.icon, "bluetooth") : ""
+                leadingIcon: !btPairRow.modelData.icon ? btPairRow.modelData.iconName : ""
                 leadingIconColor: Theme.onSurfaceVariant
                 margin: Tokens.spacing.small
 
@@ -95,8 +99,8 @@ ColumnLayout {
                     IconButton {
                         iconName: "add_link"
                         variant: "standard"
-                        enabled: !isBusy
-                        onClicked: BluetoothService.pairDevice(modelData.device)
+                        enabled: !btPairRow.isBusy
+                        onClicked: BluetoothService.pairDevice(btPairRow.modelData.device)
                     }
                 ]
             }

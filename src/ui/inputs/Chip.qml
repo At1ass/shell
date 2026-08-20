@@ -33,10 +33,9 @@ Item {
         border.color: Theme.outlineVariant
 
         Behavior on color {
-            ColorAnimation {
+            MotionColorAnimation {
                 duration: Tokens.motion.duration.short3
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
 
@@ -45,7 +44,8 @@ Item {
             layerColor: root._contentColor
             hovered: mouseArea.containsMouse
             pressed: mouseArea.pressed
-            showFocusRing: false
+            focused: root.activeFocus
+            showFocusRing: root.activeFocus
         }
     }
 
@@ -77,5 +77,18 @@ Item {
         enabled: root.enabled
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
+    }
+
+    // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
+    // and a StateLayer that could draw them, but nothing that could ever take
+    // focus — so the ring was unreachable infrastructure. Space and Enter
+    // mirror a click, matching MD3 and every toolkit's button contract.
+    activeFocusOnTab: root.enabled
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
+            || event.key === Qt.Key_Enter) {
+            root.clicked()
+            event.accepted = true
+        }
     }
 }

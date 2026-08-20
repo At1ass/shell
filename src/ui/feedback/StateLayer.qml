@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 
 // Material Design 3 State Layer
 // Universal overlay for hover/pressed/focus/dragged feedback, plus an optional keyboard
@@ -38,10 +39,9 @@ Item {
         }
 
         Behavior on opacity {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
     }

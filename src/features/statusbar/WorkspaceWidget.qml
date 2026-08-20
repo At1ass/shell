@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -94,10 +96,9 @@ BarElement {
                 implicitHeight: workspaceWidget.chipSize
 
                 Behavior on implicitWidth {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.medium2
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+                        curve: "emphasized"
                     }
                 }
 
@@ -118,10 +119,9 @@ BarElement {
                     z: -1
 
                     Behavior on opacity {
-                        NumberAnimation {
+                        MotionAnimation {
                             duration: Tokens.motion.duration.medium2
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
                 }
@@ -162,13 +162,12 @@ BarElement {
                     // Declarative enter/reposition animation — fires only for genuinely new
                     // delegates (ScriptModel reuses existing ones), not on every toplevel event.
                     add: Transition {
-                        NumberAnimation {
+                        MotionAnimation {
                             properties: "scale"
                             from: 0.0
                             to: 1.0
                             duration: Tokens.motion.duration.medium2
-                            easing.type: Tokens.motion.easing.emphasizedDecelerate
-                            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                            curve: "emphasizedDecelerate"
                         }
                         NumberAnimation {
                             properties: "opacity"
@@ -178,11 +177,10 @@ BarElement {
                         }
                     }
                     move: Transition {
-                        NumberAnimation {
+                        MotionAnimation {
                             properties: "x"
                             duration: Tokens.motion.duration.medium2
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
 

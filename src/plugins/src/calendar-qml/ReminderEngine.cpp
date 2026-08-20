@@ -1,7 +1,9 @@
 #include "ReminderEngine.h"
 
 #include <QtCore/QTimer>
-#include <QtCore/QProcess>
+#include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusMessage>
+#include <QtDBus/QDBusPendingCall>
 #include <QtCore/QDateTime>
 #include <QtCore/QVariantMap>
 
@@ -45,6 +47,12 @@ void ReminderEngine::setMinutesBefore(int m) {
     m_minutesBefore = m > 0 ? m : 15;
 }
 
+void ReminderEngine::setAllDayTime(const QString& hhmm) {
+    const QTime t = QTime::fromString(hhmm, QStringLiteral("HH:mm"));
+    // Reject garbage rather than silently reminding at midnight.
+    m_allDayTime = t.isValid() ? t : QTime(9, 0);
+}
+
 void ReminderEngine::setEvents(const QVariantList& events) {
     m_events = events;
     if (m_enabled) tick();   // re-evaluate immediately after refresh
@@ -62,7 +70,6 @@ void ReminderEngine::tick() {
 
     for (const auto& v : m_events) {
         const QVariantMap m = v.toMap();
-        if (m.value(QStringLiteral("allDay")).toBool()) continue;
         const QDateTime start = m.value(QStringLiteral("start")).toDateTime();
         if (!start.isValid()) continue;
 
@@ -71,21 +78,53 @@ void ReminderEngine::tick() {
                           + QLatin1Char('|')
                           + start.toString(Qt::ISODate);
         if (m_firedToday.contains(key)) continue;
-        if (start <= now || start > windowEnd) continue;
 
         const QString title = m.value(QStringLiteral("title")).toString();
+
+        if (m.value(QStringLiteral("allDay")).toBool()) {
+            // An all-day event has no start time to count down to, so
+            // "N minutes before" is meaningless. Remind once on the day
+            // itself, at the configured hour, and only after that hour has
+            // passed — never retroactively for a day already gone.
+            if (start.date() != today) continue;
+            if (now.time() < m_allDayTime) continue;
+            notifyAllDay(title);
+            m_firedToday.insert(key);
+            continue;
+        }
+
+        if (start <= now || start > windowEnd) continue;
         const int minutesAway = int(now.secsTo(start) / 60);
-        notify(title, start.toString(QStringLiteral("HH:mm")), minutesAway);
+        notifyTimed(title, start.toString(QStringLiteral("HH:mm")), minutesAway);
         m_firedToday.insert(key);
     }
 }
 
-void ReminderEngine::notify(const QString& title, const QString& time, int minutesAway) {
-    QStringList args;
-    args << QStringLiteral("--urgency=normal")
-         << QStringLiteral("--app-name=Calendar")
-         << QStringLiteral("--icon=calendar")
-         << QStringLiteral("Upcoming: ") + title
-         << QStringLiteral("Starting at %1 (in %2 min)").arg(time).arg(minutesAway);
-    QProcess::startDetached(QStringLiteral("notify-send"), args);
+void ReminderEngine::notifyTimed(const QString& title, const QString& time,
+                                int minutesAway) {
+    raise_(QStringLiteral("Upcoming: ") + title,
+           QStringLiteral("Starting at %1 (in %2 min)").arg(time).arg(minutesAway));
+}
+
+void ReminderEngine::notifyAllDay(const QString& title) {
+    raise_(QStringLiteral("Today: ") + title, QString());
+}
+
+void ReminderEngine::raise_(const QString& summary, const QString& body) {
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.Notifications"),
+        QStringLiteral("/org/freedesktop/Notifications"),
+        QStringLiteral("org.freedesktop.Notifications"),
+        QStringLiteral("Notify"));
+    msg << QStringLiteral("Calendar")          // app_name
+        << quint32(0)                          // replaces_id
+        << QStringLiteral("calendar")          // app_icon
+        << summary
+        << body
+        << QStringList()                       // actions
+        << QVariantMap()                       // hints
+        << qint32(-1);                         // expire_timeout: server default
+    // Fire-and-forget: a reminder is not worth blocking the tick on, and the
+    // server is this same shell.
+    QDBusConnection::sessionBus().asyncCall(msg);
 }

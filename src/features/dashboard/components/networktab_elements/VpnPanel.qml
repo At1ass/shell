@@ -19,31 +19,32 @@ ColumnLayout {
             model: VPNService.availableVPNs
 
             delegate: ListItem {
+                id: vpnRow
                 required property var modelData
                 Layout.fillWidth: true
-                headline: modelData
+                headline: vpnRow.modelData
                 supportingText: {
-                    if (VPNService.busyVPN === modelData) {
-                        return modelData === VPNService.activeVPN ? "Disconnecting..." : "Connecting..."
+                    if (VPNService.busyVPN === vpnRow.modelData) {
+                        return vpnRow.modelData === VPNService.activeVPN ? "Disconnecting..." : "Connecting..."
                     }
-                    if (modelData === VPNService.activeVPN) return "Active"
+                    if (vpnRow.modelData === VPNService.activeVPN) return "Active"
                     return ""
                 }
-                leadingIcon: modelData === VPNService.activeVPN ? "vpn_lock" : "vpn_key"
-                leadingIconColor: modelData === VPNService.activeVPN ? Theme.primary : Theme.onSurfaceVariant
+                leadingIcon: vpnRow.modelData === VPNService.activeVPN ? "vpn_lock" : "vpn_key"
+                leadingIconColor: vpnRow.modelData === VPNService.activeVPN ? Theme.primary : Theme.onSurfaceVariant
                 margin: Tokens.spacing.small
                 enabled: !VPNService.busy
 
                 trailingContent: [
                     IconButton {
-                        iconName: modelData === VPNService.activeVPN ? "link_off" : "link"
+                        iconName: vpnRow.modelData === VPNService.activeVPN ? "link_off" : "link"
                         variant: "standard"
                         enabled: !VPNService.busy
                         onClicked: {
-                            if (modelData === VPNService.activeVPN)
+                            if (vpnRow.modelData === VPNService.activeVPN)
                                 VPNService.disconnect()
                             else
-                                VPNService.connect(modelData)
+                                VPNService.connect(vpnRow.modelData)
                         }
                     }
                 ]

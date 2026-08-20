@@ -27,10 +27,9 @@ Item {
         border.color: input.activeFocus ? Theme.primary : Theme.outline
 
         Behavior on border.color {
-            ColorAnimation {
+            MotionColorAnimation {
                 duration: Tokens.motion.duration.short3
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
     }

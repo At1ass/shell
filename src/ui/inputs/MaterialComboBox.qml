@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -34,10 +36,10 @@ Item {
         border.color: root.open ? Theme.primary : Theme.outline
 
         Behavior on border.color {
-            ColorAnimation { duration: Tokens.motion.duration.short4 }
+            MotionColorAnimation { curve: "standard" }
         }
         Behavior on color {
-            ColorAnimation { duration: Tokens.motion.duration.short4 }
+            MotionColorAnimation { curve: "standard" }
         }
 
         RowLayout {
@@ -130,13 +132,13 @@ Item {
 
         enter: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Tokens.motion.duration.short4; easing.type: Tokens.motion.easing.emphasizedDecelerate }
-                NumberAnimation { property: "scale"; from: 0.95; to: 1.0; duration: Tokens.motion.duration.short4; easing.type: Tokens.motion.easing.emphasizedDecelerate }
+                MotionAnimation { property: "opacity"; from: 0; to: 1; duration: Tokens.motion.duration.short4; curve: "emphasizedDecelerate" }
+                MotionAnimation { property: "scale"; from: 0.95; to: 1.0; duration: Tokens.motion.duration.short4; curve: "emphasizedDecelerate" }
             }
         }
         exit: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Tokens.motion.duration.short3; easing.type: Tokens.motion.easing.emphasizedAccelerate }
+                MotionAnimation { property: "opacity"; from: 1; to: 0; duration: Tokens.motion.duration.short3; curve: "emphasizedAccelerate" }
             }
         }
 
@@ -150,16 +152,23 @@ Item {
                 model: root.model
 
                 delegate: Rectangle {
+                    id: menuRow
+                    required property int index
+                    required property var modelData
+
                     width: menuColumn.width
                     height: 44
                     color: itemMouse.containsMouse
                            ? Qt.alpha(Theme.onSurface, Tokens.stateLayer.hoverOpacity)
-                           : index === root.currentIndex
+                           : menuRow.index === root.currentIndex
                              ? Qt.alpha(Theme.secondaryContainer, 0.7)
                              : "transparent"
 
                     Behavior on color {
-                        ColorAnimation { duration: Tokens.motion.duration.short3 }
+                        MotionColorAnimation {
+                            duration: Tokens.motion.duration.short3
+                            curve: "standard"
+                        }
                     }
 
                     RowLayout {
@@ -170,14 +179,14 @@ Item {
 
                         MaterialText {
                             Layout.fillWidth: true
-                            text: modelData
+                            text: menuRow.modelData
                             textStyle: "bodyLarge"
-                            colorRole: index === root.currentIndex ? "onSecondaryContainer" : "onSurface"
+                            colorRole: menuRow.index === root.currentIndex ? "onSecondaryContainer" : "onSurface"
                             verticalAlignment: Text.AlignVCenter
                         }
 
                         MaterialIcon {
-                            visible: index === root.currentIndex
+                            visible: menuRow.index === root.currentIndex
                             iconName: "check"
                             fontSize: Tokens.iconSize.medium
                             iconColor: Theme.onSecondaryContainer
@@ -191,7 +200,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            root.currentIndex = index
+                            root.currentIndex = menuRow.index
                             root.open = false
                         }
                     }

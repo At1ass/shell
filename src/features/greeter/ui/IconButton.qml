@@ -10,14 +10,29 @@ Item {
     property string variant: "standard"  // standard, filled, tonal, outlined
     property string iconName: "star"
     property int iconSize: Tokens.iconSize.large  // 24dp default
-    property color iconColor: defaultIconColor()
+    // Role form preferred, raw colour as the escape hatch — see MaterialIcon.
+    property string colorRole: ""
+    property color iconColor: colorRole !== ""
+                              ? (GreeterTheme[colorRole] ?? GreeterTheme.onSurface)
+                              : defaultIconColor()
 
     // Size properties
     property int containerSize: 40
     property int touchTargetSize: Tokens.touchTarget.minimum  // 48dp
 
-    // Signals
-    signal clicked(var mouse)
+    // Signals.
+    //
+    // `clicked()` carries NO mouse argument on purpose. The kit uses one shape
+    // for single-action controls (IconButton, Chip, FAB, ListItem,
+    // MaterialRadioButton) so a handler written for one fits any of them;
+    // previously this one alone took `var mouse`, which meant its handlers had
+    // to be written differently and could not be moved. The MouseArea below
+    // accepts only the left button, so every `mouse.button === Qt.LeftButton`
+    // check at a call site was always true.
+    //
+    // BarElement keeps a mouse argument, and that IS justified: all nine bar
+    // widgets branch on right-click to run `widgetConfig.clickAction`.
+    signal clicked()
     signal pressed()
     signal released()
 
@@ -29,29 +44,30 @@ Item {
     Rectangle {
         id: container
         anchors.centerIn: parent
-        width: containerSize
-        height: containerSize
-        radius: containerSize / 2
+        width: root.containerSize
+        height: root.containerSize
+        radius: root.containerSize / 2
 
-        color: containerColor()
-        border.width: variant === "outlined" ? 1 : 0
-        border.color: variant === "outlined"
+        color: root.containerColor()
+        border.width: root.variant === "outlined" ? 1 : 0
+        border.color: root.variant === "outlined"
                 ? (root.enabled ? GreeterTheme.outline : Qt.alpha(GreeterTheme.onSurface, Tokens.state.disabledContainerOpacity))
                 : "transparent"
 
         Behavior on color {
-            ColorAnimation {
+            MotionColorAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
 
         // State layer
         StateLayer {
-            layerColor: stateLayerColor()
+            layerColor: root.stateLayerColor()
             hovered: mouseArea.containsMouse
             pressed: mouseArea.pressed
+            focused: root.activeFocus
+            showFocusRing: root.activeFocus
         }
 
         // Icon
@@ -64,6 +80,19 @@ Item {
         }
     }
 
+    // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
+    // and a StateLayer that could draw them, but nothing that could ever take
+    // focus — so the ring was unreachable infrastructure. Space and Enter
+    // mirror a click.
+    activeFocusOnTab: root.enabled
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
+            || event.key === Qt.Key_Enter) {
+            root.clicked()
+            event.accepted = true
+        }
+    }
+
     // Mouse area (full touch target)
     MouseArea {
         id: mouseArea
@@ -72,9 +101,7 @@ Item {
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         enabled: root.enabled
 
-        onClicked: function(mouse) {
-            root.clicked(mouse)
-        }
+        onClicked: root.clicked()
 
         onPressed: {
             root.pressed()
@@ -89,12 +116,12 @@ Item {
     function containerColor() {
         if (!root.enabled) {
             // Filled/tonal show a faint disabled fill; standard/outlined stay transparent.
-            return (variant === "filled" || variant === "tonal")
+            return (root.variant === "filled" || root.variant === "tonal")
                 ? Qt.alpha(GreeterTheme.onSurface, Tokens.state.disabledContainerOpacity)
                 : "transparent"
         }
 
-        switch (variant) {
+        switch (root.variant) {
         case "filled":
             return GreeterTheme.primary
         case "tonal":
@@ -107,7 +134,7 @@ Item {
     }
 
     function defaultIconColor() {
-        switch (variant) {
+        switch (root.variant) {
         case "filled":
             return GreeterTheme.onPrimary
         case "tonal":
@@ -120,7 +147,7 @@ Item {
     }
 
     function stateLayerColor() {
-        switch (variant) {
+        switch (root.variant) {
         case "filled":
             return GreeterTheme.onPrimary
         case "tonal":

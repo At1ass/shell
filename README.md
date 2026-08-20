@@ -8,9 +8,9 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 |-----------|-------------|
 | **Status Bar** | Configurable widgets: workspaces, active window, clock, weather, media, notifications, volume, network, battery, layout, tray. Optional auto-hide. |
 | **Dock** | Per-screen application dock with running-window previews and auto-hide |
-| **Dashboard** | 5-tab control center: Quick, Weather, Calendar, Audio, Network |
+| **Dashboard** | 5-tab control center: Quick, Weather, Calendar, Audio, Network. System-stat polling runs only while it is open |
 | **Launcher** | Application search with fuzzy matching + calculator + clipboard history |
-| **Notification Center** | History panel, per-app grouping, DND |
+| **Notification Center** | History panel, per-app grouping, unread badge, DND (critical always gets through), repeat counters, per-app filters |
 | **OSD** | Volume and brightness overlays |
 | **Toast** | Info / success / warning / error popups |
 | **Screenshot** | Region selection via mouse or keyboard (hjkl), annotations through swappy |
@@ -47,7 +47,6 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `qalculate-glib` | Calculator in the launcher (also a build dep for the plugin) |
 | `libical` | Native calendar plugin (events, RRULE expansion) |
 | `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
-| `libnotify` | Calendar event reminders (`notify-send`) |
 | `hyprsunset` | Night Light temperature shift |
 | `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
 | `bluez` | Bluetooth status in the Dashboard |
@@ -164,8 +163,10 @@ Reference config with defaults: [`config/default.json`](config/default.json)
 ### Top-level sections
 
 ```
-appearance.theme         — theme (source, variant, darkMode)
+appearance.theme         — theme (source, variant, contrast, darkMode)
 appearance.fontScale     — font scale (0.5–2.0)
+appearance.reduceMotion  — disable all shell animations (accessibility)
+appearance.motionScale   — multiplier on every motion duration (1.0 = Material defaults)
 modules                  — on/off switch for every top-level shell element (see below)
 bar                      — status bar and widgets
 bar.transparent          — transparent bar background
@@ -173,6 +174,9 @@ bar.autoHide             — reveal the bar only at the top screen edge (no rese
 dock                     — application dock (position, auto-hide, icon size, pinned apps)
 dashboard                — control-center dimensions
 notifications            — popups and notification center
+notifications.dnd        — Do Not Disturb policy (fullscreen suppression)
+notifications.rateLimit  — burst protection (ingress budget + popup pacing)
+notifications.filters    — per-app noPopup / noHistory lists
 launcher                 — search behaviour, hidden apps
 osd                      — volume / brightness overlays
 lockscreen               — built-in lock screen
@@ -180,10 +184,51 @@ powerMenu                — power menu
 gamingMode               — gaming mode (Hyprland overrides)
 wallpaper                — wallpaper sources and per-monitor bindings
 services.weather         — weather (Open-Meteo, no API key)
-services.calendar        — calendar (native libical plugin), reminders, upcoming, day view
+services.calendar        — calendar (native libical plugin), reminders (timed + all-day), day view
 services.nightLight      — hyprsunset wrapper (default temperature, schedule)
-services.vpn             — VPN status (NetworkManager)
+services.vpn             — VPN status (NetworkManager); tracking is OFF by default,
+                           set services.vpn.enabled to start it
 ```
+
+### Colour scheme contrast
+
+`appearance.theme.contrast` is a Material contrast level, not a brightness dial.
+`0.0` (default) is standard M3. Positive values are the accessibility
+high-contrast variants, and in a **dark** scheme they invert container polarity —
+every `*Container` role becomes light and its `on*` colour black:
+
+| role | `contrast: 0.0` | `contrast: 0.5` |
+|---|---|---|
+| `errorContainer` | `#93000A` | `#FF5449` |
+| `onErrorContainer` | `#FFDAD6` | `#000000` |
+| `primaryContainer` | `#4D3D75` | `#9887C5` |
+
+Raise it only if you actually want that. `appearance.theme.variant` accepts
+`tonalspot`, `vibrant`, `expressive`, `content`, `fidelity`, `neutral` and
+`monochrome` — all seven are implemented.
+
+### Multi-monitor behaviour
+
+Per-screen elements (bar, dock, wallpaper, OSD, toasts, screenshot overlay) are
+instantiated once per output. The single-window overlays — dashboard, launcher,
+power menu, cheatsheet, notification centre — open on the **focused** monitor,
+resolved at open time, and stay there while they are up.
+
+Notification popups are configurable via `notifications.popup.monitor`:
+
+```jsonc
+"popup": { "monitor": "focused" }   // default
+"popup": { "monitor": "DP-2" }      // pin to one output
+```
+
+With `"focused"`, a popup opens on the focused monitor — but only when the stack
+is empty. Popups never migrate once mapped, so if each card picked its own
+monitor a burst that spanned a focus change would split one logical stack across
+two screens, both columns starting at the top margin, while `maxVisible` counted
+them globally and evicted from the screen you were not looking at. Keeping an
+existing stack on its output avoids that; pin the output if you want popups in a
+fixed place regardless of focus. An output name that is not currently connected
+falls back to the focused monitor rather than dropping the notification.
 
 ### Modules (turning elements on or off)
 
@@ -321,6 +366,10 @@ qs ipc call globalstates togglePowerMenu
 qs ipc call globalstates openPowerMenu
 qs ipc call globalstates closePowerMenu
 qs ipc call globalstates lockScreen
+qs ipc call globalstates locked               # bool — is the lock screen up?
+                                              # loginctl's LockedHint does NOT answer this:
+                                              # hypridle calls lockScreen() over IPC directly,
+                                              # never through `loginctl lock-session`.
 
 # Gaming mode
 qs ipc call globalstates toggleGamingMode
@@ -349,6 +398,21 @@ qs ipc call audio setVolume 0.5       # 0.0 – 1.0
 qs ipc call audio toggleMute
 qs ipc call audio getMasterVolume     # returns current volume
 qs ipc call audio isMuted
+```
+
+### `notifications`
+
+```bash
+qs ipc call notifications toggleDnd       # returns the new DND state
+qs ipc call notifications setDnd true
+qs ipc call notifications isDnd           # manual toggle only
+qs ipc call notifications dndActive       # toggle OR fullscreen suppression
+qs ipc call notifications dismissAll      # close every visible popup
+qs ipc call notifications clear           # wipe history
+qs ipc call notifications markAllRead     # clear the unread badge
+qs ipc call notifications count           # history entries
+qs ipc call notifications unread          # unread entries (what the bar badge shows)
+qs ipc call notifications activeCount     # popups currently on screen
 ```
 
 ### `mpris`
@@ -489,6 +553,36 @@ Architecture, coding conventions, hard prohibitions and the project's vectors
 [`AGENTS.md`](AGENTS.md) (full handbook) and [`CLAUDE.md`](CLAUDE.md) (quick reference).
 Authoritative references: this README, [`ROADMAP.md`](ROADMAP.md) (open work),
 and [`config/config.schema.json`](config/config.schema.json) (configuration).
+
+### Using the UI kit
+
+`src/ui` is the single point for anything visual. A feature reaching past it
+needs a reason, and the reason belongs in a comment — the three recorded ones
+today are `ToastOverlay` (severity colour + its own per-screen surface), the
+dashboard tab bar (MD3 Tabs, which the kit does not have) and the cheatsheet
+keycaps (a static token, not a Chip).
+
+Two conventions worth knowing:
+
+- **Motion goes through `MotionAnimation` / `MotionColorAnimation`.** `curve:`
+  sets both halves of the easing at once. Hand-writing `easing.type` plus
+  `easing.bezierCurve` is what let a broken curve reach 100+ sites, and
+  `easing-pairs-by-hand` now holds it at zero.
+- **Colour goes through a role where one exists** — `colorRole: "onSurface"`
+  rather than `Theme.onSurface`. `MaterialText`, `MonoText`, `MaterialIcon`,
+  `IconButton` and `MaterialIndicator` take roles; raw colour properties remain
+  as escape hatches for genuinely computed values.
+
+Before pushing, run `tools/check.sh` (mechanical invariants, ratcheted against
+`tools/check-baseline.txt`) and `tools/lint.sh <files>` (qmllint with the right
+import paths). Two invariants worth knowing about, because both cover mistakes
+that look correct on the page:
+
+- `easing-points-arity` — `easing.bezierCurve` needs groups of **three** points
+  (6 reals, last = `1.0, 1.0`). A 4-value CSS-style curve is dropped by Qt
+  *without a warning* and the animation runs linear.
+- `greeter-ui-drift` — `src/features/greeter/ui/*` is generated. Edit
+  `src/ui/`, then re-run `src/features/greeter/sync-ui.sh`.
 
 ---
 

@@ -7,3 +7,5 @@ MaterialButton 1.0 MaterialButton.qml
 IconButton 1.0 IconButton.qml
 CircleAvatar 1.0 CircleAvatar.qml
 StateLayer 1.0 StateLayer.qml
+MotionAnimation 1.0 MotionAnimation.qml
+MotionColorAnimation 1.0 MotionColorAnimation.qml

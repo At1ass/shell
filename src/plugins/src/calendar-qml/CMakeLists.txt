@@ -31,6 +31,7 @@ target_link_libraries(calendarqml
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
+        Qt6::DBus
         PkgConfig::LIBICAL
 )
 

@@ -99,6 +99,15 @@ private:
                             QString* errorOut);
 
     // Delete helpers — return false on error; errorOut populated.
+    // "This and future": the master's RRULE is truncated with an UNTIL just
+    // before the given occurrence, and any override at or after that point is
+    // dropped with it — otherwise the overrides survive as orphans, because
+    // expandRange emits them independently of their master.
+    bool truncateSeriesBefore(const Event& master, const QDateTime& from, QString* errorOut);
+    bool deleteFutureOccurrences(const Event& master, const QDateTime& from, QString* errorOut);
+    bool editFutureOccurrences(const Event& master, const QVariantMap& fields,
+                               const QDateTime& from, QString* errorOut);
+
     bool deleteWholeSeries(const Event& master, QString* errorOut);
     bool deleteSingleOccurrence(const Event& master,
                                 const QDateTime& occurrenceStart,

@@ -27,7 +27,7 @@ Singleton {
         if (!gmState?.active) return
 
         root._savedHyprState = gmState.savedState || {}
-        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
+        if (AppConfig.gmDisableAnimations) Tokens.motionFrozen = true
         root._applyHyprlandGaming()
         root.gamingModeActive = true
     }
@@ -102,7 +102,7 @@ Singleton {
     function enableGamingMode() {
         GlobalStates.closeAllPanels()
         _saveAndApplyHyprland()
-        if (AppConfig.gmDisableAnimations) Tokens.durationScale = 0
+        if (AppConfig.gmDisableAnimations) Tokens.motionFrozen = true
         gamingModeActive = true
         ToastService.info("Gaming mode enabled", 2000)
     }
@@ -110,7 +110,7 @@ Singleton {
     function disableGamingMode() {
         _chainGeneration++   // cancel any in-flight save chain
         _restoreHyprland()
-        Tokens.durationScale = 1.0
+        Tokens.motionFrozen = false
         gamingModeActive = false
         AppConfig.updateState("gamingMode", { active: false, savedState: {} })
         ToastService.info("Gaming mode disabled", 2000)

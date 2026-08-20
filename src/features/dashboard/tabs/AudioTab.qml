@@ -47,13 +47,16 @@ Item {
                     spacing: Tokens.spacing.small
 
                     Rectangle {
-                        width: 36
-                        height: 36
+                        // Layout.preferred*, not width/height: this sits in a
+                        // RowLayout, where setting width/height directly is
+                        // undefined behaviour per the QtQuick.Layouts docs.
+                        Layout.preferredWidth: 36
+                        Layout.preferredHeight: 36
                         radius: Tokens.shape.full
                         color: sinkMouse.containsMouse ? Theme.onSecondaryContainer : Theme.primaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Tokens.motion.duration.short4 }
+                            MotionColorAnimation { curve: "standard" }
                         }
 
                         MaterialIcon {
@@ -117,13 +120,13 @@ Item {
                     spacing: Tokens.spacing.small
 
                     Rectangle {
-                        width: 36
-                        height: 36
+                        Layout.preferredWidth: 36
+                        Layout.preferredHeight: 36
                         radius: Tokens.shape.full
                         color: sourceMouse.containsMouse ? Theme.onSecondaryContainer : Theme.tertiaryContainer
 
                         Behavior on color {
-                            ColorAnimation { duration: Tokens.motion.duration.short4 }
+                            MotionColorAnimation { curve: "standard" }
                         }
 
                         MaterialIcon {
@@ -201,15 +204,16 @@ Item {
                         }
 
                         delegate: MaterialCard {
+                            id: streamCard
                             required property var modelData
-                            property var stream: modelData
-                            property string appIcon: AudioService.getAppIcon(stream)
+                            property var stream: streamCard.modelData
+                            property string appIcon: AudioService.getAppIcon(streamCard.stream)
 
                             Layout.fillWidth: true
                             Layout.preferredHeight: {
-                                const hasMedia = stream && stream.properties &&
-                                    stream.properties["media.name"] &&
-                                    stream.properties["media.name"] !== (stream.properties["application.name"] || "")
+                                const hasMedia = streamCard.stream && streamCard.stream.properties &&
+                                    streamCard.stream.properties["media.name"] &&
+                                    streamCard.stream.properties["media.name"] !== (streamCard.stream.properties["application.name"] || "")
                                 return hasMedia ? 100 : 80
                             }
                             color: Theme.surfaceContainer
@@ -217,7 +221,7 @@ Item {
 
                             data: [
                                 PwObjectTracker {
-                                    objects: stream ? [stream] : []
+                                    objects: streamCard.stream ? [streamCard.stream] : []
                                 }
                             ]
 
@@ -228,8 +232,8 @@ Item {
 
                                 CircleAvatar {
                                     size: "medium"
-                                    imageSource: appIcon
-                                    fallbackText: stream && stream.properties && stream.properties["application.name"] ? stream.properties["application.name"] : "AP"
+                                    imageSource: streamCard.appIcon
+                                    fallbackText: streamCard.stream && streamCard.stream.properties && streamCard.stream.properties["application.name"] ? streamCard.stream.properties["application.name"] : "AP"
                                     customRadius: 6
                                 }
 
@@ -243,9 +247,9 @@ Item {
                                             Layout.fillWidth: true
                                             spacing: 0
                                             MaterialText {
-                                                text: (stream && stream.properties && stream.properties["application.name"])
-                                          ? stream.properties["application.name"]
-                                          : (stream?.name || "Application")
+                                                text: (streamCard.stream && streamCard.stream.properties && streamCard.stream.properties["application.name"])
+                                          ? streamCard.stream.properties["application.name"]
+                                          : (streamCard.stream?.name || "Application")
                                                 textStyle: "labelLarge"
                                                 colorRole: "onSurface"
                                                 font.weight: Font.Medium
@@ -253,17 +257,17 @@ Item {
                                                 Layout.fillWidth: true
                                             }
                                             MaterialText {
-                                                readonly property string mediaName: stream && stream.properties ? (stream.properties["media.name"] || "") : ""
+                                                readonly property string mediaName: streamCard.stream && streamCard.stream.properties ? (streamCard.stream.properties["media.name"] || "") : ""
                                                 text: mediaName
                                                 textStyle: "labelSmall"
                                                 colorRole: "onSurfaceVariant"
                                                 elide: Text.ElideRight
                                                 Layout.fillWidth: true
-                                                visible: mediaName.length > 0 && mediaName !== (stream.properties["application.name"] || "")
+                                                visible: mediaName.length > 0 && mediaName !== (streamCard.stream.properties["application.name"] || "")
                                             }
                                         }
                                         MaterialText {
-                                            text: AudioService.formatVolume(stream && stream.audio ? stream.audio.volume : null) + "%"
+                                            text: AudioService.formatVolume(streamCard.stream && streamCard.stream.audio ? streamCard.stream.audio.volume : null) + "%"
                                             textStyle: "labelMedium"
                                             colorRole: "onSurfaceVariant"
                                             font.weight: Font.Medium
@@ -274,24 +278,24 @@ Item {
 
                                     MaterialSlider {
                                         Layout.fillWidth: true
-                                        enabled: !!(stream && stream.audio)
+                                        enabled: !!(streamCard.stream && streamCard.stream.audio)
                                         from: 0
                                         to: 1
                                         stepSize: 0.01
-                                        value: (stream && stream.audio && isFinite(stream.audio.volume)) ? stream.audio.volume : 0
-                                        onMoved: if (stream && stream.audio)
-                                            stream.audio.volume = value
+                                        value: (streamCard.stream && streamCard.stream.audio && isFinite(streamCard.stream.audio.volume)) ? streamCard.stream.audio.volume : 0
+                                        onMoved: if (streamCard.stream && streamCard.stream.audio)
+                                            streamCard.stream.audio.volume = value
                                     }
                                 }
 
                                 IconButton {
-                                    iconName: (stream && stream.audio && stream.audio.muted) ? "volume_off" : "volume_up"
+                                    iconName: (streamCard.stream && streamCard.stream.audio && streamCard.stream.audio.muted) ? "volume_off" : "volume_up"
                                     iconSize: Tokens.typography.headlineSmall.size
-                                    iconColor: (stream && stream.audio && stream.audio.muted) ? Theme.onErrorContainer : Theme.onSurfaceVariant
+                                    iconColor: (streamCard.stream && streamCard.stream.audio && streamCard.stream.audio.muted) ? Theme.onErrorContainer : Theme.onSurfaceVariant
                                     variant: "standard"
-                                    enabled: !!(stream && stream.audio)
-                                    onClicked: if (stream && stream.audio)
-                                        stream.audio.muted = !stream.audio.muted
+                                    enabled: !!(streamCard.stream && streamCard.stream.audio)
+                                    onClicked: if (streamCard.stream && streamCard.stream.audio)
+                                        streamCard.stream.audio.muted = !streamCard.stream.audio.muted
                                 }
                             }
                         }

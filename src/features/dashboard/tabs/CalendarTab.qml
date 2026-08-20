@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -233,7 +235,10 @@ Item {
                     Repeater {
                         model: root._dayNames
                         MaterialText {
-                            text: modelData
+                            id: dayNameLabel
+                            required property string modelData
+
+                            text: dayNameLabel.modelData
                             textStyle: "labelSmall"
                             colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
@@ -248,37 +253,43 @@ Item {
 
                         delegate: Rectangle {
                             id: dayCell
+
+                            // Under `pragma ComponentBehavior: Bound` a delegate
+                            // must declare what it takes from the model rather
+                            // than inheriting it from the enclosing context.
+                            required property var model
+                            required property int index
+
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
                             radius: Tokens.shape.full
 
-                            property bool isToday: root.isSameDate(model.date, root.today)
-                            property bool isSelected: root.isSameDate(model.date, root.selectedDate)
-                            property bool isFocused: index === root.focusedCellIndex
+                            property bool isToday: root.isSameDate(dayCell.model.date, root.today)
+                            property bool isSelected: root.isSameDate(dayCell.model.date, root.selectedDate)
+                            property bool isFocused: dayCell.index === root.focusedCellIndex
                             // The dot Repeater's model is an INT — inside it,
                             // `model.<role>` is shadowed and reads undefined.
-                            readonly property bool inCurrentMonth: model.isCurrentMonth
+                            readonly property bool inCurrentMonth: dayCell.model.isCurrentMonth
                             // Reading eventsByDate makes this binding reactive
-                            property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(model.date, "yyyy-MM-dd")] || []
-                            property int eventCount: dayList.length
+                            property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(dayCell.model.date, "yyyy-MM-dd")] || []
+                            property int eventCount: dayCell.dayList.length
 
                             // Today wins fill; selection layers an outline on top of today;
                             // focus always shows as a tertiary outline (overrides selection outline).
                             color: {
-                                if (isToday) return Theme.primary
-                                if (isSelected) return Theme.secondaryContainer
+                                if (dayCell.isToday) return Theme.primary
+                                if (dayCell.isSelected) return Theme.secondaryContainer
                                 if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
                                 return "transparent"
                             }
 
-                            border.width: isFocused ? 2 : (isSelected && isToday ? 2 : 0)
-                            border.color: isFocused ? Theme.tertiary : Theme.onPrimary
+                            border.width: dayCell.isFocused ? 2 : (dayCell.isSelected && dayCell.isToday ? 2 : 0)
+                            border.color: dayCell.isFocused ? Theme.tertiary : Theme.onPrimary
 
                             Behavior on color {
-                                ColorAnimation {
+                                MotionColorAnimation {
                                     duration: Tokens.motion.duration.short4
-                                    easing.type: Tokens.motion.easing.standard
-                                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                                    curve: "standard"
                                 }
                             }
 
@@ -288,26 +299,26 @@ Item {
 
                                 MaterialText {
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    text: model.day
+                                    text: dayCell.model.day
                                     textStyle: "bodyMedium"
                                     colorRole: {
-                                        if (isToday) return "onPrimary"
-                                        if (isSelected) return "onSecondaryContainer"
-                                        if (!model.isCurrentMonth) return "onSurfaceVariant"
+                                        if (dayCell.isToday) return "onPrimary"
+                                        if (dayCell.isSelected) return "onSecondaryContainer"
+                                        if (!dayCell.inCurrentMonth) return "onSurfaceVariant"
                                         return "onSurface"
                                     }
-                                    font.weight: isToday || isSelected ? Font.Bold : Font.Normal
-                                    opacity: model.isCurrentMonth ? 1.0 : 0.5
+                                    font.weight: dayCell.isToday || dayCell.isSelected ? Font.Bold : Font.Normal
+                                    opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
                                 }
 
                                 // Event indicator dots
                                 Row {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     spacing: 3
-                                    visible: eventCount > 0
+                                    visible: dayCell.eventCount > 0
 
                                     Repeater {
-                                        model: Math.min(eventCount, 3)
+                                        model: Math.min(dayCell.eventCount, 3)
 
                                         Rectangle {
                                             width: 4
@@ -329,9 +340,9 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
 
                                 onClicked: {
-                                    root.selectedDate = model.date
-                                    root.focusedCellIndex = index
-                                    CalendarBackend.loadEventsForDate(model.date)
+                                    root.selectedDate = dayCell.model.date
+                                    root.focusedCellIndex = dayCell.index
+                                    CalendarBackend.loadEventsForDate(dayCell.model.date)
                                 }
                             }
                         }
@@ -374,11 +385,14 @@ Item {
                         model: parent._allDayEvents
 
                         Rectangle {
+                            id: allDayChip
+                            required property var modelData
+
                             property int maxWidth: flow.width
 
                             width: Math.min(
                                 allDayLabel.implicitWidth + Tokens.spacing.medium * 2,
-                                maxWidth
+                                allDayChip.maxWidth
                             )
                             height: allDayLabel.implicitHeight + Tokens.spacing.extraSmall * 2
                             radius: Tokens.shape.small
@@ -387,7 +401,7 @@ Item {
                             MaterialText {
                                 id: allDayLabel
                                 anchors.centerIn: parent
-                                text: modelData.title
+                                text: allDayChip.modelData.title
                                 textStyle: "labelMedium"
                                 colorRole: "onTertiaryContainer"
                                 wrapMode: Text.WordWrap
@@ -397,7 +411,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: eventDialog.openDialog(true, modelData, root.selectedDate)
+                                onClicked: eventDialog.openDialog(true, allDayChip.modelData, root.selectedDate)
                             }
                         }
                     }
@@ -451,8 +465,11 @@ Item {
                                 model: 24
 
                                 Item {
+                                    id: hourRow
+                                    required property int index
+
                                     x: 0
-                                    y: index * AppConfig.calendarDayViewHourHeight
+                                    y: hourRow.index * AppConfig.calendarDayViewHourHeight
                                     width: timelineColumn.width
                                     height: AppConfig.calendarDayViewHourHeight
 
@@ -460,7 +477,7 @@ Item {
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.topMargin: -6
-                                        text: (index < 10 ? "0" : "") + index + ":00"
+                                        text: (hourRow.index < 10 ? "0" : "") + hourRow.index + ":00"
                                         textStyle: "labelSmall"
                                         colorRole: "onSurfaceVariant"
                                         width: 36
@@ -704,6 +721,12 @@ Item {
             } else {
                 CalendarBackend.deleteEvent(ev.uid, mode, ev.start)
             }
+        }
+
+        onCancelled: (intent, ev, fields) => {
+            // Only an edit has anything to lose; a cancelled delete just stops.
+            if (intent === "edit")
+                eventDialog.openDialog(true, ev, ev.start, fields)
         }
     }
 }

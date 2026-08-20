@@ -1,8 +1,11 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.src.core.config
+import qs.src.ui.containers
 
 Scope {
     id: root
@@ -73,7 +76,7 @@ Scope {
     Timer {
         id: hangTimer
         interval: root.hangTime
-        onTriggered: doLastHide()
+        onTriggered: root.doLastHide()
     }
 
     property real scaleMul: lastActiveItem && lastActiveItem.targetVisible ? 1 : 0
@@ -86,15 +89,15 @@ Scope {
 
     LazyLoader {
         id: popupLoader
-        activeAsync: shownItem != null
+        activeAsync: root.shownItem != null
 
         PopupWindow {
             id: popup
 
             anchor {
-                window: bar
+                window: root.bar
                 rect.x: tooltipItem.targetX
-                rect.y: bar.height + Tokens.spacing.small
+                rect.y: root.bar.height + Tokens.spacing.small
                 adjustment: PopupAdjustment.Slide
             }
 
@@ -114,22 +117,22 @@ Scope {
             }
 
             // implicitWidth: Math.max(tooltipItem.targetWidth, activeItem?.isMenu ? 150 : 100)
-            implicitWidth: Math.max(tooltipItem.targetWidth, activeItem?.isMenu ? 150 : 100)
+            implicitWidth: Math.max(tooltipItem.targetWidth, root.activeItem?.isMenu ? 150 : 100)
 			// width: Math.max(700, tooltipItem.largestAnimWidth) // max due to qtwayland glitches
             implicitHeight: Math.max(tooltipItem.targetHeight, 40)
             visible: true
             color: "transparent"
 
             mask: Region {
-                item: (shownItem?.hoverable ?? false) ? tooltipItem : null
+                item: (root.shownItem?.hoverable ?? false) ? tooltipItem : null
             }
 
             HyprlandFocusGrab {
-                active: activeItem?.isMenu ?? false
-                windows: [ popup, bar, ...(activeItem?.grabWindows ?? []) ]
+                active: root.activeItem?.isMenu ?? false
+                windows: [ popup, root.bar, ...(root.activeItem?.grabWindows ?? []) ]
                 onActiveChanged: {
-                    if (!active && activeItem?.isMenu) {
-                        activeMenu.close()
+                    if (!active && root.activeItem?.isMenu) {
+                        root.activeMenu.close()
                     }
                 }
             }
@@ -144,24 +147,25 @@ Scope {
                 }
 
                 transform: Scale {
+                    id: tooltipScale
                     origin.x: tooltipItem.width / 2
                     origin.y: 0
-                    xScale: 0.8 + scaleMul * 0.2
-                    yScale: xScale
+                    xScale: 0.8 + root.scaleMul * 0.2
+                    yScale: tooltipScale.xScale
                 }
 
-                readonly property real targetWidth: shownItem ? Math.max(shownItem.implicitWidth || 150, shownItem.isMenu ? 150 : 100) : 100
-                readonly property real targetHeight: shownItem ? Math.max(shownItem.implicitHeight || 40, 40) : 40
+                readonly property real targetWidth: root.shownItem ? Math.max(root.shownItem.implicitWidth || 150, root.shownItem.isMenu ? 150 : 100) : 100
+                readonly property real targetHeight: root.shownItem ? Math.max(root.shownItem.implicitHeight || 40, 40) : 40
 
                 readonly property real targetX: {
-                    if (shownItem == null || shownItem.owner == null) return 0
+                    if (root.shownItem == null || root.shownItem.owner == null) return 0
                     try {
-                        const ownerGlobal = bar.contentItem.mapFromItem(shownItem.owner, 0, 0)
-                        const targetCenter = ownerGlobal.x + shownItem.owner.width / 2
+                        const ownerGlobal = root.bar.contentItem.mapFromItem(root.shownItem.owner, 0, 0)
+                        const targetCenter = ownerGlobal.x + root.shownItem.owner.width / 2
                         // Center the tooltip under the item, but keep it within bounds
-                        const tooltipLeft = targetCenter - targetWidth / 2
+                        const tooltipLeft = targetCenter - tooltipItem.targetWidth / 2
                         const screenMargin = Tokens.spacing.medium
-                        const maxLeft = bar.width - targetWidth - screenMargin
+                        const maxLeft = root.bar.width - tooltipItem.targetWidth - screenMargin
 
                         return Math.max(screenMargin, Math.min(maxLeft, tooltipLeft))
                     } catch (e) {
@@ -171,7 +175,7 @@ Scope {
 
                 x: 0
                 y: 0
-                width: targetWidth
+                width: tooltipItem.targetWidth
                 height: targetHeight
 
                 // Background
@@ -190,12 +194,11 @@ Scope {
                         opacity: Tokens.stateLayer.focusOpacity
                     }
 
-                    // Primary tint
-                    Rectangle {
-                        anchors.fill: parent
-                        color: Theme.primary
+                    // Primary tint — from the elevation scale, not from the
+                    // hover state-layer token it used to borrow.
+                    SurfaceTint {
+                        level: 2
                         radius: parent.radius
-                        opacity: Tokens.stateLayer.hoverOpacity
                     }
                 }
 
@@ -203,28 +206,28 @@ Scope {
                     id: widthAnim
                     to: tooltipItem.targetWidth
                     velocity: 800
-                    duration: (shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
+                    duration: (root.shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
                 }
 
                 SmoothedAnimation on height {
                     id: heightAnim
                     to: tooltipItem.targetHeight
                     velocity: 800
-                    duration: (shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
+                    duration: (root.shownItem?.animateSize ?? true) ? Tokens.motion.duration.short4 : 0
                 }
 
                 onTargetWidthChanged: {
-                    if (shownItem?.animateSize ?? true) {
-                        widthAnim.to = targetWidth
+                    if (root.shownItem?.animateSize ?? true) {
+                        widthAnim.to = tooltipItem.targetWidth
                         if (!widthAnim.running) widthAnim.start()
                     } else {
                         widthAnim.stop()
-                        width = targetWidth
+                        width = tooltipItem.targetWidth
                     }
                 }
 
                 onTargetHeightChanged: {
-                    if (shownItem?.animateSize ?? true) {
+                    if (root.shownItem?.animateSize ?? true) {
                         heightAnim.to = targetHeight
                         if (!heightAnim.running) heightAnim.start()
                     } else {

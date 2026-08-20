@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -42,10 +44,9 @@ Item {
                 border.color: searchField.activeFocus ? Theme.primary : "transparent"
 
                 Behavior on border.width {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
@@ -191,18 +192,16 @@ Item {
                     opacity: 0.3
 
                     Behavior on y {
-                        NumberAnimation {
+                        MotionAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
 
                     Behavior on height {
-                        NumberAnimation {
+                        MotionAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
                 }
@@ -223,84 +222,74 @@ Item {
                 // MD3 transitions for list item add/remove/move
                 add: Transition {
                     enabled: appListView.transitionsEnabled
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; from: 0; to: 1
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 populate: Transition {
                     enabled: appListView.transitionsEnabled
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; from: 0; to: 1
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 remove: Transition {
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; from: 1; to: 0
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 move: Transition {
-                    NumberAnimation {
+                    MotionAnimation {
                         property: "y"
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; to: 1
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 addDisplaced: Transition {
-                    NumberAnimation {
+                    MotionAnimation {
                         property: "y"
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; to: 1
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 displaced: Transition {
-                    NumberAnimation {
+                    MotionAnimation {
                         property: "y"
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "opacity,scale"; to: 1
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
                 rebound: Transition {
-                    NumberAnimation {
+                    MotionAnimation {
                         properties: "x,y"
                         duration: Tokens.motion.duration.medium4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
@@ -311,10 +300,9 @@ Item {
                     opacity: visible ? 1.0 : 0.0
 
                     Behavior on opacity {
-                        NumberAnimation {
+                        MotionAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
                 }

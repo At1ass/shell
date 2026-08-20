@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -225,6 +227,7 @@ Item {
             ]
 
             delegate: Column {
+                id: powerAction
                 required property var modelData
                 spacing: Tokens.spacing.extraSmall
 
@@ -244,7 +247,7 @@ Item {
 
                     MaterialIcon {
                         anchors.centerIn: parent
-                        iconName: modelData.icon
+                        iconName: powerAction.modelData.icon
                         fontSize: Tokens.iconSize.large
                         iconColor: Qt.alpha(GreeterTheme.scrimForeground, 0.8)
                         backgroundColor: "transparent"
@@ -256,7 +259,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            powerProc.command = modelData.cmd
+                            powerProc.command = powerAction.modelData.cmd
                             powerProc.running = true
                         }
                     }
@@ -264,7 +267,7 @@ Item {
 
                 MaterialText {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: modelData.label
+                    text: powerAction.modelData.label
                     textStyle: "labelSmall"
                     color: Qt.alpha(GreeterTheme.scrimForeground, 0.6)
                 }

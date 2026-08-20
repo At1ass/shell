@@ -57,6 +57,28 @@ Singleton {
         activePanel = ""
     }
 
+    // The output the user is currently working on.
+    //
+    // Overlay panels are SINGLE windows, not per-screen `Variants`, so they must
+    // pick an output explicitly — a PanelWindow with no `screen` is mapped to
+    // whichever output the compositor defaults to, which meant pressing the
+    // launcher hotkey on monitor 2 opened it on monitor 1.
+    //
+    // Callers resolve this ONCE, in Component.onCompleted: every panel lives
+    // inside a LazyLoader keyed on its own open state, so each open constructs a
+    // fresh window and re-resolves — and the panel does not chase the focused
+    // monitor while it is already on screen. Assigning before the window exists
+    // is the cheap path (Quickshell applies it in completeWindow, no remap).
+    function focusedScreen() {
+        const focused = Hyprland.focusedMonitor
+        if (focused) {
+            for (const screen of Quickshell.screens) {
+                if (screen.name === focused.name) return screen
+            }
+        }
+        return Quickshell.screens[0] ?? null
+    }
+
     // Open the dashboard on a specific tab.
     // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
     function openDashboardTab(tabIndex) {
@@ -286,6 +308,16 @@ Singleton {
 
         function lockScreen(): void {
             root.lockSession()
+        }
+
+        // Query, not a command. A failed config load takes the WlSessionLock
+        // client down with it and leaves the session locked with no way in, so
+        // anything editing this config unattended must be able to ask first.
+        // loginctl's LockedHint cannot answer: hypridle calls lockScreen()
+        // over IPC directly, never through `loginctl lock-session`, so the
+        // hint stays "no" while the session is in fact locked.
+        function locked(): bool {
+            return root.lockscreenActive
         }
 
         function toggleCheatsheet(): void {

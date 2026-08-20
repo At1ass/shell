@@ -42,6 +42,7 @@ public slots:
     void setCpuModel(const QString& model) { m_cpuModel = model; }
     void setGpuModel(const QString& model) { m_gpuModel = model; }
     void startTimers();
+    void stopTimers();
 
 signals:
     void snapshotReady(const StatsSnapshot& snapshot);
@@ -238,6 +239,18 @@ void SystemMonitor::refresh()
     }
 }
 
+void SystemMonitor::setMonitoring(bool enabled)
+{
+    if (m_isMonitoring == enabled) return;
+    if (!m_worker) return;
+
+    QMetaObject::invokeMethod(m_worker,
+                              enabled ? "startTimers" : "stopTimers",
+                              Qt::QueuedConnection);
+    m_isMonitoring = enabled;
+    emit isMonitoringChanged();
+}
+
 // ─── StatsWorker implementation ─────────────────────────────────────────────
 
 StatsWorker::StatsWorker() {
@@ -289,6 +302,21 @@ void StatsWorker::startTimers() {
 
     if (!m_fastTimer.isActive()) m_fastTimer.start();
     if (!m_slowTimer.isActive()) m_slowTimer.start();
+}
+
+void StatsWorker::stopTimers() {
+    m_fastTimer.stop();
+    m_slowTimer.stop();
+
+    // Re-baseline on resume. The net/disk speeds are counter DELTAS divided by
+    // elapsed time, and an invalidated clock makes the first tick after resume
+    // fall back to the nominal interval — so a whole idle gap's worth of bytes
+    // would be divided by 2 s and reported as one enormous spike. Arming the
+    // first-tick flags makes that tick re-read the counters and report 0
+    // instead, exactly as it does at startup.
+    m_fastClock.invalidate();
+    m_netFirstTick = true;
+    m_diskIoFirstTick = true;
 }
 
 void StatsWorker::openProcFiles() {

@@ -36,6 +36,8 @@ Singleton {
     readonly property bool darkMode: data.darkMode ?? true
     readonly property string themeVariant: data.themeVariant ?? "vibrant"
     readonly property string themeColor: data.themeColor ?? "#6200EE"
+    // 0.0 = standard M3. 1.0 is MCU's accessibility high-contrast level.
+    readonly property real themeContrast: data.themeContrast ?? 0.0
     readonly property bool showClock: data.showClock ?? true
     readonly property string defaultUser: data.defaultUser ?? ""
     readonly property string defaultSession: data.defaultSession ?? ""

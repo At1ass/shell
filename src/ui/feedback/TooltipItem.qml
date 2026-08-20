@@ -77,7 +77,7 @@ Item {
         anchors.fill: parent
         active: root.backgroundComponent && (root.visible || root.preloadBackground)
         asynchronous: !root.visible && root.preloadBackground
-        sourceComponent: backgroundComponent
+        sourceComponent: root.backgroundComponent
     }
 
     Item {

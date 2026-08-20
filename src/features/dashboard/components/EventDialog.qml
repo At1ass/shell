@@ -11,7 +11,7 @@ Dialog {
     id: root
 
     dialogWidth: 440
-    dialogHeight: 560
+    dialogHeight: 640
 
     property bool isEditMode: false
     property var eventData: null
@@ -44,6 +44,13 @@ Dialog {
 
     readonly property string _validationError: {
         if (titleField.text.trim() === "") return "Title is required"
+        if (!_dateRe.test(startDateField.text)) return "Start date: yyyy-MM-dd"
+        if (!_dateRe.test(endDateField.text))   return "End date: yyyy-MM-dd"
+        const sd = _parseLocalDate(startDateField.text)
+        const ed = _parseLocalDate(endDateField.text)
+        if (!sd) return "Invalid start date"
+        if (!ed) return "Invalid end date"
+        if (ed.getTime() < sd.getTime()) return "End date must not precede start"
         if (!allDayMode) {
             if (!_timeRe.test(startTimeField.text)) return "Invalid start time (HH:MM)"
             if (!_timeRe.test(endTimeField.text))   return "Invalid end time (HH:MM)"
@@ -51,7 +58,10 @@ Dialog {
             const eParts = endTimeField.text.split(":")
             const sMin = parseInt(sParts[0])*60 + parseInt(sParts[1])
             const eMin = parseInt(eParts[0])*60 + parseInt(eParts[1])
-            if (eMin <= sMin) return "End must be after start"
+            // Only compare times when both ends land on the SAME day — with a
+            // real end date, 23:00 → 01:00 across midnight is now expressible.
+            if (sd.getTime() === ed.getTime() && eMin <= sMin)
+                return "End must be after start"
         }
         if (recurrenceCombo.currentIndex !== 0 && untilField.text.length > 0) {
             if (!_dateRe.test(untilField.text)) return "Until: yyyy-MM-dd"
@@ -62,6 +72,48 @@ Dialog {
 
     // Parse "yyyy-MM-dd" as a LOCAL date. `new Date(string)` reads it as
     // UTC midnight, which lands one day early west of Greenwich.
+    // RFC 5545 stores an all-day DTEND as the EXCLUSIVE next day; humans read
+    // the last day the event covers. These two convert between the views.
+    function _displayEnd(end, allDay) {
+        if (!allDay) return end
+        const d = new Date(end)
+        d.setDate(d.getDate() - 1)
+        return d
+    }
+    function _storageEnd(lastDay) {
+        const d = new Date(lastDay)
+        d.setDate(d.getDate() + 1)
+        return d
+    }
+
+    // Restores a half-composed edit (see openDialog's `pending`).
+    function _applyPending(f) {
+        if (f.title !== undefined)       titleField.text = f.title
+        if (f.description !== undefined) descriptionField.text = f.description
+        if (f.location !== undefined)    locationField.text = f.location
+        if (f.categories !== undefined)  categoriesField.text = (f.categories || []).join(", ")
+        if (f.allDay !== undefined)      allDayMode = f.allDay === true
+        if (f.start) {
+            startDateField.text = Qt.formatDate(f.start, "yyyy-MM-dd")
+            startTimeField.text = Qt.formatTime(f.start, "HH:mm")
+        }
+        if (f.end) {
+            endDateField.text = Qt.formatDate(
+                root._displayEnd(f.end, f.allDay === true), "yyyy-MM-dd")
+            endTimeField.text = Qt.formatTime(f.end, "HH:mm")
+        }
+        if (f.recurrence !== undefined) {
+            const rv = ["none", "daily", "weekly", "monthly", "yearly"]
+            const i = rv.indexOf(f.recurrence)
+            recurrenceCombo.currentIndex = i >= 0 ? i : 0
+        }
+        if (f.recurrenceUntil) untilField.text = Qt.formatDate(f.recurrenceUntil, "yyyy-MM-dd")
+        // The user had already composed this, so it IS dirty, and the times
+        // must be treated as edited or _buildFields would ignore them.
+        dirty = true
+        _timesEdited = true
+    }
+
     function _parseLocalDate(text) {
         const p = text.split("-")
         const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]))
@@ -69,7 +121,10 @@ Dialog {
     }
     readonly property bool _isValid: _validationError === ""
 
-    function openDialog(editMode, data, date) {
+    // `pending` (optional) restores a half-composed edit — see the cancel path
+    // in RecurrenceEditChoice. Without it, answering "cancel" to the
+    // this-occurrence-or-series question threw the user's typing away.
+    function openDialog(editMode, data, date, pending) {
         isEditMode = editMode
         eventData = data
         selectedDate = date || new Date()
@@ -79,6 +134,11 @@ Dialog {
             allDayMode = data.allDay === true
             startTimeField.text = data.start ? Qt.formatTime(data.start, "HH:mm") : ""
             endTimeField.text   = data.end   ? Qt.formatTime(data.end,   "HH:mm") : ""
+            startDateField.text = data.start ? Qt.formatDate(data.start, "yyyy-MM-dd") : ""
+            // All-day DTEND is exclusive; show the last day the event covers.
+            endDateField.text = data.end
+                ? Qt.formatDate(root._displayEnd(data.end, data.allDay === true), "yyyy-MM-dd")
+                : ""
             descriptionField.text = data.description || ""
             locationField.text = data.location || ""
             categoriesField.text = (data.categories || []).join(", ")
@@ -105,8 +165,13 @@ Dialog {
             startTimeField.text = Qt.formatTime(now, "HH:mm")
             const endDate = new Date(now.getTime() + 60 * 60 * 1000)
             endTimeField.text = Qt.formatTime(endDate, "HH:mm")
+            const d = Qt.formatDate(selectedDate, "yyyy-MM-dd")
+            startDateField.text = d
+            endDateField.text = d
             calendarCombo.currentIndex = 0
         }
+
+        if (pending) root._applyPending(pending)
 
         root.open()
         titleField.inputItem.forceActiveFocus()
@@ -137,20 +202,24 @@ Dialog {
 
         if (!isEditMode || _timesEdited) {
             fields.allDay = allDayMode
+            const sd = _parseLocalDate(startDateField.text) || new Date(selectedDate)
+            const ed = _parseLocalDate(endDateField.text)   || new Date(sd)
             if (allDayMode) {
-                const dayStart = new Date(selectedDate)
+                const dayStart = new Date(sd)
                 dayStart.setHours(0, 0, 0, 0)
-                const dayEnd = new Date(dayStart)
-                dayEnd.setDate(dayEnd.getDate() + 1)   // exclusive per RFC 5545
+                // The field holds the LAST covered day; storage wants the
+                // exclusive next one.
+                const dayEnd = _storageEnd(ed)
+                dayEnd.setHours(0, 0, 0, 0)
                 fields.start = dayStart
                 fields.end = dayEnd
             } else {
                 const startParts = startTimeField.text.split(":")
                 const endParts   = endTimeField.text.split(":")
-                const startDt = new Date(selectedDate)
+                const startDt = new Date(sd)
                 startDt.setHours(parseInt(startParts[0]) || 0,
                                  parseInt(startParts[1]) || 0, 0, 0)
-                const endDt = new Date(selectedDate)
+                const endDt = new Date(ed)
                 endDt.setHours(parseInt(endParts[0]) || 0,
                                parseInt(endParts[1]) || 0, 0, 0)
                 fields.start = startDt
@@ -221,6 +290,58 @@ Dialog {
                         root.allDayMode = state
                         root._timesEdited = true
                         root.dirty = true
+                    }
+                }
+            }
+
+            // Date fields. There was NO date input at all: both start and end
+            // were built from `selectedDate` (the day you happened to click)
+            // plus the times. Multi-day events and events crossing midnight
+            // were therefore inexpressible, and touching the time fields on an
+            // existing multi-day event collapsed it to a single day.
+            //
+            // For all-day events the END shown is the LAST DAY, inclusive —
+            // that is how a human reads "15-17 March". RFC 5545 stores the
+            // exclusive next day, and _buildFields converts on save.
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.medium
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall
+
+                    MaterialText {
+                        text: "Start date"
+                        textStyle: "labelMedium"
+                        colorRole: "onSurfaceVariant"
+                    }
+
+                    MaterialTextField {
+                        id: startDateField
+                        Layout.fillWidth: true
+                        placeholderText: "yyyy-MM-dd"
+                        onTextEdited: root.dirty = true
+                        inputItem.onTextEdited: root._timesEdited = true
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall
+
+                    MaterialText {
+                        text: root.allDayMode ? "End date (inclusive)" : "End date"
+                        textStyle: "labelMedium"
+                        colorRole: "onSurfaceVariant"
+                    }
+
+                    MaterialTextField {
+                        id: endDateField
+                        Layout.fillWidth: true
+                        placeholderText: "yyyy-MM-dd"
+                        onTextEdited: root.dirty = true
+                        inputItem.onTextEdited: root._timesEdited = true
                     }
                 }
             }

@@ -34,10 +34,9 @@ Rectangle {
         }
     }
 
+    // Implicit only — a hard width/height fights any layout this is placed in.
     implicitWidth: avatarSize
     implicitHeight: avatarSize
-    width: avatarSize
-    height: avatarSize
     radius: customRadius >= 0 ? customRadius : avatarSize / 2  // Auto circle or custom
     color: root.backgroundColor
 
@@ -96,13 +95,10 @@ Rectangle {
         anchors.centerIn: parent
         text: root.fallbackText.substring(0, 2).toUpperCase()
         textStyle: "titleMedium"
-        // color: root.foregroundColor
-        color: Qt.rgba (
-            root.foregroundColor.r,
-            root.foregroundColor.g,
-            root.foregroundColor.b,
-            0.87
-        )
+        // Full opacity: 0.87 was Material 2's "medium emphasis" level, which
+        // MD3 replaced with distinct on* roles. The correct line was sitting
+        // commented out directly above it.
+        color: root.foregroundColor
         font.weight: Font.Bold
     }
 }

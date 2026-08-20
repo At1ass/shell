@@ -1,4 +1,5 @@
 module qs.src.core.config
 singleton AppConfig 1.0 AppConfig.qml
+singleton Keycodes 1.0 Keycodes.qml
 singleton Theme 1.0 Theme.qml
 singleton Tokens 1.0 Tokens.qml

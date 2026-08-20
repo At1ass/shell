@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
 import qs.src.ui.base
+import qs.src.ui.feedback
 
 // Material Design 3 Section Header
 RowLayout {
@@ -43,22 +44,14 @@ RowLayout {
         Layout.fillWidth: true
     }
 
-    // Badge (if specified)
-    Rectangle {
+    // Badge — from the kit. This was a hand-rolled Rectangle + MaterialText
+    // pair inside the kit itself, duplicating a component two directories away.
+    Badge {
+        inline: true
         visible: root.badgeText !== ""
-        implicitWidth: badgeLabel.width + Tokens.spacing.medium
-        implicitHeight: 24
-        radius: Tokens.shape.medium
-        color: root.badgeBackground
-
-        MaterialText {
-            id: badgeLabel
-            anchors.centerIn: parent
-            text: root.badgeText
-            textStyle: "labelMedium"
-            color: root.badgeTextColor
-            font.weight: Font.Bold
-        }
+        text: root.badgeText
+        badgeColor: root.badgeBackground
+        textColor: root.badgeTextColor
     }
 
     // Trailing content slot

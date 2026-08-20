@@ -39,10 +39,9 @@ Item {
         }
 
         Behavior on opacity {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
     }

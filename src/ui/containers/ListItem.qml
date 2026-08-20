@@ -53,12 +53,26 @@ Rectangle {
         onClicked: root.clicked()
     }
 
+    // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
+    // and a StateLayer that could draw them, but nothing that could ever take
+    // focus — so the ring was unreachable infrastructure.
+    activeFocusOnTab: root.clickable
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
+            || event.key === Qt.Key_Enter) {
+            if (root.clickable) root.clicked()
+            event.accepted = true
+        }
+    }
+
     // State layer
     StateLayer {
         visible: root.showStateLayer && root.clickable
         layerColor: Theme.onSurface
         hovered: mouseArea.containsMouse
         pressed: mouseArea.pressed
+        focused: root.activeFocus
+        showFocusRing: root.activeFocus
     }
 
     // Content

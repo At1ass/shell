@@ -284,10 +284,9 @@ Item {
                 border.color: searchField.activeFocus ? Theme.primary : "transparent"
 
                 Behavior on border.width {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.standard
-                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                        curve: "standard"
                     }
                 }
 
@@ -321,7 +320,7 @@ Item {
                                     GlobalStates.closePanel("cheatsheet")
                                 }
                                 event.accepted = true
-                            } else if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
+                            } else if (Keycodes.key(event) === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
                                 searchField.forceActiveFocus()
                                 event.accepted = true
                             }
@@ -423,10 +422,9 @@ Item {
                                 visible: tabDelegate.isActive
 
                                 Behavior on width {
-                                    NumberAnimation {
+                                    MotionAnimation {
                                         duration: Tokens.motion.duration.short4
-                                        easing.type: Tokens.motion.easing.standard
-                                        easing.bezierCurve: Tokens.motion.easing.standardPoints
+                                        curve: "standard"
                                     }
                                 }
                             }
@@ -467,9 +465,10 @@ Item {
         }
     }
 
-    // Keyboard shortcut for Ctrl+F
+    // Keyboard shortcut for Ctrl+F. Physical key — on a Cyrillic layout
+    // Ctrl+F reports Qt.Key_A, so this never fired. See Keycodes.
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
+        if (Keycodes.key(event) === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
             searchField.forceActiveFocus()
             event.accepted = true
         }

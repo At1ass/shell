@@ -92,10 +92,9 @@ BarElement {
             Layout.alignment: Qt.AlignVCenter
 
             Behavior on Layout.preferredWidth {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
         }
@@ -109,12 +108,8 @@ BarElement {
             touchTargetSize: 40
             enabled: MprisController.canGoPrevious
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
-            opacity: enabled ? 1.0 : 0.38
-            onClicked: function (mouse) {
-                if (mouse.button === Qt.LeftButton) {
-                    MprisController.previous();
-                }
-            }
+            opacity: enabled ? 1.0 : Tokens.state.disabledContentOpacity
+            onClicked: MprisController.previous()
 
             Behavior on opacity {
                 NumberAnimation {
@@ -133,11 +128,7 @@ BarElement {
             enabled: MprisController.canTogglePlaying
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
             visible: true
-            onClicked: function (mouse) {
-                if (mouse.button === Qt.LeftButton) {
-                    MprisController.togglePlaying();
-                }
-            }
+            onClicked: MprisController.togglePlaying()
         }
 
         // Next button - visible on hover, enabled if action available
@@ -149,12 +140,8 @@ BarElement {
             touchTargetSize: 40
             enabled: MprisController.canGoNext
             iconColor: enabled ? Theme.onSurface : Theme.onSurfaceVariant
-            opacity: enabled ? 1.0 : 0.38
-            onClicked: function (mouse) {
-                if (mouse.button === Qt.LeftButton) {
-                    MprisController.next();
-                }
-            }
+            opacity: enabled ? 1.0 : Tokens.state.disabledContentOpacity
+            onClicked: MprisController.next()
 
             Behavior on opacity {
                 NumberAnimation {

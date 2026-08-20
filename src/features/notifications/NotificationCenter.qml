@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -16,6 +18,20 @@ Scope {
     PanelWindow {
         id: centerWindow
         visible: GlobalStates.notificationCenterOpen
+
+        // Open on the focused monitor (see GlobalStates.focusedScreen).
+        Component.onCompleted: {
+            const s = GlobalStates.focusedScreen()
+            if (s) centerWindow.screen = s
+        }
+
+        // Unread clears on CLOSE, not on open. Clearing on open made the
+        // per-card unread dot useless: by the time the panel had finished
+        // animating in, every dot it exists to show was already gone. Now the
+        // dots survive the visit that reads them, and the bar badge drops when
+        // the panel goes away. The LazyLoader in shell.qml destroys this window
+        // on close, so destruction is the close event.
+        Component.onDestruction: NotificationService.markAllRead()
         focusable: true
         color: "transparent"
 
@@ -38,19 +54,9 @@ Scope {
         }
 
         // Scrim overlay
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.scrim
-            opacity: panelSlide.visible ? 0.32 : 0
-            visible: GlobalStates.notificationCenterOpen
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.motion.duration.medium2
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
+        Scrim {
+            shown: panelSlide.visible
+            duration: Tokens.motion.duration.medium2
 
             MouseArea {
                 anchors.fill: parent
@@ -78,55 +84,76 @@ Scope {
             opacity: panelSlide._slideOpacity
 
             Behavior on _slideX {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium2
-                    easing.type: Tokens.motion.easing.emphasizedDecelerate
-                    easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                    curve: "emphasizedDecelerate"
                 }
             }
 
             Behavior on _slideOpacity {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium1
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
             focus: true
 
-            // Keyboard navigation
+            // Keyboard navigation.
+            //
+            // The cursor starts at -1, not at ListView's default 0: the
+            // selection is now VISIBLE (a focus ring on the row), so parking it
+            // on the first card before the user has pressed anything would look
+            // like a selection nobody made. `_moveCursor` also scrolls the row
+            // into view — previously j/k moved an invisible cursor that could
+            // walk right off the viewport, and Delete then removed a card the
+            // user could not see.
+            function _moveCursor(delta) {
+                if (notifList.count === 0) return
+                const cur = notifList.currentIndex
+                const next = cur < 0
+                    ? (delta > 0 ? 0 : notifList.count - 1)
+                    : Math.max(0, Math.min(notifList.count - 1, cur + delta))
+                notifList.currentIndex = next
+                notifList.positionViewAtIndex(next, ListView.Contain)
+            }
+
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Escape) {
+                // Keycodes.key(), NOT event.key: the latter carries the symbol
+                // the active layout produces, so every vi binding below was
+                // dead on a Cyrillic layout — the physical J key arrives as
+                // Qt.Key_O there. Escape/arrows/Return/Delete pass through
+                // unchanged; they are layout-independent already.
+                const key = Keycodes.key(event)
+
+                if (key === Qt.Key_Escape) {
                     GlobalStates.closePanel("notificationCenter")
                     event.accepted = true
-                } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
-                    notifList.decrementCurrentIndex()
+                } else if (key === Qt.Key_Up || key === Qt.Key_K) {
+                    panelSlide._moveCursor(-1)
                     event.accepted = true
-                } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
-                    notifList.incrementCurrentIndex()
+                } else if (key === Qt.Key_Down || key === Qt.Key_J) {
+                    panelSlide._moveCursor(1)
                     event.accepted = true
-                } else if (event.key === Qt.Key_Delete || event.key === Qt.Key_X) {
+                } else if (key === Qt.Key_Delete || key === Qt.Key_X) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
                         const item = NotificationService.historyList.get(notifList.currentIndex)
-                        if (item && item.notificationId) {
+                        if (item && item.notificationId)
                             NotificationService.removeFromHistory(item.notificationId)
-                        }
                     }
                     event.accepted = true
-                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                } else if (key === Qt.Key_Return || key === Qt.Key_Enter) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
                         const item = NotificationService.historyList.get(notifList.currentIndex)
-                        if (item && AppConfig.notificationGroupByApp) {
+                        if (item && AppConfig.notificationGroupByApp)
                             NotificationService.toggleGroupExpanded(item.appName)
-                        }
                     }
                     event.accepted = true
-                } else if (event.key === Qt.Key_G) {
-                    if (event.modifiers & Qt.ShiftModifier) {
-                        notifList.currentIndex = notifList.count - 1
-                    } else {
-                        notifList.currentIndex = 0
+                } else if (key === Qt.Key_G) {
+                    if (notifList.count > 0) {
+                        const target = (event.modifiers & Qt.ShiftModifier) ? notifList.count - 1 : 0
+                        notifList.currentIndex = target
+                        notifList.positionViewAtIndex(target, ListView.Contain)
                     }
                     event.accepted = true
                 }
@@ -147,13 +174,10 @@ Scope {
                         Layout.fillWidth: true
                         spacing: Tokens.spacing.small
 
-                        MaterialIcon {
-                            iconName: "notifications"
-                            fontSize: Tokens.typography.titleLarge.size
-                            iconColor: Theme.primary
-                            backgroundColor: "transparent"
-                        }
-
+                        // No decorative bell here: the DND toggle on the right
+                        // is also a bell, and two near-identical glyphs in one
+                        // header made it ambiguous which one was interactive.
+                        // The title carries the meaning; the toggle keeps the icon.
                         MaterialText {
                             text: "Notifications"
                             textStyle: "titleLarge"
@@ -163,24 +187,18 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
-                        // DND toggle
+                        // DND toggle. The selected state is the button's own
+                        // `tonal` variant, not a hand-placed Rectangle at
+                        // z: -1 with a hardcoded 0.3 opacity. The icon pair
+                        // also matches the bar widget now — it used to show
+                        // "do_not_disturb_on" while DND was OFF, i.e. the
+                        // icon for the state you were not in.
                         IconButton {
-                            iconName: NotificationService.doNotDisturb ? "notifications_off" : "do_not_disturb_on"
+                            iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
                             iconSize: Tokens.iconSize.large
-                            variant: "standard"
+                            variant: NotificationService.doNotDisturb ? "tonal" : "standard"
+                            iconColor: NotificationService.doNotDisturb ? Theme.onTertiaryContainer : Theme.onSurfaceVariant
                             onClicked: NotificationService.toggleDoNotDisturb()
-
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: Tokens.shape.full
-                                color: NotificationService.doNotDisturb ? Theme.errorContainer : "transparent"
-                                opacity: NotificationService.doNotDisturb ? 0.3 : 0
-                                z: -1
-
-                                Behavior on opacity {
-                                    NumberAnimation { duration: Tokens.motion.duration.short3 }
-                                }
-                            }
                         }
 
                         MaterialButton {
@@ -205,6 +223,16 @@ Scope {
                             visible: text.length > 0
                             textStyle: "labelMedium"
                             colorRole: "onSurfaceVariant"
+                        }
+
+                        // Keyboard shortcuts were fully undiscoverable: j/k,
+                        // Delete/X, Enter and g/G existed with nothing on
+                        // screen naming them.
+                        MonoText {
+                            visible: NotificationService.historyList.count > 0 && !NotificationDND.active
+                            text: "j/k move · x delete · ⏎ collapse"
+                            textStyle: "labelSmall"
+                            colorRole: "outline"
                         }
 
                         Item { Layout.fillWidth: true }
@@ -235,8 +263,12 @@ Scope {
                             anchors.fill: parent
                             spacing: 0
                             clip: true
-                            keyNavigationEnabled: true
-                            highlightFollowsCurrentItem: true
+                            // Selection is drawn by the delegate's own focus
+                            // ring (see NotificationHistoryItem.selected), so
+                            // no `highlight` component and no auto-follow —
+                            // `highlightFollowsCurrentItem` did nothing here
+                            // anyway, because no highlight was ever defined.
+                            currentIndex: -1
 
                             model: NotificationService.historyList
 
@@ -246,17 +278,26 @@ Scope {
                                 width: notifList.width
                                 height: implicitHeight + Tokens.spacing.small
                                 groupAppName: section
-                                // historyList.count read makes this re-evaluate on adds/removals
-                                groupCount: NotificationHistory.historyList.count >= 0
-                                            ? NotificationService.getGroupCount(section) : 0
-                                groupAppIcon: NotificationService.getGroupIcon(section)
+                                // Both come from NotificationHistory's group
+                                // index — an O(1) lookup that is rebuilt once
+                                // per mutation. They used to be linear scans of
+                                // the whole model, run per group, on every add.
+                                groupCount: NotificationHistory.getGroupCount(section)
+                                groupAppIcon: NotificationHistory.getGroupIcon(section)
                                 expanded: NotificationService.isGroupExpanded(section)
                                 onToggleExpanded: NotificationService.toggleGroupExpanded(section)
                             }
 
+                            // Typed pass-through. The delegate used to build a
+                            // fresh 12-field object literal (plus an actions
+                            // array) whenever ANY one field changed, so a single
+                            // `unread` flip re-created everything downstream.
+                            // Separate properties let each binding update alone.
                             delegate: Column {
+                                id: row
                                 required property int index
                                 required property string notificationId
+                                required property int notifId
                                 required property string summary
                                 required property string body
                                 required property string appName
@@ -264,8 +305,11 @@ Scope {
                                 required property string image
                                 required property int urgency
                                 required property real timestamp
+                                required property int count
+                                required property bool unread
 
-                                readonly property bool itemVisible: !AppConfig.notificationGroupByApp || NotificationService.isGroupExpanded(appName)
+                                readonly property bool itemVisible: !AppConfig.notificationGroupByApp
+                                                                    || NotificationService.isGroupExpanded(row.appName)
 
                                 width: notifList.width
                                 height: itemVisible ? implicitHeight : 0
@@ -273,17 +317,23 @@ Scope {
 
                                 NotificationHistoryItem {
                                     width: parent.width
-                                    notificationObject: ({
-                                        "notificationId": notificationId,
-                                        "summary": summary,
-                                        "body": body,
-                                        "appName": appName,
-                                        "appIcon": appIcon,
-                                        "image": image,
-                                        "actions": NotificationHistory.actionsAt(index),
-                                        "urgency": urgency,
-                                        "timestamp": timestamp
-                                    })
+                                    rowIndex: row.index
+                                    entryId: row.notificationId
+                                    notifId: row.notifId
+                                    summary: row.summary
+                                    body: row.body
+                                    appName: row.appName
+                                    appIcon: row.appIcon
+                                    image: row.image
+                                    urgency: row.urgency
+                                    timestamp: row.timestamp
+                                    repeatCount: row.count
+                                    unread: row.unread
+                                    selected: notifList.currentIndex === row.index
+                                    // Inside a group the section header already
+                                    // names the app; repeating it on every card
+                                    // just ate the row that the summary needs.
+                                    showAppName: !AppConfig.notificationGroupByApp
                                 }
 
                                 Item {
@@ -308,7 +358,7 @@ Scope {
                             }
 
                             displaced: Transition {
-                                NumberAnimation { properties: "y"; duration: Tokens.motion.duration.medium1; easing.type: Tokens.motion.easing.standard }
+                                MotionAnimation { properties: "y"; duration: Tokens.motion.duration.medium1; curve: "standard" }
                             }
                         }
 

@@ -46,11 +46,14 @@ BarElement {
                 iconColor: NotificationService.doNotDisturb ? Theme.tertiary : Theme.onSurface
             }
 
+            // UNREAD, not history size. The badge used to count every stored
+            // row, so it climbed to "99+" and stayed there regardless of
+            // whether the user had looked — useless as an indicator.
             Badge {
-                visible: root.showCount && NotificationService.historyList.count > 0
-                text: NotificationService.historyList.count > 99
+                visible: root.showCount && NotificationService.unreadCount > 0
+                text: NotificationService.unreadCount > 99
                       ? "99+"
-                      : NotificationService.historyList.count.toString()
+                      : NotificationService.unreadCount.toString()
             }
         }
     }

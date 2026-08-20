@@ -32,10 +32,9 @@ Surface {
         NumberAnimation { duration: Tokens.motion.duration.short3 }
     }
     Behavior on scale {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
 

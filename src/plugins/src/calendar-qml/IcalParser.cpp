@@ -67,6 +67,24 @@ QString statusToString(icalproperty_status st) {
     }
 }
 
+// RDATE mirrors EXDATE. PERIOD-valued RDATEs (start/duration pairs) are not
+// supported — libical exposes them through a different accessor and no server
+// in use here emits them; they are skipped rather than mis-read.
+void parseRdates(icalcomponent* vevent, std::vector<QDateTime>& out) {
+    icalcomponent* vcal = icalcomponent_get_parent(vevent);
+    for (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_RDATE_PROPERTY);
+         p != nullptr;
+         p = icalcomponent_get_next_property(vevent, ICAL_RDATE_PROPERTY)) {
+        struct icaldatetimeperiodtype dp = icalproperty_get_rdate(p);
+        if (!icaltime_is_null_time(dp.time)) {
+            icaltimetype t = dp.time;
+            resolvePropertyZone(p, t, vcal);
+            QDateTime dt = convertWithZone(t);
+            if (dt.isValid()) out.push_back(dt);
+        }
+    }
+}
+
 void parseExdates(icalcomponent* vevent, std::vector<QDateTime>& out) {
     icalcomponent* vcal = icalcomponent_get_parent(vevent);
     for (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_EXDATE_PROPERTY);
@@ -135,10 +153,24 @@ Event extractEvent(icalcomponent* vevent, const QString& path, const QString& ca
         ev.start  = convertWithZone(t);
     }
 
+    // RFC 5545 §3.6.1: DTEND and DURATION are mutually exclusive ways to say
+    // the same thing, and a DATE-valued DTSTART with neither lasts ONE DAY.
+    // Only DTEND was read, so a DURATION-only event (Apple/iCloud and
+    // Nextcloud emit these on recurring events) collapsed to zero length, and
+    // a bare all-day event ended the instant it began — which also made it
+    // vanish from any range query, since a zero-length event only matches a
+    // range that contains its exact start.
     if (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_DTEND_PROPERTY)) {
         icaltimetype t = icalproperty_get_dtend(p);
         resolvePropertyZone(p, t, vcal);
         ev.end = convertWithZone(t);
+    } else if (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_DURATION_PROPERTY)) {
+        const struct icaldurationtype d = icalproperty_get_duration(p);
+        ev.end = ev.start.isValid()
+            ? ev.start.addSecs(icaldurationtype_as_seconds(d))
+            : ev.start;
+    } else if (ev.allDay) {
+        ev.end = ev.start.isValid() ? ev.start.addDays(1) : ev.start;
     } else {
         ev.end = ev.start;
     }
@@ -155,6 +187,7 @@ Event extractEvent(icalcomponent* vevent, const QString& path, const QString& ca
     }
 
     parseExdates(vevent, ev.exdates);
+    parseRdates(vevent, ev.rdates);
 
     if (icalproperty* p = icalcomponent_get_first_property(vevent, ICAL_RECURRENCEID_PROPERTY)) {
         icaltimetype t = icalproperty_get_recurrenceid(p);
@@ -289,24 +322,74 @@ QVariantList expandRange(const std::vector<Event>& events,
         QTimeZone::systemTimeZoneId().constData());
     if (!localTz) localTz = icaltimezone_get_utc_timezone();
 
+    // Does [start, end) overlap [rangeStart, rangeEnd)?
+    //
+    // DTEND is EXCLUSIVE, and the range filters used to ignore that: an
+    // all-day event on 15 Mar has DTEND 16 Mar, so `end >= rangeStart` made
+    // it appear on the 16th as well — every all-day event was duplicated
+    // onto the following day, and every timed one onto the moment it ended.
+    // Zero-length events are points and are kept when they sit inside the
+    // range, which half-open comparison alone would drop.
+    const auto intersects = [&](const QDateTime& start, const QDateTime& end) {
+        if (start >= rangeEnd) return false;
+        return end > start ? end > rangeStart : start >= rangeStart;
+    };
+
     for (const Event& ev : events) {
         if (ev.isOverride()) continue;            // emitted via override map
         if (!ev.start.isValid()) continue;
 
-        if (ev.recurrence == Recurrence::None || ev.rruleRaw.isEmpty()) {
-            // Non-recurring: include if intersects range
-            if (ev.end >= rangeStart && ev.start <= rangeEnd) {
-                out.append(ev.toVariantMap(ev.start, ev.end));
-            }
+        // Expansion is decided by the RRULE itself, never by `ev.recurrence`.
+        // That enum is the EDITOR's vocabulary (none/daily/weekly/monthly/
+        // yearly); libical also knows HOURLY, MINUTELY and SECONDLY, which
+        // mapped to None and made the expander treat a live series as a
+        // one-off — FREQ=HOURLY;COUNT=5 rendered exactly once.
+        const qint64 seriesDuration = ev.start.secsTo(ev.end);
+
+        // One place where an occurrence becomes output, so RRULE-produced and
+        // RDATE-produced ones cannot drift apart on filtering. Returns false
+        // if the occurrence was suppressed (out of range, EXDATE, overridden,
+        // or already emitted).
+        QSet<QString> emitted;
+        auto emit_ = [&](const QDateTime& occStart) {
+            const QDateTime occEnd = occStart.addSecs(seriesDuration);
+            if (!intersects(occStart, occEnd)) return false;
+            if (exdateMatches(ev.exdates, occStart, ev.allDay)) return false;
+            const QString key = ev.uid + QLatin1Char('|') + occStart.toString(Qt::ISODate);
+            // Suppress the master at any date carrying a RECURRENCE-ID override,
+            // even when the file omits the matching EXDATE — RFC 5545 does not
+            // require one and Google/Yandex often leave it out.
+            if (overrideKeys.contains(key)) return false;
+            if (emitted.contains(key)) return false;
+            emitted.insert(key);
+            out.append(ev.toVariantMap(occStart, occEnd));
+            return true;
+        };
+
+        // RDATE occurrences are explicit additions to the series and apply
+        // whether or not an RRULE is present — an RDATE-only VEVENT is a
+        // perfectly legal "these exact dates" series.
+        auto emitRdates = [&]() { for (const QDateTime& r : ev.rdates) emit_(r); };
+
+        if (ev.rruleRaw.isEmpty()) {
+            emit_(ev.start);
+            emitRdates();
             continue;
         }
 
         // Recurring — expand in event's authoring TZ
         ical::RecurrencePtr rule = ical::wrapRecurrence(
             icalrecurrencetype_new_from_string(ev.rruleRaw.toUtf8().constData()));
-        if (!rule) continue;
+        if (!rule) {
+            // Unparseable RRULE: degrade to a single event rather than drop it.
+            // `continue` here would make a malformed series vanish entirely,
+            // which is the worst possible reading of "I don't understand this".
+            emit_(ev.start);
+            emitRdates();
+            continue;
+        }
 
-        const qint64 durationSecs = ev.start.secsTo(ev.end);
+        const qint64 durationSecs = seriesDuration;
 
         // Build dtstart in event's authoring zone (not local, not UTC).
         icaltimezone* eventTz = nullptr;
@@ -318,19 +401,37 @@ QVariantList expandRange(const std::vector<Event>& events,
 
         // ev.start is local-displayed; convert back to authoring TZ for iter
         icaltimetype dtstart = icaltime_null_time();
-        {
-            QDateTime localStart = ev.start;
-            // Build UTC representation, then convert to event TZ
-            QDateTime utc = localStart.toUTC();
+        if (ev.allDay) {
+            // A VALUE=DATE is FLOATING — it denotes a calendar day, not an
+            // instant, and has no zone to convert from or to. Routing it
+            // through UTC like a timed event moved it back by the local
+            // offset: in MSK (UTC+3) a birthday on 20 Oct became
+            // 19 Oct 21:00 UTC, and since only the date part is kept, every
+            // yearly occurrence landed on the 19th. The bug is invisible in
+            // UTC and anywhere west of it, which is why it survived.
+            // Take the date as authored and leave the zone null.
+            const QDate d = ev.start.date();
+            dtstart.year   = d.year();
+            dtstart.month  = d.month();
+            dtstart.day    = d.day();
+            dtstart.hour   = 0;
+            dtstart.minute = 0;
+            dtstart.second = 0;
+            dtstart.is_date = 1;
+            dtstart.zone   = nullptr;
+        } else {
+            // Timed event: build a UTC representation, then move it into the
+            // authoring zone the RRULE is meant to be iterated in.
+            const QDateTime utc = ev.start.toUTC();
             dtstart.year   = utc.date().year();
             dtstart.month  = utc.date().month();
             dtstart.day    = utc.date().day();
             dtstart.hour   = utc.time().hour();
             dtstart.minute = utc.time().minute();
             dtstart.second = utc.time().second();
-            dtstart.is_date = ev.allDay ? 1 : 0;
+            dtstart.is_date = 0;
             dtstart.zone   = icaltimezone_get_utc_timezone();
-            if (!ev.allDay) dtstart = icaltime_convert_to_zone(dtstart, eventTz);
+            dtstart = icaltime_convert_to_zone(dtstart, eventTz);
         }
 
         ical::RecurIterPtr it = ical::wrapRecurIter(icalrecur_iterator_new(rule.get(), dtstart));
@@ -341,14 +442,37 @@ QVariantList expandRange(const std::vector<Event>& events,
         // daily event costs thousands of iterations per call and the
         // safety cap silently drops occurrences past ~13.7 years. COUNT
         // rules must iterate from the start to number the occurrences.
-        if (rule.get()->count == 0 && !ev.allDay) {
-            const QDateTime ffLocal = rangeStart.addSecs(
-                durationSecs > 0 ? -durationSecs : 0);
-            if (ffLocal > ev.start) {
-                icaltimetype ff = icaltime_from_timet_with_zone(
-                    ffLocal.toSecsSinceEpoch(), 0, eventTz);
-                ff.zone = eventTz;
-                icalrecur_iterator_set_start(it.get(), ff);
+        if (rule.get()->count == 0) {
+            if (ev.allDay) {
+                // All-day series were excluded from fast-forward, so they
+                // always replayed from DTSTART and the 5000-iteration cap cut
+                // them off after ~13.7 years: a DAILY all-day event authored
+                // in 2005 produced ZERO occurrences in 2026. The seek value
+                // must itself be a DATE — handing the iterator a timed value
+                // for a date-based rule is what made this unsafe before.
+                // Back off by the event's own span in days so a multi-day
+                // occurrence that starts before the range but overlaps it is
+                // still produced.
+                const qint64 spanDays = qMax<qint64>(0, ev.start.date().daysTo(ev.end.date()));
+                const QDate ffDate = from.addDays(-spanDays);
+                if (ffDate > ev.start.date()) {
+                    icaltimetype ff = icaltime_null_date();
+                    ff.year    = ffDate.year();
+                    ff.month   = ffDate.month();
+                    ff.day     = ffDate.day();
+                    ff.is_date = 1;
+                    ff.zone    = nullptr;
+                    icalrecur_iterator_set_start(it.get(), ff);
+                }
+            } else {
+                const QDateTime ffLocal = rangeStart.addSecs(
+                    durationSecs > 0 ? -durationSecs : 0);
+                if (ffLocal > ev.start) {
+                    icaltimetype ff = icaltime_from_timet_with_zone(
+                        ffLocal.toSecsSinceEpoch(), 0, eventTz);
+                    ff.zone = eventTz;
+                    icalrecur_iterator_set_start(it.get(), ff);
+                }
             }
         }
 
@@ -368,19 +492,11 @@ QVariantList expandRange(const std::vector<Event>& events,
                                      QTime(localOcc.hour, localOcc.minute, localOcc.second),
                                      QTimeZone::LocalTime);
             }
-            QDateTime occEnd = occStart.addSecs(durationSecs);
-
             if (occStart >= rangeEnd) break;
-            if (occEnd < rangeStart) continue;
-            if (exdateMatches(ev.exdates, occStart, ev.allDay)) continue;
-
-            // Suppress master at any date that has a RECURRENCE-ID override,
-            // even if the master file lacks EXDATE.
-            const QString key = ev.uid + QLatin1Char('|') + occStart.toString(Qt::ISODate);
-            if (overrideKeys.contains(key)) continue;
-
-            out.append(ev.toVariantMap(occStart, occEnd));
+            emit_(occStart);
         }
+
+        emitRdates();
     }
 
     // Emit overrides at their moved start (skip CANCELLED).
@@ -388,7 +504,7 @@ QVariantList expandRange(const std::vector<Event>& events,
         const Event* ov = it.value();
         if (ov->status == QLatin1String("CANCELLED")) continue;
         if (!ov->start.isValid()) continue;
-        if (ov->end < rangeStart || ov->start >= rangeEnd) continue;
+        if (!intersects(ov->start, ov->end)) continue;
         out.append(ov->toVariantMap(ov->start, ov->end));
     }
 
@@ -449,12 +565,32 @@ QString buildIcsString(const QVariantMap& fields) {
         rule->interval = 1;
         QDate until = fields.value(QStringLiteral("recurrenceUntil")).toDate();
         if (until.isValid()) {
-            icaltimetype u = icaltime_null_date();
-            u.year = until.year();
-            u.month = until.month();
-            u.day = until.day();
-            u.is_date = 1;
-            rule->until = u;
+            // RFC 5545 §3.3.10: UNTIL's value type MUST match DTSTART's, and
+            // when DTSTART is a DATE-TIME, UNTIL MUST be a UTC DATE-TIME.
+            // A bare DATE was written for every series, timed ones included —
+            // a spec violation other clients are free to reject. The user
+            // picks a DAY, so a timed series runs to the END of that day.
+            if (allDay) {
+                icaltimetype u = icaltime_null_date();
+                u.year  = until.year();
+                u.month = until.month();
+                u.day   = until.day();
+                u.is_date = 1;
+                rule->until = u;
+            } else {
+                const QDateTime endOfDayUtc =
+                    QDateTime(until, QTime(23, 59, 59), QTimeZone::LocalTime).toUTC();
+                icaltimetype u = icaltime_null_time();
+                u.year   = endOfDayUtc.date().year();
+                u.month  = endOfDayUtc.date().month();
+                u.day    = endOfDayUtc.date().day();
+                u.hour   = endOfDayUtc.time().hour();
+                u.minute = endOfDayUtc.time().minute();
+                u.second = endOfDayUtc.time().second();
+                u.is_date = 0;
+                u.zone    = icaltimezone_get_utc_timezone();
+                rule->until = u;
+            }
         }
         icalcomponent_add_property(ev, icalproperty_new_rrule(rule.get()));
     }

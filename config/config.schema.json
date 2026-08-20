@@ -37,9 +37,16 @@
             },
             "variant": {
               "type": "string",
-              "enum": ["tonalspot", "vibrant", "expressive", "fidelity", "neutral", "monochrome"],
+              "enum": ["tonalspot", "vibrant", "expressive", "content", "fidelity", "neutral", "monochrome"],
               "default": "tonalspot",
-              "description": "Material color scheme variant. Controls saturation of the generated palette. 'vibrant' and 'tonalspot' are most commonly used."
+              "description": "Material color scheme variant. Controls how the palette is derived from the seed: 'tonalspot' (balanced, default), 'vibrant' (saturated), 'expressive' (shifted hues), 'content' (stays close to the seed), 'fidelity' (closest to the seed), 'neutral' (desaturated), 'monochrome' (greyscale)."
+            },
+            "contrast": {
+              "type": "number",
+              "default": 0.0,
+              "minimum": -1.0,
+              "maximum": 1.0,
+              "description": "Material contrast level. 0.0 = standard M3. Positive values are the accessibility high-contrast variants: in a dark scheme they INVERT container polarity, making every *Container role light and its on* color black. Raise this only if you actually want that."
             },
             "darkMode": {
               "type": "boolean",
@@ -54,6 +61,18 @@
           "minimum": 0.5,
           "maximum": 2.0,
           "description": "Global font size multiplier applied to all Material typography tokens. 1.0 = default M3 sizes, 0.8 = 80%, 1.2 = 120%. Supports hot-reload."
+        },
+        "reduceMotion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable all shell animations by scaling every motion duration to zero (Tokens.durationScale). Accessibility setting; previously reachable only as a side effect of gaming mode."
+        },
+        "motionScale": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 3.0,
+          "description": "Multiplier applied to every motion duration token. 1.0 = Material defaults, 0.5 = twice as fast, 0 = instant. Ignored when reduceMotion is true."
         }
       }
     },
@@ -63,19 +82,71 @@
       "description": "Central on/off switches for every top-level UI element. Each key toggles one element; omitted keys use the listed default. Hot-reload applies changes immediately.",
       "additionalProperties": false,
       "properties": {
-        "bar": { "type": "boolean", "default": true, "description": "Status bar (per monitor)." },
-        "dock": { "type": "boolean", "default": false, "description": "Application dock (per monitor)." },
-        "wallpaper": { "type": "boolean", "default": true, "description": "Wallpaper layer (per monitor). Disabling shows the compositor background." },
-        "dashboard": { "type": "boolean", "default": true, "description": "Dashboard control center." },
-        "launcher": { "type": "boolean", "default": true, "description": "Application launcher." },
-        "notifications": { "type": "boolean", "default": true, "description": "Notification center AND popups. The bar notifications widget is toggled separately via its own widget 'enabled'." },
-        "osd": { "type": "boolean", "default": true, "description": "Volume and brightness on-screen displays." },
-        "lockscreen": { "type": "boolean", "default": false, "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops — pair with an external locker." },
-        "powerMenu": { "type": "boolean", "default": true, "description": "Power actions overlay." },
-        "cheatsheet": { "type": "boolean", "default": true, "description": "Keybinding cheatsheet overlay." },
-        "screenshot": { "type": "boolean", "default": true, "description": "Screenshot region-selection overlay and screenshot hotkeys/IPC." },
-        "toasts": { "type": "boolean", "default": true, "description": "Toast messages. When false, ToastService errors/successes are silently dropped (console only)." },
-        "popouts": { "type": "boolean", "default": true, "description": "Global popout host (e.g. tray menus). When false, tray right-click menus and other popouts won't appear." }
+        "bar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Status bar (per monitor)."
+        },
+        "dock": {
+          "type": "boolean",
+          "default": false,
+          "description": "Application dock (per monitor)."
+        },
+        "wallpaper": {
+          "type": "boolean",
+          "default": true,
+          "description": "Wallpaper layer (per monitor). Disabling shows the compositor background."
+        },
+        "dashboard": {
+          "type": "boolean",
+          "default": true,
+          "description": "Dashboard control center."
+        },
+        "launcher": {
+          "type": "boolean",
+          "default": true,
+          "description": "Application launcher."
+        },
+        "notifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notification center AND popups. The bar notifications widget is toggled separately via its own widget 'enabled'."
+        },
+        "osd": {
+          "type": "boolean",
+          "default": true,
+          "description": "Volume and brightness on-screen displays."
+        },
+        "lockscreen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops — pair with an external locker."
+        },
+        "powerMenu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Power actions overlay."
+        },
+        "cheatsheet": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keybinding cheatsheet overlay."
+        },
+        "screenshot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Screenshot region-selection overlay and screenshot hotkeys/IPC."
+        },
+        "toasts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Toast messages. When false, ToastService errors/successes are silently dropped (console only)."
+        },
+        "popouts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Global popout host (e.g. tray menus). When false, tray right-click menus and other popouts won't appear."
+        }
       }
     },
 
@@ -117,7 +188,9 @@
         "widgets": {
           "type": "array",
           "description": "Ordered list of bar widgets. Rendered left-to-right within each section.",
-          "items": { "$ref": "#/definitions/barWidget" }
+          "items": {
+            "$ref": "#/definitions/barWidget"
+          }
         }
       }
     },
@@ -154,7 +227,9 @@
           "type": "array",
           "default": [],
           "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) — those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -225,11 +300,16 @@
               "default": "top-right",
               "description": "Screen corner where popups appear."
             },
+            "monitor": {
+              "type": "string",
+              "default": "focused",
+              "description": "Which output popups appear on. \"focused\" follows the focused monitor, but a stack that is already on screen stays together instead of splitting across outputs mid-burst. Any other value is an exact output name (e.g. \"DP-1\") and pins popups there; if that output is not connected the focused monitor is used instead."
+            },
             "timeout": {
               "type": "integer",
               "default": 7000,
               "minimum": 0,
-              "description": "Default auto-dismiss timeout in ms (fallback when urgency-specific timeout does not apply)."
+              "description": "Base auto-dismiss timeout in ms. Used for normal-urgency notifications unless timeoutNormal overrides it. 0 = never auto-dismiss."
             },
             "timeoutLow": {
               "type": "integer",
@@ -241,7 +321,7 @@
               "type": "integer",
               "default": 7000,
               "minimum": 0,
-              "description": "Auto-dismiss timeout for normal-urgency notifications (ms)."
+              "description": "Auto-dismiss timeout for normal-urgency notifications (ms). Defaults to popup.timeout."
             },
             "timeoutCritical": {
               "type": "integer",
@@ -255,6 +335,83 @@
               "minimum": 1,
               "maximum": 20,
               "description": "Maximum simultaneous notification popups."
+            }
+          }
+        },
+        "maxHistory": {
+          "type": "integer",
+          "default": 200,
+          "minimum": 1,
+          "maximum": 2000,
+          "description": "Maximum notification history entries kept. Oldest are dropped past this."
+        },
+        "dnd": {
+          "type": "object",
+          "description": "Do Not Disturb policy. The manual toggle itself is runtime state (state.json).",
+          "additionalProperties": false,
+          "properties": {
+            "suppressOnFullscreen": {
+              "type": "boolean",
+              "default": true,
+              "description": "Also suppress popups while a fullscreen window is focused. Critical notifications are never suppressed."
+            }
+          }
+        },
+        "rateLimit": {
+          "type": "object",
+          "description": "Burst protection. Stage 1 meters notifications entering the shell; stage 2 paces how fast popups may open.",
+          "additionalProperties": false,
+          "properties": {
+            "ingressPerSecond": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Notifications admitted per second before queueing. Critical bypasses this."
+            },
+            "maxQueue": {
+              "type": "integer",
+              "default": 32,
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Queue depth for notifications waiting on the ingress budget. Overflow is expired, not shown."
+            },
+            "popupIntervalMs": {
+              "type": "integer",
+              "default": 350,
+              "minimum": 0,
+              "maximum": 5000,
+              "description": "Minimum gap between two popups opening, so a burst does not flash the stack."
+            },
+            "maxPopupQueue": {
+              "type": "integer",
+              "default": 8,
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Queue depth for popups waiting on the gap above. Overflow still lands in history."
+            }
+          }
+        },
+        "filters": {
+          "type": "object",
+          "description": "Per-application filtering. Names are matched case-insensitively against the notification's appName and its desktop-entry id.",
+          "additionalProperties": false,
+          "properties": {
+            "noPopup": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "description": "Applications whose notifications never raise a popup. They still land in history."
+            },
+            "noHistory": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "description": "Applications whose notifications are never stored in history. They can still raise a popup."
             }
           }
         }
@@ -294,7 +451,9 @@
         "hiddenApps": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Desktop file IDs to hide, e.g. ['org.kde.dolphin.desktop']."
         }
@@ -668,6 +827,12 @@
                   "minimum": 1,
                   "maximum": 30,
                   "description": "How many days ahead the reminder engine pre-loads events. Increase if you want reminders for events further out."
+                },
+                "allDayTime": {
+                  "type": "string",
+                  "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                  "default": "09:00",
+                  "description": "Time of day (HH:mm) when all-day events raise their reminder. All-day events have no start time, so the minutes-before rule cannot apply to them."
                 }
               }
             },
@@ -733,23 +898,24 @@
     "monitorFilter": {
       "description": "'all' for every monitor, a single monitor name, or an array of monitor names.",
       "oneOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
       ],
       "default": "all"
     },
 
     "clickAction": {
       "type": "string",
-      "enum": [
-        "dashboard-quick",
-        "dashboard-weather",
-        "dashboard-calendar",
-        "dashboard-audio",
-        "dashboard-network",
-        "notification-center",
-        "launcher"
-      ],
+      "enum": ["dashboard-quick", "dashboard-weather", "dashboard-calendar", "dashboard-audio", "dashboard-network", "notification-center", "launcher"],
       "description": "Panel to open when the widget is left-clicked."
     },
 
@@ -774,8 +940,12 @@
           "default": "left",
           "description": "Bar section where this widget appears."
         },
-        "monitors": { "$ref": "#/definitions/monitorFilter" },
-        "clickAction": { "$ref": "#/definitions/clickAction" },
+        "monitors": {
+          "$ref": "#/definitions/monitorFilter"
+        },
+        "clickAction": {
+          "$ref": "#/definitions/clickAction"
+        },
         "settings": {
           "type": "object",
           "description": "Widget-specific settings (validated per widget type)."
@@ -783,48 +953,191 @@
       },
       "allOf": [
         {
-          "if": { "properties": { "type": { "const": "workspaces" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/workspacesSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "workspaces"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/workspacesSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "activewindow" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/activewindowSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "activewindow"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/activewindowSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "weather" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/weatherWidgetSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "weather"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/weatherWidgetSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "clock" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/clockSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "clock"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/clockSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "media" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/mediaSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "media"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/mediaSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "notifications" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/notificationsWidgetSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "notifications"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/notificationsWidgetSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "volume" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/volumeSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "volume"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/volumeSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "network" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/networkSettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "network"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/networkSettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "battery" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/batterySettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "battery"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/batterySettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "layout" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/emptySettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "layout"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/emptySettings"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "tray" } }, "required": ["type"] },
-          "then": { "properties": { "settings": { "$ref": "#/definitions/traySettings" } } }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "tray"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "$ref": "#/definitions/traySettings"
+              }
+            }
+          }
         }
       ]
     },

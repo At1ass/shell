@@ -97,6 +97,9 @@ cd src/plugins
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 sudo cmake --install build          # ставит в /usr/lib/qt6/qml/
+# ⚠️ Замена .so под работающим шеллом может его уронить, а плагин всё равно
+# подхватится только после перезапуска: pkill -x qs && qs -p . (сначала
+# проверь `qs ipc call globalstates locked` — см. предупреждение ниже).
 
 # Запуск
 quickshell -p ~/.config/quickshell/shell        # (сокращённо: qs -p ...)
@@ -110,10 +113,57 @@ tools/lint.sh <files...>      # обёртка qmllint с import-путями qs
 
 # Инварианты запретов §10 + ratchet-базлайн (tools/check-baseline.txt)
 tools/check.sh                # exit 1 = регресс; после снижения долга: --update-baseline
+
+# Юнит-тесты календарного плагина (единственные тесты в проекте — ЗАПУСКАЙ их,
+# трогая src/plugins/src/calendar-qml: они ловят то, что не видно глазом)
+cd src/plugins && cmake -B build-test -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON \
+  && cmake --build build-test --target calendar_test \
+  && QT_QPA_PLATFORM=offscreen ./build-test/src/calendar-qml/test/calendar_test
+
+# Сборка каждого компонента настоящим движком Quickshell (не создаёт окон)
+tools/compile-check.sh        # exit 1 = что-то не компилируется
 ```
 
 Автотестов на QML нет; для C++ плагинов пишутся unit-тесты. Перед коммитом изменённый QML
 обязан проходить `qmllint` без предупреждений.
+
+### ⚠️ Правка на живом шелле = риск потерять сессию
+
+Шелл перезагружается горячо, а загрузка конфигурации — **всё или ничего**: одна ошибка
+в одном файле роняет её целиком. Пока шелл держит `WlSessionLock`, вместе с конфигурацией
+умирает и экран блокировки — Hyprland остаётся заблокированным без клиента.
+
+Отсюда два правила:
+
+1. **Если сессия заблокирована — не править файлы.** Ждать разблокировки. `hypridle`
+   в этой системе блокирует после 600 с простоя, и IPC-вызовы со скриншотами счётчик
+   простоя НЕ сбрасывают: при долгой автоматической работе блокировка приходит сама.
+
+   Спрашивать состояние так:
+   ```bash
+   qs ipc call globalstates locked      # true → НЕ ПРАВИТЬ
+   ```
+   `loginctl show-session <id> -p LockedHint` для этого НЕ годится: `hypridle`
+   зовёт `lockScreen()` прямо по IPC, мимо `loginctl lock-session`, поэтому
+   hint остаётся `no` при фактически заблокированной сессии.
+
+   Сюда же: **проверять инварианты, ломая реальные файлы, нельзя** — живой шелл
+   перезагрузится на сломанном дереве. Для этого `tools/compile-check.sh` уже
+   работает на копии; ломать нужно копию.
+2. **Надёжного восстановления НЕ найдено — проверено 2026-08-13 ребутом.**
+   Hyprland на своём экране предлагает `hyprctl --instance 0 eval
+   'hl.clear_crashed_lockscreen()'` из другого tty. Функция в 0.56.2 существует
+   и отвечает, но проблему тогда не решила; помог только перезапуск машины.
+   Вероятная причина (НЕ проверена): процесс `qs` переживает провал загрузки —
+   в тот раз `pgrep -x qs` показывал живой pid при «Failed to load configuration»
+   в логе. Умирает конфигурация, а не процесс. Тогда второй совет с того же экрана —
+   «убей процессы блокировки и повтори eval» — означает здесь `pkill -x qs`,
+   а не `killall hyprlock`. Проверять это на живой сессии никто не будет,
+   поэтому **единственная надёжная защита — пункт 1**.
+
+`qmllint` этот класс ошибок НЕ ловит: файл с двумя `pragma ComponentBehavior` линтуется
+чисто (exit 0, без диагностики) и падает только на загрузке. Поэтому есть
+`tools/compile-check.sh` и инварианты `duplicate-pragmas` / `qml-compile-failures`.
 
 ---
 
@@ -164,6 +214,30 @@ tools/check.sh                # exit 1 = регресс; после снижен
 - **inputs/** — `MaterialSlider`, `MaterialSwitch`, `MaterialCheckbox`, `MaterialRadioButton`, `MaterialComboBox`, `MaterialTextField`, `SegmentedButton`, `Chip`.
 
 Сырые `Rectangle`/`Text` допустимы **только внутри `src/ui/*`** (это их реализация). В `src/features/*` — нет.
+
+### Клавиатура — привязка к КЛАВИШЕ, а не к символу
+
+`event.key` и `event.text` несут символ, который даёт активная раскладка. На
+кириллице физическая J приходит как `Qt.Key_O` с текстом «о», поэтому
+`event.key === Qt.Key_J` не срабатывает вообще. Так были мертвы все vi-привязки
+шелла. Цифры тоже небезопасны: на AZERTY верхний ряд без Shift даёт `&é"'(`.
+
+Сопоставлять нужно физическую позицию — `event.nativeScanCode` (XKB-код, он же
+evdev + 8), она одинакова в любой раскладке. Для этого есть `Keycodes` в
+`core/config`:
+
+```qml
+Keys.onPressed: (event) => {
+    const key = Keycodes.key(event)        // НЕ event.key
+    if (key === Qt.Key_J) moveDown()
+}
+// для сопоставления с буквами из данных:
+if (Keycodes.letter(event) === action.key) activate()
+```
+
+`Escape`, стрелки, `Return`, `Delete`, `Home/End`, `PageUp/Down`, `F1…` от
+раскладки не зависят и проходят через `Keycodes.key()` без изменений — их
+можно сравнивать как обычно. Инвариант `layout-dependent-keys` держит ноль.
 
 ---
 

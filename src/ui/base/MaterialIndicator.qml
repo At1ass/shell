@@ -4,7 +4,7 @@ import qs.src.core.config
 Rectangle {
     id: root
 
-    property string size: "small"        // small, medium, large
+    property string size: "small"        // extraSmall, small, medium, large, extraLarge
     property string colorRole: "outline" // any color from Theme
     property bool animated: true
     property string shape: "circle"      // circle, rounded, square
@@ -38,28 +38,21 @@ Rectangle {
     // Animations
     Behavior on width {
         enabled: root.animated
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short2
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
     }
 
-    Behavior on height {
-        enabled: root.animated
-        NumberAnimation {
-            duration: Tokens.motion.duration.short2
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
-        }
-    }
+    // NO Behavior on height: `height: width` is a binding, so animating width
+    // already animates height through it. A second Behavior chased the
+    // already-animated value and left the dot elliptical mid-transition.
 
     Behavior on color {
         enabled: root.animated
-        ColorAnimation {
+        MotionColorAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
     }
 

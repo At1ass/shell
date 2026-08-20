@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
@@ -42,9 +44,14 @@ Item {
     }
 
     Keys.onPressed: (event) => {
+        // Physical key, not the layout's symbol — the H/L tab switch, the 1-5
+        // jump and the whole calendar vi set below were dead on a Cyrillic
+        // layout. See Keycodes.
+        const key = Keycodes.key(event)
+
         // Escape: an open modal consumes it (dirty-guard prompt included);
         // otherwise it closes the dashboard.
-        if (event.key === Qt.Key_Escape) {
+        if (key === Qt.Key_Escape) {
             if (root._modalOpen) root._closeTopModal()
             else GlobalStates.closePanel("dashboard")
             event.accepted = true
@@ -55,14 +62,14 @@ Item {
         if (root._modalOpen) return
 
         // Direct tab jump (keys 1-5)
-        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
-            GlobalStates.dashboardOpenIndex = event.key - Qt.Key_1
+        if (key >= Qt.Key_1 && key <= Qt.Key_5) {
+            GlobalStates.dashboardOpenIndex = key - Qt.Key_1
             event.accepted = true
             return
         }
 
         // Space — media play/pause (any tab)
-        if (event.key === Qt.Key_Space) {
+        if (key === Qt.Key_Space) {
             if (typeof MprisController !== "undefined" && MprisController.canTogglePlaying) {
                 MprisController.togglePlaying()
                 event.accepted = true
@@ -72,12 +79,12 @@ Item {
 
         // Vi-like tab switching: H/L (no modifiers) when NOT on calendar tab
         if (tabView.currentIndex !== 2 && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier))) {
-            if (event.key === Qt.Key_H || event.key === Qt.Key_Left) {
+            if (key === Qt.Key_H || key === Qt.Key_Left) {
                 GlobalStates.dashboardOpenIndex = Math.max(0, tabView.currentIndex - 1)
                 event.accepted = true
                 return
             }
-            if (event.key === Qt.Key_L || event.key === Qt.Key_Right) {
+            if (key === Qt.Key_L || key === Qt.Key_Right) {
                 GlobalStates.dashboardOpenIndex = Math.min(4, tabView.currentIndex + 1)
                 event.accepted = true
                 return
@@ -92,16 +99,17 @@ Item {
         const cal = calendarLoader.item as CalendarTab
         if (!cal) return
         const shift = !!(event.modifiers & Qt.ShiftModifier)
+        const key = Keycodes.key(event)
 
         // Shift+key: month nav / jump to last
         if (shift) {
-            if (event.key === Qt.Key_H) { cal.goToPrevMonth(); event.accepted = true }
-            else if (event.key === Qt.Key_L) { cal.goToNextMonth(); event.accepted = true }
-            else if (event.key === Qt.Key_G) { cal.goToLastDay(); event.accepted = true }
+            if (key === Qt.Key_H) { cal.goToPrevMonth(); event.accepted = true }
+            else if (key === Qt.Key_L) { cal.goToNextMonth(); event.accepted = true }
+            else if (key === Qt.Key_G) { cal.goToLastDay(); event.accepted = true }
             return
         }
 
-        switch (event.key) {
+        switch (key) {
             // Arrows + vi h/j/k/l
             case Qt.Key_Left:
             case Qt.Key_H:       cal.moveFocusBy(-1); event.accepted = true; break
@@ -162,12 +170,19 @@ Item {
                         ]
 
                         delegate: DashboardTabButton {
+                            id: tabButton
+                            // Declared HERE rather than on DashboardTabButton:
+                            // the component is a plain button and should not
+                            // carry model roles just to be used in a Repeater.
+                            required property int index
+                            required property var modelData
+
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            isActive: tabView.currentIndex === index
-                            nameIcon: modelData.icon
-                            label: modelData.label
-                            onClicked: GlobalStates.dashboardOpenIndex = index
+                            isActive: tabView.currentIndex === tabButton.index
+                            nameIcon: tabButton.modelData.icon
+                            label: tabButton.modelData.label
+                            onClicked: GlobalStates.dashboardOpenIndex = tabButton.index
                         }
                     }
                 }

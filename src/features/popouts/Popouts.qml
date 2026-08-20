@@ -1,8 +1,11 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.core.services
 import qs.src.ui.containers
 
@@ -134,28 +137,24 @@ PanelWindow {
             onHeightChanged: updateRect()
             onVisibleChanged: updateRect()
 
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: parent.radius - 1
-                color: Theme.primary
-                opacity: Tokens.stateLayer.hoverOpacity
-                // z: -1
+            // Elevation tint from the token scale — this was a hand-rolled
+            // Rectangle painted with the hover state-layer opacity.
+            SurfaceTint {
+                level: 2
+                radius: popoutCard.radius
             }
 
             Behavior on opacity {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
             Behavior on scale {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
@@ -243,18 +242,7 @@ PanelWindow {
     }
 
     function getFocusedScreen() {
-        const focused = Hyprland.focusedMonitor;
-        if (!focused)
-            return null;
-
-        for (let i = 0; i < Quickshell.screens.length; i++) {
-            const s = Quickshell.screens[i];
-            const monitor = Hyprland.monitorFor(s);
-            if (monitor && monitor.name === focused.name)
-                return s;
-        }
-
-        return null;
+        return GlobalStates.focusedScreen();
     }
 
     function computeX(cardWidth, margin) {

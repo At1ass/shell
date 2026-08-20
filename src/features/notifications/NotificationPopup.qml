@@ -3,12 +3,15 @@ import Quickshell
 import Quickshell.Wayland
 import qs.src.core.services
 import qs.src.core.config
+import qs.src.ui.base
 
 PanelWindow {
     id: popup
 
+    // Server-side Notification.id. Mutable: a duplicate merge re-keys this
+    // popup onto the newer notification rather than swapping cards.
+    property int notifId: 0
     required property var notificationData
-    required property var notificationObject
     required property int screenY
     property bool exiting: false
     property bool _isDestroying: false
@@ -50,10 +53,9 @@ PanelWindow {
     // Smooth Y displacement when stack reorganizes
     Behavior on screenY {
         enabled: !popup.exiting && !popup._isDestroying
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.medium1
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
 
@@ -65,23 +67,20 @@ PanelWindow {
     ParallelAnimation {
         id: entranceAnim
         running: false
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_entranceTranslateY"; to: 0
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_entranceOpacity"; to: 1.0
             duration: Tokens.motion.duration.medium1
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_entranceScale"; to: 1.0
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
 
@@ -91,26 +90,23 @@ PanelWindow {
     ParallelAnimation {
         id: exitAnim
         running: false
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_entranceTranslateY"
             to: popup.isTop ? -20 : 20
             duration: Tokens.motion.duration.short4
-            easing.type: Tokens.motion.easing.emphasizedAccelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+            curve: "emphasizedAccelerate"
         }
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_entranceOpacity"
             to: 0
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.emphasizedAccelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+            curve: "emphasizedAccelerate"
         }
-        NumberAnimation {
+        MotionAnimation {
             target: popup; property: "_exitScale"
             to: 0.92
             duration: Tokens.motion.duration.short4
-            easing.type: Tokens.motion.easing.emphasizedAccelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+            curve: "emphasizedAccelerate"
         }
         onFinished: popup._finalizeExit()
     }
@@ -121,14 +117,6 @@ PanelWindow {
         if (exiting || _isDestroying) return
         exiting = true
         exitAnim.start()
-    }
-
-    function forceExit() {
-        if (_isDestroying) return
-        _isDestroying = true
-        exitAnim.stop()
-        visible = false
-        _finalizeExit()
     }
 
     function _finalizeExit() {
@@ -146,7 +134,7 @@ PanelWindow {
     NotificationPopupItem {
         id: popupItem
         notificationData: popup.notificationData
-        duration: NotificationService.activeDuration(popup.notificationData?.notificationId ?? "")
+        duration: NotificationService.activeDuration(popup.notifId)
 
         transform: [
             Translate { y: popup._entranceTranslateY },
@@ -159,17 +147,11 @@ PanelWindow {
         ]
         opacity: popup._entranceOpacity
 
-        onSwipeDismissed: {
-            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
-        }
-        onCloseClicked: {
-            NotificationService.dismissActiveNotification(popup.notificationData.notificationId)
-        }
-        onActionInvoked: (actionId) => {
-            NotificationService.attemptInvokeAction(popup.notificationData.notificationId, actionId)
-        }
-        onTimeoutExpired: {
-            NotificationService.expireActiveNotification(popup.notificationData.notificationId)
-        }
+        // User intent only — the service decides what closing means and
+        // whether the notification survives (a `resident` one does).
+        onSwipeDismissed: NotificationService.dismissPopup(popup.notifId)
+        onCloseClicked:   NotificationService.dismissPopup(popup.notifId)
+        onActionInvoked:  (actionId) => NotificationService.invokeAction(popup.notifId, actionId)
+        onTimeoutExpired: NotificationService.expirePopup(popup.notifId)
     }
 }

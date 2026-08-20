@@ -19,19 +19,20 @@ Item {
     ? 0
     : (width - label.implicitWidth) / 2
     clip: true
-    height: label.implicitHeight
+    // implicitHeight, not height: a hard height cannot be negotiated by a layout.
+    implicitHeight: label.implicitHeight
 
     readonly property bool overflow: label.implicitWidth > width
 
     MaterialText {
         id: label
         text: root.text
-        // horizontalAlignment: root.align
+        horizontalAlignment: root.align
         visible: true
         textStyle: root.textStyle
         colorRole: root.colorRole
         font.weight: root.weight
-        x: offset + root.baseX
+        x: root.offset + root.baseX
     }
 
     property real offset: 0
@@ -45,28 +46,26 @@ Item {
             duration: root.startDelay
         }
 
-        NumberAnimation {
+        MotionAnimation {
             target: root
             property: "offset"
             from: 0
             to: root.width - label.implicitWidth
             duration: Math.abs(root.width - label.implicitWidth) / root.speed * 1000
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
 
         PauseAnimation {
             duration: root.endDelay
         }
 
-        NumberAnimation {
+        MotionAnimation {
             target: root
             property: "offset"
             from: root.width - label.implicitWidth
             to: 0
             duration: Math.abs(root.width - label.implicitWidth) / root.speed * 1000
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
 
         PauseAnimation {

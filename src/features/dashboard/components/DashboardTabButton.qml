@@ -37,34 +37,32 @@ Item {
         spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
-            iconName: nameIcon
+            iconName: tabBtn.nameIcon
             fontSize: Tokens.typography.headlineMedium.size
-            iconColor: isActive ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+            iconColor: tabBtn.isActive ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
             backgroundColor: "transparent"
-            fill: isActive ? 1 : 0
+            fill: tabBtn.isActive ? 1 : 0
             Layout.alignment: Qt.AlignHCenter
 
             Behavior on iconColor {
-                ColorAnimation {
+                MotionColorAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
             Behavior on fill {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
         }
 
         MaterialText {
-            text: label
+            text: tabBtn.label
             textStyle: "labelMedium"
-            colorRole: isActive ? "onSurface" : "onSurfaceVariant"
+            colorRole: tabBtn.isActive ? "onSurface" : "onSurfaceVariant"
             Layout.alignment: Qt.AlignHCenter
         }
     }
@@ -77,13 +75,12 @@ Item {
         height: 2
         radius: 1
         color: Theme.primary
-        opacity: isActive ? 1 : 0
+        opacity: tabBtn.isActive ? 1 : 0
 
         Behavior on opacity {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.medium2
-                easing.type: Tokens.motion.easing.emphasizedDecelerate
-                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                curve: "emphasizedDecelerate"
             }
         }
     }

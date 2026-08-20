@@ -1,12 +1,17 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
 import qs.src.core.config
+import qs.src.ui.feedback
 import qs.src.core.services
 import qs.src.ui.base
 
 Scope {
+    id: powerMenuScope
+
     property var modelData
 
     readonly property var _actionDefs: [
@@ -31,6 +36,13 @@ Scope {
     PanelWindow {
         id: menuWindow
         visible: GlobalStates.powerMenuOpen
+
+        // Open on the focused monitor (see GlobalStates.focusedScreen).
+        Component.onCompleted: {
+            const s = GlobalStates.focusedScreen()
+            if (s) menuWindow.screen = s
+        }
+
         color: "transparent"
         exclusiveZone: 0
         focusable: true
@@ -75,32 +87,29 @@ Scope {
             Keys.onEscapePressed: GlobalStates.closePanel("powermenu")
 
             Keys.onLeftPressed: {
-                menuWindow.focusedIndex = (menuWindow.focusedIndex - 1 + actions.length) % actions.length
+                menuWindow.focusedIndex = (menuWindow.focusedIndex - 1 + powerMenuScope.actions.length) % powerMenuScope.actions.length
             }
             Keys.onRightPressed: {
-                menuWindow.focusedIndex = (menuWindow.focusedIndex + 1) % actions.length
+                menuWindow.focusedIndex = (menuWindow.focusedIndex + 1) % powerMenuScope.actions.length
             }
             Keys.onTabPressed: {
-                menuWindow.focusedIndex = (menuWindow.focusedIndex + 1) % actions.length
+                menuWindow.focusedIndex = (menuWindow.focusedIndex + 1) % powerMenuScope.actions.length
             }
 
             Keys.onReturnPressed: menuWindow.activateFocused()
             Keys.onEnterPressed: menuWindow.activateFocused()
 
             Keys.onPressed: event => {
-                // Match by physical key (XKB scancode = evdev + 8) so the
-                // advertised L/S/R/D/O hotkeys work on any layout;
-                // event.text fails on non-Latin layouts.
-                const scanToChar = ({
-                    46: "L",  // l
-                    39: "S",  // s
-                    27: "R",  // r
-                    40: "D",  // d
-                    32: "O"   // o
-                })
-                const key = scanToChar[event.nativeScanCode] ?? event.text.toUpperCase()
-                for (let i = 0; i < actions.length; i++) {
-                    if (actions[i].key === key) {
+                // Match by physical key so the advertised hotkeys work on any
+                // layout. This used to carry its own five-entry scancode table
+                // with an `event.text.toUpperCase()` fallback — the fallback was
+                // the layout-dependent read it was trying to avoid, so any
+                // action whose key was not one of those five silently failed on
+                // a non-Latin layout. Keycodes covers the whole alphabet and has
+                // no such fallback.
+                const key = Keycodes.letter(event)
+                for (let i = 0; i < powerMenuScope.actions.length; i++) {
+                    if (powerMenuScope.actions[i].key === key) {
                         menuWindow.focusedIndex = i
                         let item = actionsRepeater.itemAt(i)
                         if (item) item.activate()
@@ -112,18 +121,9 @@ Scope {
         }
 
         // Scrim
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.scrim
-            opacity: GlobalStates.powerMenuOpen ? 0.5 : 0.0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.motion.duration.medium2
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
-                }
-            }
+        Scrim {
+            shown: GlobalStates.powerMenuOpen
+            duration: Tokens.motion.duration.medium2
 
             MouseArea {
                 anchors.fill: parent
@@ -141,18 +141,16 @@ Scope {
             scale: GlobalStates.powerMenuOpen ? 1.0 : 0.9
 
             Behavior on opacity {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Tokens.motion.easing.emphasizedDecelerate
-                    easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                    curve: "emphasizedDecelerate"
                 }
             }
 
             Behavior on scale {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.medium4
-                    easing.type: Tokens.motion.easing.emphasizedDecelerate
-                    easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                    curve: "emphasizedDecelerate"
                 }
             }
 
@@ -165,7 +163,7 @@ Scope {
 
                 Repeater {
                     id: actionsRepeater
-                    model: actions
+                    model: powerMenuScope.actions
 
                     delegate: ColumnLayout {
                         id: actionDelegate
@@ -218,10 +216,9 @@ Scope {
                                         ColorAnimation { duration: Tokens.motion.duration.short4 }
                                     }
                                     Behavior on scale {
-                                        NumberAnimation {
+                                        MotionAnimation {
                                             duration: Tokens.motion.duration.short4
-                                            easing.type: Tokens.motion.easing.emphasizedDecelerate
-                                            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                                            curve: "emphasizedDecelerate"
                                         }
                                     }
                                     Behavior on border.width {

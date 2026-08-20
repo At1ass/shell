@@ -20,15 +20,23 @@ Scope {
 
     PanelWindow {
         id: dashboardWindow
+
+        // Open on the monitor the user is actually looking at (see
+        // GlobalStates.focusedScreen). The LazyLoader in shell.qml rebuilds this
+        // window per open, so resolving once at construction is enough.
+        Component.onCompleted: {
+            const s = GlobalStates.focusedScreen()
+            if (s) dashboardWindow.screen = s
+        }
+
         color: "transparent"
         implicitWidth: root.sidebarWidth
         implicitHeight: root.sidebarHeight + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
 
         Behavior on implicitHeight {
-            NumberAnimation {
+            MotionAnimation {
                 duration: Tokens.motion.duration.short4
-                easing.type: Tokens.motion.easing.emphasizedDecelerate
-                easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                curve: "emphasizedDecelerate"
             }
         }
         anchors {

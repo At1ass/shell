@@ -69,10 +69,14 @@ Item {
         }
     }
 
+    // The effect draws the wallpaper either way — with blurEnabled false it is a
+    // plain textured pass, so `lockscreen.blurWallpaper: false` yields a sharp
+    // wallpaper rather than no wallpaper. The desaturation is not part of that
+    // config key and stays on, keeping the lock UI legible over busy images.
     MultiEffect {
         anchors.fill: parent
         source: wallpaperSource
-        blurEnabled: true
+        blurEnabled: AppConfig.lockscreenBlurWallpaper
         blur: 1.0
         blurMax: 80
         saturation: -0.2

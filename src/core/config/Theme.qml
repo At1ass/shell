@@ -16,7 +16,13 @@ Singleton {
         source: root.seed.toString() !== "" ? root.seed : Qt.alpha("#6200EE", 0)
         darkMode: AppConfig.darkMode
         variant: AppConfig.themeVariant
-        contrast: 0.5
+        // Was hardcoded 0.5 with no comment and no config key. That is MCU's
+        // accessibility high-contrast level, not "a bit more punch": in a dark
+        // scheme it flips every *Container role light and its on* color black,
+        // so tonal buttons, chips, the active workspace pill and critical
+        // notifications all rendered as glaring blocks. Standard M3 is 0.0;
+        // users who want the accessibility variant now opt in via config.
+        contrast: AppConfig.themeContrast
     }
 
     // Color roles — flat access: Theme.primary, Theme.onSurface, etc.

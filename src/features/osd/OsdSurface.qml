@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.ui.containers
 
 // Shared OSD window shell: one overlay PanelWindow PER SCREEN, each bound
@@ -69,18 +70,16 @@ Scope {
                 scale: root.shown ? 1 : 0.92
 
                 Behavior on opacity {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+                        curve: "emphasized"
                     }
                 }
 
                 Behavior on scale {
-                    NumberAnimation {
+                    MotionAnimation {
                         duration: Tokens.motion.duration.short4
-                        easing.type: Tokens.motion.easing.emphasized
-                        easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+                        curve: "emphasized"
                     }
                 }
 

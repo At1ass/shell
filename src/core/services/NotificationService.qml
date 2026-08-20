@@ -3,52 +3,63 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs.src.core.config
 
-// NotificationService — thin facade over the notification subsystem.
+// NotificationService — the single owner of a notification's lifecycle.
 //
-// Responsibilities (everything else lives elsewhere):
-//   - Hosts the NotificationServer and the Instantiator that produces a
-//     NotifData per tracked notification.
-//   - Routes incoming notifications through NotificationRateLimiter
-//     (ingress + popup gate) and NotificationDND (suppress check).
-//   - Tracks the *internal* id ↔ NotifData mapping for popup callers
-//     (dismissActiveNotification etc.) — Quickshell's notification.id is
-//     stable but our internal id (history-style hash:ts:n) is what flows
-//     through popupRequested signals, so the indirection stays.
-//   - Emits popupRequested / popupReplaced / popupDismissRequested for
-//     NotificationPopupManager to consume.
+// Everything that can close a notification goes through here. Presentation
+// layers (NotificationPopupManager, NotificationCenter) render and report user
+// intent; they never call dismiss/expire/tracked themselves. That rule is the
+// fix for a whole class of bugs where the popup vanished but the notification
+// stayed alive on the server — most notably the maxVisible cap, which used to
+// live in the popup manager and simply destroyed windows.
 //
-// History persistence, group expansion, rate-limit math, and DND policy
-// are owned by their respective singletons (NotificationHistory,
-// NotificationRateLimiter, NotificationDND).
+// Identity: LIVE notifications are addressed by `notification.id` — a stable
+// quint32 the server declares CONSTANT. The internal entry id (contentId:ts:n)
+// exists only as the history row key, because history rows outlive the
+// notifications they came from and have nothing else to be keyed on. A prior
+// version carried the internal id for live popups too, which needed three
+// cross-referenced maps kept in sync by hand from three different files.
+//
+// ── Two Quickshell traps worth knowing before editing ──────────────────────
+//
+// 1. `notification.tracked = false` is NOT "release our reference". Upstream it
+//    is close(Dismissed) → NotificationClosed(id, 2) on the bus, and reason 2
+//    means "dismissed by the user" per the freedesktop spec. Use expire()
+//    (reason 1) whenever the user never actually saw the notification.
+//
+// 2. `mCloseReason` is initialised to Dismissed and isTracked() is
+//    `mCloseReason == 0`, so a fresh notification is NOT tracked by default:
+//    Notify() deletes it right after the signal unless the handler sets
+//    tracked = true synchronously. The line in _ingest that looks redundant is
+//    load-bearing.
 
 Singleton {
     id: root
 
-    property int defaultExpireTimeout: AppConfig.notificationPopupTimeout
-
     // ── Outgoing signals (consumed by NotificationPopupManager) ────
-    signal popupRequested(var data, var notification)
-    signal popupReplaced(string notificationId, var data)
-    signal popupDismissRequested(string notificationId)
+    // All three key on notification.id.
+    signal popupRequested(int notifId, var data)
+    // `newNotifId` differs from `notifId` only when a duplicate merged into an
+    // existing popup and re-keyed it onto the newer notification.
+    signal popupUpdated(int notifId, int newNotifId, var data)
+    signal popupDismissRequested(int notifId)
 
-    // ── Internal indices ──────────────────────────────────────────
-    // History-style internal id (contentId:ts:n) → NotifData
-    property var _notifDataByInternalId: ({})
-    // Notification.id (Quickshell stable) → internal id
-    property var _internalIdByNotifId: ({})
-    // Notification.id → NotifData (populated by Instantiator onObjectAdded)
-    property var _notifDataByNotifId: ({})
+    // ── Live state ────────────────────────────────────────────────
+    // notifId → { data, notifData }. One map, one owner.
+    property var _live: ({})
+    // notifId in display order, oldest first — drives the maxVisible cap.
+    property var _order: []
+    // notifId → history entry id. Set for EVERY admitted notification, even
+    // when no popup is shown, so an in-place replacement under DND still
+    // reaches the history row.
+    property var _entryIdByNotifId: ({})
 
     property int _nextEntryId: 1
 
-    // Popup registration — managed by NotificationPopupManager
-    property var _activePopupIds: ({})
-    function registerPopup(id) { _activePopupIds[id] = true }
-    function unregisterPopup(id) { delete _activePopupIds[id] }
-    function hasActivePopup(id) { return !!_activePopupIds[id] }
+    readonly property int maxVisible: AppConfig.notificationPopupMaxVisible
 
     // ── Server + per-notification wrappers ────────────────────────
     NotificationServer {
@@ -58,7 +69,7 @@ Singleton {
         imageSupported: true
         bodyMarkupSupported: true
 
-        onNotification: (notification) => root._ingestNotification(notification)
+        onNotification: (notification) => root._ingest(notification)
     }
 
     Instantiator {
@@ -69,170 +80,282 @@ Singleton {
             required property Notification modelData
             notification: modelData
 
-            // Service watches popup-relevant property changes and emits
-            // popupReplaced. Connections is a non-visual QObject; QtObject
-            // (NotifData) lacks a default children list, so attach via
-            // an explicit property.
+            // Property changes are how an in-place replacement (replaces_id)
+            // reaches us: the server does NOT re-emit notification() for those,
+            // it only mutates the object. Connections is a non-visual QObject
+            // and QtObject has no default children list, hence the property.
             readonly property Connections _serviceWatch: Connections {
                 target: notifData.modelData
-                function onSummaryChanged()  { root._notifDataPropChanged(notifData.modelData) }
-                function onBodyChanged()     { root._notifDataPropChanged(notifData.modelData) }
-                function onAppNameChanged()  { root._notifDataPropChanged(notifData.modelData) }
-                function onUrgencyChanged()  { root._notifDataPropChanged(notifData.modelData) }
-                function onAppIconChanged()  { root._notifDataPropChanged(notifData.modelData) }
-                function onImageChanged()    { root._notifDataPropChanged(notifData.modelData) }
-                function onActionsChanged()  { root._notifDataPropChanged(notifData.modelData) }
+                function onSummaryChanged()  { root._onReplaced(notifData.modelData) }
+                function onBodyChanged()     { root._onReplaced(notifData.modelData) }
+                function onAppNameChanged()  { root._onReplaced(notifData.modelData) }
+                function onUrgencyChanged()  { root._onReplaced(notifData.modelData) }
+                function onAppIconChanged()  { root._onReplaced(notifData.modelData) }
+                function onImageChanged()    { root._onReplaced(notifData.modelData) }
+                function onActionsChanged()  { root._onReplaced(notifData.modelData) }
             }
-            onClosed: (reason) => root._onNotifDataClosed(notifData.modelData, reason)
+            onClosed: (reason) => root._onClosed(notifData.modelData, reason)
         }
 
         onObjectAdded: (index, object) => {
-            const data = object as NotifData
-            if (data?.notification) {
-                root._notifDataByNotifId[data.notification.id] = data
-            }
+            const nd = object as NotifData
+            if (nd?.notification) root._pending[nd.notification.id] = nd
         }
         onObjectRemoved: (index, object) => {
-            const data = object as NotifData
-            if (data?.notification) {
-                delete root._notifDataByNotifId[data.notification.id]
-            }
+            const nd = object as NotifData
+            if (nd?.notification) delete root._pending[nd.notification.id]
         }
     }
 
-    // ── Rate-limiter event wiring ─────────────────────────────────
+    // NotifData delegates land here first; _admit moves the ones it keeps into
+    // _live. Separate from _live because the Instantiator's lifetime is driven
+    // by the server, not by whether we chose to show anything.
+    property var _pending: ({})
+
+    // ── Rate-limiter wiring ───────────────────────────────────────
+    // The limiter is pure policy: it never touches a notification's lifecycle,
+    // it only reports verdicts. Closing is this file's job, always.
     Connections {
         target: NotificationRateLimiter
 
         function onIngressAccepted(notification) {
-            // Defer to give the Instantiator's onObjectAdded a chance to
-            // register this notification's NotifData before _showNotification
-            // looks it up.
-            Qt.callLater(() => root._processNotification(notification))
+            // Notify() emits notification() BEFORE inserting into
+            // trackedNotifications, so the Instantiator has not produced the
+            // NotifData yet. Deferring one turn lets the model settle.
+            Qt.callLater(() => root._admit(notification))
         }
         function onIngressDropped(notification) {
-            // Queue full — release server-side tracking.
-            notification.tracked = false
+            // Queue full. The user never saw it — expire, do not "dismiss".
+            root._expireNotification(notification)
         }
         function onPopupReady(notification, data) {
-            root._showNotification(notification, data)
+            root._show(notification, data)
+        }
+        function onPopupDropped(notification) {
+            root._expireNotification(notification)
         }
     }
 
-    // ── Notification flow ─────────────────────────────────────────
+    // ── Ingest → admit → show ─────────────────────────────────────
 
-    function _ingestNotification(notification) {
-        // Track immediately so the server keeps the Notification alive
-        // through queue and gate. RateLimiter's signals decide what to
-        // do next.
+    function _ingest(notification) {
+        // Load-bearing: see trap 2 in the header comment.
         notification.tracked = true
         NotificationRateLimiter.ingest(notification)
     }
 
-    function _processNotification(notification) {
+    function _admit(notification) {
+        if (!_alive(notification)) return
+
+        const nd = _pending[notification.id]
+        if (!nd) {
+            console.warn("NotificationService: NotifData missing for", notification.id)
+            return
+        }
+
         const data = createData(notification)
-        NotificationHistory.add(data)
+        _entryIdByNotifId[notification.id] = data.id
 
-        // With the notifications module off there is no popup manager to
-        // ever expire tracked notifications — they'd accumulate forever.
-        // History above still records them.
+        // `transient` means "skip any kind of persistence function like a
+        // notification area" — a progress bar or volume OSD must not silt up
+        // the history. Per-app noHistory is the user-side equivalent.
+        const appKey = _appKey(notification)
+        if (!notification.transient && !_isFiltered(appKey, AppConfig.notificationNoHistoryApps))
+            NotificationHistory.add(data)
+
         if (!AppConfig.moduleEnabled("notifications")) {
-            notification.tracked = false
+            _expireNotification(notification)
             return
         }
 
-        if (NotificationDND.active) {
-            // History captured the entry; release the server-side ref.
-            notification.tracked = false
+        // Critical always gets through. The limiter already treats it as
+        // special (it bypasses the token bucket); DND used to not, which left
+        // the subsystem disagreeing with itself about what "critical" means.
+        const isCritical = notification.urgency === NotificationUrgency.Critical
+        if (NotificationDND.active && !isCritical) {
+            _expireNotification(notification)
             return
         }
 
-        // If the same Notification was already pushed and is still tracked,
-        // update its existing popup data instead of creating a new one.
-        const existingInternalId = _internalIdByNotifId[notification.id]
-        if (existingInternalId && _notifDataByInternalId[existingInternalId]) {
-            _updateExistingNotification(existingInternalId, notification)
+        if (_isFiltered(appKey, AppConfig.notificationNoPopupApps)) {
+            _expireNotification(notification)
             return
         }
 
-        const duplicateId = _findDuplicatePopup(data.contentId)
-        if (duplicateId) {
-            // Release the evicted notification server-side BEFORE dropping
-            // the id mappings — cleanup-first left it tracked forever (one
-            // leaked Notification per duplicate for the whole session).
-            const oldNd = _notifDataByInternalId[duplicateId]
-            popupDismissRequested(duplicateId)
-            cleanupNotification(duplicateId)
-            if (oldNd?.notification) oldNd.notification.expire()
+        // Same content already on screen → merge into that popup as a count
+        // instead of racing two identical cards. The older notification is
+        // expired and its popup re-keys onto this one, so the visible card
+        // always carries the newest content and actions.
+        const dupId = _findDuplicate(data.contentId, notification.id)
+        if (dupId >= 0) {
+            const prev = _live[dupId]
+            const merged = Object.assign({}, data, { "count": (prev?.data?.count ?? 1) + 1 })
+            _live[notification.id] = { "data": merged, "notifData": nd }
+            _replaceInOrder(dupId, notification.id)
+            delete _live[dupId]
+            popupUpdated(dupId, notification.id, merged)
+            if (prev?.notifData?.notification) _expireNotification(prev.notifData.notification)
+            return
         }
 
         NotificationRateLimiter.popupShow(notification, data)
     }
 
-    function _showNotification(notification, data) {
-        const notifData = _notifDataByNotifId[notification.id]
-        if (!notifData) {
-            console.warn("NotificationService: NotifData missing for", notification.id)
-            return
+    function _show(notification, data) {
+        if (!_alive(notification)) return
+        const nd = _pending[notification.id]
+        if (!nd) return
+
+        // The cap lives here, with the lifecycle. When the popup manager owned
+        // it, eviction destroyed the window and left the notification tracked
+        // on the server forever — one leaked Notification (plus its NotifData
+        // and any image-data pixmap) per eviction.
+        while (_order.length >= maxVisible) {
+            const oldest = _order[0]
+            const victim = _live[oldest]
+            if (victim?.notifData?.notification) {
+                _expireNotification(victim.notifData.notification)
+            } else {
+                _forget(oldest)
+                popupDismissRequested(oldest)
+            }
+            // _expireNotification closes synchronously via onClosed → _forget,
+            // but guard against a wrapper that refuses to die.
+            if (_order.length > 0 && _order[0] === oldest) {
+                _forget(oldest)
+                popupDismissRequested(oldest)
+            }
         }
-        _internalIdByNotifId[notification.id] = data.notificationId
-        _notifDataByInternalId[data.notificationId] = notifData
-        popupRequested(data, notification)
+
+        _live[notification.id] = { "data": data, "notifData": nd }
+        _order = _order.concat([notification.id])
+        popupRequested(notification.id, data)
     }
 
-    function _updateExistingNotification(internalId, notification) {
+    // ── Replacement (replaces_id) ─────────────────────────────────
+
+    function _onReplaced(notification) {
+        if (!_alive(notification)) return
+        const entryId = _entryIdByNotifId[notification.id]
+        if (entryId === undefined) return
+
         const normalized = normalizeNotification(notification)
         const contentId = getContentId(normalized.summary, normalized.body, normalized.appName)
 
-        const updatedData = {
-            "notificationId": internalId,
-            "contentId": contentId,
-            "summary": normalized.summary,
-            "body": normalized.body,
-            "appName": normalized.appName,
-            "appIcon": normalized.appIcon,
-            "image": normalized.image,
-            "actions": normalized.actions,
-            "urgency": normalized.urgency,
-            "expireTimeout": normalized.expireTimeout
+        // History first, and unconditionally: an app updating a notification in
+        // place (download progress, track change, unread counter) previously
+        // left the ORIGINAL text in the centre forever, because the only
+        // History.add() call sits on the first-appearance path. Under DND it was
+        // worse — the popup path exits early, so nothing was updated at all.
+        if (!notification.transient)
+            NotificationHistory.update(entryId, normalized)
+
+        const entry = _live[notification.id]
+        if (!entry) return
+
+        const merged = Object.assign({}, entry.data, normalized, { "contentId": contentId })
+        entry.data = merged
+        popupUpdated(notification.id, notification.id, merged)
+    }
+
+    // ── Close paths ───────────────────────────────────────────────
+    // Everything funnels through the notification's own closed() signal, so
+    // there is exactly one teardown site no matter who initiated the close.
+
+    function _onClosed(notification, reason) {
+        const id = notification.id
+        const entryId = _entryIdByNotifId[id]
+        if (entryId !== undefined) {
+            NotificationHistory.tagCloseReason(entryId, reason)
+            delete _entryIdByNotifId[id]
         }
-        popupReplaced(internalId, updatedData)
-    }
-
-    function _notifDataPropChanged(notification) {
-        const internalId = _internalIdByNotifId[notification.id]
-        if (!internalId) return
-        if (!_notifDataByInternalId[internalId]) return
-        _updateExistingNotification(internalId, notification)
-    }
-
-    function _onNotifDataClosed(notification, reason) {
-        const internalId = _internalIdByNotifId[notification.id]
-        if (!internalId) return
-        // Dismissed (2): user already triggered dismiss path.
-        // Expired (1) / CloseRequested (3): popup must still exit.
-        if (hasActivePopup(internalId) && reason !== 2) {
-            popupDismissRequested(internalId)
+        if (_live[id] !== undefined) {
+            _forget(id)
+            popupDismissRequested(id)
         }
-        // Tag history with close reason (best-effort; entry may already be pruned).
-        NotificationHistory.tagCloseReason(internalId, reason)
-        cleanupNotification(internalId)
     }
 
-    function _findDuplicatePopup(contentId) {
-        for (const id in _activePopupIds) {
-            const nd = _notifDataByInternalId[id]
-            if (nd && nd.contentId === contentId) return id
+    function _forget(notifId) {
+        delete _live[notifId]
+        _order = _order.filter(x => x !== notifId)
+    }
+
+    function _replaceInOrder(oldId, newId) {
+        _order = _order.map(x => (x === oldId ? newId : x))
+    }
+
+    // expire() = reason 1 (Expired). Correct for every path where the shell
+    // dropped the notification on its own: DND, filters, module off, queue
+    // overflow, maxVisible eviction. `tracked = false` would tell the client
+    // the USER dismissed it (reason 2), which is a different fact.
+    function _expireNotification(notification) {
+        if (!_alive(notification)) return
+        notification.expire()
+    }
+
+    function _alive(n) {
+        try { return n !== null && n !== undefined && n.id !== undefined } catch (e) { return false }
+    }
+
+    function _findDuplicate(contentId, exceptId) {
+        for (const key in _live) {
+            const id = Number(key)
+            if (id === exceptId) continue
+            if (_live[key]?.data?.contentId === contentId) return id
         }
-        return null
+        return -1
     }
 
-    function cleanupNotification(id) {
-        const nd = _notifDataByInternalId[id]
-        if (!nd) return
-        const notifId = nd.notification?.id
-        delete _notifDataByInternalId[id]
-        if (notifId !== undefined) delete _internalIdByNotifId[notifId]
+    function _appKey(notification) {
+        return ((notification.appName || notification.desktopEntry || "") + "").toLowerCase().trim()
+    }
+
+    function _isFiltered(appKey, list) {
+        if (!appKey || !list || list.length === 0) return false
+        return list.indexOf(appKey) !== -1
+    }
+
+    // ── Public API (user intent, from the UI) ─────────────────────
+    //
+    // dismiss  → the user acted (X button, swipe): reason 2, which is true.
+    // expire   → the popup's own countdown ran out: reason 1.
+    // Both just close; teardown happens in _onClosed.
+
+    function dismissPopup(notifId) {
+        const e = _live[notifId]
+        if (e?.notifData) e.notifData.dismiss()
+        else popupDismissRequested(notifId)
+    }
+
+    function expirePopup(notifId) {
+        const e = _live[notifId]
+        if (e?.notifData) e.notifData.expire()
+        else popupDismissRequested(notifId)
+    }
+
+    function dismissAllActive() {
+        for (const id of _order.slice()) dismissPopup(id)
+    }
+
+    // Actions. Quickshell's NotificationAction::invoke() closes the
+    // notification itself UNLESS the `resident` hint is set — so this must not
+    // tear anything down: for non-resident the closed() signal arrives and
+    // _onClosed does it, and for resident the popup is supposed to stay.
+    function invokeAction(notifId, actionId) {
+        const e = _live[notifId]
+        if (!e?.notifData) {
+            ToastService.info("Notification is no longer active")
+            return
+        }
+        e.notifData.invokeAction(actionId)
+    }
+
+    function isLive(notifId) {
+        return _live[notifId] !== undefined
+    }
+
+    function activeDuration(notifId) {
+        return _live[notifId]?.notifData?.durationMs ?? 0
     }
 
     // ── Data shaping ──────────────────────────────────────────────
@@ -266,12 +389,19 @@ Singleton {
         const normalized = normalizeNotification(notification)
         const timestamp = Date.now()
         const contentId = getContentId(normalized.summary, normalized.body, normalized.appName)
-        const notificationId = contentId + ":" + timestamp.toString(16) + ":" + (_nextEntryId++)
+        const entryId = contentId + ":" + timestamp.toString(16) + ":" + (_nextEntryId++)
         return Object.assign({
-            "id": notificationId,
-            "notificationId": notificationId,
+            // `notificationId` is the HISTORY ROW key and keeps its name: it is
+            // what persisted notification-history.json files already contain.
+            // `notifId` is the live server-side Notification.id — a different
+            // thing with a different lifetime, which is exactly why both exist.
+            "id": entryId,
+            "notificationId": entryId,
+            "notifId": notification.id,
             "contentId": contentId,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "count": 1,
+            "unread": true
         }, normalized)
     }
 
@@ -288,70 +418,61 @@ Singleton {
         return (hash >>> 0).toString(16)
     }
 
-    // ── Hover delegation ──────────────────────────────────────────
-    // Single source of truth lives on NotifData; service just routes by id.
-
-    // ── Public API ────────────────────────────────────────────────
-    //
-    // dismissActiveNotification / expireActiveNotification:
-    //   dismiss() → server fires closed(Dismissed=2). Use for X-button,
-    //   swipe, action click.
-    //   expire() → server fires closed(Expired=1). Use for the auto-
-    //   dismiss timer in NotificationPopupItem.
-
-    function dismissActiveNotification(id) {
-        const nd = _notifDataByInternalId[id]
-        nd?.dismiss()
-        cleanupNotification(id)
-        popupDismissRequested(id)
-    }
-    function expireActiveNotification(id) {
-        const nd = _notifDataByInternalId[id]
-        nd?.expire()
-        cleanupNotification(id)
-        popupDismissRequested(id)
-    }
-
-    function dismissAllActive() {
-        const ids = Object.keys(_activePopupIds)
-        for (const id of ids) dismissActiveNotification(id)
-    }
-
-    function attemptInvokeAction(id, actionId) {
-        const nd = _notifDataByInternalId[id]
-        if (!nd) {
-            // History entries outlive their notifications by design —
-            // silence here read as a broken button.
-            ToastService.info("Notification is no longer active")
-            return
-        }
-        nd.invokeAction(actionId)   // also dismisses
-        cleanupNotification(id)
-        popupDismissRequested(id)
-    }
-
-    function activeDuration(id) {
-        const nd = _notifDataByInternalId[id]
-        return nd ? nd.durationMs : 0
-    }
-
-    // ── History delegations (kept for legacy UI calls) ────────────
+    // ── History delegations (UI binds through the facade) ─────────
     function removeFromHistory(id)  { return NotificationHistory.remove(id) }
     function clearHistory()         { NotificationHistory.clear() }
     function isGroupExpanded(name)  { return NotificationHistory.isGroupExpanded(name) }
     function toggleGroupExpanded(n) { NotificationHistory.toggleGroupExpanded(n) }
     function getGroupCount(name)    { return NotificationHistory.getGroupCount(name) }
     function getGroupIcon(name)     { return NotificationHistory.getGroupIcon(name) }
+    function markAllRead()          { NotificationHistory.markAllRead() }
     readonly property var historyList: NotificationHistory.historyList
+    readonly property int unreadCount: NotificationHistory.unreadCount
+
+    // Invoking an action from a history row: only possible while the
+    // underlying notification is still live.
+    function invokeActionFromHistory(notifId, actionId) {
+        invokeAction(notifId, actionId)
+    }
 
     // DND facade — state lives in NotificationDND, UI toggles via function.
     readonly property bool doNotDisturb: NotificationDND.enabled
     function toggleDoNotDisturb() { NotificationDND.toggle() }
 
-    // ── Compatibility wrappers (kept for any external IPC) ────────
-    function discardNotification(id) { dismissActiveNotification(id) }
-    function discardAllNotifications() {
-        dismissAllActive()
-        clearHistory()
+    // ── IPC ───────────────────────────────────────────────────────
+    IpcHandler {
+        target: "notifications"
+
+        function toggleDnd(): bool {
+            NotificationDND.toggle()
+            return NotificationDND.enabled
+        }
+        function setDnd(enabled: bool): void {
+            NotificationDND.setEnabled(enabled)
+        }
+        function isDnd(): bool {
+            return NotificationDND.enabled
+        }
+        function dndActive(): bool {
+            return NotificationDND.active
+        }
+        function dismissAll(): void {
+            root.dismissAllActive()
+        }
+        function clear(): void {
+            NotificationHistory.clear()
+        }
+        function markAllRead(): void {
+            NotificationHistory.markAllRead()
+        }
+        function count(): int {
+            return NotificationHistory.historyList.count
+        }
+        function unread(): int {
+            return NotificationHistory.unreadCount
+        }
+        function activeCount(): int {
+            return root._order.length
+        }
     }
 }

@@ -27,10 +27,9 @@ MaterialCard {
     implicitHeight: headerRow.height + (expanded ? contentContainer.implicitHeight + contentContainer.Layout.bottomMargin : 0)
 
     Behavior on implicitHeight {
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.emphasizedDecelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+            curve: "emphasizedDecelerate"
         }
     }
 
@@ -43,7 +42,9 @@ MaterialCard {
         Rectangle {
             id: headerRow
             Layout.fillWidth: true
-            height: 64
+            // Layout.preferredHeight, not height: inside a ColumnLayout a direct
+            // width/height is undefined behaviour (QtQuick.Layouts docs).
+            Layout.preferredHeight: 64
             color: "transparent"
             radius: section.radius
 
@@ -73,8 +74,8 @@ MaterialCard {
 
                 // Icon circle
                 Rectangle {
-                    width: 40
-                    height: 40
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
                     radius: Tokens.shape.full
                     color: Theme.primaryContainer
 
@@ -125,10 +126,9 @@ MaterialCard {
                     rotation: section.expanded ? 180 : 0
 
                     Behavior on rotation {
-                        NumberAnimation {
+                        MotionAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.emphasizedDecelerate
-                            easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                            curve: "emphasizedDecelerate"
                         }
                     }
                 }

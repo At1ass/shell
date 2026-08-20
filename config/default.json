@@ -5,9 +5,12 @@
     "theme": {
       "source": "wallpaper",
       "variant": "tonalspot",
+      "contrast": 0.0,
       "darkMode": true
     },
-    "fontScale": 1.3
+    "fontScale": 1.3,
+    "reduceMotion": false,
+    "motionScale": 1.0
   },
 
   "modules": {
@@ -165,11 +168,26 @@
     "popup": {
       "width": 360,
       "position": "top-right",
+      "monitor": "focused",
       "timeout": 7000,
       "timeoutLow": 3000,
       "timeoutNormal": 7000,
       "timeoutCritical": 15000,
       "maxVisible": 5
+    },
+    "maxHistory": 200,
+    "dnd": {
+      "suppressOnFullscreen": true
+    },
+    "rateLimit": {
+      "ingressPerSecond": 20,
+      "maxQueue": 32,
+      "popupIntervalMs": 350,
+      "maxPopupQueue": 8
+    },
+    "filters": {
+      "noPopup": [],
+      "noHistory": []
     }
   },
 
@@ -213,7 +231,9 @@
     "defaultWallpaper": "",
     "postSetScript": "",
     "sources": [],
-    "cache": { "maxBytes": 524288000 },
+    "cache": {
+      "maxBytes": 524288000
+    },
     "monitors": {}
   },
 
@@ -230,7 +250,8 @@
       "reminders": {
         "enabled": true,
         "minutesBefore": 15,
-        "lookaheadDays": 2
+        "lookaheadDays": 2,
+        "allDayTime": "09:00"
       },
       "dayView": {
         "hourHeight": 60

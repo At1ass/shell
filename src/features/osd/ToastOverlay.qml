@@ -25,17 +25,22 @@ OsdSurface {
     Connections {
         target: ToastService
         function onToastRequested(message, icon, level, duration) {
-            if (root._queue.length >= root.maxQueue) root._queue.shift()
-            root._queue.push({ message: message, icon: icon, level: level, duration: duration })
-            root._queue = root._queue
+            // Fresh array on every write: assigning a `var` property back to
+            // itself is not a change notification (reference-equality
+            // short-circuit), so anything binding to _queue would never update.
+            const next = root._queue.slice()
+            if (next.length >= root.maxQueue) next.shift()
+            next.push({ message: message, icon: icon, level: level, duration: duration })
+            root._queue = next
             if (!root.shown) root._showNext()
         }
     }
 
     function _showNext() {
         if (_queue.length === 0) return
-        const item = _queue.shift()
-        _queue = _queue
+        const next = _queue.slice()
+        const item = next.shift()
+        _queue = next
         _message = item.message
         _icon = item.icon
         _level = item.level

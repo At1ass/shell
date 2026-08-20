@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
@@ -19,19 +21,20 @@ ColumnLayout {
         ]
 
         delegate: RowLayout {
+            id: netRow
             required property var modelData
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.spacing.small
             Layout.rightMargin: Tokens.spacing.small
 
             MaterialText {
-                text: modelData.label
+                text: netRow.modelData.label
                 textStyle: "labelMedium"
                 colorRole: "onSurfaceVariant"
             }
             Item { Layout.fillWidth: true }
             MaterialText {
-                text: modelData.value || "\u2014"
+                text: netRow.modelData.value || "\u2014"
                 textStyle: "bodyMedium"
                 colorRole: "onSurface"
             }

@@ -428,9 +428,43 @@ Singleton {
 
     property var _postScriptQueue: []
 
+    // The user's script is arbitrary — a hung one used to block the queue for
+    // the rest of the session. Two stages, because SIGTERM reaches `sh` but not
+    // necessarily whatever it spawned: terminate, then SIGKILL if it is still
+    // alive. Only onExited advances the queue, so the kill is what unblocks it.
+    readonly property int _postScriptTimeoutMs: 10000
+
+    Timer {
+        id: postScriptTimeout
+        interval: manager._postScriptTimeoutMs
+        repeat: false
+        onTriggered: {
+            if (!postScriptProcess.running) return
+            ToastService.warning("Wallpaper post-script timed out after "
+                                 + (manager._postScriptTimeoutMs / 1000) + "s — terminating")
+            postScriptProcess.running = false   // SIGTERM
+            postScriptKill.restart()
+        }
+    }
+
+    Timer {
+        id: postScriptKill
+        interval: 2000
+        repeat: false
+        onTriggered: if (postScriptProcess.running) postScriptProcess.signal(9)  // SIGKILL
+    }
+
+    // Bound so a hung script plus rapid wallpaper cycling cannot grow the queue
+    // without limit; the newest entry is the one worth keeping.
+    readonly property int _maxPostScriptQueue: 8
+
     Process {
         id: postScriptProcess
-        onExited: manager._runNextPostScript()
+        onExited: {
+            postScriptTimeout.stop()
+            postScriptKill.stop()
+            manager._runNextPostScript()
+        }
         stdout: StdioCollector {}
         stderr: StdioCollector {
             onStreamFinished: {
@@ -443,10 +477,16 @@ Singleton {
     function _schedulePostScript(monitor, path) {
         if (!postSetScriptPath || postSetScriptPath.length === 0) return
 
-        manager._postScriptQueue.push({
+        // Fresh array: assigning a `var` back to itself is not a change signal,
+        // so in-place mutation is avoided repo-wide.
+        let queue = manager._postScriptQueue.concat([{
             "monitor": monitor || "",
             "path":    _normalizeFilesystemPath(path)
-        })
+        }])
+        if (queue.length > manager._maxPostScriptQueue)
+            queue = queue.slice(queue.length - manager._maxPostScriptQueue)
+        manager._postScriptQueue = queue
+
         if (!postScriptProcess.running) _runNextPostScript()
     }
 
@@ -455,9 +495,13 @@ Singleton {
             _postScriptQueue = []
             return
         }
-        const next = _postScriptQueue.shift()
         const script = postSetScriptPath.trim()
+        // Bail without consuming the queue entry — the script path can only be
+        // empty if config changed under us, and the entry stays valid.
         if (!script) return
+        const queue = _postScriptQueue.slice()
+        const next = queue.shift()
+        _postScriptQueue = queue
         // Schema contract: postSetScript is a SHELL COMMAND run with
         // $WALLPAPER_PATH/$WALLPAPER_MONITOR in the environment (plus
         // "$1"=monitor "$2"=path for compatibility). Runtime data flows

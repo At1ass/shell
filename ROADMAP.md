@@ -3,12 +3,323 @@
 Open work. The active stream is the root-cause refactor below; feature extensions are deferred behind it.
 
 Recent history that informs the items below:
+- 2026-08: **layer/module audit** — layer graph verified clean (no back-edges); seven behavioural defects found and fixed (see below). Root cause of the two largest: assumptions about Qt/Quickshell behaviour encoded into shared infrastructure and then guarded by tooling that shared the same assumption.
 - 2026-07: **full-project audit** (all QML + all 5 C++ plugins, architecture, config contract, MD3, security). ~120 verified findings distilled into the phased refactor plan below. Former Tier 1–3 quick-fix lists were folded into the phases.
 - `feat(config): unify per-feature enabled flags into modules on/off map` — every top-level UI element is now toggled via `modules.*`
 - `fix(calendar): adopt libical 4.0 refcounted rrule; fix all-day overlap`
 - MD3 overhaul (`md3-overhaul` branch): elevation, pixelSize typography, pill buttons, MaterialSwitch/MaterialText adoption, greeter UI kit unified via `sync-ui.sh`
 - Notifications subsystem split into 4 focused singletons; wallpaper subsystem with pluggable provider model + Wallhaven
 - Decision: **config-first, no GUI** — settings only via `config.json` + IPC (see `AGENTS.md` §0/§10)
+
+---
+
+## Done — calendar: all-day events off by a day, and duplicated (2026-08)
+
+Reported symptom: a birthday authored on 20 Oct showed on the 19th, while khal
+showed it correctly. Two independent defects, both in `IcalParser::expandRange`,
+both invisible in UTC and west of it — which is why they shipped.
+
+**1. Floating dates routed through UTC.** A `VALUE=DATE` denotes a calendar day,
+not an instant: it has no zone to convert from. The expander built the
+iterator's DTSTART from `ev.start.toUTC()` and kept only the date part, so in
+MSK (UTC+3) 20 Oct 00:00 became 19 Oct 21:00 UTC and every yearly occurrence
+landed on the 19th. All-day now takes the authored date verbatim with a null
+zone; timed events keep the UTC→authoring-zone path they need.
+
+**2. DTEND is exclusive, and the range filter ignored it.** `end >= rangeStart`
+meant an all-day event on the 15th (DTEND the 16th) also appeared on the 16th —
+EVERY all-day event was duplicated onto the following day, and every timed one
+onto the moment it ended. Replaced with one `intersects()` predicate used by all
+four call sites (non-recurring, expanded occurrences, overrides, and the
+recurrence loop), with zero-length events kept as points.
+
+**3. Found while fixing the above:** all-day series were excluded from the
+iterator fast-forward, so they replayed from DTSTART into a 5000-iteration
+safety cap — a DAILY all-day event authored in 2005 produced ZERO occurrences in
+2026. Fast-forward now runs for all-day too, seeking with a DATE-typed value
+(handing a timed value to a date rule is what made it unsafe) and backing off by
+the event's span so multi-day occurrences overlapping the range survive.
+
+Three regression tests added, each demonstrated to FAIL before its fix:
+the birthday date (pinned to Europe/Moscow, since the bug is invisible in UTC),
+the exclusive-end boundary, and the long daily series. Suite: 26 → 29, all green.
+
+The test suite existed but nothing documented how to run it, which is why it was
+never run — `AGENTS.md` §4 now carries the command.
+
+**Follow-up review of the whole subsystem** found two more RFC 5545 violations
+in the same parse step, both fixed with tests (suite 29 → 31):
+
+- **`DURATION` was never read.** DTEND and DURATION are mutually exclusive
+  alternatives; a DURATION-only event got `end = start`, i.e. zero length —
+  and a zero-length event only matches a range containing its exact start, so
+  it also disappeared from most queries. Apple/iCloud and Nextcloud emit
+  DURATION on recurring events.
+- **A bare all-day event lasted zero time.** RFC 5545 §3.6.1: a DATE-valued
+  DTSTART with neither DTEND nor DURATION lasts ONE DAY. It got `end = start`.
+
+Verified sound during the same pass, so they need no further attention: the
+worker-thread model (no parent → moveToThread, queued connections, bounded
+shutdown with terminate fallback), atomic writes via QSaveFile, the delete path
+(safe iteration over multi-VEVENT files, orphan file removal), timezone-aware
+DTSTART/DTEND writing across all four cases (date / TZID / UTC / floating), and
+the config contract — schema, defaults, AppConfig getters and the `shell.qml`
+Bindings that feed them into the C++ backend all line up.
+
+## Done — calendar brought to an acceptable state (2026-08)
+
+Everything the subsystem review listed as open, closed. Suite 31 → 38 tests,
+each new one demonstrated FAILING before its fix.
+
+**Expansion is now driven by the RRULE, not by the editor's enum.** The guard
+read `ev.recurrence == Recurrence::None`, an editor-facing vocabulary with no
+HOURLY/MINUTELY/SECONDLY, so `FREQ=HOURLY;COUNT=5` rendered exactly once. An
+unparseable RRULE now degrades to a single event instead of `continue` —
+dropping the whole series was the worst possible reading of "I don't
+understand this".
+
+**RDATE is read.** Explicit extra occurrences were ignored, so a server using
+RRULE+RDATE silently lost the RDATE ones, and an RDATE-only VEVENT showed a
+single date. Expansion now funnels every occurrence — RRULE- and RDATE-derived
+— through ONE emit path, so range filtering, EXDATE and override suppression
+cannot drift apart between them. PERIOD-valued RDATEs are skipped, not
+mis-read.
+
+**UNTIL matches DTSTART's value type.** Every series was written with a bare
+DATE UNTIL; RFC 5545 §3.3.10 requires a UTC DATE-TIME when DTSTART is a
+DATE-TIME. The user picks a day, so a timed series now runs to the end of it.
+
+**Unknown edit/delete scopes are refused.** `editScopeFromString` fell back to
+`EditScope::All`, so a typo or stale caller would rewrite or delete an entire
+series. The existing test asserted exactly that behaviour and has been
+rewritten — it was blessing the bug.
+
+**The watcher sees content edits.** Qt emits `directoryChanged` on
+add/remove/rename but not on an in-place rewrite, so the .ics files are watched
+too (216 watches here against a 524288 limit).
+
+**All-day events can remind.** They were skipped outright — "N minutes before"
+is meaningless without a start time — so a birthday could never remind. They
+now raise once on the day itself at `services.calendar.reminders.allDayTime`
+(default 09:00, new config key). Verified end to end: the notification lands in
+this shell's own history with `appName=Calendar`.
+
+**Reminders no longer spawn `notify-send`.** They go out over QtDBus directly.
+The destination is unchanged — this shell IS the notification server — so DND,
+history and grouping apply exactly as before, minus a process spawn per
+reminder. `libnotify` dropped from the README's dependencies.
+
+NOTE ON THE CHOSEN APPROACH: the request was to route reminders through a QML
+signal into `NotificationService`. That service is a *server* — its pipeline is
+built on real `Notification` objects with `id`, `tracked` and `expire()`, and
+faking one is exactly how earlier leaks happened. Direct D-Bus reaches the same
+place without that risk.
+
+**The event dialog can express dates.** There was no date input at all: start
+and end were composed from `selectedDate` plus the times, so multi-day and
+midnight-crossing events were inexpressible and editing the times of a
+multi-day event collapsed it to one day. Start/end date fields added; for
+all-day events the end shown is the LAST covered day (how humans read
+"15-17 March") and is converted to RFC's exclusive next day on save.
+
+**"This and future" exists.** Only "only this" and "whole series" did. The
+master's RRULE is truncated with an UNTIL just before the cut, overrides at or
+after it are removed (expandRange emits overrides independently of their
+master, so they would otherwise survive as exactly the occurrences the user
+asked to delete), and for an edit the tail becomes a new VEVENT with a fresh
+UID. Cutting at or before the first occurrence degrades to whole-series rather
+than leaving an empty stub.
+
+**Cancelling the scope prompt no longer discards the edit.** The form is
+already filled in by the time that modal appears; cancel now hands the composed
+fields back and reopens the editor.
+
+### Calendar — still open
+
+- PERIOD-valued RDATE (start/duration pairs) is skipped.
+- The event dialog's date fields are plain `yyyy-MM-dd` text, not a picker.
+- The three-button scope prompt and the new date fields are lint- and
+  compile-verified but were not seen rendered — driving synthetic input into a
+  focused panel did not work here.
+
+### Calendar — resolved items from the 2026-08 subsystem review
+
+All of the below are now FIXED — kept for the reasoning. None affected the
+data set at the time (checked: 0 VEVENTs using DURATION, 0 using RDATE, 0
+sub-daily FREQ, 0 without DTEND); they were spec gaps that would bite on a new
+calendar source.
+
+- **RDATE is not read at all.** It adds explicit occurrences to a series; a
+  server that uses RRULE+RDATE loses the RDATE ones silently.
+- **FREQ=HOURLY / MINUTELY / SECONDLY map to `Recurrence::None`**, and
+  `expandRange` treats "None" as non-recurring — such an event renders exactly
+  once instead of on its schedule. Either map them or reject them loudly.
+- **UNTIL is truncated to a date on write.** `recurrenceUntil` is a QDate, so
+  editing a series whose RRULE carried `UNTIL=...T235959Z` rewrites it as a
+  DATE. Harmless in practice, lossy in principle.
+- **All-day events never produce reminders** (`ReminderEngine::tick` skips
+  `allDay`). Defensible for a timed reminder, but it means a birthday — the
+  archetypal all-day event — can never remind. Wants a separate "morning of"
+  path rather than the minutes-before one.
+- **`ReminderEngine` shells out to `notify-send`** instead of using a native
+  API. Functionally fine — it round-trips over D-Bus into this shell's OWN
+  notification server, so DND and history do apply — but it is a process spawn
+  per reminder and deviates from §7's "native > CLI".
+- **`QFileSystemWatcher` watches directories only.** Qt fires
+  `directoryChanged` on add/remove/rename, not on in-place content edits, so an
+  editor that writes an .ics in place without renaming is missed until the next
+  rescan. vdirsyncer/khal write atomically, so this is currently theoretical.
+
+---
+
+## Done — keyboard navigation was Latin-only (2026-08)
+
+Reported symptom: notification-centre navigation worked only on a US layout.
+The cause is general, and it hit every panel.
+
+`event.key` and `event.text` carry the SYMBOL the active layout produces, not
+the key that was pressed. On a Cyrillic layout the physical J key arrives as
+`Qt.Key_O` with text "о", so `event.key === Qt.Key_J` simply never matched.
+Every vi binding in the shell was dead: j/k/x/g in the notification centre,
+h/j/k/l/g/n on the calendar, h/l for dashboard tab switching, Ctrl+F in the
+cheatsheet, and the digits 1-5 (which also break on AZERTY, where the unshifted
+digit row produces &é"'( ).
+
+The fix is to match the PHYSICAL key — `event.nativeScanCode`, the XKB keycode,
+identical on every layout. New `Keycodes` singleton in `core/config` (the only
+layer everything else may import) exposes `key(event)` → `Qt.Key_*` and
+`letter(event)` → "A".."Z". Call sites keep their shape; `event.key` becomes
+`Keycodes.key(event)` and non-letter keys fall through untouched.
+
+Two places already had the right idea in isolation and are now folded in:
+`ScreenshotOverlay` carried a four-entry hjkl table, and `PowerMenu` a
+five-entry one — the latter with an `event.text.toUpperCase()` fallback, i.e.
+the exact layout-dependent read it was trying to avoid, so any action key
+outside those five still failed.
+
+Verification, since the mapping is the whole fix:
+- All 36 letter/digit scancodes checked against `/usr/include/linux/input-event-codes.h` — 0 discrepancies.
+- The evdev+8 offset confirmed by a real event on this machine (Super: scancode 133 = KEY_LEFTMETA 125 + 8).
+- `Keycodes` exercised against synthesised Cyrillic events (physical J reported as `Qt.Key_O`/"о" → resolves to `Qt.Key_J`): 8/8.
+- New `layout-dependent-keys` invariant holds it at zero; its pattern was validated against 11 synthetic cases, and it ignores comment lines so the fix can describe the bug it removed.
+
+Not yet confirmed end to end by a human pressing keys on a RU layout — driving
+synthetic input into a focused panel did not work here.
+
+---
+
+## Done — the lock screen died and the session was unrecoverable (2026-08-13)
+
+An incident worth writing down, because the tooling could not see it coming.
+
+`BindRow.qml` ended up with two `pragma ComponentBehavior` lines. qmllint accepts
+that file — exit 0, no diagnostic. The Quickshell loader does not, and a failed
+load is all-or-nothing: the whole configuration went down, including the
+`WlSessionLock` client. Hyprland was left locked with no lock client and showed
+its "lockscreen app died" recovery screen.
+
+Two separate failures, both worth keeping distinct:
+
+- **Tooling.** A fatal load error was invisible to the linter. Fixed with
+  `tools/compile-check.sh`, which builds every component through the real engine
+  via `Qt.createComponent` — no objects, no surfaces, safe against a live
+  session — plus the `duplicate-pragmas` and `qml-compile-failures` invariants.
+  Both were verified by planting the real defect and confirming they go red; the
+  compile check reports the full cascade (one bad pragma → 4 dead components).
+- **Process.** The edits were made while the session was already locked. The
+  shell owns the lock screen, so editing it then is editing the only way back
+  in. `hypridle` locks after 600 s idle here, and IPC calls and screenshots do
+  NOT reset the idle timer — an unattended automated session will lock itself.
+  Recorded as a rule in `AGENTS.md` §4.
+
+**No working recovery is known.** Hyprland's own screen suggests
+`hyprctl --instance 0 eval 'hl.clear_crashed_lockscreen()'` from another tty.
+The function does exist on 0.56.2 and responds, but it did NOT resolve the
+incident — the machine had to be rebooted. Likely reason, unverified: the `qs`
+process SURVIVES a failed config load (`pgrep -x qs` returned a live pid while
+the log said "Failed to load configuration"), so the lock client process is
+still around; the same screen's second suggestion — kill the lock process and
+re-run the eval — would mean `pkill -x qs` here, not `killall hyprlock`. Nobody
+is going to test that on a live session, so prevention is the whole answer.
+
+---
+
+## Done — qmllint ratchet burn-down (2026-08)
+
+212 → 49 warnings; unqualified access 150 → 4. The four that remain are qmllint
+limitations, not defects: Quickshell's `margins` grouped property on PanelWindow
+(×2) and two ids reached from inside an attached-property scope in
+`TooltipManager`. `Repeater.itemAt()` returning `QQuickItem` accounts for most of
+the surviving `missing-property` noise — those members are duck-typed contracts.
+
+Mechanically the work was `pragma ComponentBehavior: Bound` plus `required
+property` on delegates, then qualifying every reference with an explicit id.
+Bound is the point: without it a delegate reaches its enclosing scope through
+the dynamic context, which happens to work and which nothing verifies.
+
+What the noise was hiding, now that the signal is back:
+
+- The greeter's three defects (see the section below) — 7 unresolved-type and 2
+  unqualified warnings, all sitting inside a baseline that read "known debt".
+- **Four animations running linear.** `easing.type: Tokens.motion.easing.X`
+  without the matching `bezierCurve` — every one of those tokens is
+  `Easing.BezierSpline`, so a lone half leaves Qt with no control points. Three
+  were in `MaterialComboBox`, one in `NotificationCenter`. They survived the
+  2026-08 sweep because `check.sh`'s `easing-unpaired-tokens` anchored the type
+  match to end-of-line and therefore only ever saw the two-line form. The check
+  now accepts both layouts and is verified against synthetic cases for all three
+  failure shapes (single-line unpaired, two-line unpaired, mismatched pair).
+- **13 `Quick.layout-positioning` warnings** — `width`/`height` set on items
+  inside a Layout, which the QtQuick.Layouts docs call undefined behaviour.
+  Now `Layout.preferredWidth`/`preferredHeight`.
+- Two hand-rolled count chips replaced with `Badge { inline: true }` — the mode
+  added for exactly this and until now unused (raw Rectangle ratchet 83 → 81).
+
+The pass also caught one of its own mistakes, which is the argument for keeping
+the signal clean: qualifying `actions` as `menuWindow.actions` in `PowerMenu`
+was WRONG — the property lives on the root `Scope`, not the `PanelWindow`, so
+the binding would have been `undefined` at runtime. qmllint reported it as
+`Member "actions" not found on type "PanelWindow"` immediately.
+
+Still verified only by lint and a clean `Configuration Loaded`: the visual pass
+over cheatsheet / launcher / dashboard tabs / popouts / power menu / tooltips
+was cut short when the session idle-locked, and should be repeated.
+
+---
+
+## Done — greeter fell out of the kit (2026-08)
+
+The greeter is a SEPARATE Quickshell process on the pre-login screen with its own
+module roots. Its `ui/` is generated from `src/ui`, but its `config/` is not — so
+main-shell fixes reached its components and never reached its theme. Three live
+defects, all found by instantiating the greeter kit under Quickshell in a probe
+config that creates no windows (`qs -p probe.qml`); the greeter itself cannot be
+smoke-tested over a live session, since it grabs the screen.
+
+- **Unresolvable animation types.** `MotionAnimation`/`MotionColorAnimation` were
+  introduced in the main kit and picked up by four generated components, while
+  being absent from both the generator's copy list and the greeter's `qmldir` —
+  which was hand-maintained. Every greeter button, icon and state layer would
+  have failed to resolve its animation type. `qmldir` is now GENERATED from the
+  same list that copies the files, so it cannot drift again.
+- **`AppConfig` leaked into the greeter.** `Tokens.durationScale` grew a config
+  binding, but the generator only substituted `AppConfig.fontScale`. Result:
+  `ReferenceError: AppConfig is not defined` on the login screen and every
+  duration undefined. Generation now aborts if any `AppConfig` survives.
+- **The palette never seeded from the wallpaper.** `McuTheme.source` takes
+  QColor or QUrl and rejects a QString outright; `GreeterConfig.wallpaperPath`
+  is a bare path string. Measured A/B: before, the greeter fell back to the
+  default purple seed (`primary #cfbdff`, `primaryContainer #5300cd`); after,
+  it derives from the actual wallpaper (`primary #e9c400`, `#544600`). The
+  greeter also still carried the hardcoded `contrast: 0.5` that was removed
+  from the main shell — at 0.5 `primaryContainer` came out `#aa8f00` (bright)
+  instead of `#544600` (dark), the same container-polarity inversion.
+
+Two things worth keeping: the qmllint ratchet HID all of this (7 unresolved-type
+and 2 unqualified-access warnings sat inside a 212-warning baseline that read as
+"known debt"), and `greeter-ui-drift` passed throughout, because it diffed the
+generator against its own output while the bug was in the generator's inputs. A
+check that compares a thing to itself proves nothing.
 
 ---
 
@@ -31,6 +342,44 @@ single-sourced (`IpcReferenceData.qml`).
 **Reinstall plugins after pulling this branch:**
 `cd src/plugins && cmake --build build && sudo cmake --install build`
 
+## Done — layer/module audit (2026-08)
+
+Seven confirmed defects, each verified by execution against Qt 6.11 /
+Quickshell source rather than by inspection:
+
+- **All MD3 easing was linear.** `easing.bezierCurve` takes groups of three
+  points (6 reals, last = 1,1); the tokens supplied 4, which Qt rejects
+  silently. Every one of the 115 curve sites, `MotionAnimation` and the
+  generated greeter tokens were affected. New `easing-points-arity` invariant
+  makes the shape non-regressable.
+- **`x = x` does not notify.** Reference-equality short-circuit on `var`
+  properties. Broke the notification ingress queue (drain timer never started
+  → burst notifications silently swallowed and left tracked) and the history
+  batch-clear timer (never stopped → `save()` restarted the debounce every
+  8 ms → history stopped persisting for the session). Also fixed a gate-queue
+  deadlock when a queued notification died while waiting.
+- **Dock context menu never ran an action** — `close()` nulled `app` before
+  the guard read it.
+- `WallpaperManager` called a `postScriptTimeout` Timer that did not exist;
+  added the (missing) two-stage SIGTERM→SIGKILL watchdog and bounded the queue.
+- `ClipboardProvider` wrote to an undeclared global; also restored the stable
+  cliphist id that `ClipboardService` documents but never shipped in results.
+- **Overlay panels now open on the focused monitor.** Dashboard, launcher,
+  power menu, cheatsheet and notification centre had no `screen`, so the
+  compositor placed them on its default output. Resolver shared via
+  `GlobalStates.focusedScreen()`; the two prior copies now delegate to it.
+- **`SystemMonitor` no longer polls when nothing reads it.** The worker started
+  in the constructor and never stopped; it is now gated on dashboard
+  visibility (thread stays warm, counters re-baseline on resume).
+
+Tooling gaps closed in the same pass: the `sh -c` security scan was line-based
+and could only see 3 of 8 call sites (now multiline-aware); greeter UI-kit drift
+is now checked via `sync-ui.sh --check`; the two dead config keys
+(`services.vpn.enabled`, `lockscreen.blurWallpaper`) are honored.
+
+**Reinstall plugins after pulling:**
+`cd src/plugins && cmake --build build && sudo cmake --install build`
+
 ### Follow-ups from the 2026-07 deep per-system audit (small, non-blocking)
 - WorkspaceWidget: surface `HyprlandWorkspace.urgent` (urgent windows never
   light up) and optional per-monitor workspace filtering.
@@ -50,15 +399,36 @@ single-sourced (`IpcReferenceData.qml`).
   PamContext across monitors (contention with fingerprint/U2F stacks).
 
 ### Follow-ups (small, non-blocking)
-- Adopt `ScrollableList` where stock `ScrollView`/`ScrollBar` remain
-  (cheatsheet tabs, CalendarTab, LauncherContent, NotificationCenter).
-- Remaining raw `Rectangle`/`Text` in features (screenshot overlay chrome,
-  cheatsheet keycaps → `Chip`, DeviceSelectionDialog radio →
-  `MaterialRadioButton`, hand-rolled progress bars → `ProgressIndicator`).
+- Adopt `ScrollableList` in the THREE places it actually fits — `IpcReferenceTab`,
+  `KeybindingsTab`, `CalendarTab`. NOT `LauncherContent` / `NotificationCenter`:
+  those use `ListView`, which virtualises, while `ScrollableList` is a
+  `default property alias contentData` over a Column and would instantiate every
+  row eagerly. Swapping them would be a performance regression, not an adoption.
+- Remaining raw `Rectangle`/`Text` in features — 81 by the ratchet, concentrated
+  in `ScreenshotOverlay` (12), `CalendarTab` (8), `NotificationPopupItem` (6),
+  `LockSurface` (5), `BindRow` (5). Needs case-by-case triage; several are
+  legitimate (image backing with `clip`, 1px rules, scrims).
 - Native BlueZ / NetworkManager D-Bus endgame (replaces `nmcli monitor`).
 - Notification inline reply / action icons (see Notifications — deferred).
-- qmllint ratchet burn-down (≈258 warnings, mostly upstream qmltypes gaps
-  and pre-existing unqualified access in feature files).
+
+Struck from this list after checking the code rather than trusting the entry:
+`DeviceSelectionDialog` already uses `MaterialRadioButton`; the hand-rolled
+progress bars are already `ProgressIndicator` (`OsdMeter`, `NotificationPopupItem`);
+cheatsheet keycaps as `Chip` contradicts the recorded non-adoption below; and the
+qmllint burn-down is done (212 → 49).
+- `AppFrequencyService` runs `LocalStorage.openDatabaseSync` on the UI thread.
+  MEASURED 2026-08-13, and it is far cheaper than this entry used to imply:
+  Qt caches the connection, so the open itself is ~0 ms and a full SELECT is
+  0.015 ms. Only the launch UPSERT costs anything real — 1.9 ms, once per app
+  launch, at the moment the launcher is closing anyway. `getFrequency()` is
+  dead code and `getAllFrequencies()` feeds a cache, not per-delegate reads,
+  so there is no hot path here. Still a §10 rule violation worth cleaning up
+  eventually; not a performance problem.
+- `NotificationPopup` animates `screenY`, i.e. a layer-shell margin: one
+  surface reconfigure per frame per popup.
+- No runtime validation of `config.json` against `config.schema.json` — for a
+  config-first project the schema is currently editor-only, so a typo'd key is
+  silently ignored.
 
 ---
 
@@ -89,15 +459,191 @@ In Stage D a source has one `query`, and every monitor shares it. Either spawn m
 
 ---
 
+## Done — notifications deep dive (2026-08)
+
+The subsystem's split into five singletons was sound; what was missing is that
+**no single place owned a notification's lifecycle**. All three critical bugs sat
+on the seams. `NotificationService` is now the sole owner: it is the only code
+allowed to close a notification, and the popup manager is purely presentational.
+
+- **maxVisible eviction leaked.** The cap lived in the popup manager, and
+  "evicting" only destroyed the window — the notification stayed tracked on the
+  server for the session, holding its `NotifData` and any image-data pixmap, once
+  per eviction. The cap moved next to the lifecycle. Verified by accounting:
+  30 sent → 30 `NotificationClosed` → 0 left active.
+- **Replacement never reached history.** The server does not re-emit
+  `notification()` for `replaces_id`; it mutates the object. The only
+  `History.add()` sat on the first-appearance path, so the centre kept the
+  original text forever. There is now `NotificationHistory.update()` on the
+  replacement path, keyed off a map maintained for every admitted notification.
+- **`tracked = false` told clients "the user dismissed this"** (reason 2) in four
+  places where the user never saw the notification. All now `expire()` (reason 1).
+- `transient` is honored (skips history); `resident` is honored (invoking an
+  action no longer tears down a notification that is meant to survive it).
+- **Critical bypasses DND** and fullscreen suppression — the rate limiter already
+  treated critical as special, so the subsystem had been disagreeing with itself.
+- Identity collapsed onto `Notification.id` for live popups; the internal
+  `contentId:ts:n` id remains only as the history row key. Three hand-synced maps
+  became one.
+- Duplicates merge into a repeat counter on the existing card instead of expiring
+  the previous popup and losing the count.
+- Unread tracking: badge counts unread rather than history size, cleared when the
+  centre opens; dot on unread cards.
+- New: IPC (`target: notifications`), `notifications.rateLimit.*`,
+  `notifications.maxHistory`, `notifications.dnd.suppressOnFullscreen`,
+  `notifications.filters.noPopup/noHistory`. `popup.timeout` was dead (nothing
+  read it) — it now backs `timeoutNormal` as its description always claimed.
+- Removed: `forceExit`, `NotifData.timestamp`, `NotifData.closeReason`,
+  `discardNotification`/`discardAllNotifications`, and an unreachable
+  replaces-branch in `_processNotification`.
+
+Two Quickshell traps are now recorded in comments where they bite:
+`expireTimeout` is in **milliseconds** despite upstream docs saying seconds, and
+`mCloseReason` defaults to `Dismissed` so a fresh notification is *not* tracked
+until the handler says so.
+
+## Done — UI system review (2026-08)
+
+The kit itself is sound; every finding was a seam where part of the system was
+wired so it could not work.
+
+- **The palette ran in accessibility high-contrast mode.** `Theme.qml` hardcoded
+  `contrast: 0.5` with no comment and no config key. In a dark scheme that
+  INVERTS container polarity: measured on the same seed, `errorContainer` goes
+  `#93000A` → `#FF5449` and `onErrorContainer` `#FFDAD6` → `#000000`. Every
+  tonal button, chip, badge, the active workspace pill and critical
+  notifications rendered as glaring blocks. Now `appearance.theme.contrast`,
+  default `0.0`. Measured after: critical card `#FF5B4F` → `#990911`, luminance
+  jump against the panel 14× → 5×.
+- **Focus rings were unreachable infrastructure.** `Tokens.focusRing`,
+  `StateLayer.focused/showFocusRing/ringColor` all existed; 0 of 8 interactive
+  kit components could take focus. All eight are now Tab-reachable with
+  Space/Enter activation and a live ring.
+- `MaterialText` moved off `Text.NativeRendering` (no subpixel positioning) —
+  the shell animates `scale` in 18 places and `MaterialIcon` sized itself to
+  `fontSize * 1.2`, fractional at every token; that size is rounded now.
+
+  This shipped as a REGRESSION first and is worth recording. Material Symbols
+  is a variable font driven through `font.variableAxes`, and Qt's
+  distance-field renderer corrupts its glyphs — a toast `info` icon rendered
+  as two mis-registered outlines superimposed. The fix is a split, not a
+  revert: text keeps `QtRendering`, `MaterialIcon` overrides its inner text
+  back to `NativeRendering`. Measured on a live toast — the icon is now
+  pixel-identical to full native rendering (0 differing pixels; it was 1424
+  while both were on `QtRendering`). `check.sh: icon-renderer-override`
+  fails if that override is ever dropped.
+
+  The lesson generalises past this one bug: the change was made by reasoning
+  about subpixel positioning and never looked at, and a screenshot caught in
+  one second what inspection had missed for a whole pass. Renderer- and
+  font-level changes need a rendered pixel before they count as done.
+- `Surface` builds its `MultiEffect` through a `Loader` gated on
+  `elevation > 0` — elevation 0 is the default, so every flat card carried a
+  blur-capable node for a shadow it never drew.
+- Three hand-rolled "primary tint" rectangles painted with
+  `Tokens.stateLayer.hoverOpacity` (a STATE token used as a constant elevation
+  tint, so surfaces at rest looked hovered) replaced with `SurfaceTint`.
+- **The variant enum lied.** Schema offered `fidelity`/`neutral`/`monochrome`,
+  none of which `McuTheme.cpp` handled — all three silently fell through to
+  tonalSpot — while the implemented `content` was not offered. All seven are now
+  wired and verified to produce distinct schemes.
+- `Badge` gained an `inline` mode; it could only pin itself to a parent's
+  corner, which is why every inline counter in the shell was a raw Rectangle.
+
+Notification centre, same pass: visible keyboard cursor (it navigated an
+invisible one and deleted cards the user could not see), unread cleared on
+close rather than on open (the dots were gone before the panel finished
+animating in), group counts via an O(1) index instead of a linear scan per
+group per mutation, delegate on typed properties instead of a 12-field literal
+rebuilt on every change, DND toggle on the button's own `tonal` variant, and a
+layout fix that only a screenshot revealed — the app name was repeated on every
+card inside its own group, leaving the headline row empty.
+
+Also fixed: **an auto-hidden bar slid away when you clicked its own tray icon.**
+Opening a tray menu raises the popouts window — a fullscreen layer surface above
+the bar, with a focus grab — so the pointer left the bar, `barHover.hovered`
+dropped and the bar hid out from under the menu the click had just opened. The
+bar's reveal condition tracked hover and nothing else, while the dock had always
+had the equivalent (`_previewShowing || contextMenu.open`). It now also stays
+revealed while it owns an open popout (matched by walking the requesting item's
+parent chain to this bar's `contentItem`, so a second monitor's bar is
+unaffected) or an open tooltip menu.
+
+### Still open
+- Keyboard traversal across whole panels (dashboard, launcher, centre) — the kit
+  is ready, the panels still hand-roll their own `Keys.onPressed`.
+- ~93 raw `Rectangle` in `features/` with no mechanical check. A ratchet is
+  honest here; a ban is not, since several are legitimate (image backing with
+  `clip`, 1px dividers, scrims).
+- `ScrollableList` takes static children, not a model, so the "adopt it for the
+  lists" item below cannot be done as written.
+
+## Done — kit as the single point (2026-08)
+
+Deep audit found the library was written but never made mandatory: **10 of 40
+components were used zero times, and four of them covered exactly what features
+were hand-rolling.** Adopting them, and making the kit hard to bypass:
+
+- **`MotionAnimation` had 0 users against 109 hand-written easing pairs.** It
+  exists precisely so the two halves of a curve cannot diverge — which is why
+  the 4-value-bezier bug reached every site at once. All pairs are migrated
+  (`MotionColorAnimation` added, since a NumberAnimation cannot stand in for a
+  colour transition and a quarter of the pairs were `ColorAnimation`). Verified
+  identical: hand-written pair and `MotionAnimation` both sample 793 at t=200 ms
+  of a 1 s run, against 208 for linear. A bad `curve:` name falls back to
+  `standard`, not to linear.
+- `Scrim` → the 4 hand-rolled dimmers (three used a literal 0.32, the power menu
+  0.5 for no recorded reason; the token is now the only source).
+- `ProgressIndicator` → the 2 hand-rolled bars. Gained `animateValue`, because a
+  caller already driving `value` from a running animation was a real reason to
+  refuse the component, and that reason is now a parameter.
+- `Badge` gained `inline` and replaced the hand-rolled pill inside `SectionHeader`
+  — the kit was duplicating itself two directories away.
+- **API made uniform.** `clicked` had three incompatible signatures; single-action
+  controls now all use `clicked()`. `IconButton`'s `mouse` argument was never
+  meaningful (its MouseArea only accepts the left button, so every
+  `mouse.button === Qt.LeftButton` at a call site was always true). `BarElement`
+  keeps its argument — all nine bar widgets branch on right-click, which is the
+  kind of justification the rule asks for.
+- `MaterialIcon` and `IconButton` gained `colorRole`, so the two most-used
+  components no longer disagree with `MaterialText` about how a colour is named.
+- Component fixes: `Divider`/`CircleAvatar`/`MaterialMarqueeText` no longer bind
+  their own `width`/`height` (they fought every layout they were in);
+  `MaterialIndicator` no longer animates `height` twice through `height: width`;
+  `MaterialTextField` is finally Tab-reachable; hardcoded 0.12/0.08/0.87/0.38/0.6
+  replaced with tokens; `MaterialMarqueeText.align` was a dead property whose
+  only use was commented out.
+- **`appearance.reduceMotion` and `appearance.motionScale`.** `Tokens.durationScale`
+  worked all along but had no key — "reduce motion" was reachable only as a side
+  effect of gaming mode. Gaming mode now flips `Tokens.motionFrozen` instead of
+  assigning `durationScale`, which would have severed the config binding for good.
+
+New invariants: `easing-pairs-by-hand` (0), `unknown-enum-literals` (0 — string
+enums fall back silently on a typo, verified by running it), and a
+`raw-rectangle-in-features` ratchet at 83 (down from 93; a ratchet rather than a
+ban, since an image backing with `clip` or a 1px rule is legitimate).
+
+### Justified non-adoptions
+- `Snackbar` — MD3's snackbar is a single `inverseSurface` bar; `ToastOverlay`
+  encodes severity by colour and takes its surface from `OsdSurface` (per-screen
+  OSD infrastructure). Forcing it would nest two surfaces and lose severity.
+- `SegmentedButton` for the dashboard tabs — MD3 distinguishes Tabs from
+  Segmented Buttons; the gap is a missing `TabBar`, not a misuse.
+- `Chip` for the cheatsheet keycaps — a keycap is a static token, not an
+  interactive selection affordance. Also a kit gap.
+
+`FAB`, `ListItem`, `MaterialCheckbox`, `CollapsibleSection` remain with no
+adopter. They are complete and spec-correct; nothing in the shell needs them yet.
+
 ## Notifications — deferred
 
 ### Tests (Qt Test framework)
 Mirror the calendar tests. Logic-only singletons are testable:
 - `NotificationRateLimiter` — token-bucket math, queue behavior
 - `NotificationHistory` — TTL pruning, grouping, persistence roundtrip
-
-### `services.notifications.dnd.suppressOnFullscreen` config
-Currently hardcoded `true` in `NotificationDND.qml`. AppConfig reader + schema entry + `?? true` read (~15 lines).
+The 2026-08 pass verified behaviour end-to-end over D-Bus instead (eviction
+accounting, DND/critical, transient, replacement, duplicate merge, filters);
+that is reproducible but manual.
 
 ### Inline reply support
 Quickshell supports `notification.sendInlineReply(text)`. Requires a text input in the popup; useful for clients that declare `inlineReplyPlaceholder`.

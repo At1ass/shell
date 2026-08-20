@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -116,6 +118,11 @@ ShellRoot {
         target: CalendarBackend
         property: "reminderLookaheadDays"
         value: AppConfig.calendarReminderLookaheadDays
+    }
+    Binding {
+        target: CalendarBackend
+        property: "reminderAllDayTime"
+        value: AppConfig.calendarReminderAllDayTime
     }
     Connections {
         target: CalendarBackend

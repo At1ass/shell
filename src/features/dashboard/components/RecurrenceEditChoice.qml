@@ -12,8 +12,8 @@ import qs.src.core.config
 Dialog {
     id: root
 
-    dialogWidth: 480
-    dialogHeight: 220
+    dialogWidth: 700
+    dialogHeight: 240
 
     property string intent: "edit"     // "edit" | "delete"
     property var    target: null       // event map (must contain start, uid)
@@ -21,6 +21,10 @@ Dialog {
 
     // mode: "this" | "all"
     signal choiceMade(string mode, string intent, var ev, var fields)
+    // Cancel is not "never mind, discard everything" — the user has already
+    // filled in the edit form by the time this modal appears. It carries the
+    // composed fields back so the caller can hand them to the editor again.
+    signal cancelled(string intent, var ev, var fields)
 
     function askEdit(ev, fields) {
         intent = "edit"
@@ -51,8 +55,8 @@ Dialog {
 
         MaterialText {
             text: root.intent === "edit"
-                ? "This is a recurring event. Apply the change to a single occurrence or to the whole series?"
-                : "This is a recurring event. Delete only this occurrence or the whole series?"
+                ? "This is a recurring event. Apply the change to this occurrence only, to this one and everything after it, or to the whole series?"
+                : "This is a recurring event. Delete this occurrence only, this one and everything after it, or the whole series?"
             textStyle: "bodyMedium"
             colorRole: "onSurfaceVariant"
             wrapMode: Text.WordWrap
@@ -68,7 +72,10 @@ Dialog {
             MaterialButton {
                 text: "Cancel"
                 variant: "text"
-                onClicked: root.close()
+                onClicked: {
+                    root.cancelled(root.intent, root.target, root.pendingFields)
+                    root.close()
+                }
             }
 
             Item { Layout.fillWidth: true }
@@ -78,6 +85,15 @@ Dialog {
                 variant: "tonal"
                 onClicked: {
                     root.choiceMade("this", root.intent, root.target, root.pendingFields)
+                    root.close()
+                }
+            }
+
+            MaterialButton {
+                text: "This and future"
+                variant: "tonal"
+                onClicked: {
+                    root.choiceMade("future", root.intent, root.target, root.pendingFields)
                     root.close()
                 }
             }

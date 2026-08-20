@@ -1,9 +1,12 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.src.core.services
 import qs.src.core.config
+import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
 
@@ -12,17 +15,16 @@ Rectangle {
 
     required property var notificationData
     property int duration: 0
-    property string notifId: notificationData?.notificationId ?? ""
 
     readonly property bool hasData: notificationData !== null && notificationData !== undefined
-    readonly property bool isCritical: hasData && notificationData.urgency === NotificationUrgency.Critical
+    readonly property bool isCritical: hasData && root.notificationData.urgency === NotificationUrgency.Critical
     readonly property bool hovered: mouseArea.containsMouse
 
     // Per freedesktop spec, the action with identifier "default" is the
     // implicit click target on the notification body — it's never meant
     // to be a labelled button. Filter it (and any empty-label actions)
     // out of the buttons strip; surface it via body click instead.
-    readonly property var _allActions: hasData ? (notificationData.actions || []) : []
+    readonly property var _allActions: hasData ? (root.notificationData.actions || []) : []
     readonly property var _visibleActions: _allActions.filter(
         a => a.identifier !== "default" && (a.text || "").trim().length > 0)
     readonly property var _defaultAction: _allActions.find(a => a.identifier === "default") ?? null
@@ -66,19 +68,18 @@ Rectangle {
     implicitHeight: nonAnimHeight
     radius: Tokens.shape.medium
 
-    color: isCritical ? Theme.errorContainer : Theme.surfaceContainerHigh
+    color: root.isCritical ? Theme.errorContainer : Theme.surfaceContainerHigh
 
-    border.width: isCritical ? 2 : 0
-    border.color: isCritical ? Theme.error : "transparent"
+    border.width: root.isCritical ? 2 : 0
+    border.color: root.isCritical ? Theme.error : "transparent"
 
     // Snap-back animation for cancelled swipe
     ParallelAnimation {
         id: snapBackAnim
-        NumberAnimation {
+        MotionAnimation {
             target: root; property: "x"; to: 0
             duration: Tokens.motion.duration.short4
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
         NumberAnimation {
             target: root; property: "opacity"; to: 1.0
@@ -90,12 +91,11 @@ Rectangle {
     SequentialAnimation {
         id: swipeDismissAnim
         property real targetX: root.implicitWidth
-        NumberAnimation {
+        MotionAnimation {
             target: root; property: "x"
             to: swipeDismissAnim.targetX
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.emphasizedAccelerate
-            easing.bezierCurve: Tokens.motion.easing.emphasizedAcceleratePoints
+            curve: "emphasizedAccelerate"
         }
         NumberAnimation {
             target: root; property: "opacity"
@@ -109,12 +109,13 @@ Rectangle {
         }
     }
 
-    // MD3 surface tint elevation
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        color: Theme.primary
-        opacity: Tokens.stateLayer.hoverOpacity
+    // MD3 surface tint elevation. Was a hand-rolled Rectangle carrying
+    // `Tokens.stateLayer.hoverOpacity` — a STATE-layer token used as a constant
+    // elevation tint, so a popup at rest was painted as if hovered. SurfaceTint
+    // has its own tintOpacity scale, which is what this needs.
+    SurfaceTint {
+        level: 3
+        radius: root.radius
     }
 
     Rectangle {
@@ -132,24 +133,22 @@ Rectangle {
         radius: parent.radius
         color: Theme.error
         opacity: 0
-        visible: isCritical
+        visible: root.isCritical
 
         SequentialAnimation {
-            running: isCritical
+            running: root.isCritical
             loops: 3
-            NumberAnimation {
+            MotionAnimation {
                 target: criticalPulse; property: "opacity"
                 from: 0; to: 0.12
                 duration: Tokens.motion.duration.medium2
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
-            NumberAnimation {
+            MotionAnimation {
                 target: criticalPulse; property: "opacity"
                 from: 0.12; to: 0
                 duration: Tokens.motion.duration.medium2
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
     }
@@ -158,7 +157,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
-        color: isCritical ? Theme.onErrorContainer : Theme.onSurface
+        color: root.isCritical ? Theme.onErrorContainer : Theme.onSurface
         opacity: root.hovered ? Tokens.stateLayer.hoverOpacity : 0
 
         Behavior on opacity {
@@ -219,8 +218,8 @@ Rectangle {
 
             Image {
                 visible: root.hasData && source !== ""
-                source: root.hasData && notificationData.appIcon
-                        ? Quickshell.iconPath(notificationData.appIcon)
+                source: root.hasData && root.notificationData.appIcon
+                        ? Quickshell.iconPath(root.notificationData.appIcon)
                         : ""
                 Layout.preferredWidth: 24
                 Layout.preferredHeight: 24
@@ -231,20 +230,41 @@ Rectangle {
             }
 
             MaterialText {
-                text: root.hasData ? (notificationData.appName || "") : ""
+                text: root.hasData ? (root.notificationData.appName || "") : ""
                 visible: text.length > 0
                 textStyle: "labelMedium"
                 font.weight: Font.Bold
-                color: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
+                color: root.isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
                 elide: Text.ElideRight
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
             }
 
+            // Repeat counter. Identical notifications merge into this card
+            // instead of replacing it, so a second "New message" reads as "×2"
+            // and nothing is lost — the old behaviour silently expired the
+            // previous popup and the count of events disappeared with it.
+            Rectangle {
+                readonly property int repeatCount: root.hasData ? (root.notificationData.count ?? 1) : 1
+                visible: repeatCount > 1
+                implicitWidth: Math.max(countLabel.implicitWidth + Tokens.spacing.small, implicitHeight)
+                implicitHeight: countLabel.implicitHeight + Tokens.spacing.extraSmall
+                radius: Tokens.shape.full
+                color: root.isCritical ? Theme.onErrorContainer : Theme.secondaryContainer
+
+                MaterialText {
+                    id: countLabel
+                    anchors.centerIn: parent
+                    text: "×" + parent.repeatCount
+                    textStyle: "labelSmall"
+                    color: root.isCritical ? Theme.errorContainer : Theme.onSecondaryContainer
+                }
+            }
+
             IconButton {
                 iconName: "close"
                 iconSize: Tokens.iconSize.small
-                iconColor: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
+                iconColor: root.isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
                 containerSize: 28
                 touchTargetSize: 32
                 variant: "standard"
@@ -253,18 +273,18 @@ Rectangle {
         }
 
         MaterialText {
-            text: root.hasData ? (notificationData.summary || "") : ""
+            text: root.hasData ? (root.notificationData.summary || "") : ""
             visible: text.length > 0
             textStyle: "titleSmall"
             wrapMode: Text.WordWrap
             maximumLineCount: 2
             elide: Text.ElideRight
             Layout.fillWidth: true
-            color: isCritical ? Theme.onErrorContainer : Theme.onSurface
+            color: root.isCritical ? Theme.onErrorContainer : Theme.onSurface
         }
 
         MaterialText {
-            text: root.hasData ? (notificationData.body || "") : ""
+            text: root.hasData ? (root.notificationData.body || "") : ""
             visible: text.length > 0
             textStyle: "bodyMedium"
             textFormat: Text.StyledText
@@ -272,12 +292,12 @@ Rectangle {
             maximumLineCount: 4
             elide: Text.ElideRight
             Layout.fillWidth: true
-            color: isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
+            color: root.isCritical ? Theme.onErrorContainer : Theme.onSurfaceVariant
         }
 
         // Notification image
         Rectangle {
-            visible: root.hasData && (notificationData.image || "") !== ""
+            visible: root.hasData && (root.notificationData.image || "") !== ""
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? Math.min(notifImage.implicitHeight, 180) : 0
             radius: Tokens.shape.small
@@ -287,7 +307,7 @@ Rectangle {
             Image {
                 id: notifImage
                 anchors.fill: parent
-                source: root.hasData ? (notificationData.image || "") : ""
+                source: root.hasData ? (root.notificationData.image || "") : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
@@ -315,36 +335,30 @@ Rectangle {
         }
     }
 
-    // Progress bar — inset to respect rounded corners
-    Rectangle {
+    // Progress bar — inset to respect rounded corners.
+    // ProgressIndicator from the kit; `animateValue: false` because
+    // progressValue is already driven by the running countdown animation, and a
+    // second Behavior on top of it would lag behind and smear the bar.
+    ProgressIndicator {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.leftMargin: root.radius
         anchors.rightMargin: root.radius
         anchors.bottomMargin: 4
-        height: 3
-        radius: 2
-        color: isCritical ? Theme.error : Theme.surfaceContainerHighest
-        opacity: 0.4
         visible: root.duration > 0
+        opacity: root.hovered ? 0.5 : 1.0
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            radius: parent.radius
-            // progressValue is already animated continuously — no Behavior
-            // needed (the old 33 ms timer + 50 ms width animation re-trigger
-            // was pure churn).
-            width: parent.width * Math.max(0, Math.min(1, root.progressValue))
-            color: isCritical ? Theme.error : Theme.primary
-            opacity: root.hovered ? 0.5 : 1.0
+        type: "linear"
+        thickness: 3
+        animateValue: false
+        value: root.progressValue
+        activeColor: root.isCritical ? Theme.error : Theme.primary
+        trackColor: Qt.alpha(root.isCritical ? Theme.error : Theme.surfaceContainerHighest, 0.4)
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.motion.duration.short3
-                }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Tokens.motion.duration.short3
             }
         }
     }

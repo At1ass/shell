@@ -32,10 +32,12 @@ QtObject {
 
     readonly property int notificationServerId: notification?.id ?? 0
 
-    // Captured at construction so it doesn't drift when the user hovers.
-    readonly property real timestamp: Date.now()
-
     // ── Computed display duration ──────────────────────────────────────
+    //
+    // `expireTimeout` is in MILLISECONDS. Quickshell documents the property as
+    // "Time in seconds", but updateProperties() assigns the raw D-Bus value
+    // with no conversion, and the freedesktop spec sends expire_timeout in ms.
+    // The doc comment is wrong; this code is right. Do not "fix" it.
     readonly property int durationMs: {
         if (!notification) return 0
         const t = notification.expireTimeout
@@ -49,11 +51,9 @@ QtObject {
     }
 
     // ── Close lifecycle ────────────────────────────────────────────────
-    // closeReason is set when the underlying notification's closed(reason)
-    // fires. Consumers connect to this NotifData's `closed` signal — by the
-    // time the underlying Notification has been freed, this NotifData may
-    // still exist briefly until its own Component.onDestruction runs.
-    property int closeReason: -1
+    // Consumers connect to this NotifData's `closed` signal — by the time the
+    // underlying Notification has been freed, this NotifData may still exist
+    // briefly until its own Component.onDestruction runs.
     signal closed(int reason)
 
     // ── Imperative accessors (delegate to Notification) ────────────────
@@ -94,7 +94,6 @@ QtObject {
     readonly property Connections _conn: Connections {
         target: data.notification
         function onClosed(reason) {
-            data.closeReason = reason
             data.closed(reason)
         }
     }

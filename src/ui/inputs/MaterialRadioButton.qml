@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.ui.feedback
 
 // Material Design 3 Radio Button (controlled: parent owns `checked`, reacts to `clicked`).
@@ -27,10 +28,9 @@ Item {
         border.color: root.checked ? Theme.primary : Theme.onSurfaceVariant
 
         Behavior on border.color {
-            ColorAnimation {
+            MotionColorAnimation {
                 duration: Tokens.motion.duration.short3
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
 
@@ -43,10 +43,9 @@ Item {
             color: Theme.primary
 
             Behavior on width {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short3
-                    easing.type: Tokens.motion.easing.emphasizedDecelerate
-                    easing.bezierCurve: Tokens.motion.easing.emphasizedDeceleratePoints
+                    curve: "emphasizedDecelerate"
                 }
             }
         }

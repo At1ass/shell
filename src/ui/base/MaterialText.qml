@@ -19,6 +19,18 @@ Text {
     font.weight: currentStyle.weight
     font.letterSpacing: currentStyle.letterSpacing
 
-    renderType: Text.NativeRendering
+    // QtRendering (Qt's default) for TEXT: native rendering has no subpixel
+    // positioning, and this shell animates `scale` in 18 places while Wayland
+    // output scaling adds fractions of its own.
+    //
+    // ICONS ARE THE EXCEPTION and MaterialIcon overrides this back to
+    // NativeRendering. Material Symbols is a VARIABLE font driven through
+    // `font.variableAxes` (FILL/GRAD/opsz/wght); Qt's distance-field renderer
+    // mangles those glyphs — an `info` icon came out as two superimposed
+    // outlines. Measured: with the override the icon is pixel-identical to
+    // full native rendering (0 differing pixels), without it 1424 differ.
+    //
+    // So: do not "simplify" by dropping MaterialIcon's renderType line.
+    renderType: Text.QtRendering
     color: resolvedColor
 }

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.ui.feedback
 
 Rectangle {
@@ -139,19 +140,17 @@ Rectangle {
     // Behavior on width {
     Behavior on implicitWidth {
         enabled: root.animated
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.emphasized
-            easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+            curve: "emphasized"
         }
     }
 
     Behavior on color {
         enabled: root.animated
-        ColorAnimation {
+        MotionColorAnimation {
             duration: Tokens.motion.duration.medium2
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
     }
 
@@ -159,10 +158,9 @@ Rectangle {
     scale: (pressed && clickable) ? 0.95 : 1.0
     Behavior on scale {
         enabled: root.animated
-        NumberAnimation {
+        MotionAnimation {
             duration: Tokens.motion.duration.short3
-            easing.type: Tokens.motion.easing.standard
-            easing.bezierCurve: Tokens.motion.easing.standardPoints
+            curve: "standard"
         }
     }
 }

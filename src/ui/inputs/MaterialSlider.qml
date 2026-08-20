@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.src.core.config
+import qs.src.ui.base
 
 // Material Design 3 Slider (2024 spec)
 Slider {
@@ -9,6 +10,11 @@ Slider {
     stepSize: 0.01
     from: 0.0
     to: 1.0
+
+    // Reachable by Tab. QtQuick.Controls already implements arrow-key stepping
+    // and tracks `visualFocus`; the policy to let focus arrive was missing, so
+    // neither could ever engage.
+    focusPolicy: Qt.StrongFocus
 
     implicitWidth: orientation === Qt.Horizontal ? 200 : 48
     implicitHeight: orientation === Qt.Horizontal ? 48 : 200
@@ -82,7 +88,7 @@ Slider {
                     : Math.max(0, parent.height - y)
             radius: control.trackInsideCornerSize
             color: control.enabled ? Theme.primary : Theme.onSurface
-            opacity: control.enabled ? 1.0 : 0.38
+            opacity: control.enabled ? 1.0 : Tokens.state.disabledContentOpacity
 
             Behavior on color {
                 ColorAnimation { duration: Tokens.motion.duration.short4 }
@@ -100,21 +106,21 @@ Slider {
         implicitWidth: control.orientation === Qt.Horizontal ? control.thumbWidth : control.thumbHeight
         implicitHeight: control.orientation === Qt.Horizontal ? control.thumbHeight : control.thumbWidth
 
-        // State layer (hover/pressed)
+        // State layer (hover/pressed/keyboard focus)
         Rectangle {
             anchors.centerIn: parent
-            width: control.pressed ? 44 : (control.hovered ? 44 : 0)
+            width: (control.pressed || control.hovered || control.visualFocus) ? 44 : 0
             height: width
             radius: width / 2
             color: Theme.primary
-            opacity: control.pressed ? 0.12 : (control.hovered ? 0.08 : 0)
+            opacity: control.pressed ? Tokens.stateLayer.pressedOpacity
+                     : (control.hovered || control.visualFocus) ? Tokens.stateLayer.hoverOpacity : 0
             visible: control.enabled
 
             Behavior on width {
-                NumberAnimation {
+                MotionAnimation {
                     duration: Tokens.motion.duration.short4
-                    easing.type: Tokens.motion.easing.emphasized
-                    easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
+                    curve: "emphasized"
                 }
             }
 

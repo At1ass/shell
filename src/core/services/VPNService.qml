@@ -17,11 +17,33 @@ Singleton {
     // Primary VPN connection name (user-configurable)
     readonly property string primaryVPN: AppConfig.vpnName
 
+    // services.vpn.enabled — "Enable VPN status tracking and quick-toggle".
+    // Defaults to FALSE, so honouring it matters: the two nmcli queries below
+    // used to run at startup and on every NetworkManager event regardless, for
+    // a feature the user had not turned on.
+    readonly property bool enabled: AppConfig.vpnEnabled
+
+    // Drop stale state when tracking is switched off mid-session, otherwise the
+    // dashboard keeps showing the last known connection forever. Switching it
+    // back ON needs nothing here — the query processes below bind their
+    // `running` straight to this flag.
+    onEnabledChanged: {
+        if (enabled) return
+        connected = false
+        activeVPN = ""
+        availableVPNs = []
+        busyVPN = ""
+    }
+
     // Material icon based on state
     readonly property string icon: connected ? "vpn_lock" : "vpn_key_off"
 
     // Toggle primary VPN
     function toggle() {
+        if (!enabled) {
+            ToastService.info("VPN tracking is off — set services.vpn.enabled in config.json")
+            return
+        }
         if (busy) return
         if (connected && activeVPN === primaryVPN) {
             disconnect()
@@ -53,6 +75,7 @@ Singleton {
 
     // Refresh on demand — NetworkEventMonitor calls this on NM events.
     function refresh() {
+        if (!enabled) return
         if (!vpnStateProc.running) vpnStateProc.running = true
         if (!vpnListProc.running) vpnListProc.running = true
     }
@@ -60,7 +83,7 @@ Singleton {
     // Monitor VPN connection state
     Process {
         id: vpnStateProc
-        running: true
+        running: root.enabled
         command: ["nmcli", "-t", "-f", "NAME,TYPE,STATE", "connection", "show", "--active"]
 
         stdout: StdioCollector {
@@ -93,7 +116,7 @@ Singleton {
     // Get list of all VPN connections
     Process {
         id: vpnListProc
-        running: true
+        running: root.enabled
         command: ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]
 
         stdout: StdioCollector {

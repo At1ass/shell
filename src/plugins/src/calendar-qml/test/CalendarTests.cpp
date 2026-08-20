@@ -7,6 +7,7 @@
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QTextStream>
 #include <QtCore/QTimeZone>
+#include <QtCore/QRegularExpression>
 
 #include "../IcalParser.h"
 #include "../EventTypes.h"
@@ -124,6 +125,109 @@ private slots:
         QCOMPARE(n, 5);
     }
 
+    void expandYearlyAllDayKeepsItsDate() {
+        // Reported 2026-08: a birthday authored as 20 Oct showed on 19 Oct.
+        // A VALUE=DATE is floating; the expander built its dtstart from
+        // ev.start.toUTC(), so in any zone east of Greenwich (MSK = UTC+3)
+        // 20 Oct 00:00 became 19 Oct 21:00 UTC and every yearly occurrence
+        // landed a day early. Pinned to a positive-offset zone on purpose —
+        // in UTC or anywhere west of it the bug is invisible.
+        const QTimeZone saved = QTimeZone::systemTimeZone();
+        qputenv("TZ", "Europe/Moscow");
+        ::tzset();
+
+        auto events = parseFixture(fixtures::yearlyAllDay());
+        QCOMPARE(int(events.size()), 1);
+        QVERIFY(events[0].allDay);
+
+        const QVariantList list = IcalParser::expandRange(events,
+                                                          QDate(2026, 10, 1),
+                                                          QDate(2026, 10, 31));
+        QCOMPARE(list.size(), 1);
+        const QDate got = list[0].toMap()
+            .value(QStringLiteral("start")).toDateTime().date();
+        QCOMPARE(got, QDate(2026, 10, 20));
+
+        qputenv("TZ", saved.id());
+        ::tzset();
+    }
+
+    void expandDailyAllDaySurvivesSafetyCap() {
+        // A DAILY all-day series that started in 2005 is ~7900 occurrences by
+        // 2026 — past the expander's 5000-iteration safety cap. Fast-forward
+        // is skipped for all-day events, so the series replays from DTSTART
+        // and the cap cuts it off before reaching the requested range.
+        auto events = parseFixture(fixtures::dailyAllDayOld());
+        QCOMPARE(int(events.size()), 1);
+        const int n = countInRange(events, QDate(2026, 10, 1), QDate(2026, 10, 7));
+        QCOMPARE(n, 7);
+    }
+
+    void allDayEndingAtRangeStartIsNotInRange() {
+        // DTEND is EXCLUSIVE. An all-day event on 15 Mar has DTEND 16 Mar and
+        // does NOT occur on the 16th, so a query for the 16th must return
+        // nothing. Checks the range filter's boundary, independent of any
+        // recurrence handling.
+        auto events = parseFixture(fixtures::allday());   // 2026-03-15 → 03-16
+        QCOMPARE(int(events.size()), 1);
+        QCOMPARE(countInRange(events, QDate(2026, 3, 15), QDate(2026, 3, 15)), 1);
+        QCOMPARE(countInRange(events, QDate(2026, 3, 16), QDate(2026, 3, 16)), 0);
+    }
+
+    void durationPropertyIsHonoured() {
+        // DTEND and DURATION are alternatives; only DTEND was ever read, so a
+        // DURATION-only event collapsed to zero length (end == start).
+        auto events = parseFixture(fixtures::timedWithDuration());
+        QCOMPARE(int(events.size()), 1);
+        QCOMPARE(events[0].start.secsTo(events[0].end), qint64(90 * 60));
+    }
+
+    void allDayWithoutEndLastsOneDay() {
+        // RFC 5545: DATE-valued DTSTART with no DTEND/DURATION lasts one day.
+        // It used to get end == start, i.e. zero length.
+        auto events = parseFixture(fixtures::allDayNoEnd());
+        QCOMPARE(int(events.size()), 1);
+        QVERIFY(events[0].allDay);
+        QCOMPARE(events[0].start.date(), QDate(2026, 3, 15));
+        QCOMPARE(events[0].end.date(),   QDate(2026, 3, 16));
+        // and it must appear on the 15th, not the 16th
+        QCOMPARE(countInRange(events, QDate(2026, 3, 15), QDate(2026, 3, 15)), 1);
+        QCOMPARE(countInRange(events, QDate(2026, 3, 16), QDate(2026, 3, 16)), 0);
+    }
+
+    void expandSubDailyFrequency() {
+        // FREQ=HOURLY;COUNT=5 → 5 occurrences on the same day. The expander
+        // gated on `Recurrence` (an editor-facing enum with no HOURLY), so
+        // the whole series collapsed to the single master occurrence.
+        auto events = parseFixture(fixtures::hourly());
+        QCOMPARE(int(events.size()), 1);
+        QCOMPARE(countInRange(events, QDate(2026, 3, 15), QDate(2026, 3, 15)), 5);
+    }
+
+    void brokenRruleStillShowsOnce() {
+        // An RRULE libical cannot parse must degrade to a single event, not
+        // make it disappear.
+        auto events = parseFixture(fixtures::brokenRrule());
+        QCOMPARE(int(events.size()), 1);
+        QCOMPARE(countInRange(events, QDate(2026, 3, 15), QDate(2026, 3, 15)), 1);
+    }
+
+    void rdateAddsOccurrences() {
+        // 3 weekly (May 4, 11, 18) + 1 RDATE (May 7) = 4 in the window.
+        auto events = parseFixture(fixtures::weeklyWithRdate());
+        QCOMPARE(countInRange(events, QDate(2026, 5, 4), QDate(2026, 5, 20)), 4);
+        // and the RDATE one really lands on the 7th
+        const QVariantList l = IcalParser::expandRange(events,
+                                                       QDate(2026, 5, 7), QDate(2026, 5, 7));
+        QCOMPARE(l.size(), 1);
+    }
+
+    void rdateWithoutRruleExpands() {
+        // DTSTART + 2 RDATEs = 3 occurrences.
+        auto events = parseFixture(fixtures::rdateOnly());
+        QCOMPARE(countInRange(events, QDate(2026, 5, 4), QDate(2026, 5, 10)), 3);
+    }
+
     void expandWeeklyExdate() {
         // 5-week window, 1 EXDATE → 4 occurrences
         auto events = parseFixture(fixtures::weeklyExdate());
@@ -193,6 +297,35 @@ private slots:
 
     // ── buildIcsString round-trip ──────────────────────────────────
 
+    void untilMatchesDtstartValueType() {
+        // RFC 5545 §3.3.10: "If the value specified by UNTIL is synchronized
+        // with the specified recurrence, this DATE or DATE-TIME becomes the
+        // last instance of the recurrence" — and the value type MUST match
+        // DTSTART's. A timed event was written with a DATE-valued UNTIL,
+        // which is a spec violation other clients may reject.
+        QVariantMap timed;
+        timed.insert(QStringLiteral("title"), QStringLiteral("Timed series"));
+        timed.insert(QStringLiteral("start"), QDateTime(QDate(2026, 8, 1), QTime(10, 0)));
+        timed.insert(QStringLiteral("end"),   QDateTime(QDate(2026, 8, 1), QTime(11, 0)));
+        timed.insert(QStringLiteral("allDay"), false);
+        timed.insert(QStringLiteral("recurrence"), QStringLiteral("weekly"));
+        timed.insert(QStringLiteral("recurrenceUntil"), QDate(2026, 9, 1));
+        const QString t = IcalParser::buildIcsString(timed);
+        QVERIFY(t.contains(QStringLiteral("RRULE")));
+        // DATE-TIME in UTC → has a T and a trailing Z inside the UNTIL token.
+        QVERIFY2(t.contains(QRegularExpression(
+            QStringLiteral("UNTIL=[0-9]{8}T[0-9]{6}Z"))),
+            qPrintable(QStringLiteral("timed UNTIL is not a UTC DATE-TIME: ") + t));
+
+        // An all-day series keeps a DATE-valued UNTIL.
+        QVariantMap allday = timed;
+        allday.insert(QStringLiteral("allDay"), true);
+        const QString a = IcalParser::buildIcsString(allday);
+        QVERIFY2(a.contains(QRegularExpression(
+            QStringLiteral("UNTIL=[0-9]{8}(;|$|\\r)"))),
+            qPrintable(QStringLiteral("all-day UNTIL is not a DATE: ") + a));
+    }
+
     void roundTripSimple() {
         QVariantMap fields;
         fields.insert(QStringLiteral("title"), QStringLiteral("RT title"));
@@ -252,9 +385,18 @@ private slots:
     void editScopeRoundTrip() {
         QCOMPARE(toString(EditScope::All), QStringLiteral("all"));
         QCOMPARE(toString(EditScope::ThisInstance), QStringLiteral("this"));
-        QVERIFY(editScopeFromString(QStringLiteral("all")) == EditScope::All);
-        QVERIFY(editScopeFromString(QStringLiteral("this")) == EditScope::ThisInstance);
-        QVERIFY(editScopeFromString(QStringLiteral("garbage")) == EditScope::All);
+
+        EditScope sc = EditScope::ThisInstance;
+        QVERIFY(editScopeFromString(QStringLiteral("all"), &sc));
+        QVERIFY(sc == EditScope::All);
+        QVERIFY(editScopeFromString(QStringLiteral("this"), &sc));
+        QVERIFY(sc == EditScope::ThisInstance);
+
+        // Unrecognised input must be REFUSED. This assertion used to say the
+        // opposite — "garbage" mapped to EditScope::All — so a typo or a stale
+        // caller would have wiped a whole series, and the test blessed it.
+        QVERIFY(!editScopeFromString(QStringLiteral("garbage"), &sc));
+        QVERIFY(!editScopeFromString(QString(), &sc));
     }
 
     void recurrenceRoundTrip() {
@@ -467,6 +609,93 @@ private slots:
         QCOMPARE(override_.size(), size_t(1));
         QCOMPARE(override_[0].title, QStringLiteral("Renamed instance"));
         QVERIFY(override_[0].isOverride());
+    }
+
+    void storeDeleteFutureTruncatesSeries() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString path = tmp.path() + QStringLiteral("/cal1/series.ics");
+        writeFile(path,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:future@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Daily\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+
+        // Cut from May 7 onwards: May 4-6 survive, May 7+ do not.
+        const QDateTime cut =
+            QDateTime::fromString(QStringLiteral("2026-05-07T09:00:00Z"), Qt::ISODate);
+        store.deleteEventCmd(QStringLiteral("future@test"), QStringLiteral("future"),
+                             cut, QDateTime());
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(), qPrintable(done.at(0).at(1).toString()));
+
+        auto events = IcalParser::parseFile(path, QStringLiteral("cal1"));
+        QCOMPARE(events.size(), size_t(1));
+        QCOMPARE(IcalParser::expandRange(events, QDate(2026, 5, 4), QDate(2026, 5, 6)).size(), 3);
+        QCOMPARE(IcalParser::expandRange(events, QDate(2026, 5, 7), QDate(2026, 5, 20)).size(), 0);
+    }
+
+    void storeEditFutureSplitsSeries() {
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        QDir(tmp.path()).mkpath(QStringLiteral("cal1"));
+        const QString path = tmp.path() + QStringLiteral("/cal1/series.ics");
+        writeFile(path,
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:split@test\r\n"
+            "DTSTART:20260504T090000Z\r\n"
+            "DTEND:20260504T100000Z\r\n"
+            "RRULE:FREQ=DAILY\r\n"
+            "SUMMARY:Before\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        qputenv("CALENDAR_QML_TEST_ROOT", tmp.path().toUtf8());
+        CalendarStore store;
+        QSignalSpy done(&store, &CalendarStore::mutationDone);
+        store.rescanAll();
+
+        const QDateTime cut =
+            QDateTime::fromString(QStringLiteral("2026-05-07T09:00:00Z"), Qt::ISODate);
+        QVariantMap fields;
+        fields.insert(QStringLiteral("title"), QStringLiteral("After"));
+        fields.insert(QStringLiteral("calendar"), QStringLiteral("cal1"));
+        store.editEventCmd(QStringLiteral("split@test"), fields,
+                           QStringLiteral("future"), cut, QDateTime());
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+
+        QCOMPARE(done.count(), 1);
+        QVERIFY2(done.at(0).at(0).toBool(), qPrintable(done.at(0).at(1).toString()));
+
+        // Head keeps the old name and stops before the cut.
+        auto head = IcalParser::parseFile(path, QStringLiteral("cal1"));
+        QCOMPARE(head.size(), size_t(1));
+        QCOMPARE(head[0].title, QStringLiteral("Before"));
+        QCOMPARE(IcalParser::expandRange(head, QDate(2026, 5, 4), QDate(2026, 5, 6)).size(), 3);
+        QCOMPARE(IcalParser::expandRange(head, QDate(2026, 5, 7), QDate(2026, 5, 20)).size(), 0);
+
+        // Tail is a NEW file carrying the edit, starting at the cut.
+        std::vector<Event> tail;
+        const auto files = QDir(tmp.path() + QStringLiteral("/cal1"))
+                               .entryInfoList(QStringList{ QStringLiteral("*.ics") }, QDir::Files);
+        for (const QFileInfo& fi : files) {
+            if (fi.absoluteFilePath() == path) continue;
+            auto p = IcalParser::parseFile(fi.absoluteFilePath(), QStringLiteral("cal1"));
+            tail.insert(tail.end(), p.begin(), p.end());
+        }
+        QCOMPARE(tail.size(), size_t(1));
+        QCOMPARE(tail[0].title, QStringLiteral("After"));
+        QVERIFY(tail[0].uid != QStringLiteral("split@test"));
+        QCOMPARE(tail[0].start.toUTC(), cut);
+        QVERIFY(IcalParser::expandRange(tail, QDate(2026, 5, 7), QDate(2026, 5, 9)).size() == 3);
     }
 
     void storeSeriesEditKeepsAnchorDate() {

@@ -153,15 +153,22 @@ Singleton {
     // persistent on-screen state changes ⇒ standard. `emphasized` is a single-curve
     // approximation (MD3's true emphasized is a two-part spring not expressible as one
     // cubic-bezier) — prefer the decelerate/accelerate variants for directional motion.
+    //
+    // WIRE FORMAT — do not "simplify" these arrays. Qt's easing.bezierCurve takes
+    // GROUPS OF THREE points (control1, control2, endpoint = 6 reals per segment) and
+    // the last point MUST be (1,1). A CSS-style 4-value cubic-bezier(x1,y1,x2,y2) is
+    // rejected by QQmlEasingValueType WITHOUT a warning, leaving the curve unset — the
+    // animation then runs perfectly linear and looks almost right, which is why this
+    // went unnoticed. The trailing `1.0, 1.0` is the required endpoint, not padding.
     component EasingTokens: QtObject {
         readonly property int emphasized: Easing.BezierSpline
-        readonly property var emphasizedPoints: [0.2, 0.0, 0, 1.0]
+        readonly property var emphasizedPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
         readonly property int standard: Easing.BezierSpline
-        readonly property var standardPoints: [0.2, 0.0, 0, 1.0]
+        readonly property var standardPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
         readonly property int emphasizedDecelerate: Easing.BezierSpline
-        readonly property var emphasizedDeceleratePoints: [0.05, 0.7, 0.1, 1.0]
+        readonly property var emphasizedDeceleratePoints: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
         readonly property int emphasizedAccelerate: Easing.BezierSpline
-        readonly property var emphasizedAcceleratePoints: [0.3, 0.0, 0.8, 0.15]
+        readonly property var emphasizedAcceleratePoints: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
     }
 
     component MotionTokens: QtObject {
@@ -268,8 +275,18 @@ Singleton {
     // Font scale (0.5–2.0, 1.0 = normal)
     property real fontScale: 1.3
 
-    // Animation duration scale (0 = instant, 1 = normal)
-    property real durationScale: 1.0
+    // Animation duration scale (0 = instant, 1 = normal).
+    //
+    // Config-driven. "Reduce motion" is an accessibility setting; before, the
+    // scale existed and worked but had no key at all, so the only way to reach
+    // it was to enable gaming mode and accept its Hyprland changes with it.
+    //
+    // Gaming mode flips `motionFrozen` rather than assigning durationScale:
+    // an imperative write severs this binding for good, and the restore on exit
+    // would then pin the scale at 1.0 no matter what config said.
+    property bool motionFrozen: false
+    readonly property real durationScale: motionFrozen || false
+                                          ? 0.0 : 1.0
 
     // Material Design 3 spacing (8px grid system)
     readonly property SpacingTokens spacing: SpacingTokens {}

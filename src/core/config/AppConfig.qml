@@ -37,7 +37,14 @@ Singleton {
     // Appearance
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"
+    // MCU contrast level. 0.0 = standard M3. This used to be hardcoded at 0.5
+    // in Theme.qml, which is the accessibility HIGH-CONTRAST variant: in a dark
+    // scheme it inverts container polarity, so every *Container role came out
+    // light with black text on it. See appearance.theme.contrast in the schema.
+    readonly property real themeContrast: data.appearance?.theme?.contrast ?? 0.0
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
+    readonly property bool reduceMotion: data.appearance?.reduceMotion ?? false
+    readonly property real motionScale: data.appearance?.motionScale ?? 1.0
 
     // Bar
     readonly property string barPosition: data.bar?.position ?? "top"
@@ -54,14 +61,32 @@ Singleton {
     // Notifications
     readonly property int notificationPanelWidth: data.notifications?.panel?.width ?? 400
     readonly property int notificationPopupWidth: data.notifications?.popup?.width ?? 360
+    // Base timeout. `timeoutNormal` falls back to it rather than to a second
+    // hardcoded 7000 — otherwise `popup.timeout` had no reachable effect at all
+    // (every urgency had its own default), which is how it sat dead in the
+    // schema while its description promised it was the fallback.
     readonly property int notificationPopupTimeout: data.notifications?.popup?.timeout ?? 7000
     readonly property int notificationTimeoutLow: data.notifications?.popup?.timeoutLow ?? 3000
-    readonly property int notificationTimeoutNormal: data.notifications?.popup?.timeoutNormal ?? 7000
+    readonly property int notificationTimeoutNormal: data.notifications?.popup?.timeoutNormal ?? notificationPopupTimeout
     readonly property int notificationTimeoutCritical: data.notifications?.popup?.timeoutCritical ?? 15000
     readonly property int notificationPopupMaxVisible: data.notifications?.popup?.maxVisible ?? 5
     readonly property bool notificationGroupByApp: data.notifications?.panel?.groupByApp ?? true
     readonly property string notificationPopupPosition: data.notifications?.popup?.position ?? "top-right"
+    // "focused" or an exact output name. See NotificationPopupManager._targetScreen.
+    readonly property string notificationPopupMonitor: data.notifications?.popup?.monitor ?? "focused"
     readonly property int notificationHistoryTTLDays: data.notifications?.historyTTLDays ?? 30
+    readonly property int notificationMaxHistory: data.notifications?.maxHistory ?? 200
+    readonly property bool notificationSuppressOnFullscreen: data.notifications?.dnd?.suppressOnFullscreen ?? true
+
+    // Burst protection (see NotificationRateLimiter for what each stage does).
+    readonly property int notificationIngressPerSecond: data.notifications?.rateLimit?.ingressPerSecond ?? 20
+    readonly property int notificationMaxQueue: data.notifications?.rateLimit?.maxQueue ?? 32
+    readonly property int notificationPopupIntervalMs: data.notifications?.rateLimit?.popupIntervalMs ?? 350
+    readonly property int notificationMaxPopupQueue: data.notifications?.rateLimit?.maxPopupQueue ?? 8
+
+    // Per-app filters, lowercased once here so the hot path is a plain lookup.
+    readonly property var notificationNoPopupApps: (data.notifications?.filters?.noPopup ?? []).map(s => String(s).toLowerCase())
+    readonly property var notificationNoHistoryApps: (data.notifications?.filters?.noHistory ?? []).map(s => String(s).toLowerCase())
 
     // Launcher
     readonly property int launcherMaxResults: data.launcher?.maxResults ?? 10
@@ -80,6 +105,9 @@ Singleton {
     readonly property bool calendarRemindersEnabled: data.services?.calendar?.reminders?.enabled ?? true
     readonly property int calendarReminderMinutes: data.services?.calendar?.reminders?.minutesBefore ?? 15
     readonly property int calendarReminderLookaheadDays: data.services?.calendar?.reminders?.lookaheadDays ?? 2
+    // All-day events have no start time, so "N minutes before" cannot apply;
+    // they remind once at this hour on the day itself.
+    readonly property string calendarReminderAllDayTime: data.services?.calendar?.reminders?.allDayTime ?? "09:00"
     readonly property int calendarDayViewHourHeight: data.services?.calendar?.dayView?.hourHeight ?? 60
     readonly property int calendarFirstDayOfWeek: data.services?.calendar?.firstDayOfWeek ?? 1
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false

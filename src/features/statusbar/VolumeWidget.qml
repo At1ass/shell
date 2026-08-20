@@ -97,7 +97,7 @@ BarElement {
 
         MaterialText {
             anchors.verticalCenter: parent.verticalCenter
-            text: formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
+            text: root.formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
             colorRole: "onSurface"
             visible: root.showPercentage

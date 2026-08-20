@@ -1,3 +1,8 @@
+// Bound, because every widget Component below reaches `root` across a Component
+// boundary. Unbound that resolves through the dynamic context — it happens to
+// work, but nothing checks it. Bound makes the capture lexical and verifiable.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
@@ -29,7 +34,7 @@ Item {
     Loader {
         id: loader
         asynchronous: false
-        active: root.widgetEnabled && root.widgetType !== "" && AppConfig.shouldShowOnMonitor(root.widgetConfig, screenName)
+        active: root.widgetEnabled && root.widgetType !== "" && AppConfig.shouldShowOnMonitor(root.widgetConfig, root.screenName)
 
         sourceComponent: {
             if (!root.widgetEnabled || root.widgetType === "")

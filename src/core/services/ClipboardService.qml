@@ -161,9 +161,13 @@ Singleton {
                 console.info("  cliphist[" + k + "]:",
                             entries[k].substring(0, 60).replace(/\n/g, "\\n"))
         }
+        // `id` is the cliphist entry id and travels with every result — consumers
+        // key their caches on it (see preparedEntries above). Omitting it here is
+        // what made ClipboardProvider fall back to the array index, which is the
+        // exact churn this contract exists to prevent.
         if (!query || query.trim() === "") {
             return preparedEntries.map(e => ({
-                entry: e.entry, content: e.content, score: 0
+                id: e.id, entry: e.entry, content: e.content, score: 0
             }))
         }
 
@@ -187,6 +191,7 @@ Singleton {
         matched.sort((a, b) => a.originalIndex - b.originalIndex)
 
         return matched.map(m => ({
+            id: preparedEntries[m.originalIndex].id,
             entry: preparedEntries[m.originalIndex].entry,
             content: preparedEntries[m.originalIndex].content,
             score: m.score

@@ -7,14 +7,35 @@ import Mcu 1.0
 Singleton {
     id: root
 
+    // McuTheme.source accepts QColor or QUrl and REJECTS a QString outright
+    // ("source must be QColor or QUrl; QString not supported"). GreeterConfig
+    // exposes wallpaperPath as a plain string, so the greeter was silently
+    // losing its wallpaper-derived palette and falling back to the seed colour
+    // on every boot. Assigning through a `url` property is what makes QML
+    // coerce it — this mirrors Theme.seed in the main shell.
+    // A BARE PATH IS NOT A URL. wallpaperPath comes out of shell-state.json as
+    // "/home/.../x.png"; coercing that to `url` yields a scheme-less relative
+    // URL that McuTheme cannot open, so the palette stayed at its uninitialised
+    // #000000 for every role. WallpaperManager._asUrl does the same conversion
+    // on the main-shell side — this is the greeter's copy of it.
+    readonly property url seed: {
+        const p = GreeterConfig.wallpaperPath
+        if (!p || p.length === 0)
+            return ""
+        return p.startsWith("file://") ? p : Qt.resolvedUrl(p)
+    }
+
     McuTheme {
         id: mcuTheme
-        source: GreeterConfig.wallpaperPath !== ""
-            ? GreeterConfig.wallpaperPath
+        source: root.seed.toString() !== ""
+            ? root.seed
             : Qt.alpha(GreeterConfig.themeColor, 0)
         darkMode: GreeterConfig.darkMode
         variant: GreeterConfig.themeVariant
-        contrast: 0.5
+        // Same fix as the main shell: 0.5 is MCU's accessibility high-contrast
+        // level, which flips every *Container role light and its on* colour
+        // black. Standard M3 is 0.0; opt in via greeter.json instead.
+        contrast: GreeterConfig.themeContrast
     }
 
     property color primary

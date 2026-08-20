@@ -283,17 +283,10 @@ Scope {
                                       : event.isAutoRepeat ? root.kbStepRepeat
                                       : root.kbStepSmall
 
-                    // Normalize hjkl to Qt key codes using XKB scan codes so
-                    // navigation works regardless of the active keyboard layout.
-                    // Qt Wayland stores nativeScanCode as XKB keycode = evdev + 8.
-                    // h=43, j=44, k=45, l=46 on all standard keyboards.
-                    let key = event.key
-                    switch (event.nativeScanCode) {
-                        case 43: key = Qt.Key_H; break
-                        case 44: key = Qt.Key_J; break
-                        case 45: key = Qt.Key_K; break
-                        case 46: key = Qt.Key_L; break
-                    }
+                    // Physical key, so hjkl works on any layout. This file had
+                    // the right idea first and carried its own four-entry table;
+                    // Keycodes is that table for the whole alphabet.
+                    const key = Keycodes.key(event)
 
                     function initKeyboard() {
                         if (!root.keyboardMode) {

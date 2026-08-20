@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options(-Wall -Wextra)
 
-find_package(Qt6 6.5 COMPONENTS Core Gui Qml Concurrent REQUIRED)
+find_package(Qt6 6.5 COMPONENTS Core Gui Qml Concurrent DBus REQUIRED)
 
 add_subdirectory(external/mcu-cpp)  # provides target mcu-cpp
 add_subdirectory(src/mcu-qml)

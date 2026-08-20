@@ -80,20 +80,13 @@ Item {
                             colorRole: "onSurfaceVariant"
                         }
 
-                        // Badge with count
-                        Rectangle {
-                            width: countLabel.implicitWidth + 12
-                            height: 20
-                            radius: Tokens.shape.full
-                            color: Theme.surfaceContainerHighest
-
-                            MaterialText {
-                                id: countLabel
-                                anchors.centerIn: parent
-                                text: categoryDelegate.modelData.binds.length
-                                textStyle: "labelSmall"
-                                colorRole: "onSurfaceVariant"
-                            }
+                        // Neutral count chip, not the MD3 error badge — hence the
+                        // explicit surface/onSurfaceVariant pair.
+                        Badge {
+                            inline: true
+                            text: categoryDelegate.modelData.binds.length
+                            badgeColor: Theme.surfaceContainerHighest
+                            textColor: Theme.onSurfaceVariant
                         }
 
                         Item { Layout.fillWidth: true }

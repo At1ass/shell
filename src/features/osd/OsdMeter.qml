@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
 import qs.src.ui.base
+import qs.src.ui.feedback
 
 // Meter-style OSD (volume/brightness): icon badge, title, percentage and a
 // progress track inside the shared OsdSurface shell.
@@ -76,32 +77,16 @@ OsdSurface {
                     }
                 }
 
-                Rectangle {
+                // ProgressIndicator from the kit — this was a hand-rolled
+                // track + fill pair, one of two in the shell while the
+                // component sat unused.
+                ProgressIndicator {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.trackHeight
-                    radius: Tokens.shape.full
-                    color: Theme.surfaceContainerHighest
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width * Math.max(0, Math.min(1, root.progress))
-                        height: parent.height
-                        radius: Tokens.shape.full
-                        color: root.progressColor
-
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Tokens.motion.duration.short4
-                                easing.type: Tokens.motion.easing.emphasized
-                                easing.bezierCurve: Tokens.motion.easing.emphasizedPoints
-                            }
-                        }
-
-                        Behavior on color {
-                            ColorAnimation { duration: Tokens.motion.duration.short4 }
-                        }
-                    }
+                    type: "linear"
+                    thickness: root.trackHeight
+                    value: root.progress
+                    activeColor: root.progressColor
+                    trackColor: Theme.surfaceContainerHighest
                 }
             }
         }

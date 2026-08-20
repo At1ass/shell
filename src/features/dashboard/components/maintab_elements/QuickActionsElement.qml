@@ -88,6 +88,7 @@ MaterialCard {
                 ]
 
                 delegate: Rectangle {
+                    id: actionCell
                     required property var modelData
 
                     Layout.fillWidth: true
@@ -105,10 +106,9 @@ MaterialCard {
                     color: isActive ? Theme.primaryContainer : Theme.surfaceContainerHighest
 
                     Behavior on color {
-                        ColorAnimation {
+                        MotionColorAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                     }
 
@@ -120,10 +120,9 @@ MaterialCard {
                         backgroundColor: "transparent"
 
                         Behavior on iconColor {
-                            ColorAnimation {
+                            MotionColorAnimation {
                             duration: Tokens.motion.duration.short4
-                            easing.type: Tokens.motion.easing.standard
-                            easing.bezierCurve: Tokens.motion.easing.standardPoints
+                            curve: "standard"
                         }
                         }
                     }
@@ -141,8 +140,8 @@ MaterialCard {
                         cursorShape: Qt.PointingHandCursor
 
                         onClicked: {
-                            if (modelData.action) {
-                                modelData.action()
+                            if (actionCell.modelData.action) {
+                                actionCell.modelData.action()
                             }
                         }
                     }

@@ -65,6 +65,13 @@ void CalendarBackend::setReminderLookaheadDays(int d) {
     handleReminderWindowRefreshNeeded();
 }
 
+void CalendarBackend::setReminderAllDayTime(const QString& hhmm) {
+    if (m_reminderAllDayTime == hhmm) return;
+    m_reminderAllDayTime = hhmm;
+    emit reminderAllDayTimeChanged();
+    if (m_reminders) m_reminders->setAllDayTime(hhmm);
+}
+
 // ── QML-invokable ─────────────────────────────────────────────────────
 
 void CalendarBackend::loadEventsForRange(const QDate& start, const QDate& end) {

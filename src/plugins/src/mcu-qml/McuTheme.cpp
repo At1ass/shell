@@ -16,6 +16,9 @@
 #include <cpp/scheme/scheme_vibrant.h>
 #include <cpp/scheme/scheme_expressive.h>
 #include <cpp/scheme/scheme_content.h>
+#include <cpp/scheme/scheme_fidelity.h>
+#include <cpp/scheme/scheme_neutral.h>
+#include <cpp/scheme/scheme_monochrome.h>
 #include <cpp/dynamiccolor/material_dynamic_colors.h>
 #include <cpp/dynamiccolor/dynamic_scheme.h>
 #include <cpp/cam/hct.h>
@@ -291,6 +294,10 @@ QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& v
 
     Hct sourceHct(seedArgb);
 
+    // Every value offered by appearance.theme.variant in config.schema.json
+    // must appear here. fidelity/neutral/monochrome were advertised by the
+    // schema for a long time while silently falling through to tonalSpot, so a
+    // user could set them, see nothing change, and have no way to find out why.
     std::unique_ptr<DynamicScheme> scheme;
     if (variant == "vibrant")
         scheme = std::make_unique<SchemeVibrant>(sourceHct, dark, contrast);
@@ -298,6 +305,12 @@ QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& v
         scheme = std::make_unique<SchemeExpressive>(sourceHct, dark, contrast);
     else if (variant == "content")
         scheme = std::make_unique<SchemeContent>(sourceHct, dark, contrast);
+    else if (variant == "fidelity")
+        scheme = std::make_unique<SchemeFidelity>(sourceHct, dark, contrast);
+    else if (variant == "neutral")
+        scheme = std::make_unique<SchemeNeutral>(sourceHct, dark, contrast);
+    else if (variant == "monochrome")
+        scheme = std::make_unique<SchemeMonochrome>(sourceHct, dark, contrast);
     else
         scheme = std::make_unique<SchemeTonalSpot>(sourceHct, dark, contrast);
 

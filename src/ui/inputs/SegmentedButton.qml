@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
@@ -57,10 +59,9 @@ Item {
                         bottomRightRadius: seg.isLast ? root.height / 2 : 0
 
                         Behavior on color {
-                            ColorAnimation {
+                            MotionColorAnimation {
                                 duration: Tokens.motion.duration.short3
-                                easing.type: Tokens.motion.easing.standard
-                                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                                curve: "standard"
                             }
                         }
                     }

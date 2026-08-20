@@ -147,4 +147,139 @@ inline QByteArray crossTz() {
 "END:VCALENDAR\r\n";
 }
 
+// Yearly all-day event — the birthday shape. A VALUE=DATE is FLOATING: it
+// carries no zone, so it must survive expansion unshifted in every timezone.
+// Routing it through UTC moved it a day earlier everywhere east of Greenwich.
+inline QByteArray yearlyAllDay() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:birthday@test\r\n"
+"SUMMARY:Happy birthday!\r\n"
+"DTSTART;VALUE=DATE:20241020\r\n"
+"DTEND;VALUE=DATE:20241021\r\n"
+"RRULE:FREQ=YEARLY\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// Long-running DAILY all-day series. The expander's fast-forward is disabled
+// for all-day events, so this replays from DTSTART; with a 5000-iteration
+// safety cap that silently truncates after ~13.7 years.
+inline QByteArray dailyAllDayOld() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:dailyold@test\r\n"
+"SUMMARY:Long daily\r\n"
+"DTSTART;VALUE=DATE:20050101\r\n"
+"DTEND;VALUE=DATE:20050102\r\n"
+"RRULE:FREQ=DAILY\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// RFC 5545 §3.6.1: DTEND and DURATION are mutually exclusive alternatives.
+// Apple/iCloud and Nextcloud commonly emit DURATION on recurring events.
+inline QByteArray timedWithDuration() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:duration@test\r\n"
+"SUMMARY:Has duration\r\n"
+"DTSTART:20260315T090000Z\r\n"
+"DURATION:PT1H30M\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// RFC 5545 §3.6.1: a DATE-valued DTSTART with neither DTEND nor DURATION
+// has a duration of ONE DAY.
+inline QByteArray allDayNoEnd() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:alldaynoend@test\r\n"
+"SUMMARY:Bare all-day\r\n"
+"DTSTART;VALUE=DATE:20260315\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// Sub-daily frequency. `Recurrence` (the editor's enum) has no HOURLY, so it
+// mapped to None and the expander treated the event as non-recurring.
+inline QByteArray hourly() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:hourly@test\r\n"
+"SUMMARY:Every hour\r\n"
+"DTSTART:20260315T000000Z\r\n"
+"DTEND:20260315T001500Z\r\n"
+"RRULE:FREQ=HOURLY;COUNT=5\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// Unparseable RRULE. The event must still render once rather than vanish.
+inline QByteArray brokenRrule() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:broken@test\r\n"
+"SUMMARY:Broken rule\r\n"
+"DTSTART:20260315T090000Z\r\n"
+"DTEND:20260315T100000Z\r\n"
+"RRULE:FREQ=NONSENSE;BANANA=7\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// RRULE plus an off-schedule RDATE. RDATE was never read, so the extra
+// occurrence silently vanished.
+inline QByteArray weeklyWithRdate() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:rdate@test\r\n"
+"SUMMARY:Weekly plus one\r\n"
+"DTSTART:20260504T090000Z\r\n"
+"DTEND:20260504T100000Z\r\n"
+"RRULE:FREQ=WEEKLY;COUNT=3\r\n"
+"RDATE:20260507T140000Z\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
+// RDATE with no RRULE: the series is exactly DTSTART plus the listed dates.
+inline QByteArray rdateOnly() {
+    return
+"BEGIN:VCALENDAR\r\n"
+"VERSION:2.0\r\n"
+"PRODID:-//test//EN\r\n"
+"BEGIN:VEVENT\r\n"
+"UID:rdateonly@test\r\n"
+"SUMMARY:Listed dates\r\n"
+"DTSTART:20260504T090000Z\r\n"
+"DTEND:20260504T100000Z\r\n"
+"RDATE:20260506T090000Z\r\n"
+"RDATE:20260508T090000Z\r\n"
+"END:VEVENT\r\n"
+"END:VCALENDAR\r\n";
+}
+
 } // namespace fixtures

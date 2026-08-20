@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.base
 
 // Material Design 3 Progress Indicator — linear or circular, determinate or indeterminate.
 Item {
@@ -8,6 +9,12 @@ Item {
     property string type: "linear"   // "linear" | "circular"
     property bool indeterminate: false
     property real value: 0.0          // 0..1 (used when !indeterminate)
+    // Smooth discrete value changes. Set FALSE when the caller already drives
+    // `value` from a running animation (a notification's countdown, a live
+    // meter): a second Behavior on top of a continuous source lags behind it
+    // and smears the bar. Having this as a parameter is why a caller in that
+    // situation no longer needs to hand-roll the whole component.
+    property bool animateValue: true
     property color activeColor: Theme.primary
     property color trackColor: Theme.surfaceContainerHighest
     property int thickness: 4
@@ -39,17 +46,16 @@ Item {
             SequentialAnimation on x {
                 running: root.visible && root.type === "linear" && root.indeterminate && Tokens.durationScale > 0
                 loops: Animation.Infinite
-                NumberAnimation {
+                MotionAnimation {
                     from: -linearFill.width
                     to: linearFill.parent.width
                     duration: Tokens.motion.duration.extraLong2
-                    easing.type: Tokens.motion.easing.standard
-                    easing.bezierCurve: Tokens.motion.easing.standardPoints
+                    curve: "standard"
                 }
             }
 
             Behavior on width {
-                enabled: !root.indeterminate
+                enabled: root.animateValue && !root.indeterminate
                 NumberAnimation { duration: Tokens.motion.duration.medium2 }
             }
         }

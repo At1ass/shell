@@ -13,14 +13,29 @@
 # This script is the single source of truth: edit src/ui, then re-run. Do not hand-edit
 # greeter/ui/*.qml — changes will be overwritten.
 #
-# Usage:  src/features/greeter/sync-ui.sh   (run from anywhere)
+# Usage:  src/features/greeter/sync-ui.sh            (run from anywhere)
+#         src/features/greeter/sync-ui.sh --check    (generate to a temp dir and
+#                                                     diff; prints the number of
+#                                                     drifted files, exit 1 if any)
+#
+# --check is what tools/check.sh calls: the generator stays the single source of
+# truth, so the invariant can never disagree with the thing it is checking.
 set -euo pipefail
+
+CHECK=0
+[ "${1:-}" = "--check" ] && CHECK=1
 
 # Repo root = two levels up from this script (src/features/greeter -> repo root).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SRC="$ROOT/src/ui"
 DST="$SCRIPT_DIR/ui"
+
+if [ "$CHECK" -eq 1 ]; then
+  REAL="$DST"
+  DST="$(mktemp -d)"
+  trap 'rm -rf "$DST"' EXIT
+fi
 
 # Greeter font scale (greeter has no AppConfig.fontScale binding). Keep in sync with the
 # main shell's default fontScale (see config/default.json).
@@ -36,6 +51,8 @@ components=(
   "IconButton.qml:base/IconButton.qml"
   "CircleAvatar.qml:base/CircleAvatar.qml"
   "StateLayer.qml:feedback/StateLayer.qml"
+  "MotionAnimation.qml:base/MotionAnimation.qml"
+  "MotionColorAnimation.qml:base/MotionColorAnimation.qml"
 )
 
 # Common substitution applied to component files.
@@ -52,16 +69,69 @@ with_header() {
   awk -v hdr="$HEADER" 'NR==1 && $0 ~ /^pragma/ {print; print hdr; next} NR==1 {print hdr} {print}'
 }
 
+say() { [ "$CHECK" -eq 1 ] || echo "$@"; }
+
 for entry in "${components[@]}"; do
   out="${entry%%:*}"
   rel="${entry##*:}"
   substitute < "$SRC/$rel" | with_header > "$DST/$out"
-  echo "  generated ui/$out  <- src/ui/$rel"
+  say "  generated ui/$out  <- src/ui/$rel"
 done
 
-# Tokens: copy main tokens, drop the AppConfig dependency.
-sed -E "s|AppConfig\.fontScale|$GREETER_FONT_SCALE|" "$ROOT/src/core/config/Tokens.qml" \
+# Tokens: copy main tokens, fold away the AppConfig dependency. The greeter has
+# no AppConfig singleton, so EVERY binding that reads one must become a literal.
+# Values mirror config/default.json (appearance.*).
+sed -E \
+  -e "s|AppConfig\.fontScale|$GREETER_FONT_SCALE|" \
+  -e "s|AppConfig\.reduceMotion|false|" \
+  -e "s|AppConfig\.motionScale|1.0|" \
+  "$ROOT/src/core/config/Tokens.qml" \
   | with_header > "$DST/Tokens.qml"
-echo "  generated ui/Tokens.qml  <- src/core/config/Tokens.qml (fontScale=$GREETER_FONT_SCALE)"
+say "  generated ui/Tokens.qml  <- src/core/config/Tokens.qml (fontScale=$GREETER_FONT_SCALE)"
+
+# qmldir is GENERATED from the list above. It used to be hand-maintained, and that
+# is exactly how the greeter broke: MotionAnimation/MotionColorAnimation were
+# introduced in the main kit and picked up by four generated components, while
+# being absent from both the copy list and this module. Every greeter button,
+# icon and state layer would have failed to resolve its animation type at
+# runtime — on the PRE-LOGIN screen, where there is no way to recover.
+# Deriving it from `components` makes that class of drift unrepresentable.
+{
+  echo "module qs.ui"
+  echo
+  echo "singleton Tokens 1.0 Tokens.qml"
+  for entry in "${components[@]}"; do
+    out="${entry%%:*}"
+    printf '%s 1.0 %s\n' "${out%.qml}" "$out"
+  done
+} > "$DST/qmldir"
+say "  generated ui/qmldir  <- components list"
+
+# GUARD. The greeter runs pre-login with no AppConfig singleton, so a surviving
+# `AppConfig.` reference is not a warning — it is a ReferenceError that kills the
+# binding it sits in. `durationScale` reached the greeter exactly this way and
+# every animation duration in the login screen evaluated to undefined, because
+# the substitution list above only knew about fontScale. Failing generation is
+# the only place this can be caught before the pre-login screen.
+if grep -n 'AppConfig' "$DST"/*.qml >/dev/null 2>&1; then
+  echo "sync-ui.sh: FATAL — AppConfig survives in generated greeter files:" >&2
+  grep -n 'AppConfig' "$DST"/*.qml >&2
+  echo "The greeter has no AppConfig. Add a substitution for each reference above." >&2
+  exit 1
+fi
+
+if [ "$CHECK" -eq 1 ]; then
+  drifted=0
+  for f in "$DST"/*; do
+    name="$(basename "$f")"
+    if ! diff -q "$f" "$REAL/$name" > /dev/null 2>&1; then
+      drifted=$((drifted + 1))
+      echo "  DRIFTED: ui/$name" >&2
+    fi
+  done
+  echo "$drifted"
+  [ "$drifted" -eq 0 ]
+  exit $?
+fi
 
 echo "Done. Greeter UI kit regenerated in $DST"

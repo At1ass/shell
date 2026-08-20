@@ -83,6 +83,7 @@ misc {
   "darkMode": true,
   "themeVariant": "vibrant",
   "themeColor": "#6200EE",
+  "themeContrast": 0.0,
   "showClock": true,
   "defaultUser": "",
   "defaultSession": "Hyprland"
@@ -95,6 +96,7 @@ misc {
 | `darkMode`       | `true`      | Dark theme                                                       |
 | `themeVariant`   | `"vibrant"` | Material You variant (vibrant, tonalspot, etc.)                  |
 | `themeColor`     | `"#6200EE"` | Fallback seed color for theme generation (when there's no image) |
+| `themeContrast`  | `0.0`       | MCU contrast. `0.0` is standard M3; `1.0` is the accessibility high-contrast level, which flips `*Container` roles light in a dark scheme |
 | `showClock`      | `true`      | Show clock and date                                              |
 | `defaultUser`    | `""`        | Pre-fill the username                                            |
 | `defaultSession` | `""`        | Pre-select a session by name (e.g. `"Hyprland"`)                 |

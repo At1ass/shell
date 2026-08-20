@@ -48,6 +48,9 @@ struct Event {
     Recurrence recurrence = Recurrence::None;
     QDate      recurrenceUntil;   // invalid if no UNTIL
     std::vector<QDateTime> exdates;
+    // Explicit extra occurrences (RFC 5545 RDATE). Merged with the RRULE
+    // expansion; a series may have RDATE and no RRULE at all.
+    std::vector<QDateTime> rdates;
 
     // Override (single instance with RECURRENCE-ID)
     QDateTime recurrenceId;       // invalid if not an override

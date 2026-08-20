@@ -58,7 +58,11 @@ BaseProvider {
             // match scores are deliberately discarded so that text matches
             // never bubble above newer screenshots.
             results.push({
-                id: "clipboard:" + (entry.id ?? i),
+                // item.id is the cliphist entry id (stable across keystrokes).
+                // `entry` is the raw "ID\tCONTENT" STRING, so the old
+                // `entry.id` was always undefined and silently fell back to the
+                // array index — re-keying every wrapper on each keystroke.
+                id: "clipboard:" + (item.id || i),
                 text: displayText,
                 description: description,
                 icon: icon,
@@ -77,9 +81,5 @@ BaseProvider {
     function defaultResults() {
         // Prefixed provider - do not show default results
         return []
-    }
-
-    Component.onCompleted: {
-        launcherService = LauncherService
     }
 }

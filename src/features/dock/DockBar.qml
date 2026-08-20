@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.src.core.config
+import qs.src.ui.base
 import qs.src.ui.containers
 
 // The dock bar surface: an elevated MD3 container + the row/column of app icons.
@@ -45,12 +46,9 @@ Surface {
     visible: opacity > 0
 
     Behavior on scale {
-        NumberAnimation {
+        MotionAnimation {
             duration: root.reveal ? Tokens.motion.duration.medium2 : Tokens.motion.duration.short4
-            easing.type: root.reveal ? Tokens.motion.easing.emphasizedDecelerate
-                                     : Tokens.motion.easing.emphasizedAccelerate
-            easing.bezierCurve: root.reveal ? Tokens.motion.easing.emphasizedDeceleratePoints
-                                            : Tokens.motion.easing.emphasizedAcceleratePoints
+            curve: root.reveal ? "emphasizedDecelerate" : "emphasizedAccelerate"
         }
     }
     Behavior on opacity {

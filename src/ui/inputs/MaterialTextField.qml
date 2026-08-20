@@ -27,6 +27,13 @@ Item {
     implicitHeight: 56
     implicitWidth: 240
 
+    // Reachable by Tab. The root Item accepts tab focus and hands it straight
+    // to the TextInput; without this the field could only be focused by
+    // clicking it, and the focus-coloured border below — which already reads
+    // `input.activeFocus` — could never light up from the keyboard.
+    activeFocusOnTab: enabled
+    onActiveFocusChanged: if (activeFocus) input.forceActiveFocus()
+
     readonly property bool _filled: variant === "filled"
     readonly property color _accent: input.activeFocus ? Theme.primary : Theme.outline
 
@@ -41,10 +48,9 @@ Item {
         border.color: root._accent
 
         Behavior on border.color {
-            ColorAnimation {
+            MotionColorAnimation {
                 duration: Tokens.motion.duration.short3
-                easing.type: Tokens.motion.easing.standard
-                easing.bezierCurve: Tokens.motion.easing.standardPoints
+                curve: "standard"
             }
         }
 

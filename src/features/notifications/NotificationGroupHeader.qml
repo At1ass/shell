@@ -1,14 +1,18 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.src.core.config
-import qs.src.core.services
 import qs.src.ui.base
-import qs.src.ui.containers
 import qs.src.ui.feedback
 
-Rectangle {
+// Section header for one application's group in the notification centre.
+// Root is a plain Item: the header has no fill of its own, so the Rectangle it
+// used to be existed only to host a state layer that StateLayer already draws.
+Item {
     id: root
+
     property string groupAppName: ""
     property string groupAppIcon: ""
     property int groupCount: 0
@@ -17,13 +21,12 @@ Rectangle {
     signal toggleExpanded()
 
     implicitHeight: headerRow.implicitHeight + Tokens.spacing.small * 2
-    color: "transparent"
-    radius: Tokens.shape.small
 
     StateLayer {
         layerColor: Theme.onSurface
         hovered: headerMouseArea.containsMouse
         pressed: headerMouseArea.pressed
+        showFocusRing: false
     }
 
     MouseArea {
@@ -46,11 +49,11 @@ Rectangle {
         Image {
             visible: source !== ""
             source: root.groupAppIcon ? Quickshell.iconPath(root.groupAppIcon) : ""
-            Layout.preferredWidth: 20
-            Layout.preferredHeight: 20
+            Layout.preferredWidth: Tokens.iconSize.medium
+            Layout.preferredHeight: Tokens.iconSize.medium
             fillMode: Image.PreserveAspectFit
-            sourceSize.width: 20
-            sourceSize.height: 20
+            sourceSize.width: Tokens.iconSize.medium
+            sourceSize.height: Tokens.iconSize.medium
             smooth: true
         }
 
@@ -62,21 +65,12 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        // Count badge
-        Rectangle {
+        Badge {
+            inline: true
             visible: root.groupCount > 1
-            implicitWidth: Math.max(countLabel.implicitWidth + Tokens.spacing.small * 2, implicitHeight)
-            implicitHeight: countLabel.implicitHeight + Tokens.spacing.extraSmall
-            radius: Tokens.shape.full
-            color: Theme.secondaryContainer
-
-            MaterialText {
-                id: countLabel
-                anchors.centerIn: parent
-                text: root.groupCount.toString()
-                textStyle: "labelSmall"
-                colorRole: "onSecondaryContainer"
-            }
+            text: root.groupCount.toString()
+            badgeColor: Theme.secondaryContainer
+            textColor: Theme.onSecondaryContainer
         }
 
         MaterialIcon {

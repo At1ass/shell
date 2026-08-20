@@ -24,10 +24,16 @@ Singleton {
 
     Process {
         id: scanner
-        command: ["bash", "-c",
-            "for f in /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop; do " +
-            "[ -f \"$f\" ] && echo \"---FILE---\" && cat \"$f\"; done"
-        ]
+        // Wholly literal script. Written as a template literal rather than `+`
+        // concatenation so it stays one unbroken string: tools/check.sh cannot
+        // tell a concatenated literal from a variable spliced into a shell
+        // command, and rightly refuses to try. `$f` is a SHELL variable — JS
+        // only interpolates `${...}`, which is precisely what the check bans.
+        command: ["bash", "-c", `
+            for f in /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop; do
+                [ -f "$f" ] && echo "---FILE---" && cat "$f"
+            done
+        `]
         running: true
 
         stdout: SplitParser {

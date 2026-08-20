@@ -8,6 +8,7 @@
 
 # --- C++ plugin build output (cmake -B build -S . -G Ninja ...) ---------------
 /src/plugins/build/
+/src/plugins/build-test/
 # на случай сборки в другом месте — любой каталог сборки:
 build/
 cmake-build-*/
