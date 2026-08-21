@@ -15,6 +15,18 @@ import qs.src.features.launcher.components as LauncherComponents
 Item {
     id: root
 
+    // LauncherService.filteredApps is a SINGLETON property that outlives the
+    // launcher window, so at creation it still holds the PREVIOUS session's
+    // results. Binding the list model straight to it populated the view with
+    // stale rows, and the replacement a moment later (Component.onCompleted
+    // runs the first search) left the outgoing delegates drawn ON TOP of the
+    // incoming ones — permanently, not just for the remove transition. That
+    // is the doubled first row, and the rows that came up with no icon.
+    // Reproduce by typing a query, closing, and reopening.
+    //
+    // So: show nothing until the first search for THIS session has run.
+    property bool _searchReady: false
+
     implicitHeight: 56 + Math.min(appListView.contentHeight, AppConfig.launcherListMaxHeight) + Tokens.spacing.large * 3 + 4  // +4 for the shadow
 
     // MD3 Shadow (Elevation Level 2)
@@ -72,10 +84,36 @@ Item {
 
                         background: Item {}  // Transparent - the outer Rectangle is used
 
-                        // Live search
+                        // Coalesced, NOT live. Every keystroke rebuilds the
+                        // result list, which rebinds delegates and cancels
+                        // their in-flight icon loads — and a cancelled load
+                        // poisons Quickshell's icon provider for that icon
+                        // NAME for the rest of the session. The icon then
+                        // renders nowhere: not here, not in the bar's
+                        // workspace chips. Reproduce by typing fast; the
+                        // poisoned entry survives reopening the launcher, is
+                        // keyed by name rather than size, and ignores
+                        // `cache: false`, so it is below this layer.
+                        //
+                        // Holding the query still for one interval lets the
+                        // loads finish. Enter flushes a pending search first
+                        // so it can never act on a stale list.
                         onTextChanged: {
-                            LauncherService.search(text)
+                            searchDebounce.restart()
                             appListView.currentIndex = 0
+                        }
+
+                        Timer {
+                            id: searchDebounce
+                            interval: 120
+                            onTriggered: LauncherService.search(searchField.text)
+                        }
+
+                        function flushSearch() {
+                            if (searchDebounce.running) {
+                                searchDebounce.stop()
+                                LauncherService.search(searchField.text)
+                            }
                         }
 
                         // Tab navigation
@@ -115,6 +153,7 @@ Item {
                                 }
                                 event.accepted = true
                             } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                searchField.flushSearch()
                                 const result = appListView.currentItem?.modelData ?? null
                                 // Actionless rows (calculator errors) stay open.
                                 if (result?.action) {
@@ -162,7 +201,7 @@ Item {
                 model: ScriptModel {
                     id: scriptModel
                     objectProp: "resultId"  // Fixed: all providers use "id"
-                    values: LauncherService.filteredApps
+                    values: root._searchReady ? LauncherService.filteredApps : []
 
                     onValuesChanged: appListView.currentIndex = 0
                 }
@@ -238,13 +277,10 @@ Item {
                     }
                 }
 
-                remove: Transition {
-                    MotionAnimation {
-                        properties: "opacity,scale"; from: 1; to: 0
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
+                // No `remove` transition. It was the only one that drove a
+                // delegate's scale toward 0, and ListView keeps an item alive
+                // for the whole transition — so interrupting it was what left
+                // rows stranded shrunk. Rows now leave at once.
 
                 move: Transition {
                     MotionAnimation {
@@ -331,6 +367,7 @@ Item {
         // 100 ms debounce, which races a fast Mod+Space right after a copy.
         ClipboardService.refresh()
         LauncherService.search("")
+        root._searchReady = true
         appListView.currentIndex = 0
     }
 }

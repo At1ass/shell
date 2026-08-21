@@ -13,6 +13,84 @@ Recent history that informs the items below:
 
 ---
 
+## Launcher: doubled first row fixed, missing icons still open (2026-08)
+
+**Fixed — doubled first row.** `LauncherService.filteredApps` is a singleton
+property that outlives the launcher window, so the list model bound to the
+PREVIOUS session's results at creation, populated delegates from them, and was
+then replaced by `Component.onCompleted`'s first search. The outgoing
+delegates stayed drawn over the incoming ones permanently. The model now stays
+empty until the first search of the current session has run. Reproduce the old
+behaviour by typing a query, closing, and reopening.
+
+**Fixed — application icons sometimes blank.** Root cause: every keystroke
+rebuilt the result list, which rebinds delegates and cancels their in-flight
+asynchronous icon loads, and a cancelled load leaves Quickshell's icon provider
+holding an empty result for that icon NAME for the rest of the session. The
+search is now coalesced over 120 ms so the list holds still long enough for the
+loads to finish; Enter flushes a pending search.
+
+What the measurements pinned down, in the order that mattered:
+
+- A freshly started shell never shows it. Wallpaper rotation, 20 launcher
+  cycles, 2 config reloads and 20 distinct queries at a human pace all leave it
+  clean — so it is triggered, not gradual.
+- Fast typing reproduces it on demand, and the blank then survives every
+  later open of the launcher.
+- The poisoned entry is keyed by NAME, not size (40 -> 41 is still blank), and
+  sits below QQuickPixmapCache (`cache: false` does not avoid it).
+- It is shell-wide: the same app then loses its icon in the bar's workspace
+  chips, which is what first made it look like two unrelated bugs.
+- The dock's pinned icons never break, because they load once at startup and
+  nothing cancels them. That is why the working set was exactly `pinnedApps`.
+
+Related and fixed with it: the list's `remove` transition animated `scale` and
+`opacity` ON the delegate while ScriptModel reuses delegates by `resultId`, so
+an interrupted transition left a row stuck shrunk — smaller the faster you
+typed, down to nearly invisible. The transition is gone and a rebound delegate
+resets its own scale and opacity.
+
+**Note for later:** the debounce is load-bearing for correctness now, not just
+for the ~6.5 ms per keystroke measured above. Removing it brings the icon
+poisoning back.
+
+---
+
+## Launcher review (2026-08)
+
+One real defect: `launcher.maxResults` is documented in the schema as 1..50,
+but `ApplicationProvider` capped itself at a hardcoded 10 in both paths (the
+fuzzy limit and the empty-query slice), so raising it changed nothing.
+Verified fixed by round-tripping the live config — 13 rows plus one clipped at
+the fold with maxResults 20, against exactly 10 before.
+
+**Per-keystroke cost measured, deliberately not changed.** The search field has
+no debounce, so every keystroke runs the full provider sweep. Measured on the
+running shell by reading its own utime+stime across a typed word, against an
+idle baseline of 0 ms:
+
+| query | ms CPU per keystroke |
+| --- | --- |
+| normal (all providers) | 12.5 |
+| `>` prefix (applications skipped) | 6.2 |
+| `=` prefix (calculator only) | 6.2 |
+
+So the fuzzy pass over 270 desktop entries is ~6.3 ms and the rest is the
+baseline cost of a keystroke reaching the field. That fits inside a 16.7 ms
+frame and no lag was reported, so no debounce was added — a debounce only
+collapses bursts anyway, and the standing goal of a fully non-blocking UI
+thread would need the search moved off-thread, not delayed.
+
+Checked and clean: no `Process` or `createObject` in the launcher, the one
+Timer is the calculator's internal 150 ms eval debounce, the result-wrapper
+cache is bounded at 1000 with liveness-aware eviction, thumbnail requests are
+deduped/queued/serialised behind a 48-entry LRU, the search corpus is cached
+and invalidated on both app-list and config changes, and the two `Image`
+caching decisions are correct in opposite directions with `sourceSize` set on
+both.
+
+---
+
 ## Hyprland 0.56 broke every dispatch (2026-08)
 
 Reported as "the workspace widget is unreliable". It was not the widget.

@@ -81,15 +81,21 @@ BaseProvider {
                 return (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase())
             })
 
+            // Honour launcher.maxResults. Both this and the fuzzy limit
+            // below were hardcoded to 10, so raising the documented setting
+            // (schema allows up to 50) changed nothing for the case that
+            // matters — LauncherService's own cap never got to bind.
+            const limit = AppConfig.launcherMaxResults
             const topApps = []
-            for (let i = 0; i < Math.min(10, sorted.length); i++) {
-                topApps.push(createResult(sorted[i], 10 - i))
+            for (let i = 0; i < Math.min(limit, sorted.length); i++) {
+                topApps.push(createResult(sorted[i], limit - i))
             }
             return topApps
         }
 
         // Weighted search: name x 2.5, full text x 1.0.
-        const hits = FuzzySearch.matchWeighted(query, _corpus.names, _corpus.fullTexts, 10, 30.0, 2.5)
+        const hits = FuzzySearch.matchWeighted(query, _corpus.names, _corpus.fullTexts,
+                                               AppConfig.launcherMaxResults, 30.0, 2.5)
         const results = []
         for (let i = 0; i < hits.length; i++) {
             const app = _corpus.visible[hits[i].index]

@@ -17,6 +17,18 @@ Item {
 
     signal clicked()
 
+    // The view's transitions animate `scale` and `opacity` ON THIS ITEM, and
+    // ScriptModel REUSES delegates keyed by resultId. Interrupt a transition —
+    // which fast typing does, since the query changes faster than the 400 ms
+    // remove — and the delegate keeps whatever partial scale it had, then comes
+    // back bound to a different result still shrunk. Reported as a row stuck
+    // ever smaller the faster you type. A row handed new data starts sane
+    // regardless of what any half-finished transition left behind.
+    onModelDataChanged: {
+        scale = 1
+        opacity = 1
+    }
+
     implicitHeight: 64
     implicitWidth: parent ? parent.width : 0
 
