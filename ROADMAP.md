@@ -13,6 +13,170 @@ Recent history that informs the items below:
 
 ---
 
+## What each feature costs on a weak machine (2026-08)
+
+CPU consumed by the shell for one action, sampled from its own utime+stime,
+same script on both machines, each action confirmed by its layer surface
+actually appearing.
+
+| действие | 9950X3D | N3050 | x |
+| --- | --- | --- | --- |
+| дашборд Quick | 180 мс | 580 мс | 3.2 |
+| дашборд Weather | 30 мс | 390 мс | 13 |
+| дашборд Calendar | 60 мс | 500 мс | 8.3 |
+| дашборд Audio | 60 мс | 290 мс | 4.8 |
+| дашборд Network | 30 мс | 270 мс | 9 |
+| лаунчер | 70 мс | 500 мс | 7.1 |
+| центр уведомлений | 60 мс | 400 мс | 6.7 |
+| читшит | 80 мс | 730 мс | 9.1 |
+| смена обоев + палитра MCU | 270 мс | 770 мс | 2.9 |
+| **первая всплывашка уведомления** | **220 мс** | **2710 мс** | **12.3** |
+| каждая следующая в очереди | ~25 мс | ~660 мс | ~26 |
+
+**The notification popup was the outlier — and it is now fixed.** Showing one
+popup cost 2.7 s of CPU on two 1.6 GHz cores. The cost turned out to be per
+UPDATE, not per popup: it scaled linearly with how long the popup stayed on
+screen (1 s -> 580 ms, 7 s -> 2690 ms), while a popup sitting there with its
+countdown disabled cost 30 ms over 8 s.
+
+The countdown was a NumberAnimation spanning the whole duration, so
+`progressValue` changed every frame and each change repainted and committed the
+popup's whole layer surface. A 10 Hz Timer instead: **2500 ms -> 820 ms** on
+the N3050, and 70 ms on the 9950X3D. Second, smaller cause: ProgressIndicator's
+circular Canvas tracked `value` whatever the type was, so a linear indicator
+drove a hidden software repaint per update (2690 -> 2500 ms). See commit
+`bae71a34`.
+
+Wallpaper rotation turned out **cheap**, against my expectation that MCU palette
+extraction would dominate: 770 ms on the N3050, under 3x the desktop. The
+prediction was wrong and the measurement corrected it.
+
+**Confirm the action happened, every single time.** Two conclusions in this
+investigation were drawn from runs where the popup never appeared, and both
+were wrong — including a "the Timer changes nothing, revert it" that would have
+thrown away the actual fix. Cost harnesses must assert the thing they are
+timing actually occurred (here: the `shell:notification-popup` layer surface
+appeared) and print that assertion next to the number.
+
+**Harness lesson, hit three times before it was believed.** A detached process
+on the remote machine inherits no Wayland environment, so `qs ipc` silently
+addresses nothing and `hyprctl` stays quiet — panels never open and every
+action measures as suspiciously cheap. Always export `WAYLAND_DISPLAY` and
+`HYPRLAND_INSTANCE_SIGNATURE` explicitly, and **confirm the action happened**
+(the expected layer surface appeared) before believing a number. The same class
+of silent failure produced "80 keystrokes cost less than idle" twice, and a
+`hyprlock` grab that swallowed synthetic input into a password field once.
+
+---
+
+## OSD review (2026-08)
+
+Nothing to fix. The module gets the things the rest of the shell had to learn
+the hard way already right:
+
+- one `PanelWindow` per screen via `Variants` with `screen: modelData`, which
+  is the documented way to stop the compositor mapping every copy onto one
+  output;
+- `visible: shown || opacity > 0.01`, so the fade-out actually plays — the
+  idiom the popouts card still lacks;
+- the toast queue is bounded at 16 and written as a fresh array each time,
+  because assigning a `var` back to itself is not a change notification;
+- every toast duration has a fallback, so no path can set a zero interval.
+
+Verified in use on both machines: a volume change raises the OSD on **every**
+screen (2 surfaces on the desktop, 1 on the laptop), shows icon/title/percent
+with the bar, and clears on the 2 s timeout. Cost on the N3050: **220-250 ms**
+per show, three repeats, each confirmed by the surface appearing — the cheapest
+panel-class action measured, against 500-600 ms for the launcher, Quick tab and
+cheatsheet.
+
+Observed and deliberately left alone: when toasts are queued, `hideTimer` sets
+`shown = false` and calls `_showNext()` in the same handler, so a queued toast
+replaces its predecessor with no fade between them. It only shows up during a
+toast burst, and adding a gap would change timing behaviour to fix something
+nobody has reported seeing.
+
+---
+
+## Cheatsheet and Quick tab: looked, found nothing worth changing (2026-08)
+
+Both are the next most expensive actions on the N3050 after the notification
+popup (730 ms and 580 ms). Both turned out to be **creation-dominated, with no
+single culprit** — unlike the popup, holding them open costs almost nothing:
+
+| held for | читшит | дашборд Quick |
+| --- | --- | --- |
+| 1 s | 590 мс | 540 мс |
+| 4 s | 600 мс | 430 мс |
+| 10 s | 800 мс | 570 мс |
+
+Two hypotheses were tried and **both refuted by measurement**; recorded so they
+are not tried again:
+
+- **"The cheatsheet re-runs `hyprctl -j binds` on every open."** It does, and it
+  costs 25 ms with a 0.4 ms parse. Not the problem.
+- **"Nested Repeaters materialise every bind row up front."** They do — 91 rows
+  on the desktop. Rewriting `KeybindingsTab` as a flat sectioned `ListView`
+  with `reuseItems` changed nothing on either machine (desktop 60-80 ms before
+  and after; laptop 590-600 before, 610-650 after) and was reverted. Row count
+  is not what the open costs.
+
+For Quick, bisecting by disabling one element at a time put only
+`SystemMonitoringElement` above the ±18% run-to-run noise, at roughly 140 ms of
+~500. `MediaPlayer` with its two `MultiEffect` blurs — the obvious suspect on
+weak Intel graphics — cost nothing measurable.
+
+So both panels are simply "a lot of components, each modest, on a slow
+machine". The one lever that would remove the cost outright is not building
+them again on every open: today `LazyLoader { active: ...Open }` destroys each
+panel on close by design. Keeping them resident after first use trades RAM for
+latency, which is a decision to take deliberately given the open memory-growth
+question, not a defect to fix.
+
+---
+
+## Slow-machine calibration (2026-08)
+
+A second machine exists for measuring: an Intel Celeron N3050 laptop (2 cores,
+1.6-2.16 GHz, 3.7 GB, Intel Braswell, 1366x768) reachable over SSH, running the
+same Arch, the same Hyprland 0.56.2, the same Qt 6.11.2 and — verified — the
+same Quickshell revision `1a4716c`, so behavioural differences can be assigned
+to hardware rather than versions.
+
+**Cost of one keystroke in the launcher**, measured from the shell's own
+utime+stime, three repeats each, typing 20 characters in a single `ydotool
+type -d 120` invocation:
+
+| | per keystroke | .desktop entries |
+| --- | --- | --- |
+| 9950X3D | 6.5 ms (3x identical) | 270 |
+| N3050 | 96 ms (94.5 / 96.0 / 98.0) | 63 |
+
+**~15x, and that is a lower bound** — the laptop carries 4.3x fewer entries, and
+the fuzzy pass scales with corpus size.
+
+At 60 Hz a frame is 16.7 ms, so on the N3050 one keystroke costs about six
+frames. The same number that reads as "comfortably inside the frame budget" on
+the reference machine is visible lag on ordinary hardware. **Use the multiplier
+before calling anything cheap.**
+
+Harness notes, learned the hard way:
+
+- Drive input with ONE `ydotool type -d N` call. A shell loop calling `sudo
+  ydotool` per key silently delivered nothing on the slow machine and produced
+  "80 keystrokes cost less than idle".
+- Verify the launcher is actually open (`hyprctl layers` for the `quickshell`
+  namespace) before and after every window; a crashed shell sends the keys to
+  whatever terminal is underneath.
+- `pgrep -x qs` misses a stray `/usr/bin/quickshell` (the crash reporter), so
+  check for extra instances before trusting a per-PID CPU sample.
+- Do not equalise the corpus by copying `.desktop` files onto the other
+  machine: it changes which icons exist and which theme paths are taken, which
+  distorts exactly the icon behaviour under study. Report both corpus sizes
+  instead.
+
+---
+
 ## Launcher: doubled first row fixed, missing icons still open (2026-08)
 
 **Fixed — doubled first row.** `LauncherService.filteredApps` is a singleton

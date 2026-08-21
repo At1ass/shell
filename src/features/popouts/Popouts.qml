@@ -102,7 +102,6 @@ PanelWindow {
         id: cardLayer
         anchors.fill: parent
         visible: root.visible && root.hasPopout && root.currentMode === "card"
-        // z: 1
 
         readonly property real contentWidth: (popoutContent.item as Item)?.implicitWidth ?? 0
         readonly property real contentHeight: (popoutContent.item as Item)?.implicitHeight ?? 0
@@ -115,8 +114,7 @@ PanelWindow {
             visible: cardLayer.visible
             opacity: visible ? 1 : 0
             scale: visible ? 1 : 0.95
-            // z: 1
-
+    
             color: Theme.surfaceContainerHigh
             radius: Tokens.shape.medium
 
@@ -166,23 +164,7 @@ PanelWindow {
                 active: root.visible && root.hasPopout && root.currentMode === "card"
                 asynchronous: true
                 sourceComponent: root.popoutComponentFor(root.currentName)
-                // z: 1
-            }
-        }
-    }
-
-    Item {
-        id: panelLayer
-        anchors.fill: parent
-        visible: root.visible && root.hasPopout && root.currentMode === "panel"
-        // z: 1
-
-        Loader {
-            id: panelContent
-            anchors.fill: parent
-            active: panelLayer.visible
-            asynchronous: true
-            sourceComponent: root.popoutComponentFor(root.currentName)
+                    }
         }
     }
 
@@ -205,11 +187,12 @@ PanelWindow {
         }
     }
 
+    // Every popout is a card. Kept as a function rather than inlined so a
+    // future mode has one place to appear; the "panel" branch that used to sit
+    // beside the card layer was unreachable, because this never returned
+    // anything else.
     function modeFor(name) {
-        switch (name) {
-        default:
-            return "card";
-        }
+        return "card";
     }
 
     function sourceGlobalPos() {
