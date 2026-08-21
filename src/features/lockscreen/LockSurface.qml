@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.Pam
 import qs.src.core.config
 import qs.src.core.services
@@ -33,6 +32,9 @@ Item {
             root._errorMessage = result === PamResult.MaxTries
                 ? "Too many attempts" : "Authentication failed"
             passwordField.text = ""
+            // The field is cleared, so clear the copy too: if PAM failed before
+            // ever asking, the password is still sitting in this string.
+            root._pendingPassword = ""
             shakeAnim.start()
             if (result === PamResult.Error) {
                 // A broken PAM stack completes with Error immediately —
@@ -103,7 +105,9 @@ Item {
         spacing: 0
         width: 360
 
-        // Clock
+        // Clock. Raw Text: no typography token goes near 96px, and the lock
+        // clock is one huge glyph run where native hinting beats subpixel
+        // positioning. MaterialText binds pixelSize to its token.
         Text {
             id: clockText
             Layout.alignment: Qt.AlignHCenter
@@ -121,7 +125,7 @@ Item {
         MaterialText {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: Tokens.spacing.extraSmall
-            text: Qt.formatDate(new Date(), "dddd, d MMMM")
+            text: Qt.formatDate(DateTime.clock.date, "dddd, d MMMM")
             textStyle: "titleLarge"
             color: Qt.alpha(Theme.scrimForeground, 0.8)
             visible: AppConfig.lockscreenShowClock
@@ -250,7 +254,12 @@ Item {
                                     pam.respond(text)
                                 } else {
                                     root._pendingPassword = text
-                                    if (!pam.active) pam.start()
+                                    // Same guard as every other start() in this
+                                    // file: a start that fails leaves no auth in
+                                    // flight, so without the retry Enter would
+                                    // silently do nothing on a locked screen.
+                                    if (!pam.active && !pam.start())
+                                        pamRetryTimer.start()
                                 }
                             }
                         }

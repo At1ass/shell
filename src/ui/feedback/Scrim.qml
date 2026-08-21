@@ -19,9 +19,18 @@ Rectangle {
     property bool shown: false
     property int duration: Tokens.motion.duration.medium2
 
+    // Panels gated by a LazyLoader are CREATED with `shown` already true, and a
+    // Behavior never runs for a value computed during initialization — those
+    // scrims snapped straight to full opacity with no fade at all. Holding the
+    // binding at 0 until completion turns the first evaluation into a real
+    // change, so the fade plays for them too. Panels that merely toggle `shown`
+    // later are unaffected.
+    property bool _ready: false
+    Component.onCompleted: root._ready = true
+
     anchors.fill: parent
     color: Theme.scrim
-    opacity: shown ? Tokens.state.scrimOpacity : 0
+    opacity: root._ready && root.shown ? Tokens.state.scrimOpacity : 0
 
     Behavior on opacity {
         MotionAnimation {

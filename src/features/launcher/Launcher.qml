@@ -64,12 +64,20 @@ Scope {
             anchors.topMargin: AppConfig.launcherTopMargin  // barHeight + MD3 spacing
 
             sourceComponent: Item {
+                id: launcherCard
                 implicitWidth: AppConfig.launcherWidth
                 implicitHeight: launcherContent.implicitHeight
 
+                // Created by a Loader with the open flag ALREADY true, so a
+                // Behavior never saw a change and this animation was dead — see
+                // Scrim._ready. The flag holds the binding at the start value
+                // for one pass so the first evaluation is a real transition.
+                property bool _ready: false
+                Component.onCompleted: launcherCard._ready = true
+
                 // MD3 entrance animation (slide down + fade in)
-                opacity: GlobalStates.launcherOpen ? 1.0 : 0.0
-                y: GlobalStates.launcherOpen ? 0 : -20
+                opacity: launcherCard._ready && GlobalStates.launcherOpen ? 1.0 : 0.0
+                y: launcherCard._ready && GlobalStates.launcherOpen ? 0 : -20
 
                 Behavior on opacity {
                     MotionAnimation {

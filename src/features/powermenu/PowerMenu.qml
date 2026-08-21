@@ -12,8 +12,6 @@ import qs.src.ui.base
 Scope {
     id: powerMenuScope
 
-    property var modelData
-
     readonly property var _actionDefs: [
         { icon: "lock",                label: "Lock",     action: "lock",     key: "L" },
         { icon: "dark_mode",           label: "Suspend",  action: "suspend",  key: "S" },
@@ -133,12 +131,19 @@ Scope {
 
         // Center content
         Item {
+            id: menuContent
             anchors.centerIn: parent
             width: actionsRow.width
             height: actionsRow.height
 
-            opacity: GlobalStates.powerMenuOpen ? 1.0 : 0.0
-            scale: GlobalStates.powerMenuOpen ? 1.0 : 0.9
+            // Same reason as Scrim._ready: the LazyLoader creates this panel
+            // with powerMenuOpen already true, so both Behaviors below used to
+            // be dead code and the menu appeared fully formed in one frame.
+            property bool _ready: false
+            Component.onCompleted: menuContent._ready = true
+
+            opacity: menuContent._ready && GlobalStates.powerMenuOpen ? 1.0 : 0.0
+            scale: menuContent._ready && GlobalStates.powerMenuOpen ? 1.0 : 0.9
 
             Behavior on opacity {
                 MotionAnimation {

@@ -67,9 +67,16 @@ Scope {
                 implicitWidth: 920
                 implicitHeight: Math.min(cheatsheetWindow.height - 80, 720)
 
+                // Created by a Loader with the open flag ALREADY true, so a
+                // Behavior never saw a change and this animation was dead — see
+                // Scrim._ready. The flag holds the binding at the start value
+                // for one pass so the first evaluation is a real transition.
+                property bool _ready: false
+                Component.onCompleted: contentWrapper._ready = true
+
                 // MD3 appear animation (opacity + scale)
-                opacity: GlobalStates.cheatsheetOpen ? 1.0 : 0.0
-                scale: GlobalStates.cheatsheetOpen ? 1.0 : 0.95
+                opacity: contentWrapper._ready && GlobalStates.cheatsheetOpen ? 1.0 : 0.0
+                scale: contentWrapper._ready && GlobalStates.cheatsheetOpen ? 1.0 : 0.95
 
                 Behavior on opacity {
                     MotionAnimation {

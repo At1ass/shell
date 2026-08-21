@@ -69,6 +69,90 @@ of silent failure produced "80 keystrokes cost less than idle" twice, and a
 
 ---
 
+## Power menu review (2026-08)
+
+The dangerous part is fine. `executePowerAction` builds argv arrays
+(`["systemctl", "poweroff"]`) with no shell in the path, closes the panel
+before it fires, guards against a second concurrent action, and routes logout
+through `HyprlandDispatch`. Confirm-on-destructive is a config key, the action
+list is config-ordered, and the hotkeys go through `Keycodes` so they survive a
+non-Latin layout.
+
+What was broken was the motion, and not only here. Every overlay panel sits
+behind a `LazyLoader` gated on its own open flag, so the panel is **created**
+with that flag already true — and a `Behavior` never runs for a value computed
+during initialization. Six animation declarations across four files were dead
+code: the shared `Scrim`, the power menu's opacity and scale, the launcher's
+fade and slide, the cheatsheet's opacity and scale. Each panel appeared fully
+formed in one frame.
+
+Measured, not assumed. Frames 74 ms apart on the N3050 after opening the power
+menu, as a fraction of the transition:
+
+| | o0 | o1 | o2 | o3 | o4 | o5 |
+|---|---|---|---|---|---|---|
+| before | 0.00 | 0.00 | **1.00** | 1.00 | 1.00 | 1.00 |
+| after | 0.00 | 0.00 | 0.66 | 0.84 | 0.92 | 1.00 |
+
+Before the fix o2-o5 were byte-identical to the settled frame (mean abs delta
+0.00) against a declared 400 ms — no intermediate frame existed. The launcher
+on the desktop now runs 0.16, 0.49, 0.79, 0.92, 1.00.
+
+Fixed in commit 75b9e8e8 with a `_ready` flag that holds each binding at its
+start value for one pass. Doing it inside `Scrim` fixed the scrim for all four
+panels at once.
+
+**Exit is still instant** and stays that way for now: the loader destroys the
+panel the moment the flag drops, so there is nothing left to animate. Making
+exit real means keeping panels resident past close, which is the same
+RAM-versus-latency decision still open from the memory work — worth taking as
+one decision rather than four hacks.
+
+---
+
+## Lockscreen review (2026-08)
+
+This module is the real locker on the desktop: hypridle's `lock_cmd` and its
+idle timeout both call `qs ipc call globalstates lockScreen`, and `check.sh`
+still carries the scar of a config load failure that took the shell down while
+it held the session lock. Reviewed accordingly.
+
+Fixed (commit 281cc441):
+
+- **Enter could silently do nothing.** `onAccepted` called `pam.start()` and
+  discarded the result. Every other `start()` in the file checks it and arms
+  `pamRetryTimer`; this one did not, so a failed start left no auth in flight,
+  no error on screen and no retry pending.
+- **The plaintext outlived the attempt.** A failure cleared the visible field
+  but not `_pendingPassword`, so a PAM stack that failed before ever asking for
+  a response left the password in that string for the rest of the lock.
+- **The date was frozen.** `Qt.formatDate(new Date(), ...)` is not a binding —
+  evaluated once when the surface appeared. Lock before midnight, unlock after,
+  and the date was wrong. `DateTime.clock` already drives the clock above it.
+
+Two things looked at and deliberately left alone:
+
+- **One `PamContext` per screen.** `WlSessionLockSurface` is instantiated per
+  output, so a two-monitor desktop opens two `login` conversations for the whole
+  lock. It is waste rather than a defect, and it is why typing works from either
+  screen: whichever surface the compositor focuses answers with its own context.
+  Hoisting PAM into a service would centralise the error state at the cost of
+  that property.
+- **logind `Unlock` drops the lock with no authentication.** The DBus listener
+  in `GlobalStates` honours `Unlock` as well as `Lock`, so `loginctl
+  unlock-session` opens the session without a password. hyprlock and swaylock do
+  not honour it. It is also the only recovery path if the shell dies while
+  holding the lock, which is a failure this repo has actually had — so the
+  trade-off is deliberate, but it is a trade-off: any code already running as
+  the user can end the lock. **Not tested live** — the check would have meant
+  locking a session and unlocking it without the password, so it stands on
+  reading `GlobalStates.qml:146-165`, not on a measurement.
+
+Verified absent: there is no `unlock` IPC function, so PAM success and that
+logind signal are the only two ways out.
+
+---
+
 ## OSD review (2026-08)
 
 Nothing to fix. The module gets the things the rest of the shell had to learn
