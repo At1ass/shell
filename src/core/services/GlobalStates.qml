@@ -135,7 +135,8 @@ Singleton {
             case "suspend":  powerProc.command = ["systemctl", "suspend"]; break
             case "reboot":   powerProc.command = ["systemctl", "reboot"]; break
             case "shutdown": powerProc.command = ["systemctl", "poweroff"]; break
-            case "logout":   powerProc.command = ["hyprctl", "dispatch", "exit"]; break
+            // Hyprland 0.56 dropped the string dispatch form; see HyprlandDispatch.
+            case "logout":   HyprlandDispatch.exitCompositor(); return
             default: return
         }
         if (!powerProc.running) powerProc.running = true

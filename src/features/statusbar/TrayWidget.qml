@@ -1,9 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Services.SystemTray
-import qs.src.ui.base
 import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.core.config

@@ -13,6 +13,76 @@ Recent history that informs the items below:
 
 ---
 
+## Hyprland 0.56 broke every dispatch (2026-08)
+
+Reported as "the workspace widget is unreliable". It was not the widget.
+Hyprland 0.56 moved dispatching to Lua and dropped the string form: the
+compositor wraps whatever arrives on the IPC socket as
+`return hl.dispatch(<text>)`, so `dispatch workspace 2` became a Lua syntax
+error and never ran. Quickshell sends exactly that string, so all five call
+sites died at once and silently — bar workspace click and scroll, the
+per-window icons, the dock's focus and close — plus logout, which went through
+`hyprctl dispatch` and speaks the same protocol.
+
+Every framing of the old form was checked against the raw socket (`/dispatch`,
+bare, `[[BATCH]]`, and quoting the argument). The working form sends only the
+dispatcher expression and lets Hyprland supply the wrapper:
+
+    hl.dsp.focus({workspace=N})
+    hl.dsp.focus({window="address:0x..."})
+    hl.dsp.window.close({window="address:0x..."})
+
+`HyprlandDispatch` now owns that syntax alone, and validates ids and addresses
+before interpolating them into a Lua expression — the same discipline argv
+construction gets, because this is pasting into code.
+
+**Lesson:** a compositor-API break shows up as a feature that quietly does
+nothing, not as an error the user can see. The shell logs the failure, but
+only if its output goes somewhere.
+
+### Workspace chips show application icons
+
+The Material Symbols category glyphs are gone from workspace chips; each
+window shows its own themed icon, resolved through `DockService.resolveEntry`
+(the one cached class -> DesktopEntry resolver). The glyph remains the
+fallback for both failure modes — no desktop entry, and an icon name the theme
+cannot produce, which only appears as `Image.Error`. Focused-workspace
+emphasis moved from tint to opacity, since an app icon cannot be tinted.
+
+---
+
+## Dashboard + backing services review (2026-08)
+
+The dashboard is a thin view layer — no `Process`, no `createObject`, no timers
+of its own — so the review followed each tab into the service behind it. The
+codebase already has a convention for this class of work: **poll only while
+something is on screen to read the result** (`SystemMonitorService.isMonitoring`
+bound to `dashboardOpen`, `KeyboardLayoutService.lockStateWatchers`). Two
+services had not adopted it, and one had a request race.
+
+- **`DateTime`** re-read `/proc/uptime` every 3 s for the whole session to feed
+  one label in the Quick tab, formatted at minute granularity. Now watcher-gated
+  at 60 s. Measured with `strace` on the running shell, dashboard closed: **24
+  opens per 70 s before, 0 after**.
+- **`NotificationRateLimiter`** refilled a full token bucket every second —
+  86 400 no-op wakeups a day. `running` now tracks `_tokens < ingressLimit`.
+- **`Weather`** allowed overlapping fetches from four callers, so an older reply
+  could overwrite a newer forecast. A new fetch now aborts the one in flight.
+
+Checked and found clean: `MprisController`'s position timer (already gated on
+`isPlaying && positionSupported && dashboardOpen`), `SystemMonitorService`,
+Wi-Fi/Bluetooth scanner lifecycle (both stopped in `Component.onDestruction`),
+`NetworkService`'s passphrase handling (stdin, never argv).
+
+Two hypotheses were **disproved by measurement** and are recorded so they are
+not re-investigated: a config value of `0` reaching a `Timer.interval` does NOT
+cause an every-frame loop — a repeating timer with `interval: 0` never fires at
+all (measured: 0 ticks in 2 s, vs 1892 at `interval: 1`). And the `interval: 0`
++ `repeat: false` + `restart()` coalescing idiom in `NotificationHistory` does
+fire exactly once, as intended.
+
+---
+
 ## Notification popup stack (2026-08)
 
 The popup stack is one wlr-layer surface per screen with the cards as Items

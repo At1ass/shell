@@ -76,10 +76,15 @@ Singleton {
     signal popupDropped(var notification)
 
     // ── Bucket refill ────────────────────────────────────────────
+    // Runs only while the bucket is actually short. A full bucket refilling to
+    // full is a no-op that does not even emit a change signal, so leaving this
+    // on `running: true` was a wakeup every second for the life of the session
+    // — 86 400 a day to compute a value that was already correct. Depleting the
+    // bucket turns the timer on; the refill turns it back off.
     Timer {
         interval: 1000
         repeat: true
-        running: true
+        running: root._tokens < root.ingressLimit
         onTriggered: root._tokens = Math.min(root._tokens + root.ingressLimit, root.ingressLimit)
     }
 

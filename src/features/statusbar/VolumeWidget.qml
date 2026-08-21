@@ -1,10 +1,6 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import Quickshell.Services.Pipewire
 import qs.src.ui.containers
-import qs.src.ui.inputs
-import qs.src.ui.feedback
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
@@ -21,7 +17,6 @@ BarElement {
     property bool showPercentage: widgetSettings.showPercentage ?? true
 
     property var tooltipManager: null
-    property bool mixerOpen: false
 
     readonly property var sink: Pipewire.defaultAudioSink
 

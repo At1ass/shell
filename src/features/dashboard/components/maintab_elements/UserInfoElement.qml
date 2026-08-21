@@ -10,6 +10,12 @@ MaterialCard {
     color: Theme.surfaceContainerHigh
     radius: Tokens.shape.large
 
+    // This element is the only thing in the shell that displays uptime, and
+    // the service can only learn it by re-reading /proc/uptime. Hold a watcher
+    // so the poll exists exactly while something shows its result.
+    Component.onCompleted: DateTime.addUptimeWatcher()
+    Component.onDestruction: DateTime.removeUptimeWatcher()
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.medium

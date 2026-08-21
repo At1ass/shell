@@ -1,12 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.src.ui.containers
-import qs.src.ui.inputs
-import qs.src.ui.feedback
-import QtQuick.Layouts
-import Quickshell
 import qs.src.ui.base
-import qs.src.core.config
 import qs.src.core.services
 
 BarElement {

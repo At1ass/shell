@@ -144,19 +144,33 @@ Singleton {
         _doFetch();
     }
 
+    // The request currently in flight, so a new one can cancel it. Four
+    // independent callers can reach _doFetch (periodic poll, retry backoff,
+    // unit switch, fetchNow), and two responses on separate connections have
+    // no ordering guarantee: without this the OLDER reply could land last and
+    // overwrite the newer forecast. Aborting makes "last request wins" true.
+    property var _inFlight: null
+
     function _doFetch() {
         if (!AppConfig.weatherEnabled)
             return;
         lastAttemptAt = new Date();
         errorString = "";
 
+        // An aborted request reports status 0, which falls through every
+        // branch below — no retry is scheduled for a cancellation.
+        if (store._inFlight) store._inFlight.abort();
+
         var xhr = new XMLHttpRequest();
+        store._inFlight = xhr;
         xhr.open("GET", _url());
         xhr.timeout = 15000;
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return;
+
+            if (store._inFlight === xhr) store._inFlight = null;
 
             if (xhr.status === 200) {
                 try {

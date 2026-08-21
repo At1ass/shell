@@ -268,7 +268,7 @@ Singleton {
     }
 
     function _focusAddress(addr) {
-        if (addr) Hyprland.dispatch("focuswindow address:" + addr)
+        if (addr) HyprlandDispatch.focusWindow(addr)
     }
 
     // Left-click behavior: launch if not running, focus the single window, or
@@ -289,7 +289,7 @@ Singleton {
     // Close one window, or all of an app's windows.
     function closeWindow(win) {
         const addr = win?.lastIpcObject?.address ?? ""
-        if (addr) Hyprland.dispatch("closewindow address:" + addr)
+        if (addr) HyprlandDispatch.closeWindow(addr)
     }
 
     function closeApp(app) {

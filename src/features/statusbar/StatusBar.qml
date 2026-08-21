@@ -9,7 +9,6 @@ import qs.src.core.services
 import qs.src.features.statusbar
 import qs.src.ui.containers
 import qs.src.ui.feedback
-import qs.src.ui.inputs
 
 PanelWindow {
     id: statusBar

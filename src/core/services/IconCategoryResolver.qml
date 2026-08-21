@@ -86,6 +86,25 @@ Singleton {
     }
 
     /**
+     * Real application icon for a window class, as an image source.
+     *
+     * Identity resolution is DockService.resolveEntry — the project's one
+     * window-class -> DesktopEntry resolver, and the only one that is cached.
+     * Window IPC events fire on every browser navigation, so a second
+     * uncached lookup here would be exactly the cost that resolver exists to
+     * avoid; a second cache would be a second source of truth.
+     *
+     * Returns "" when no entry or no icon is known. Consumers must fall back
+     * to getAppCategoryIcon() — a themed icon can also fail to LOAD, which
+     * only the Image's status can tell them.
+     */
+    function appIconSource(windowClass) {
+        if (!windowClass) return ""
+        const icon = DockService.resolveEntry(windowClass)?.icon ?? ""
+        return icon ? "image://icon/" + icon : ""
+    }
+
+    /**
      * Get Material Icon for an array of categories
      * @param categories - category array from a .desktop file
      * @param fallback - default icon

@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
-import qs.src.ui.inputs
 import qs.src.ui.feedback
 import qs.src.ui.base
 import qs.src.core.config

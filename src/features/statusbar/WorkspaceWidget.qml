@@ -65,7 +65,7 @@ BarElement {
             const id = Math.max(wsBaseIndex, Math.min(wsBaseIndex + wsCount - 1, targetWorkspace));
             if (id != currentIndex) {
                 currentIndex = id;
-                Hyprland.dispatch("workspace " + id);
+                HyprlandDispatch.focusWorkspace(id);
             }
         }
     }
@@ -139,7 +139,7 @@ BarElement {
                             return;
                         }
                         if (mouse.button === Qt.LeftButton)
-                            Hyprland.dispatch("workspace " + wsItem.wsIndex);
+                            HyprlandDispatch.focusWorkspace(wsItem.wsIndex);
                     }
                 }
 
@@ -189,15 +189,49 @@ BarElement {
                         // pool, so delegates are reused across window events.
                         model: ScriptModel { values: wsItem.shownWindows }
 
-                        delegate: MaterialIcon {
+                        // The real application icon, with the category glyph as
+                        // the fallback. Two ways to have no icon and both must
+                        // land on the glyph: the window class resolves to no
+                        // desktop entry (source is ""), or it resolves to an
+                        // icon name the theme cannot actually produce — which
+                        // only shows up as Image.Error at load time.
+                        delegate: Item {
                             id: winIcon
                             required property var modelData
 
-                            iconName: IconCategoryResolver.getAppCategoryIcon(modelData.lastIpcObject?.class, "terminal")
-                            fontSize: workspaceWidget.iconFontSize
-                            iconColor: wsItem.active ? Theme.primary : Theme.onSurfaceVariant
+                            readonly property string windowClass: modelData.lastIpcObject?.class ?? ""
+                            readonly property bool hasAppIcon: appIcon.status === Image.Ready
+
+                            implicitWidth: workspaceWidget.iconFontSize
+                            implicitHeight: workspaceWidget.iconFontSize
+
+                            // Full colour on the focused workspace, dimmed
+                            // elsewhere: the glyph carried that distinction in
+                            // its tint, and an app icon cannot be tinted.
+                            opacity: wsItem.active ? 1.0 : 0.65
+
+                            Image {
+                                id: appIcon
+                                anchors.fill: parent
+                                source: IconCategoryResolver.appIconSource(winIcon.windowClass)
+                                sourceSize.width: workspaceWidget.iconFontSize
+                                sourceSize.height: workspaceWidget.iconFontSize
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                asynchronous: true
+                                visible: winIcon.hasAppIcon
+                            }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                visible: !winIcon.hasAppIcon
+                                iconName: IconCategoryResolver.getAppCategoryIcon(winIcon.windowClass, "terminal")
+                                fontSize: workspaceWidget.iconFontSize
+                                iconColor: wsItem.active ? Theme.primary : Theme.onSurfaceVariant
+                            }
 
                             StateLayer {
+                                anchors.fill: parent
                                 hovered: winMouse.containsMouse
                                 pressed: winMouse.pressed
                                 layerColor: Theme.onSurface
@@ -210,7 +244,7 @@ BarElement {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton
-                                onClicked: Hyprland.dispatch("focuswindow address:" + winIcon.modelData.address)
+                                onClicked: HyprlandDispatch.focusWindow(winIcon.modelData.address)
                             }
                         }
                     }
