@@ -283,7 +283,7 @@ Rectangle {
                 visible: repeatCount > 1
                 implicitWidth: Math.max(countLabel.implicitWidth + Tokens.spacing.small, implicitHeight)
                 implicitHeight: countLabel.implicitHeight + Tokens.spacing.extraSmall
-                radius: Tokens.shape.full
+                radius: Tokens.shape.pill
                 color: root.isCritical ? Theme.onErrorContainer : Theme.secondaryContainer
 
                 MaterialText {

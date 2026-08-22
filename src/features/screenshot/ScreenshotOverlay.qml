@@ -213,7 +213,7 @@ Scope {
                     y: root.startY - 4
                     width: 8
                     height: 8
-                    radius: 4
+                    radius: Tokens.shape.full
                     color: Theme.tertiary
                 }
 
@@ -225,7 +225,7 @@ Scope {
                     anchors.bottomMargin: 24
                     width: hintText.implicitWidth + 24
                     height: hintText.implicitHeight + 12
-                    radius: Tokens.shape.full
+                    radius: Tokens.shape.pill
                     color: Theme.inverseSurface
                     opacity: 0.85
 

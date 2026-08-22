@@ -296,7 +296,6 @@ Item {
     MaterialCard {
         id: card
         anchors.fill: parent
-        outlined: false
         color: Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g, Theme.surfaceContainer.b, 0.95)
         radius: Tokens.shape.extraLarge
 
@@ -335,7 +334,7 @@ Item {
                 id: searchContainer
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
-                radius: Tokens.shape.full
+                radius: Tokens.shape.pill
                 color: Theme.surfaceContainerHighest
                 border.width: searchField.activeFocus ? 2 : 0
                 border.color: searchField.activeFocus ? Theme.primary : "transparent"
@@ -474,7 +473,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 width: parent.width * 0.6
                                 height: 2
-                                radius: 1
+                                radius: Tokens.shape.full
                                 color: Theme.primary
                                 visible: tabDelegate.isActive
 

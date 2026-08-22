@@ -42,6 +42,9 @@ Singleton {
     // scheme it inverts container polarity, so every *Container role came out
     // light with black text on it. See appearance.theme.contrast in the schema.
     readonly property real themeContrast: data.appearance?.theme?.contrast ?? 0.0
+    // Which design pack Tokens resolves: "md3" or "minimal". Anything else falls
+    // back to md3 rather than leaving the shell with unset tokens.
+    readonly property string designSystem: data.appearance?.designSystem === "minimal" ? "minimal" : "md3"
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
     readonly property bool reduceMotion: data.appearance?.reduceMotion ?? false
     readonly property real motionScale: data.appearance?.motionScale ?? 1.0

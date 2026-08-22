@@ -11,31 +11,47 @@ Singleton {
     id: root
 
     component SpacingTokens: QtObject {
-        readonly property int none: 0
-        readonly property int extraSmall: 4
-        readonly property int small: 8
-        readonly property int medium: 16
-        readonly property int large: 24
-        readonly property int extraLarge: 32
-        readonly property int huge: 40
-        readonly property int extraHuge: 48
+        property int none
+        property int extraSmall
+        property int small
+        property int medium
+        property int large
+        property int extraLarge
+        property int huge
+        property int extraHuge
     }
 
+    // Groups that a design pack redefines declare their properties WITHOUT values;
+    // the pack instance assigns them, exactly as TypeStyle and ElevationLevel already
+    // work. That costs the leaf `readonly` - the group property itself stays readonly,
+    // so `Tokens.shape` cannot be reassigned - and buys one type per group, which is
+    // what keeps qmllint able to catch a typo in a token name.
     component ShapeTokens: QtObject {
-        readonly property int none: 0
-        readonly property int extraSmall: 4
-        readonly property int small: 8
-        readonly property int medium: 12
-        readonly property int large: 16
-        readonly property int extraLarge: 28
-        readonly property int full: 999
-        // MD3 buttons are pill-shaped (radius = height/2). A large value clamps
-        // to min(w,h)/2 in Qt, yielding a pill at any button height.
-        readonly property int button: 999
+        property int none
+        property int extraSmall
+        property int small
+        property int medium
+        property int large
+        property int extraLarge
+        // A geometric statement: make this round whatever its size. Avatars, status
+        // dots, icon circles. A pack does not get to flatten a circle.
+        property int full
+        // A capsule-shaped CONTROL - search field, badge, hint, action row. Reads as
+        // MD3's signature pill, so a pack that wants sharp structure flattens it.
+        // Kept apart from `full` because mixing the two means a pack cannot flatten
+        // a search field without also squaring off every avatar.
+        property int pill
     }
 
     component TypeStyle: QtObject {
         property int size
+        // MD3 spec value, kept for reference: NOTHING reads it, and wiring it up
+        // would not buy density. Qt will not take a Text below its font's natural
+        // line height, so on the single-line labels this shell is mostly made of
+        // it changes nothing (18px text measures 22px at lineHeight 0.85, at
+        // FixedHeight 20, and unset alike); feeding it the MD3 numbers instead
+        // makes every line TALLER (26px). Only wrapped text moves at all: three
+        // lines go 66px to 59px at 0.85.
         property int lineHeight
         property int weight: Font.Normal
         property real letterSpacing: 0
@@ -83,48 +99,48 @@ Singleton {
             size: Math.round(16 * root.fontScale)
             lineHeight: Math.round(24 * root.fontScale)
             weight: Font.Medium
-            letterSpacing: 0.15
+            letterSpacing: root.tracking(0.15)
         }
         readonly property TypeStyle titleSmall: TypeStyle {
             size: Math.round(14 * root.fontScale)
             lineHeight: Math.round(20 * root.fontScale)
             weight: Font.Medium
-            letterSpacing: 0.1
+            letterSpacing: root.tracking(0.1)
         }
 
         readonly property TypeStyle labelLarge: TypeStyle {
             size: Math.round(14 * root.fontScale)
             lineHeight: Math.round(20 * root.fontScale)
             weight: Font.Medium
-            letterSpacing: 0.1
+            letterSpacing: root.tracking(0.1)
         }
         readonly property TypeStyle labelMedium: TypeStyle {
             size: Math.round(12 * root.fontScale)
             lineHeight: Math.round(16 * root.fontScale)
             weight: Font.Medium
-            letterSpacing: 0.5
+            letterSpacing: root.tracking(0.5)
         }
         readonly property TypeStyle labelSmall: TypeStyle {
             size: Math.round(11 * root.fontScale)
             lineHeight: Math.round(16 * root.fontScale)
             weight: Font.Medium
-            letterSpacing: 0.5
+            letterSpacing: root.tracking(0.5)
         }
 
         readonly property TypeStyle bodyLarge: TypeStyle {
             size: Math.round(16 * root.fontScale)
             lineHeight: Math.round(24 * root.fontScale)
-            letterSpacing: 0.15
+            letterSpacing: root.tracking(0.15)
         }
         readonly property TypeStyle bodyMedium: TypeStyle {
             size: Math.round(14 * root.fontScale)
             lineHeight: Math.round(20 * root.fontScale)
-            letterSpacing: 0.25
+            letterSpacing: root.tracking(0.25)
         }
         readonly property TypeStyle bodySmall: TypeStyle {
             size: Math.round(12 * root.fontScale)
             lineHeight: Math.round(16 * root.fontScale)
-            letterSpacing: 0.4
+            letterSpacing: root.tracking(0.4)
         }
     }
 
@@ -161,25 +177,25 @@ Singleton {
     // went unnoticed. The trailing `1.0, 1.0` is the required endpoint, not padding.
     component EasingTokens: QtObject {
         readonly property int emphasized: Easing.BezierSpline
-        readonly property var emphasizedPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
         readonly property int standard: Easing.BezierSpline
-        readonly property var standardPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
         readonly property int emphasizedDecelerate: Easing.BezierSpline
-        readonly property var emphasizedDeceleratePoints: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
         readonly property int emphasizedAccelerate: Easing.BezierSpline
-        readonly property var emphasizedAcceleratePoints: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
+        property var emphasizedPoints
+        property var standardPoints
+        property var emphasizedDeceleratePoints
+        property var emphasizedAcceleratePoints
     }
 
     component MotionTokens: QtObject {
         readonly property DurationTokens duration: DurationTokens {}
-        readonly property EasingTokens easing: EasingTokens {}
+        property EasingTokens easing
     }
 
     component StateLayerTokens: QtObject {
-        readonly property real hoverOpacity: 0.08
-        readonly property real pressedOpacity: 0.12
-        readonly property real focusOpacity: 0.12
-        readonly property real draggedOpacity: 0.16
+        property real hoverOpacity
+        property real pressedOpacity
+        property real focusOpacity
+        property real draggedOpacity
     }
 
     component StateTokens: QtObject {
@@ -187,6 +203,14 @@ Singleton {
         readonly property real disabledContentOpacity: 0.38
         // MD3 scrim: black at 32% over content behind modal surfaces.
         readonly property real scrimOpacity: 0.32
+    }
+
+    // Separation by outline instead of by shadow. `minContrast` is a target the
+    // colour must clear against the surface it sits on, not a colour itself - see
+    // Theme.outlineOn for why a fixed tonal step cannot work under MCU.
+    component BorderTokens: QtObject {
+        property int width
+        property real minContrast
     }
 
     component FocusRingTokens: QtObject {
@@ -210,44 +234,14 @@ Singleton {
     }
 
     component ElevationTokens: QtObject {
-        readonly property ElevationLevel level0: ElevationLevel {}
-        readonly property ElevationLevel level1: ElevationLevel {
-            surfaceRole: "surfaceContainerLow"
-            shadowRadius: 3
-            shadowVerticalOffset: 1
-            shadowOpacity: 0.10
-            tintOpacity: 0.05
-        }
-        readonly property ElevationLevel level2: ElevationLevel {
-            surfaceRole: "surfaceContainer"
-            shadowRadius: 6
-            shadowVerticalOffset: 2
-            shadowOpacity: 0.12
-            tintOpacity: 0.08
-        }
-        readonly property ElevationLevel level3: ElevationLevel {
-            surfaceRole: "surfaceContainerHigh"
-            shadowRadius: 12
-            shadowVerticalOffset: 4
-            shadowOpacity: 0.14
-            tintOpacity: 0.11
-        }
-        readonly property ElevationLevel level4: ElevationLevel {
-            surfaceRole: "surfaceContainerHigh"
-            shadowRadius: 16
-            shadowVerticalOffset: 6
-            shadowOpacity: 0.16
-            tintOpacity: 0.12
-        }
-        readonly property ElevationLevel level5: ElevationLevel {
-            surfaceRole: "surfaceContainerHighest"
-            shadowRadius: 24
-            shadowVerticalOffset: 8
-            shadowOpacity: 0.18
-            tintOpacity: 0.14
-        }
+        property ElevationLevel level0
+        property ElevationLevel level1
+        property ElevationLevel level2
+        property ElevationLevel level3
+        property ElevationLevel level4
+        property ElevationLevel level5
 
-        // Resolve a level by integer (0–5); clamps out-of-range.
+        // Resolve a level by integer (0-5); clamps out-of-range.
         function level(n) {
             switch (Math.max(0, Math.min(5, n))) {
             case 1: return level1
@@ -267,8 +261,10 @@ Singleton {
         readonly property int extraLarge: 32
     }
 
+    // IconButton.implicitWidth IS this value, so it is a layout token, not just a
+    // hit-area floor: every icon button in the shell reserves this much.
     component TouchTargetTokens: QtObject {
-        readonly property int minimum: 48
+        property int minimum
     }
 
     // Font scale (0.5–2.0, 1.0 = normal)
@@ -285,35 +281,232 @@ Singleton {
     // would then pin the scale at 1.0 no matter what config said.
     property bool motionFrozen: false
     readonly property real durationScale: motionFrozen || AppConfig.reduceMotion
-                                          ? 0.0 : AppConfig.motionScale
+                                          ? 0.0 : AppConfig.motionScale * root.packMotionScale
 
-    // Material Design 3 spacing (8px grid system)
-    readonly property SpacingTokens spacing: SpacingTokens {}
+    // Which pack supplies shape/motion/state/elevation. Colour is NOT part of a
+    // pack: the MCU palette is the same either way.
+    readonly property string pack: AppConfig.designSystem
 
-    // Material Design 3 shape/radius tokens
-    readonly property ShapeTokens shape: ShapeTokens {}
+    // The pack's own motion character, multiplied with the user's motionScale so
+    // config keeps the final say. Minimal is quicker by design, not by preference.
+    readonly property real packMotionScale: root.pack === "minimal" ? 0.55 : 1.0
 
-    // Typography following Material Design 3 — sizes scaled by fontScale
+    // MD3 adds POSITIVE tracking to body and label sizes - that openness is part
+    // of its voice, and it costs width: "Available networks" measures 155px with
+    // it and 150px without, "Wi-Fi Networks" 114px against 107px. A quiet pack
+    // sets it to zero. Negative tracking on display sizes is left alone, because
+    // tightening large text is typographic practice rather than a Material quirk.
+    //
+    // This is a scalar rather than a second copy of the type scale: letterSpacing
+    // is the only field the packs disagree on. Sizes are NOT a pack concern - the
+    // user picks those with appearance.fontScale.
+    readonly property real trackingScale: root.pack === "minimal" ? 0.0 : 1.0
+
+    function tracking(md3: real): real {
+        return md3 > 0 ? md3 * root.trackingScale : md3;
+    }
+
+    // ---- Material Design 3 pack ----------------------------------------------
+    // Values live here rather than in the component definitions above so a second
+    // pack can supply its own without duplicating the types.
+
+    readonly property ShapeTokens md3Shape: ShapeTokens {
+        none: 0
+        extraSmall: 4
+        small: 8
+        medium: 12
+        large: 16
+        extraLarge: 28
+        full: 999
+        pill: 999
+    }
+
+    // MD3's 8px grid.
+    readonly property SpacingTokens md3Spacing: SpacingTokens {
+        none: 0
+        extraSmall: 4
+        small: 8
+        medium: 16
+        large: 24
+        extraLarge: 32
+        huge: 40
+        extraHuge: 48
+    }
+
+    // 48dp is the MD3 touch floor - sized for a fingertip.
+    readonly property TouchTargetTokens md3TouchTarget: TouchTargetTokens {
+        minimum: 48
+    }
+
+    // MD3 separates with tone and shadow, so no outline.
+    readonly property BorderTokens md3Border: BorderTokens {
+        width: 0
+        minContrast: 1.0
+    }
+
+    readonly property StateLayerTokens md3StateLayer: StateLayerTokens {
+        hoverOpacity: 0.08
+        pressedOpacity: 0.12
+        focusOpacity: 0.12
+        draggedOpacity: 0.16
+    }
+
+    readonly property EasingTokens md3Easing: EasingTokens {
+        emphasizedPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
+        standardPoints: [0.2, 0.0, 0, 1.0, 1.0, 1.0]
+        emphasizedDeceleratePoints: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
+        emphasizedAcceleratePoints: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
+    }
+
+    readonly property ElevationTokens md3Elevation: ElevationTokens {
+        level0: ElevationLevel {}
+        level1: ElevationLevel {
+            surfaceRole: "surfaceContainerLow"
+            shadowRadius: 3
+            shadowVerticalOffset: 1
+            shadowOpacity: 0.10
+            tintOpacity: 0.05
+        }
+        level2: ElevationLevel {
+            surfaceRole: "surfaceContainer"
+            shadowRadius: 6
+            shadowVerticalOffset: 2
+            shadowOpacity: 0.12
+            tintOpacity: 0.08
+        }
+        level3: ElevationLevel {
+            surfaceRole: "surfaceContainerHigh"
+            shadowRadius: 12
+            shadowVerticalOffset: 4
+            shadowOpacity: 0.14
+            tintOpacity: 0.11
+        }
+        level4: ElevationLevel {
+            surfaceRole: "surfaceContainerHigh"
+            shadowRadius: 16
+            shadowVerticalOffset: 6
+            shadowOpacity: 0.16
+            tintOpacity: 0.12
+        }
+        level5: ElevationLevel {
+            surfaceRole: "surfaceContainerHighest"
+            shadowRadius: 24
+            shadowVerticalOffset: 8
+            shadowOpacity: 0.18
+            tintOpacity: 0.14
+        }
+    }
+
+    // ---- Minimal pack ----------------------------------------------------------
+    // Quiet minimalism with sharp structure: furniture loses its shape entirely,
+    // controls keep just enough radius to read as targets, nothing casts a shadow,
+    // and every elevated surface shares one tier.
+
+    readonly property ShapeTokens minimalShape: ShapeTokens {
+        none: 0
+        // Structure - bars, panels, the dock strip. The shape should disappear.
+        extraSmall: 0
+        // Things you hit. A hit target still reads as a target.
+        small: 2
+        medium: 3
+        large: 4
+        extraLarge: 4
+        // Round objects stay round: avatars and status dots are not MD3 expression,
+        // it is what those things are.
+        full: 999
+        pill: 3
+    }
+
+    // Same names, one step tighter each. The two that matter are small and medium:
+    // together they are 258 of the 356 spacing uses in the shell, so they decide how
+    // much room the design actually gives back.
+    readonly property SpacingTokens minimalSpacing: SpacingTokens {
+        none: 0
+        extraSmall: 2
+        small: 6
+        medium: 12
+        large: 16
+        extraLarge: 24
+        huge: 32
+        extraHuge: 40
+    }
+
+    // A pointer is not a fingertip. 48dp exists so a finger can hit a control it
+    // cannot see under itself; a mouse has a one-pixel hotspot and Fitts's law does
+    // the rest. Dropping to 36 gives 12px back on every icon button in the shell.
+    readonly property TouchTargetTokens minimalTouchTarget: TouchTargetTokens {
+        minimum: 36
+    }
+
+    // 2.2 rather than the 3:1 non-text floor: this line separates two surfaces, it
+    // does not carry information, and at 3:1 it stops being a hairline and starts
+    // being a frame. Raise it here if it reads too faint on some wallpaper.
+    readonly property BorderTokens minimalBorder: BorderTokens {
+        width: 1
+        minContrast: 2.2
+    }
+
+    readonly property StateLayerTokens minimalStateLayer: StateLayerTokens {
+        hoverOpacity: 0.05
+        pressedOpacity: 0.09
+        focusOpacity: 0.10
+        draggedOpacity: 0.12
+    }
+
+    // One standard curve, no overshoot. Same wire format rules as above: groups of
+    // three points, last point (1,1).
+    readonly property EasingTokens minimalEasing: EasingTokens {
+        emphasizedPoints: [0.4, 0.0, 0.2, 1.0, 1.0, 1.0]
+        standardPoints: [0.4, 0.0, 0.2, 1.0, 1.0, 1.0]
+        emphasizedDeceleratePoints: [0.0, 0.0, 0.2, 1.0, 1.0, 1.0]
+        emphasizedAcceleratePoints: [0.4, 0.0, 1.0, 1.0, 1.0, 1.0]
+    }
+
+    // No shadow and no tonal lift anywhere. Everything above the ground shares one
+    // container role, so surfaces are told apart by their outline, not by a tier.
+    readonly property ElevationTokens minimalElevation: ElevationTokens {
+        level0: ElevationLevel {}
+        level1: ElevationLevel { surfaceRole: "surfaceContainer" }
+        level2: ElevationLevel { surfaceRole: "surfaceContainer" }
+        level3: ElevationLevel { surfaceRole: "surfaceContainer" }
+        level4: ElevationLevel { surfaceRole: "surfaceContainer" }
+        level5: ElevationLevel { surfaceRole: "surfaceContainer" }
+    }
+
+    // ---- Public tokens ---------------------------------------------------------
+
+    // Spacing
+    readonly property SpacingTokens spacing: root.pack === "minimal" ? root.minimalSpacing : root.md3Spacing
+
+    // Corner radius
+    readonly property ShapeTokens shape: root.pack === "minimal" ? root.minimalShape : root.md3Shape
+
+    // Type scale - sizes scaled by fontScale
     readonly property TypographyTokens typography: TypographyTokens {}
 
-    // Material Motion specification
-    readonly property MotionTokens motion: MotionTokens {}
+    // Duration and easing
+    readonly property MotionTokens motion: MotionTokens {
+        easing: root.pack === "minimal" ? root.minimalEasing : root.md3Easing
+    }
 
-    // Material Design 3 state layer opacity tokens
-    readonly property StateLayerTokens stateLayer: StateLayerTokens {}
+    // Hover/press/focus overlay opacities
+    readonly property StateLayerTokens stateLayer: root.pack === "minimal" ? root.minimalStateLayer : root.md3StateLayer
 
-    // Material Design 3 disabled state tokens
+    // Disabled and scrim opacities
     readonly property StateTokens state: StateTokens {}
 
-    // Keyboard focus indicator (MD3 focus ring)
+    // Outline separation - width 0 means the pack does not use outlines
+    readonly property BorderTokens border: root.pack === "minimal" ? root.minimalBorder : root.md3Border
+
+    // Keyboard focus indicator
     readonly property FocusRingTokens focusRing: FocusRingTokens {}
 
-    // Material Design 3 elevation tokens
-    readonly property ElevationTokens elevation: ElevationTokens {}
+    // Tonal surface role plus shadow, per level
+    readonly property ElevationTokens elevation: root.pack === "minimal" ? root.minimalElevation : root.md3Elevation
 
-    // Material Design 3 icon size tokens
+    // Icon sizes
     readonly property IconSizeTokens iconSize: IconSizeTokens {}
 
-    // Material Design 3 touch target tokens
-    readonly property TouchTargetTokens touchTarget: TouchTargetTokens {}
+    // Minimum pointer/touch target - also IconButton's implicit size
+    readonly property TouchTargetTokens touchTarget: root.pack === "minimal" ? root.minimalTouchTarget : root.md3TouchTarget
 }

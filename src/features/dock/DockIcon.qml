@@ -246,7 +246,7 @@ Item {
                 readonly property bool long: root.isFocused && index === 0
                 width: root.vertical ? 4 : (long ? 10 : 4)
                 height: root.vertical ? (long ? 10 : 4) : 4
-                radius: 2
+                radius: Tokens.shape.full
                 color: root.isFocused ? Theme.primary : Theme.onSurfaceVariant
 
                 Behavior on width {

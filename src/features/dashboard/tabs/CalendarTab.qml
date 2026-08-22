@@ -274,7 +274,7 @@ Item {
 
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
-                            radius: Tokens.shape.full
+                            radius: Tokens.shape.pill
 
                             property bool isToday: root.isSameDate(dayCell.model.date, root.today)
                             property bool isSelected: root.isSameDate(dayCell.model.date, root.selectedDate)
@@ -335,7 +335,7 @@ Item {
                                         Rectangle {
                                             width: 4
                                             height: 4
-                                            radius: 2
+                                            radius: Tokens.shape.full
                                             color: dayCell.isToday ? Theme.onPrimary
                                                 : dayCell.isSelected ? Theme.onSecondaryContainer
                                                 : Theme.primary
@@ -517,7 +517,7 @@ Item {
                                 x: 38
                                 width: timelineColumn.width - 38
                                 height: 2
-                                radius: 1
+                                radius: Tokens.shape.full
                                 color: Theme.error
                                 y: (DateTime.clock.date.getHours()
                                     + DateTime.clock.date.getMinutes() / 60)
@@ -529,7 +529,7 @@ Item {
                                     anchors.leftMargin: -4
                                     width: 8
                                     height: 8
-                                    radius: 4
+                                    radius: Tokens.shape.full
                                     color: Theme.error
                                 }
                             }
@@ -602,7 +602,7 @@ Item {
                                         anchors.top: parent.top
                                         anchors.bottom: parent.bottom
                                         width: 4
-                                        radius: 2
+                                        radius: Tokens.shape.full
                                         color: Theme.primary
                                     }
 

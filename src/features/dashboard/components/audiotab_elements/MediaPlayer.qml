@@ -15,7 +15,7 @@ import qs.src.core.services
 MaterialCard {
     id: root
     color: Theme.surfaceContainerHigh
-    radius: 0  // no rounding
+    radius: Tokens.shape.none
     // Layout.preferredHeight: 350
 
     // Clip content

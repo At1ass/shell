@@ -143,7 +143,6 @@ Item {
         anchors.fill: parent
         color: Qt.alpha(Theme.surfaceContainer, 0.85)
         radius: Tokens.shape.large
-        outlined: false
 
         ColumnLayout {
             anchors.fill: parent

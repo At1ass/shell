@@ -69,6 +69,41 @@ of silent failure produced "80 keystrokes cost less than idle" twice, and a
 
 ---
 
+## Design packs: the minimal pack is not cheaper (2026-08)
+
+Measured on the N3050 under both packs, median CPU ms per action, every run
+confirmed by the panel's layer actually appearing.
+
+| action | md3 | minimal | as shipped | md3 @0.55 | minimal | equal durations |
+|---|---|---|---|---|---|---|
+| launcher | 510 | 420 | **-18%** | 405 | 390 | -4% |
+| cheatsheet | 790 | 730 | **-8%** | 685 | 705 | +3% |
+| dashboard | 510 | 440 | **-14%** | 470 | 475 | +1% |
+| notification | 720 | 660 | **-8%** | 675 | 645 | -4% |
+
+The left half compares the packs as they ship. The right half equalises the
+animation duration - MD3 at `motionScale: 0.55` against the minimal pack, whose
+own 0.55 multiplier lands on the same effective durations - and the difference
+collapses to between -4% and +3%, with the sign flipping between actions.
+Repeat-to-repeat spread inside one configuration was 10-80 ms, larger than what
+is left.
+
+**The whole saving is the shorter animation.** Dropping the shadow `Loader`,
+flattening the corners and drawing a hairline border is performance-neutral on
+the weakest hardware here. The saving is also not exclusive to the pack:
+`appearance.motionScale` buys exactly the same thing under MD3.
+
+This falsifies the performance argument written into the original design
+research; the artifact has been corrected. Pick the pack for how it looks. If
+the goal is a cheaper shell, turn the motion scale down, and that decision is
+independent of the design system.
+
+RSS was not established either way - it drifted in both directions during the
+runs, and this shell has an open memory-growth investigation that makes a single
+sample worthless.
+
+---
+
 ## Power menu review (2026-08)
 
 The dangerous part is fine. `executePowerAction` builds argv arrays

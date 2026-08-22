@@ -47,7 +47,7 @@ Surface {
             Rectangle {
                 id: actionBg
                 anchors.fill: parent
-                radius: Tokens.shape.full
+                radius: Tokens.shape.pill
                 color: "transparent"
 
                 StateLayer {

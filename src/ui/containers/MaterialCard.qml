@@ -10,7 +10,9 @@ import qs.src.core.config
 Pane {
     id: card
 
-    property bool outlined: false
+    // Follows the pack by default, exactly as Surface does. A call site that sets
+    // it explicitly still decides for itself.
+    property bool outlined: Tokens.border.width > 0
     property color color: Theme.surfaceContainerHigh
     property int radius: Tokens.shape.large
     property int elevation: 0

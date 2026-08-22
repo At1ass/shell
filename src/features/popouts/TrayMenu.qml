@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import qs.src.core.config
 import qs.src.ui.feedback
 import qs.src.ui.base
-import qs.src.ui.containers
 import Quickshell
 import Quickshell.Widgets
 import QtQuick
@@ -41,6 +40,76 @@ StackView {
             property QsMenuHandle handle: root.trayItem
             property bool isSubMenu
             property bool shown
+
+            // Re-resolution, for menus that rebuild themselves underneath us.
+            //
+            // libdbusmenu applications periodically discard their whole menu tree
+            // and publish a fresh one with NEW item ids. nm-applet does it every
+            // few seconds while a wireless device is scanning: the id of its
+            // "Available networks" entry walked 1467 -> 1528 -> 1590 -> 1654 ->
+            // 1721 inside 80 seconds, and by then the tree had been rebuilt from
+            // 1427 to 2007. Quickshell drops items whose id is missing from the
+            // new layout, so the handle a pushed page was opened with is destroyed
+            // under it — children empty, the column shrinks to its padding, and
+            // the submenu the user was reading collapses to a sliver.
+            //
+            // The same entry comes straight back under a new id with the same
+            // label, so the page re-points itself at it instead of dying. The
+            // parent level is the only place that can be asked, hence parentOpener.
+            property QsMenuOpener parentOpener: null
+            property string entryLabel: ""
+            property int entryIndex: -1
+
+            function reresolve(): void {
+                if (menu.handle || !menu.parentOpener || menu.entryLabel === "")
+                    return;
+                const entries = menu.parentOpener.children?.values ?? [];
+                // Same label at the same position first: a Wi-Fi list can carry the
+                // same SSID twice, and position is what tells those two apart.
+                const exact = entries[menu.entryIndex];
+                if (exact?.text === menu.entryLabel && exact.hasChildren) {
+                    menu.handle = exact;
+                    return;
+                }
+                for (const entry of entries) {
+                    if (entry?.text === menu.entryLabel && entry.hasChildren) {
+                        menu.handle = entry;
+                        return;
+                    }
+                }
+            }
+
+            onHandleChanged: {
+                if (menu.handle) {
+                    lostTimer.stop();
+                } else if (menu.parentOpener) {
+                    menu.reresolve();
+                    // The replacement usually arrives a beat later, with the
+                    // parent's children signal; this only bounds the wait.
+                    if (!menu.handle)
+                        lostTimer.restart();
+                }
+            }
+
+            Connections {
+                target: menu.parentOpener
+                enabled: menu.parentOpener !== null && !menu.handle
+
+                function onChildrenChanged(): void {
+                    menu.reresolve();
+                }
+            }
+
+            // If the entry is genuinely gone — Wi-Fi switched off, a VPN profile
+            // deleted — go back a level instead of leaving an empty page up.
+            Timer {
+                id: lostTimer
+                interval: 3000
+                onTriggered: {
+                    if (!menu.handle && root.depth > 1)
+                        root.pop();
+                }
+            }
 
             padding: Tokens.spacing.extraSmall / 2
             spacing: 1
@@ -118,7 +187,10 @@ StackView {
                                     if (entry.hasChildren) {
                                         root.push(subMenuComponent.createObject(null, {
                                             handle: entry,
-                                            isSubMenu: true
+                                            isSubMenu: true,
+                                            parentOpener: menuOpener,
+                                            entryLabel: entry.text,
+                                            entryIndex: (menuOpener.children?.values ?? []).indexOf(entry)
                                         }));
                                     } else {
                                         entry.triggered();

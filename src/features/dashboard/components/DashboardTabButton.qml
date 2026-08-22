@@ -73,7 +73,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width * 0.6
         height: 2
-        radius: 1
+        radius: Tokens.shape.full
         color: Theme.primary
         opacity: tabBtn.isActive ? 1 : 0
 

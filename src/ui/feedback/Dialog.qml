@@ -42,8 +42,17 @@ Rectangle {
     MaterialCard {
         id: dialogCard
         anchors.centerIn: parent
-        width: root.dialogWidth
-        height: root.dialogHeight
+
+        // A dialog here lives inside a PANEL, not a screen. The dashboard is a
+        // fixed 640 tall and its tab area is smaller still, so a card asking for
+        // 640 hangs off the bottom and the panel clips it — the event editor lost
+        // the bottom of its form that way. Clamping costs nothing: EventDialog
+        // scrolls its form, and every other dialog asks for 240 or less.
+        readonly property int _inset: Tokens.spacing.large * 2
+        // max(0, ...) because root has no size for the first binding pass and a
+        // negative width is a warning, not a clamp.
+        width: Math.max(0, Math.min(root.dialogWidth, root.width - _inset))
+        height: Math.max(0, Math.min(root.dialogHeight, root.height - _inset))
 
         color: Theme.surfaceContainerHigh
         radius: Tokens.shape.extraLarge

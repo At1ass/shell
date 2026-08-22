@@ -18,8 +18,14 @@ Item {
     // is overridden, the tonal surface role.
     property int elevation: 0
     property int radius: Tokens.shape.medium
-    property bool outlined: false
-    property color outlineColor: Theme.outlineVariant
+
+    // A pack that separates surfaces with an outline instead of a shadow turns this
+    // on everywhere; MD3 leaves it off and separates with tone and shadow. Setting
+    // it explicitly still wins under either pack.
+    property bool outlined: Tokens.border.width > 0
+    // Derived, not picked: see Theme.outlineOn. The palette moves with the wallpaper,
+    // so a fixed role is a line that disappears on some of them.
+    property color outlineColor: Theme.outlineOn(root.color, Tokens.border.minContrast)
 
     // Surface fill — defaults to the elevation level's tonal role; override freely.
     property color color: {
@@ -62,7 +68,9 @@ Item {
         anchors.fill: parent
         radius: root.radius
         color: root.color
-        border.width: root.outlined ? 1 : 0
+        // An explicit `outlined: true` draws even under a pack whose border width
+        // is 0, which is what that property meant before packs existed.
+        border.width: root.outlined ? Math.max(1, Tokens.border.width) : 0
         border.color: root.outlined ? root.outlineColor : "transparent"
 
         Behavior on color {

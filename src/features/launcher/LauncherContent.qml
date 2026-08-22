@@ -35,7 +35,6 @@ Item {
         id: container
         anchors.fill: parent
         anchors.margins: 2  // Margin for the shadow
-        outlined: false
 
         color: Theme.surfaceContainer
         radius: Tokens.shape.extraLarge
@@ -50,7 +49,7 @@ Item {
                 id: searchContainer
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
-                radius: Tokens.shape.full
+                radius: Tokens.shape.pill
                 color: Theme.surfaceContainerHighest
                 border.width: searchField.activeFocus ? 2 : 0
                 border.color: searchField.activeFocus ? Theme.primary : "transparent"

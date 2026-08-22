@@ -71,7 +71,7 @@ Button {
         Rectangle {
             id: bg
             anchors.fill: parent
-            radius: Tokens.shape.button
+            radius: Tokens.shape.pill
             color: control._containerColor()
             border.width: control.variant === "outlined" ? 1 : 0
             border.color: control.variant === "outlined"

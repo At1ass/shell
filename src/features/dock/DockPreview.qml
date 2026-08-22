@@ -221,7 +221,7 @@ Surface {
                                 anchors.margins: Tokens.spacing.extraSmall
                                 width: 24
                                 height: 24
-                                radius: 12
+                                radius: Tokens.shape.full
                                 z: 2
                                 visible: thumbMouse.containsMouse || closeMouse.containsMouse
                                 color: closeMouse.containsMouse
