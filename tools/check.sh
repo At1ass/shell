@@ -66,6 +66,16 @@ count easing-unpaired-tokens \
         END { if (pending != "") bad++; print bad + 0 }' 2>/dev/null | awk '{s+=$1} END {print s+0}')"
 count font-pointsize \
     "$(grep -rE 'font\.pointSize' "$root/src" --include='*.qml' | wc -l)"
+# MultiEffect drop shadows. The effect renders its SOURCE into a framebuffer and
+# re-blurs it whenever that source changes, and every elevated surface carries a
+# `Behavior on color` -- so a palette transition paid an FBO plus blur passes per
+# card per frame. ui/base/ElevationShadow (RectangularShadow) derives the shadow
+# from the rounded-rect description instead and costs neither. MultiEffect is
+# still correct for blurring images and for masks; only shadowEnabled is banned.
+# Anchored so the ban does not trip on prose: ElevationShadow's own comment
+# names the thing it replaces.
+count multieffect-shadow \
+    "$(grep -rE '^[[:space:]]*shadowEnabled[[:space:]]*:' "$root/src" --include='*.qml' | wc -l)"
 # Hand-written easing pairs. MotionAnimation / MotionColorAnimation fuse the two
 # halves into one `curve:`, which is the only way they cannot diverge — and the
 # reason the 4-value-bezier bug reached 100+ sites at once was that the fused

@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 import qs.src.core.config
 import qs.src.ui.feedback
 
@@ -25,18 +24,10 @@ Item {
 
     opacity: enabled ? 1.0 : Tokens.state.disabledContentOpacity
 
-    MultiEffect {
-        source: bg
-        anchors.fill: bg
-        z: -1
+    ElevationShadow {
+        target: bg
+        level: 3
         visible: root.enabled
-        shadowEnabled: root.enabled
-        shadowColor: Qt.alpha(Theme.shadow, Tokens.elevation.level3.shadowOpacity)
-        blurMax: 64
-        shadowBlur: Tokens.elevation.level3.shadowRadius / 64
-        shadowVerticalOffset: Tokens.elevation.level3.shadowVerticalOffset
-        shadowHorizontalOffset: 0
-        autoPaddingEnabled: true
     }
 
     Rectangle {

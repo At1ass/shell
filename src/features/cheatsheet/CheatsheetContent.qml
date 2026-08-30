@@ -545,4 +545,17 @@ Item {
     Component.onCompleted: {
         hyprBindsProc.running = true
     }
+
+    // A retained panel keeps whatever the user left in it. Reset the query and
+    // take focus on every open, so a reopened cheatsheet behaves exactly like a
+    // freshly built one -- which is what it used to be.
+    Connections {
+        target: GlobalStates
+        function onPanelOpened(name) {
+            if (name !== "cheatsheet")
+                return
+            searchField.text = ""
+            searchField.forceActiveFocus()
+        }
+    }
 }

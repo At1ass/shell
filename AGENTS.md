@@ -208,8 +208,14 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
 
 Готовые MD3-примитивы. В `features/` собирай UI **только из них**, а не из сырых `Rectangle`/`Text`.
 
-- **base/** — `MaterialText`, `MaterialIcon`, `MaterialButton`, `IconButton`, `FAB`, `MaterialIndicator`, `SectionHeader`, `CircleAvatar`, `Sparkline`, `MaterialMarqueeText`.
+- **base/** — `MaterialText`, `MaterialIcon`, `MaterialButton`, `IconButton`, `FAB`, `MaterialIndicator`, `SectionHeader`, `CircleAvatar`, `Sparkline`, `MaterialMarqueeText`, `ElevationShadow`.
+  Тень приподнятой поверхности — только через `ElevationShadow` (`RectangularShadow` + маппинг `Tokens.elevation`).
+  `MultiEffect { shadowEnabled: true }` не использовать: он гоняет источник через FBO и блюр на каждое его изменение,
+  а у каждой поверхности есть `Behavior on color`. `MultiEffect` остаётся для блюра картинок и масок.
 - **containers/** — `Surface`, `MaterialCard`, `BarElement`, `ListItem`, `Divider`, `ScrollableList`, `CollapsibleSection`.
+  Анимация в виджете бара гейтится на `animationsActive` (= `animated && barRevealed`): скрытый авто-хайдом бар
+  продолжает отслеживать состояние, но переходы выполняет мгновенно. Qt не пропускает анимации невидимого
+  поддерева сам — это 30% стоимости жеста компози́тора.
 - **feedback/** — `StateLayer`, `Dialog`, `Snackbar`, `Badge`, `ProgressIndicator`, `MaterialMenu`, `TooltipManager`/`TooltipItem`, `EmptyState`.
 - **inputs/** — `MaterialSlider`, `MaterialSwitch`, `MaterialCheckbox`, `MaterialRadioButton`, `MaterialComboBox`, `MaterialTextField`, `SegmentedButton`, `Chip`.
 

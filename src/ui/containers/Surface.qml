@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import qs.src.core.config
 import qs.src.ui.base
 
@@ -38,28 +37,23 @@ Item {
     readonly property var _level: Tokens.elevation.level(elevation)
     readonly property bool _hasShadow: elevation > 0 && _level.shadowOpacity > 0
 
-    // Drop shadow: rendered from the surface shape and placed behind it. The effect also
-    // re-draws the (identical) fill underneath the real surface — invisible overdraw — so
-    // only the shadow halo shows. autoPadding keeps the blur from being clipped.
+    // Drop shadow, drawn behind the surface by ElevationShadow (RectangularShadow).
+    // It is derived from the rounded-rect description rather than from the surface's
+    // pixels, so the fill below is never re-rendered into a framebuffer and never
+    // re-blurred — which is what the previous MultiEffect did on every frame of the
+    // `Behavior on color` below, once per elevated card.
     //
-    // Behind a Loader because elevation 0 is the DEFAULT here and on MaterialCard:
-    // an unconditional MultiEffect meant every flat card in the shell carried a
-    // blur-capable scene-graph node for a shadow it would never draw, delegates
-    // in every list included.
+    // Still behind a Loader because elevation 0 is the DEFAULT here and on
+    // MaterialCard: a flat card should carry no shadow node at all, delegates in
+    // every list included.
     Loader {
         active: root._hasShadow
         anchors.fill: surfaceRect
         z: -1
 
-        sourceComponent: MultiEffect {
-            source: surfaceRect
-            shadowEnabled: true
-            shadowColor: Qt.alpha(Theme.shadow, root._level.shadowOpacity)
-            blurMax: 64
-            shadowBlur: Math.min(1.0, root._level.shadowRadius / 64)
-            shadowVerticalOffset: root._level.shadowVerticalOffset
-            shadowHorizontalOffset: 0
-            autoPaddingEnabled: true
+        sourceComponent: ElevationShadow {
+            target: surfaceRect
+            level: root.elevation
         }
     }
 

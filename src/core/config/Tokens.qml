@@ -220,8 +220,9 @@ Singleton {
 
     // MD3 expresses elevation as a TONAL surface color (surfaceContainer tiers) PLUS,
     // for floating elements, a subtle shadow. Each level maps to a Theme color-role name
-    // (resolve via Theme[level.surfaceRole]) and shadow params in px (consumed by Surface.qml,
-    // which translates shadowRadius → MultiEffect blur).
+    // (resolve via Theme[level.surfaceRole]) and shadow params in px, consumed by
+    // ui/base/ElevationShadow.qml (RectangularShadow: shadowRadius -> blur,
+    // shadowVerticalOffset -> offset.y).
     component ElevationLevel: QtObject {
         property string surfaceRole: "surface"
         property int shadowRadius: 0

@@ -167,6 +167,8 @@ appearance.theme         — theme (source, variant, contrast, darkMode)
 appearance.fontScale     — font scale (0.5–2.0)
 appearance.reduceMotion  — disable all shell animations (accessibility)
 appearance.motionScale   — multiplier on every motion duration (1.0 = Material defaults)
+performance.keepPanelsLoaded — panels kept alive after their first open instead of being
+                           rebuilt on every open (see below)
 modules                  — on/off switch for every top-level shell element (see below)
 bar                      — status bar and widgets
 bar.transparent          — transparent bar background
@@ -231,6 +233,32 @@ fixed place regardless of focus. An output name that is not currently connected
 falls back to the focused monitor rather than dropping the notification.
 
 ### Modules (turning elements on or off)
+
+### `performance.keepPanelsLoaded`
+
+Every panel is built when it opens and torn down when it closes, so the second
+open costs as much as the first. That construction runs on the UI thread and
+blocks it for its whole duration — measured on a 9950X3D at 13 ms for the
+launcher and 32 ms for the cheatsheet, which is two to five dropped frames at
+144 Hz, and it scales with the machine rather than the GPU.
+
+Listing a panel here keeps its tree alive after the first open:
+
+```json
+"performance": {
+  "keepPanelsLoaded": ["launcher", "dashboard", "notificationCenter", "cheatsheet"]
+}
+```
+
+That is the default. Measured effect: launcher 13 → 7 ms, dashboard 12 → 7 ms,
+cheatsheet 32 → 12 ms of UI thread per open. Memory is not the trade one would
+expect — twelve open/close cycles grew RSS by 27 MB with retention on and
+186 MB with it off, because a rebuilt panel does not hand its allocations back.
+
+Valid entries: `dashboard`, `launcher`, `notificationCenter`, `cheatsheet`,
+`powermenu`. An empty list restores rebuild-on-every-open. `powermenu` is out
+of the default because it is small and rarely opened; the lock screen is not
+eligible at all, since its window owns a Wayland session lock.
 
 The `modules` block is the central switch for every top-level shell element. Any element can be turned off by setting it to `false`. An absent key falls back to its default. Changes apply on the fly (hot-reload), no restart required.
 

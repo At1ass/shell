@@ -32,6 +32,19 @@ Singleton {
         return (v === undefined || v === null) ? (moduleDefaults[name] ?? true) : v
     }
 
+    // === Performance profile ===
+
+    // Panels retained after their first open. Rebuilding a panel blocks the UI
+    // thread for the whole of its construction, and every panel here is a
+    // LazyLoader keyed on its own open flag, so that bill used to come due on
+    // EVERY open rather than once. See GlobalStates.panelRetained.
+    readonly property var keepPanelsLoaded:
+        data.performance?.keepPanelsLoaded ?? ["launcher", "dashboard", "notificationCenter", "cheatsheet"]
+
+    function panelKeptLoaded(name) {
+        return root.keepPanelsLoaded.indexOf(name) !== -1
+    }
+
     // === Typed accessors ===
 
     // Appearance

@@ -109,6 +109,21 @@ MaterialCard {
         onCanceled: root._finishSwipe()
     }
 
+    // A recycled delegate brings its transient state to the next row: a card
+    // left mid-swipe (or one whose dismiss animation was still running) would
+    // reappear offset and half transparent under a different notification.
+    // ListView.onReused is the only point where that can be undone, so the
+    // delegate exposes the reset rather than reaching into these internals.
+    function resetSwipe() {
+        snapBack.stop()
+        swipeDismiss.stop()
+        root._swiping = false
+        root._dragStartX = 0
+        root._dragInitialRootX = 0
+        root.x = 0
+        root.opacity = 1.0
+    }
+
     function _finishSwipe() {
         if (root._swiping && Math.abs(root.x) > 50) {
             swipeDismiss.targetX = root.x > 0 ? root.width : -root.width

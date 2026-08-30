@@ -35,11 +35,12 @@ Scope {
         id: menuWindow
         visible: GlobalStates.powerMenuOpen
 
-        // Open on the focused monitor (see GlobalStates.focusedScreen).
-        Component.onCompleted: {
-            const s = GlobalStates.focusedScreen()
-            if (s) menuWindow.screen = s
-        }
+        // The output to map onto, resolved by GlobalStates.openPanel once per
+        // open and before the open flag flips -- so this window is still
+        // invisible when it moves, and a RETAINED panel still lands on the
+        // monitor the user is looking at. Resolving in Component.onCompleted
+        // was only correct while every open rebuilt the window.
+        screen: GlobalStates.activePanelScreen ?? null
 
         color: "transparent"
         exclusiveZone: 0

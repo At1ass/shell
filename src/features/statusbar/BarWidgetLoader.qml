@@ -12,6 +12,7 @@ Item {
 
     required property var widgetConfig
     required property var tooltipManager
+    required property bool barRevealed
     property string screenName
 
     property string widgetType: (widgetConfig && (widgetConfig.type || widgetConfig["type"])) || ""
@@ -83,6 +84,7 @@ Item {
         id: activeWindowComponent
         ActiveWindowWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
             tooltipManager: root.tooltipManager
         }
     }
@@ -91,6 +93,7 @@ Item {
         id: workspacesComponent
         WorkspaceWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 
@@ -98,6 +101,7 @@ Item {
         id: mprisComponent
         MPRISWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
             tooltipManager: root.tooltipManager
         }
     }
@@ -106,6 +110,7 @@ Item {
         id: trayComponent
         TrayWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
             tooltipManager: root.tooltipManager
         }
     }
@@ -114,6 +119,7 @@ Item {
         id: notificationsComponent
         NotificationWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 
@@ -121,6 +127,7 @@ Item {
         id: volumeComponent
         VolumeWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
             tooltipManager: root.tooltipManager
         }
     }
@@ -129,6 +136,7 @@ Item {
         id: networkComponent
         NetworkWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 
@@ -136,6 +144,7 @@ Item {
         id: batteryComponent
         BatteryWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 
@@ -143,6 +152,7 @@ Item {
         id: clockComponent
         ClockWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
             tooltipManager: root.tooltipManager
         }
     }
@@ -151,6 +161,7 @@ Item {
         id: layoutComponent
         LayoutWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 
@@ -158,6 +169,7 @@ Item {
         id: weatherComponent
         WeatherWidget {
             widgetConfig: root.widgetConfig
+            barRevealed: root.barRevealed
         }
     }
 }

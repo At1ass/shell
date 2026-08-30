@@ -12,11 +12,12 @@ Scope {
         id: launcherWindow
         visible: GlobalStates.launcherOpen
 
-        // Open on the focused monitor (see GlobalStates.focusedScreen).
-        Component.onCompleted: {
-            const s = GlobalStates.focusedScreen()
-            if (s) launcherWindow.screen = s
-        }
+        // The output to map onto, resolved by GlobalStates.openPanel once per
+        // open and before the open flag flips -- so this window is still
+        // invisible when it moves, and a RETAINED panel still lands on the
+        // monitor the user is looking at. Resolving in Component.onCompleted
+        // was only correct while every open rebuilt the window.
+        screen: GlobalStates.activePanelScreen ?? null
 
         color: "transparent"
         exclusiveZone: 0
@@ -55,10 +56,14 @@ Scope {
             }
         }
 
-        // Loader for lazy content loading
+        // Content loader. Held active once the panel is retained, so the
+        // expensive part -- LauncherContent and its providers -- is built once
+        // rather than on every open. The entry animation below keys off the
+        // open flag, not off construction, so it still runs each time (and now
+        // gets a real exit as well).
         Loader {
             id: contentLoader
-            active: GlobalStates.launcherOpen
+            active: GlobalStates.launcherOpen || GlobalStates.panelRetained("launcher")
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: AppConfig.launcherTopMargin  // barHeight + MD3 spacing

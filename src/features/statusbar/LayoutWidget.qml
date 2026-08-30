@@ -59,6 +59,7 @@ BarElement {
 
             MaterialIndicator {
                 id: capsIndicator
+                animated: layoutWidget.animationsActive
                 size: "extraSmall"
                 colorRole: KeyboardLayoutService.capsLockEnabled ? "primary" : "outline"
                 shape: "rounded"
@@ -80,6 +81,7 @@ BarElement {
 
             MaterialIndicator {
                 id: numIndicator
+                animated: layoutWidget.animationsActive
                 size: "extraSmall"
                 colorRole: KeyboardLayoutService.numLockEnabled ? "secondary" : "outline"
                 shape: "rounded"

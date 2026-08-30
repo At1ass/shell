@@ -23,6 +23,18 @@ Rectangle {
 
     // Configuration
     property bool animated: true
+
+    // Whether the bar this element lives in is actually on screen. Set by
+    // BarWidgetLoader from StatusBar.revealed. An auto-hidden bar is
+    // `visible: false`, and Qt skips RENDERING an invisible subtree but keeps
+    // running its animations -- measured at 62% of a workspace switch, paid
+    // identically whether the bar was shown or hidden. State still tracks while
+    // hidden; only the transitions are skipped, so a revealed bar is already
+    // correct instead of animating into correctness.
+    property bool barRevealed: true
+
+    // The gate every Behavior in the bar keys off, here and in the widgets.
+    readonly property bool animationsActive: root.animated && root.barRevealed
     property bool clickable: false
     property bool hoverable: false
     property bool expandOnHover: false
@@ -139,7 +151,7 @@ Rectangle {
     // Animations
     // Behavior on width {
     Behavior on implicitWidth {
-        enabled: root.animated
+        enabled: root.animationsActive
         MotionAnimation {
             duration: Tokens.motion.duration.medium2
             curve: "emphasized"
@@ -147,7 +159,7 @@ Rectangle {
     }
 
     Behavior on color {
-        enabled: root.animated
+        enabled: root.animationsActive
         MotionColorAnimation {
             duration: Tokens.motion.duration.medium2
             curve: "standard"
@@ -157,7 +169,7 @@ Rectangle {
     // Scale feedback on press
     scale: (pressed && clickable) ? 0.95 : 1.0
     Behavior on scale {
-        enabled: root.animated
+        enabled: root.animationsActive
         MotionAnimation {
             duration: Tokens.motion.duration.short3
             curve: "standard"

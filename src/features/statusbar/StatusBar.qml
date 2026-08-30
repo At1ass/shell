@@ -173,6 +173,7 @@ PanelWindow {
                 Repeater {
                     model: statusBar.centerWidgets
                     delegate: BarWidgetLoader {
+                        barRevealed: statusBar.revealed
                         required property var modelData
                         screenName: statusBar.screenName
                         widgetConfig: modelData
@@ -202,6 +203,7 @@ PanelWindow {
                 Repeater {
                     model: statusBar.leftWidgets
                     delegate: BarWidgetLoader {
+                        barRevealed: statusBar.revealed
                         required property var modelData
                         screenName: statusBar.screenName
                         widgetConfig: modelData
@@ -230,6 +232,7 @@ PanelWindow {
                 Repeater {
                     model: statusBar.rightWidgets
                     delegate: BarWidgetLoader {
+                        barRevealed: statusBar.revealed
                         required property var modelData
                         screenName: statusBar.screenName
                         widgetConfig: modelData

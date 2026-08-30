@@ -1,0 +1,46 @@
+import QtQuick
+import QtQuick.Effects
+import qs.src.core.config
+
+// MD3 drop shadow for an elevated surface.
+//
+// RectangularShadow derives the shadow analytically from a rounded-rect
+// description, so unlike `MultiEffect { shadowEnabled: true }` it needs no
+// source texture, allocates no framebuffer and runs no blur passes over one.
+// That is what makes it the right primitive here: every elevated surface in
+// the shell carries a `Behavior on color`, and MultiEffect re-rendered its
+// source into an FBO and re-blurred it on every frame of a palette
+// transition — once per card, for the whole animation.
+//
+// Anchors itself to the rectangle it belongs to and inherits that rectangle's
+// corner radius, so a call site cannot drift out of shape:
+//
+//     ElevationShadow { target: surfaceRect; level: root.elevation }
+//
+// Callers own visibility. Level 0 draws nothing, but the node still exists —
+// gate it behind a Loader where the default elevation is 0.
+RectangularShadow {
+    id: root
+
+    // The rectangle casting the shadow. Typed as Rectangle, not Item, so that
+    // `radius` resolves statically.
+    required property Rectangle target
+
+    // Elevation level 0-5; see Tokens.elevation.
+    property int level: 1
+
+    readonly property var _level: Tokens.elevation.level(root.level)
+
+    anchors.fill: target
+    z: -1
+
+    radius: target.radius
+    blur: root._level.shadowRadius
+    spread: 0
+    offset: Qt.vector2d(0, root._level.shadowVerticalOffset)
+    color: Qt.alpha(Theme.shadow, root._level.shadowOpacity)
+
+    // The shadow's own pixels change only when the palette, the geometry or the
+    // level does; Qt re-bakes on any of those. Between them it is a blit.
+    cached: true
+}

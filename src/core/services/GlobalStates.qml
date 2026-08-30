@@ -37,11 +37,41 @@ Singleton {
         "powermenu": "powerMenu"
     })
 
+    // Panels whose tree is retained after their first open, so the next open
+    // costs nothing to construct. A plain list, reassigned rather than mutated,
+    // because bindings have to see it change — `panelRetained` is read from the
+    // `active` binding of every panel loader.
+    property var retainedPanels: []
+
+    function panelRetained(name) {
+        return root.retainedPanels.indexOf(name) !== -1
+    }
+
+    // The output a retained panel must map onto. Resolved when the panel opens
+    // and BEFORE `activePanel` flips, so the window is still invisible when its
+    // screen changes and there is no visible remap. Panels used to resolve this
+    // once in Component.onCompleted, which was correct only while every open
+    // rebuilt the window.
+    property ShellScreen activePanelScreen: null
+
+    // Emitted after a panel becomes the active one. A retained panel keeps
+    // whatever the user last left in it — a search query, a scroll position,
+    // keyboard focus — so each panel resets its own transient state here.
+    signal panelOpened(string name)
+
     function openPanel(name) {
         const mod = _panelModule[name]
         if (!mod) { console.warn("GlobalStates: unknown panel:", name); return }
         if (!AppConfig.moduleEnabled(mod)) return
+
+        const s = root.focusedScreen()
+        if (s) root.activePanelScreen = s
+
+        if (AppConfig.panelKeptLoaded(name) && !root.panelRetained(name))
+            root.retainedPanels = root.retainedPanels.concat([name])
+
         activePanel = name
+        root.panelOpened(name)
     }
 
     function closePanel(name) {
@@ -64,11 +94,12 @@ Singleton {
     // whichever output the compositor defaults to, which meant pressing the
     // launcher hotkey on monitor 2 opened it on monitor 1.
     //
-    // Callers resolve this ONCE, in Component.onCompleted: every panel lives
-    // inside a LazyLoader keyed on its own open state, so each open constructs a
-    // fresh window and re-resolves — and the panel does not chase the focused
-    // monitor while it is already on screen. Assigning before the window exists
-    // is the cheap path (Quickshell applies it in completeWindow, no remap).
+    // Resolved by openPanel into `activePanelScreen`, once per open and before
+    // the open flag flips — so a panel does not chase the focused monitor while
+    // it is already on screen, and a retained panel still lands on the right
+    // output. Panels read `activePanelScreen`; they must not call this from
+    // Component.onCompleted, which only re-resolved because every open used to
+    // rebuild the window.
     function focusedScreen() {
         const focused = Hyprland.focusedMonitor
         if (focused) {

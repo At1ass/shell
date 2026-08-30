@@ -196,6 +196,14 @@ Item {
 
                 maximumFlickVelocity: 3000
 
+                // Recycle delegates rather than rebuild them per row crossing
+                // the viewport. Safe here because AppListItem already resets the
+                // transition state it owns whenever it is handed new data (see
+                // its onModelDataChanged) -- ScriptModel reuse had the same
+                // hazard first. It earns its keep in prefix mode (">"), where
+                // the cap rises to 50 rows carrying clipboard thumbnails.
+                reuseItems: true
+
                 // ScriptModel to track item changes
                 model: ScriptModel {
                     id: scriptModel
@@ -368,5 +376,18 @@ Item {
         LauncherService.search("")
         root._searchReady = true
         appListView.currentIndex = 0
+    }
+
+    // A retained panel keeps whatever the user left in it. Reset the query and
+    // take focus on every open, so a reopened launcher behaves exactly like a
+    // freshly built one -- which is what it used to be.
+    Connections {
+        target: GlobalStates
+        function onPanelOpened(name) {
+            if (name !== "launcher")
+                return
+            searchField.text = ""
+            searchField.forceActiveFocus()
+        }
     }
 }

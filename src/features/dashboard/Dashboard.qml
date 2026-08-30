@@ -21,13 +21,12 @@ Scope {
     PanelWindow {
         id: dashboardWindow
 
-        // Open on the monitor the user is actually looking at (see
-        // GlobalStates.focusedScreen). The LazyLoader in shell.qml rebuilds this
-        // window per open, so resolving once at construction is enough.
-        Component.onCompleted: {
-            const s = GlobalStates.focusedScreen()
-            if (s) dashboardWindow.screen = s
-        }
+        // The output to map onto, resolved by GlobalStates.openPanel once per
+        // open and before the open flag flips -- so this window is still
+        // invisible when it moves, and a RETAINED panel still lands on the
+        // monitor the user is looking at. Resolving in Component.onCompleted
+        // was only correct while every open rebuilt the window.
+        screen: GlobalStates.activePanelScreen ?? null
 
         color: "transparent"
         implicitWidth: root.sidebarWidth
@@ -59,9 +58,10 @@ Scope {
             }
         }
 
+        // Held active once the panel is retained; see Launcher.qml.
         Loader {
             id: dashboardLoader
-            active: GlobalStates.dashboardOpen
+            active: GlobalStates.dashboardOpen || GlobalStates.panelRetained("dashboard")
 
             focus: GlobalStates.dashboardOpen
 

@@ -56,6 +56,7 @@ components=(
   "MaterialButton.qml:base/MaterialButton.qml"
   "IconButton.qml:base/IconButton.qml"
   "CircleAvatar.qml:base/CircleAvatar.qml"
+  "ElevationShadow.qml:base/ElevationShadow.qml"
   "StateLayer.qml:feedback/StateLayer.qml"
   "MotionAnimation.qml:base/MotionAnimation.qml"
   "MotionColorAnimation.qml:base/MotionColorAnimation.qml"

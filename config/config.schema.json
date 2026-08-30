@@ -86,6 +86,23 @@
       }
     },
 
+    "performance": {
+      "type": "object",
+      "description": "Runtime cost/quality trade-offs. Nothing here changes what the shell does, only what it spends doing it.",
+      "additionalProperties": false,
+      "properties": {
+        "keepPanelsLoaded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["dashboard", "launcher", "notificationCenter", "cheatsheet", "powermenu"]
+          },
+          "uniqueItems": true,
+          "description": "Panels whose QML tree stays alive after the first open instead of being torn down on close and rebuilt on the next one. Rebuilding blocks the UI thread for the whole construction (measured 13-32 ms on a 9950X3D, and it scales with the machine), which is the largest single stall in the shell. The cost is the retained object tree; the one-time caches are paid on first open either way. Empty list restores the rebuild-every-time behaviour."
+        }
+      }
+    },
+
     "modules": {
       "type": "object",
       "description": "Central on/off switches for every top-level UI element. Each key toggles one element; omitted keys use the listed default. Hot-reload applies changes immediately.",

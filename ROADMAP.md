@@ -13,6 +13,475 @@ Recent history that informs the items below:
 
 ---
 
+## A hidden bar no longer animates (2026-08-31)
+
+Acting on the previous entry's finding: the bar is 82% of a compositor
+gesture, animation is 62% of that, and `bar.autoHide` means it is hidden
+while it pays. Qt skips rendering an invisible subtree but keeps running its
+animations.
+
+Chosen behaviour: a hidden bar keeps TRACKING state, but its transitions are
+instant. It is therefore already correct when it appears, rather than
+animating into correctness.
+
+### Mechanism
+
+`BarElement` — the base of every bar widget, and already the owner of an
+`animated` knob its Behaviors key off — gains `barRevealed` plus
+`readonly property bool animationsActive: animated && barRevealed`.
+`StatusBar.revealed` feeds `BarWidgetLoader`, which passes it to all eleven
+widget components. Widgets that own Behaviors (`WorkspaceWidget`,
+`MPRISWidget`) and those driving a `MaterialIndicator` (`WorkspaceWidget`,
+`LayoutWidget`) key off it.
+
+`BarElement` is not part of the greeter kit, so `sync-ui.sh` is untouched.
+
+### Result
+
+Interleaved by hot reload, three rounds, workspace switch:
+
+| | median | mean | stdev |
+|---|---|---|---|
+| ungated | 6.60 ms | 6.59 | 0.26 |
+| gated while hidden | 4.65 ms | 4.25 | 0.70 |
+
+**-30%.** Not the full 62% that `reduceMotion` removes: the bar's own reveal
+transition still animates (it should), and kit-internal Behaviors on `Surface`
+and `StateLayer` are shared with the panels and stay as they are.
+
+Absolute figures drift over a session and are not comparable across one. The
+same gesture read 2.77 ms in the morning and 3.9-6.6 ms later; the cause is the
+window count, which went from 3 to 11 as the day went on — `WorkspaceWidget`
+groups every toplevel and builds an icon row per window, so a gesture costs more
+on a busier desktop. Only within-session A/B comparisons are used here, and a
+retained panel does NOT add to it (3.95 ms with none ever opened, 3.89 ms with
+all four retained).
+
+### The gate is conditional, and the first test of that was wrong
+
+Verified through probe instances rather than the cursor:
+
+| | ms/gesture |
+|---|---|
+| `autoHide: true` (hidden) | 3.82 |
+| `autoHide: false` (always shown) | 5.56 |
+
+Animations run when the bar is on screen and are skipped when it is not.
+Before the change the same pair measured 2.77 and 2.86 — no difference at all,
+which is what "paid for pixels nobody sees" meant.
+
+An earlier attempt to test this by parking the cursor on the screen edge
+reported no difference between hidden and shown. That harness was broken:
+switching workspaces moves focus to the other monitor, so the hover did not
+survive the gesture it was measuring.
+
+---
+
+## Event coalescing refuted, and where a gesture actually goes (2026-08-31)
+
+Both halves of the planned event-economy stage were tested and neither survived.
+What the stage did produce is a located culprit and a probe for it
+(`perf-probe.sh gestures`).
+
+### Coalescing Hyprland refreshes: no effect, at any granularity
+
+`HyprlandWindowService` calls `Hyprland.refresh*()` per raw event. The plan was
+DankMaterialShell's `CompositorService` shape: accumulate dirty flags, drain
+once. Implemented on `Qt.callLater` (one event-loop turn, no added latency) and
+measured interleaved by hot-reloading the two versions, three rounds:
+
+| | median | mean | stdev |
+|---|---|---|---|
+| per-event | 2.77 ms/switch | 2.77 | 0.04 |
+| coalesced | 2.77 ms/switch | 2.77 | 0.04 |
+
+Identical. Focus changes likewise: 2.09 vs 2.06, inside the noise.
+
+The assumption that `Qt.callLater` was too fine a granularity was tested too —
+a 40 ms drain timer, DMS's own shape, came out at 3.08 vs 2.98 for per-event,
+if anything slightly worse for the timer's own overhead.
+
+**The control that settled it:** a variant that keeps the event wiring and
+issues NO refreshes at all costs 2.76 ms against 2.93 for the coalesced one.
+Removing every refresh call saves 6%. Whatever a workspace switch costs, it is
+not the refreshes — so no scheme for issuing fewer of them can matter.
+
+This also explains the earlier event replay, which predicted only 10% fewer
+calls for a workspace switch: the burst dirties three DIFFERENT targets
+(`focusedmon` -> workspaces + monitors, `activewindow` -> toplevels), and
+coalescing merges duplicates, not distinct ones.
+
+Reverted. The 40-line per-event version is simpler and exactly as fast.
+
+### Where the 2.76 ms goes
+
+Probe instances with a substituted `XDG_CONFIG_HOME`, one config change each,
+median of three, workspace switch:
+
+| configuration | ms/gesture | vs full |
+|---|---|---|
+| full | 2.76 | — |
+| workspaces widget removed | 1.82 | -0.94 (34%) |
+| activewindow widget removed | 2.39 | -0.37 (13%) |
+| **bar module off** | **0.51** | **-2.25 (82%)** |
+| dock module off | 2.68 | -0.08 |
+| **`appearance.reduceMotion: true`** | **1.06** | **-1.71 (62%)** |
+| workspace chip count 9 -> 4 | 2.75 | -0.01 |
+| workspace window icons off | 2.68 | -0.08 |
+
+**The bar is 82% of a workspace switch, and animation is 62% of it.** Not the
+bindings and not the chip count — chips 9 -> 4 and icons off change nothing.
+The widget's own work is already tight (one grouping pass over toplevels,
+`ScriptModel` diffing by identity); what costs is the motion the state change
+sets running.
+
+### And the bar is hidden while it pays for it
+
+`bar.autoHide` is on, so the bar spends nearly all its time with
+`visible: false`. Qt skips rendering an invisible subtree; it does not skip
+that subtree's animations or bindings.
+
+| | ms/gesture |
+|---|---|
+| autoHide on (bar hidden) | 2.77 |
+| autoHide off (bar shown) | 2.86 |
+
+The same price either way. Every workspace switch animates chips nobody is
+looking at.
+
+**Not fixed here, and not with a quick gate.** Of the 15 `Behavior`s in the bar
+subtree, 10 live in shared kit components — `BarElement`, `Surface`,
+`MaterialIndicator`, `StateLayer` — used by every panel too, so they cannot key
+off a bar-local `revealed`. Doing this properly means deciding whether a hidden
+bar should track state at all or snap on reveal, and that is its own change with
+its own correctness question. It is the highest-value item the measurements have
+turned up since panel retention.
+
+### Reference counting for services: nothing to reference-count
+
+The other half of the stage was to generalise the watcher-gate pattern
+(`KeyboardLayoutService.lockStateWatchers`, `MprisController` on
+`dashboardOpen`) into caelestia's `Service`/`ServiceRef` or DMS's `Ref.qml`.
+
+Scanned every repeating timer in `core/services`: exactly one runs ungated —
+`NotificationHistory`'s hourly TTL sweep, which must. Idle already costs
+0.15 ms of CPU per wall second. There is no polling left to gate, so the
+abstraction would be ceremony over a solved problem.
+
+---
+
+## Panels stopped being rebuilt on every open (2026-08-31)
+
+The stall the baseline named, fixed. Pulled ahead of the event-coalescing stage
+because both items dropped in the render pass pointed back at it and because it
+was the only measured, hardware-independent cost.
+
+Every panel was a `LazyLoader` keyed on its own open flag, with a second
+`Loader` inside keyed on the same flag. Closing tore both down; opening rebuilt
+them. That construction runs on the UI thread and blocks it for its whole
+duration, so the price came due on every open rather than once.
+
+`performance.keepPanelsLoaded` (config-first: schema, default, `AppConfig`
+getter) lists the panels whose tree survives a close. `GlobalStates` grows
+`retainedPanels` plus `panelRetained()`, which the loaders read.
+
+### Result
+
+GUI thread per open, median of five warm opens, `perf-probe.sh panels`:
+
+| panel | before | after | N3050, extrapolated |
+|---|---|---|---|
+| launcher | 13.2 ms | 7.0 ms | ~92 -> ~50 ms (x7.1) |
+| dashboard | 11.6 ms | 7.0 ms | ~40-105 -> ~22-63 ms |
+| cheatsheet | 31.6 ms | 12.1 ms | ~287 -> ~110 ms (x9.1) |
+
+The residue is window mapping and the entry animation, not construction.
+
+**Memory went the other way from the guess.** Twelve open/close cycles across
+the four panels:
+
+| | RSS growth over the cycles |
+|---|---|
+| retention on | +26.8 MB |
+| retention off | +186.4 MB |
+
+Final RSS was within 11 MB of each other. Rebuilding does not hand the
+allocations back — consistent with "Memory profile", where the first fifteen
+launcher cycles cost 58 MB and the next fifteen cost 80 KB. Retention is
+cheaper on both axes, which is why it is the default.
+
+`powermenu` is out of the default (small, rarely opened). The lock screen is
+not eligible: its window owns a Wayland session lock, and the note on its
+loader explains what destroying that costs.
+
+### What retention broke, and what it took to not break it
+
+A retained panel keeps everything a rebuilt one discarded.
+
+- **Output.** Panels resolved their monitor in `Component.onCompleted`, correct
+  only while every open built a new window. `GlobalStates.openPanel` now
+  resolves it into `activePanelScreen` once per open and BEFORE `activePanel`
+  flips, so the window is still invisible when it moves. Verified: focused
+  DP-2 -> launcher 3440x1440 on DP-2, focused DP-3 -> 1080x1920 on DP-3, and
+  back.
+- **Transient state.** New `panelOpened(name)` signal; each panel resets what it
+  owns. Launcher and cheatsheet clear the query and retake focus, the
+  notification centre resets its keyboard cursor and scroll offset. Verified by
+  typing into each with `wtype`, closing, reopening: empty field, unfiltered
+  list, and the third open still accepts keystrokes.
+- **Entry animations.** These keyed off `_ready` being set in
+  `Component.onCompleted` — a one-shot that a retained panel would fire once
+  ever. They key off the open flag as well, so they now run per open and get a
+  real exit transition too, which they never had.
+
+### A control that was wrong the first time
+
+A stray 1x1 layer surface at the corner of DP-2 survived closing, and the first
+comparison said retention had introduced it. It had not: the control run never
+opened the dashboard. Opening it with retention OFF leaves the same surface. It
+belongs to `IdleInhibitorService`, a singleton whose dummy "visible" surface is
+created the first time the dashboard references it, and singletons outlive any
+panel. Pre-existing, unrelated, harmless — but the first reading of it was an
+artefact of a control that did not perform the action it was controlling for,
+which is the same trap the notification-popup work logged.
+
+---
+
+## Render and smoothness pass, and two items it killed (2026-08-30)
+
+First stage of the borrowed-practices plan. Measured with `tools/perf-probe.sh`
+against the baseline above. Two of the five planned items were dropped because
+the experiment refuted the reason for doing them; both are recorded here so
+they are not reopened from the same wrong premise.
+
+### Landed: RectangularShadow replaces MultiEffect for elevation
+
+`ui/base/ElevationShadow.qml` maps `Tokens.elevation` onto Qt 6.9's
+`RectangularShadow` and is now the only place the shell describes a drop
+shadow. `Surface.qml`, `FAB` and `MaterialButton` use it; the greeter picks it
+up through `sync-ui.sh`, which had to learn the new component or the pre-login
+screen would have failed to resolve the type — the same trap the script's own
+MotionAnimation comment documents.
+
+`MultiEffect { shadowEnabled }` re-renders its source into a framebuffer and
+re-blurs it whenever the source changes, and every elevated surface carries a
+`Behavior on color`, so a palette transition paid that per card per frame.
+RectangularShadow derives the shadow from the rounded-rect description: no
+source texture, no FBO, no blur passes, and `cached: true` bakes the result.
+
+Visual parity was checked, not assumed: both implementations rendered side by
+side at level-3 parameters over a flat background, sampling the falloff.
+Background 26/255; below the card MultiEffect runs 23 -> 26 over ~8 px and
+RectangularShadow 24 -> 26 over ~9 px. A one-level difference over one extra
+pixel. No tuning needed.
+
+**The saving itself is NOT measurable here** — see the baseline: scene-graph
+rendering is 3.6% of render-thread time on a 4070 Ti. This is a change made on
+mechanism, to be confirmed on the N3050.
+
+### Landed: delegate recycling, without its usual companion
+
+`reuseItems: true` on the notification-history and launcher lists.
+`NotificationHistoryItem` gained `resetSwipe()`, called from
+`ListView.onReused`: a recycled card would otherwise carry its swipe offset and
+opacity into the next row. `AppListItem` already guarded the same hazard in
+`onModelDataChanged` — ScriptModel reuse had found it first.
+
+**`cacheBuffer` was tested and rejected.** DankMaterialShell pairs it with
+`reuseItems` everywhere, so the plan copied the pair. With 60 rows in history,
+interleaved A/B/A/B/A/B over three rounds via hot reload (15 samples each):
+
+| | median | mean | stdev |
+|---|---|---|---|
+| no cacheBuffer | 13.23 ms | 13.40 | 0.88 |
+| `cacheBuffer: min(height*2, 1000)` | 16.98 ms | 17.48 | 1.33 |
+
++28% on open, every round, distributions not overlapping. It builds ~10
+delegates past the viewport, and this panel is rebuilt on every open — it
+trades the measured dominant cost for scroll smoothness that was never shown
+to be a problem.
+
+**Method note.** Sequential A-then-B measurement said the opposite (B looked
+21% FASTER) because successive restarts warm monotonically: A1 20.9, B 16.5,
+A2 13.1 ms. Interleaving through hot reload was what made the signal readable.
+Never compare two configurations across separate restarts.
+
+### Dropped: ClippingRectangle instead of `clip: true`
+
+The plan claimed rounded clipping via `clip` needs a layer, and that
+`ClippingRectangle` avoids it. Reading the code, no site combines them —
+`MaterialMarqueeText`, `MPRISWidget` and `ProgressIndicator` use plain
+rectangular `clip: true`, which is a scissor rect and already free.
+
+And `ClippingRectangle` is not the cheap option. Its implementation is
+`Rectangle { layer.enabled: true }` plus a `ShaderEffectSource` plus a
+`ShaderEffect` — two framebuffers — and its own documentation says "it costs
+more than QtQuick.Rectangle, so it should not be used unless you need to clip
+items inside of it to the border". Substituting it for a scissor clip is a
+regression.
+
+It remains the right tool for rounded clipping specifically. The two sites that
+do that (`CircleAvatar`, `MediaPlayer`'s album art) use MultiEffect with a
+`layer.enabled` mask, which costs about the same; there is nothing to win by
+swapping them.
+
+### Dropped: Animators for panel transitions
+
+The premise was that `NumberAnimation` runs on the GUI thread while
+`XAnimator`/`OpacityAnimator` run on the render thread and keep moving when the
+GUI thread is busy. Tested directly: two rectangles crossing a window, one on
+`NumberAnimation on x`, one on `XAnimator on x`, with a 400 ms busy loop on the
+GUI thread every 1.5 s, sampled by screenshot every 75 ms.
+
+    t,s     GUI x    RT x    d-GUI   d-RT
+    0.693     691     679       35      35
+    0.859     697     686        6       7     <- block starts
+    1.028     697     686        0       0
+    1.199     790     778       93      92     <- block ends
+
+**Both freeze together and both jump by the same amount afterwards.** The
+animation clock advances; no frames are presented. Under the threaded render
+loop the GUI thread still drives `polishAndSync`, so a GUI thread that never
+returns to its event loop produces no frames at all, whichever thread owns the
+interpolation.
+
+Animators would still keep property updates off a *busy* GUI thread. They do
+nothing for a *blocked* one, and blocked is what this shell does — 13-32 ms of
+synchronous construction per panel open. The fix is to remove the block, not to
+relocate the animation.
+
+### Landed: flick tuning
+
+`maximumFlickVelocity: 3000` and an MD3 `rebound` transition on the
+notification list (the launcher already had the former). Free, and Qt's 2500
+px/s ceiling reads as sluggish on a trackpad. `ScrollableList` was left alone:
+its Flickable is inside a `ScrollView` and reaching it means depending on
+Controls internals.
+
+### Consequence
+
+Three of five planned render items either could not be validated here or were
+refuted. The one measured, hardware-independent stall remains panel
+construction on every open, and both dropped items point at it. It should be
+the next thing done.
+
+---
+
+## Performance baseline before the borrowed-practices work (2026-08-30)
+
+Baseline for the work plan distilled from six other Quickshell configs
+(caelestia, DankMaterialShell, end4/illogical-impulse, nothingless, outfoxxed,
+ii). Measured with `tools/perf-probe.sh`, which reads the live shell from the
+outside — Hyprland's event socket, `/proc/<pid>/task/*/schedstat`, and one
+`QSG_RENDER_TIMING` run — so nothing here required instrumenting the code.
+
+Hardware: 9950X3D + RTX 4070 Ti, DP-2 3440x1440@144 (6.94 ms/frame) and
+DP-3 1920x1080@165. The N3050 was not available; where it matters the
+multipliers from "What each feature costs on a weak machine" are applied and
+labelled as extrapolation, not measurement.
+
+### Idle is already free
+
+0.15 ms of CPU per second of wall clock, whole process. The event-driven
+services (`nmcli monitor` + debounce, `onClipboardTextChanged`) and the gated
+timers (`lockStateWatchers`, `GlobalStates.dashboardOpen`) do what they claim.
+**No polling work is worth doing.** Of the six configs compared, only
+caelestia matches this; end4 forks `sensors | grep | grep -oP` every tick.
+
+### Panels are rebuilt on EVERY open, and that is the largest stall
+
+Every panel is a `LazyLoader` keyed on its open flag, so closing tears it down
+and the next open reconstructs it. GUI-thread CPU, `perf-probe.sh panels`:
+
+| panel | first open | warm open | warm, extrapolated to N3050 |
+|---|---|---|---|
+| launcher | 58 ms | 13 ms | ~92 ms (x7.1) |
+| dashboard | 35 ms | 12 ms | ~40-110 ms (x3.2-9) |
+| cheatsheet | 41 ms | 32 ms | ~287 ms (x9.1) |
+
+Warm cost is 2-5 frames dropped at 144 Hz, on the fastest CPU available. This
+is QML instantiation — CPU work, so it degrades with the machine and not with
+the GPU. **This is the top finding and it changes the plan:** prewarming at
+startup (caelestia's `Loader { active: true; visible: false }` trick) only pays
+for the FIRST open. The fix is to keep the panel alive after its first build.
+
+### Compositor event handling: cheap calls, but too many of them
+
+`HyprlandWindowService` calls `Hyprland.refresh*()` synchronously per raw
+event. Replaying captured event streams through its own dispatch table
+(`perf-probe.sh scenario`):
+
+| gesture | events | refresh calls now | coalesced (40 ms) |
+|---|---|---|---|
+| workspace switch x6 | 30 | 21 | 19 (-10%) |
+| focus change x12 | 32-60 | 16-30 | 14-15 (-12% to -50%) |
+
+The saving swings on whether `windowtitle` accompanies `activewindow`; both
+map to `refreshToplevels`, so when both fire the burst halves.
+
+**An assumption from the analysis was wrong and is corrected here.** The
+refresh was assumed to cost ~1.5 ms because that is what `hyprctl -j` takes.
+Nearly all of that is the `hyprctl` fork. Over the raw socket, the way the
+shell actually speaks it, one round trip plus `JSON.parse` is **0.012-0.031 ms**
+(`perf-probe.sh ipc-cost`). Coalescing therefore saves microseconds of IPC.
+
+What it does cost is downstream: one workspace switch is **2.95 ms of GUI
+thread** plus ~7.3 ms across the render threads, and a focus change 0.82 ms
+with only three windows open — the model rebuild and the binding invalidation
+it fans out to, not the socket. Coalescing is still worth doing, for that
+reason and not the one originally given.
+
+### Render thread: swap dominates, so GPU-side findings are not visible here
+
+819 frames over the scripted scenarios, mean 2.00 ms, 4.4% over the 6.94 ms
+budget. The split: **sync 30 ms, render 59 ms, swap 1522 ms.** Swap is the
+vsync wait, not work. Actual scene-graph rendering — where a `MultiEffect`
+shadow's FBO and blur passes would land — is 3.6% of render-thread time.
+
+**This does not clear the shadow rework, it only says a 4070 Ti cannot see
+it.** `MultiEffect { shadowEnabled }` re-renders its source into an FBO and
+runs a multi-pass blur whenever the source changes, and `Surface.qml` puts a
+`Behavior on color` inside that source. The cost is fill-rate bound, which is
+exactly the axis where an N3050's integrated GPU differs from this one by far
+more than the 3-13x CPU ratios. Treat it as unverified until the N3050 is back.
+
+### Wallpaper change is already off the GUI thread
+
+60 ms total for one change with a 3 s settle: MCU palette 19.7 ms on a pooled
+thread, image decode 19.0 ms on `QQuickPixmapReader`, **8.6 ms on the GUI
+thread**, 9.6 ms across render threads. The decode already does not block the
+UI, which lowers the urgency of the caching-image-manager plugin: it is a
+memory and CPU item, not a smoothness one.
+
+### Memory
+
+RSS 592-608 MB, HWM 635-687 MB, 22-34 threads, 140-166 fds after a long
+session. Consistent with the growth band in "Memory profile"; no new signal.
+
+### Consequences for the plan
+
+1. Panel teardown-on-close is the one measured, hardware-independent stall.
+   It moves to the front of the queue.
+2. Event coalescing keeps its place but on the downstream-cost argument.
+   Dropping `activewindow` from the `refreshToplevels` branch is worth testing
+   separately: focus changes do not change the toplevel SET, and
+   `ActiveWindowService` already reads class and title straight off the event.
+3. Shadows, clipping and other fill-rate items stay in the plan but cannot be
+   validated here. Re-run `perf-probe.sh render` on the N3050 before and after.
+4. `perf-probe.sh` is the before/after instrument for all of the above. Its
+   dispatch table mirrors `HyprlandWindowService.qml` and has to be updated
+   with it.
+
+**Harness note.** The first capture attempt returned zero events and looked
+like a quiet desktop. The desktop was quiet because `hyprctl dispatch` was
+failing: Hyprland 0.56's Lua form (see "Hyprland 0.56 broke every dispatch")
+applies to the CLI too, so every scripted gesture was a no-op. This is the
+same silent-failure class the notification-popup investigation logged — the
+probe now drives gestures through `hl.dsp.*` and the event count itself is the
+assertion that they happened.
+
+---
+
 ## What each feature costs on a weak machine (2026-08)
 
 CPU consumed by the shell for one action, sampled from its own utime+stime,

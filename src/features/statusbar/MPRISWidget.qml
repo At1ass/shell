@@ -91,6 +91,7 @@ BarElement {
             Layout.alignment: Qt.AlignVCenter
 
             Behavior on Layout.preferredWidth {
+                enabled: root.barRevealed
                 MotionAnimation {
                     duration: Tokens.motion.duration.short4
                     curve: "standard"
@@ -111,6 +112,7 @@ BarElement {
             onClicked: MprisController.previous()
 
             Behavior on opacity {
+                enabled: root.barRevealed
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                 }
@@ -143,6 +145,7 @@ BarElement {
             onClicked: MprisController.next()
 
             Behavior on opacity {
+                enabled: root.barRevealed
                 NumberAnimation {
                     duration: Tokens.motion.duration.short4
                 }

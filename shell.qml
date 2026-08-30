@@ -79,9 +79,17 @@ ShellRoot {
         }
     }
 
+    // Panels below stay loaded once opened, when listed in
+    // performance.keepPanelsLoaded. Each is otherwise torn down on close and
+    // rebuilt on the next open, and that rebuild blocks the UI thread for its
+    // whole duration -- the largest single stall the shell has. The window
+    // itself is cheap and already hides on its own open flag; what is being
+    // retained is the QML tree inside it. See GlobalStates.panelRetained.
+    // Lockscreen is deliberately NOT in this list: see the note on its loader.
+
     // Dashboard
     LazyLoader {
-        active: AppConfig.moduleEnabled("dashboard") && GlobalStates.dashboardOpen
+        active: AppConfig.moduleEnabled("dashboard") && (GlobalStates.dashboardOpen || GlobalStates.panelRetained("dashboard"))
         Dashboard {}
     }
 
@@ -133,7 +141,7 @@ ShellRoot {
 
     // Launcher
     LazyLoader {
-        active: AppConfig.moduleEnabled("launcher") && GlobalStates.launcherOpen
+        active: AppConfig.moduleEnabled("launcher") && (GlobalStates.launcherOpen || GlobalStates.panelRetained("launcher"))
         Launcher {}
     }
 
@@ -145,7 +153,7 @@ ShellRoot {
 
     // Notification center
     LazyLoader {
-        active: AppConfig.moduleEnabled("notifications") && GlobalStates.notificationCenterOpen
+        active: AppConfig.moduleEnabled("notifications") && (GlobalStates.notificationCenterOpen || GlobalStates.panelRetained("notificationCenter"))
         NotificationCenter {}
     }
 
@@ -167,13 +175,13 @@ ShellRoot {
 
     // Power menu
     LazyLoader {
-        active: AppConfig.moduleEnabled("powerMenu") && GlobalStates.powerMenuOpen
+        active: AppConfig.moduleEnabled("powerMenu") && (GlobalStates.powerMenuOpen || GlobalStates.panelRetained("powermenu"))
         PowerMenu {}
     }
 
     // Cheatsheet overlay
     LazyLoader {
-        active: AppConfig.moduleEnabled("cheatsheet") && GlobalStates.cheatsheetOpen
+        active: AppConfig.moduleEnabled("cheatsheet") && (GlobalStates.cheatsheetOpen || GlobalStates.panelRetained("cheatsheet"))
         Cheatsheet {}
     }
 }

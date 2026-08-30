@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 import qs.src.core.config
 import "." as Base
 
@@ -54,18 +53,10 @@ Button {
 
     background: Item {
         // Elevated variant casts a level-1 shadow.
-        MultiEffect {
-            source: bg
-            anchors.fill: bg
-            z: -1
+        ElevationShadow {
+            target: bg
+            level: 1
             visible: control._elevated && control.enabled
-            shadowEnabled: visible
-            shadowColor: Qt.alpha(Theme.shadow, Tokens.elevation.level1.shadowOpacity)
-            blurMax: 64
-            shadowBlur: Tokens.elevation.level1.shadowRadius / 64
-            shadowVerticalOffset: Tokens.elevation.level1.shadowVerticalOffset
-            shadowHorizontalOffset: 0
-            autoPaddingEnabled: true
         }
 
         Rectangle {

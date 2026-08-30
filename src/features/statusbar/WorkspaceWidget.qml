@@ -96,6 +96,7 @@ BarElement {
                 implicitHeight: workspaceWidget.chipSize
 
                 Behavior on implicitWidth {
+                    enabled: workspaceWidget.animationsActive
                     MotionAnimation {
                         duration: Tokens.motion.duration.medium2
                         curve: "emphasized"
@@ -119,6 +120,7 @@ BarElement {
                     z: -1
 
                     Behavior on opacity {
+                        enabled: workspaceWidget.animationsActive
                         MotionAnimation {
                             duration: Tokens.motion.duration.medium2
                             curve: "standard"
@@ -145,6 +147,7 @@ BarElement {
 
                 // Empty/occupied dot indicator.
                 MaterialIndicator {
+                    animated: workspaceWidget.animationsActive
                     anchors.centerIn: parent
                     visible: !wsItem.hasWindows
                     shape: "rounded"
