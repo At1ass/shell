@@ -14,6 +14,7 @@ import qs.src.features.popouts as Popouts
 import qs.src.features.screenshot
 import qs.src.features.lockscreen
 import qs.src.features.powermenu
+import qs.src.features.polkit
 import qs.src.features.cheatsheet
 import qs.src.core.config
 import qs.src.core.services
@@ -195,6 +196,23 @@ ShellRoot {
     LazyLoader {
         active: AppConfig.moduleEnabled("powerMenu") && (GlobalStates.powerMenuOpen || GlobalStates.panelRetained("powermenu"))
         PowerMenu {}
+    }
+
+    // Polkit authentication prompt.
+    //
+    // `moduleEnabled` is read FIRST on purpose: `&&` short-circuits, so with the
+    // module off nothing ever touches PolkitService, the singleton is never
+    // constructed, and no agent registers. That matters — see the note in
+    // PolkitService: a registered agent that does not prompt breaks
+    // authentication for the whole session.
+    // Loaded for as long as the module is on, NOT per request: polkit drops
+    // `isActive` briefly between prompts, and keying the loader on it tore the
+    // dialog down mid-conversation -- taking the "authentication failed" text
+    // with it, so a rejected password just silently emptied the field.
+    // The window costs nothing while hidden; it maps no surface.
+    LazyLoader {
+        active: AppConfig.moduleEnabled("polkit")
+        PolkitDialog {}
     }
 
     // Cheatsheet overlay

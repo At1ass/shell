@@ -270,6 +270,53 @@ Valid entries: `dashboard`, `launcher`, `notificationCenter`, `cheatsheet`,
 of the default because it is small and rarely opened; the lock screen is not
 eligible at all, since its window owns a Wayland session lock.
 
+### `modules.polkit`
+
+An in-shell polkit prompt, so a privilege request looks like the rest of the
+shell instead of a separate toolkit's dialog. **Off by default**, and that is a
+deliberate default rather than a shy one: polkit allows exactly one
+authentication agent per session, Hyprland setups normally start
+`hyprpolkitagent`, and whichever registers second simply logs an error and does
+nothing.
+
+To use the shell's:
+
+```bash
+systemctl --user disable --now hyprpolkitagent
+```
+
+```json
+"modules": { "polkit": true }
+```
+
+With the module off nothing in `PolkitService` is constructed and no agent is
+registered, so the external agent keeps working untouched. Check which one won
+with `tools/shell-ctl polkit registered`.
+
+> **Any prompt that does not end in success costs a login attempt.** `/usr/lib/pam.d/polkit-1`
+> includes `system-auth`, so polkit authentication runs through `pam_faillock`
+> — and a conversation that ends without success is recorded exactly like a
+> wrong password. That covers cancelling it, switching administrator, and
+> simply walking away: an unanswered prompt expires after a few seconds and is
+> counted too. With the stock `deny=3` / `unlock_time=600`, three dismissed
+> prompts lock the account for ten minutes, for **every** PAM service including
+> `sudo` and the lock screen. This is the system's PAM configuration, not the
+> shell's, and it applies to any agent (hyprpolkitagent included).
+>
+> The prompt is therefore deliberately hard to dismiss by accident: only the
+> Cancel button and Escape close it — clicking outside does not.
+>
+> **Switching administrator in the selector costs an attempt too.** Choosing a
+> different identity cancels the running PAM conversation and starts a new one
+> as that user, and the cancelled half is recorded the same way. The selector
+> only appears for `auth_admin` actions on machines with more than one
+> administrator.
+>
+> If you dismiss prompts often, give polkit its own stack in
+> `/etc/pam.d/polkit-1` without `pam_faillock`, or raise `deny` in
+> `/etc/security/faillock.conf`. `faillock --user "$USER"` shows the current
+> count and `sudo faillock --user "$USER" --reset` clears it.
+
 The `modules` block is the central switch for every top-level shell element. Any element can be turned off by setting it to `false`. An absent key falls back to its default. Changes apply on the fly (hot-reload), no restart required.
 
 ```json

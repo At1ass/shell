@@ -34,7 +34,8 @@
     "cheatsheet": true,
     "screenshot": true,
     "toasts": true,
-    "popouts": true
+    "popouts": true,
+    "polkit": false
   },
 
   "bar": {

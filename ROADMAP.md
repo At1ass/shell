@@ -13,6 +13,220 @@ Recent history that informs the items below:
 
 ---
 
+## Polkit agent, audited as the primary one (2026-09-01)
+
+Promoted to the session's only agent (`hyprpolkitagent` stopped and disabled),
+so it was re-audited against every reference implementation next to this config.
+Only DankMaterialShell and end4 have one; caelestia, nothingless and outfoxxed
+have none.
+
+### The finding that matters most is not in the shell
+
+polkit has no `/etc/pam.d/polkit-1` on this machine; the effective stack is
+`/usr/lib/pam.d/polkit-1`, which is `auth include system-auth` — the full stack,
+`pam_faillock` included. Its shape is
+
+    auth  required                pam_faillock.so  preauth
+    auth  [success=1 default=bad] pam_unix.so      try_first_pass nullok
+    auth  [default=die]           pam_faillock.so  authfail
+
+so ANY outcome that is not success falls into `authfail` and is recorded —
+**including a cancelled conversation**. Measured: three `faillock` entries
+against `polkit-1` appearing at the exact times of three cancels, with no
+password ever submitted. At the stock `deny=3` / `unlock_time=600` that locks
+the account for ten minutes across every PAM service, `sudo` and the lock screen
+included.
+
+This is the system's PAM configuration and applies to any agent, hyprpolkitagent
+included. It is not a regression from the switch. But it changes what the dialog
+should do: **a privilege prompt must be hard to dismiss by accident.** Clicking
+the scrim and losing the focus grab no longer cancel; only the Cancel button and
+Escape do. README carries the warning and the two ways to opt out of faillock
+for polkit.
+
+### Against the references
+
+| | here | DankMaterialShell | end4 |
+|---|---|---|---|
+| agent lifetime | singleton, constructed only when the module is on | `Loader` + `DMS_DISABLE_POLKIT` env kill switch | plain singleton |
+| Polkit import | in the service | isolated in `PolkitAgentInstance.qml`, loaded by `source:` | in the service |
+| failure shown | `authenticationFailed` -> service property | `flow.failed` property | `authenticationFailed` -> service flag |
+| double submit | guarded (added) | `isLoading` guard | unguarded |
+| password lifetime | cleared at submit (added) | cleared at submit | kept in the field |
+| no-response stage | refuses to submit (added) | defers the typed password for fprintd | not handled |
+| identities | selector when > 1 | not handled | not handled |
+| Escape | on the field | on the content Item | on the content Item |
+
+Adopted from DMS: the double-submit guard, clearing the response the moment it
+is handed to PAM, and refusing to submit while `isResponseRequired` is false.
+That last state is what a `pam_fprintd` stack sits in while waiting for a
+finger; DMS defers the typed password until the password prompt arrives, this
+shell simply refuses, because the measured flow here reaches
+`responseRequired: true` within 600 ms and never has a fingerprint stage.
+
+**Not adopted, deliberately:** `flow.failed` in place of the
+`authenticationFailed` signal. It is the tidier source and it is what DMS uses,
+but the signal path is *verified* and switching would need the failure path
+re-tested — which costs real login attempts on a live account. Left as it is,
+recorded here.
+
+DMS's `PolkitAgentInstance.qml` trick is worth remembering: keeping the
+`Quickshell.Services.Polkit` import in its own file means a Quickshell built
+without that module does not break the service that references it.
+
+### Verified this round
+
+Live flow, observed through the new `polkit state` IPC and cancelled rather than
+answered: `responseRequired` true within 600 ms, one identity (so the selector
+stays hidden), `responseVisible` false, and `supplementaryMessage` empty
+throughout — confirming again why the failure text cannot come from it.
+
+Escape now dismisses (it silently never worked before the `Keys`-on-a-window
+fix). Two empty Returns are a no-op rather than two attempts. A second request
+after a cancel comes up clean, with no leftover failure text.
+
+### Confirmed by a single controlled run
+
+With `faillock` reset first and exactly one attempt budgeted:
+
+| step | result |
+|---|---|
+| `pkexec` | prompt on the focused output, `responseRequired` true, `identities: ["at1ass"]`, no stale failure text |
+| focus stolen by another window | **request still up** — previously `onCleared` cancelled it |
+| Escape | dismissed, surface unmapped |
+| `faillock` afterwards | **exactly one entry**, from the cancel, with no password ever submitted |
+
+That last row is the proof for the claim above: a dismissed prompt is recorded
+as a failed authentication. One attempt spent, as budgeted.
+
+The identity list rendering was fixed on the way: the selector mapped
+`i.toString()`, and `Identity` is a QObject, so a multi-admin machine would have
+been offered `Identity(0x55f8...)` to choose between. It reads `displayName` now
+— visible in the run above as `["at1ass"]` rather than a pointer. Neither
+DankMaterialShell nor end4 handles identities at all, so the shape came from
+Quickshell's own `identity.hpp`; `flow.cpp:26` also settled that the first
+identity is pre-selected, so submitting without choosing is valid.
+
+Requests are QUEUED, one at a time (module.md), so a second request cannot
+appear beside the first: it waits, then raises
+`authenticationRequestStarted` again. The retained dialog survives that handoff,
+and `failureMessage`, the field and the submit guard all reset per request. The
+screen stays latched from the first of a queued pair, which keeps a burst of
+prompts from hopping between outputs.
+
+### Reported from use: switching identity claimed authentication had failed
+
+Found by adding a second `wheel` user and running `pkexec` — a case this machine
+could not produce before, and one neither reference implementation covers.
+
+`AuthFlow::setSelectedIdentity` cancels the live session and starts a new one
+(`flow.cpp:48`). The completion handler treats a cancel as such ONLY when the
+whole request was cancelled by the agent, which is the one path that sets
+`isCancelled` (`cancelFromAgent`). A session cancelled to restart under a
+different identity therefore lands in the failure branch: `failed = true` and
+`authenticationFailed` (`flow.cpp:142-147`). At signal level, picking a
+different administrator is indistinguishable from typing the wrong password.
+
+DankMaterialShell reads `flow.failed` and would show the same false banner; end4
+keys off the same signal. Nothing to borrow, so the fix is local:
+`selectIdentity` marks the restart it is about to cause and the handler swallows
+exactly one failure for it. The equality guard before setting the flag is
+load-bearing — `setSelectedIdentity` returns early for an unchanged identity, so
+arming the flag there would leave it swallowing a REAL failure later. A new
+prompt clears it as a second net.
+
+**Every non-success outcome costs a login attempt**, not just a wrong password:
+cancelling, switching identity, and letting the prompt expire unanswered (an
+abandoned request ends itself after ~8 s and leaves an entry). **The switch is
+one of them.** The cancelled session goes through
+`pam_faillock`'s authfail branch like any other non-success: the test above left
+an entry against `polkit-1` at the moment of the switch. With three
+administrators, flipping through the list twice locks the account. README says
+so next to the cancel warning.
+
+A better design is possible and not built: hold the picked identity locally and
+apply it only at submit, so browsing the list is free and only the real attempt
+counts. It needs the same deferral DMS uses for fprintd (wait for the new
+session's prompt, then send), so it buys a rare case at the price of a new
+failure mode. Recorded rather than done.
+
+### Harness lesson, learned twice in one evening
+
+Testing an authentication path against the live account cost two ten-minute
+lockouts: first three wrong passwords, then — after being careful about
+passwords — three *cancels*, which are counted identically. Anything that
+exercises polkit must budget attempts as a scarce resource, or run against a
+throwaway account or a PAM stack without `faillock`. Watch `faillock --user`
+alongside the test, not afterwards.
+
+---
+
+## An in-shell polkit prompt (2026-09-01)
+
+Stage 6. Sold in the plan as "a real functional gap: without an agent, graphical
+privilege requests fail silently". **That framing was wrong for this machine**,
+and the audit said so before any UI existed: `hyprpolkitagent` was already
+running, so the shell's agent was correctly refused the role —
+"An authentication agent already exists for the given subject".
+
+So this is not a gap being filled. It is an option: the same prompt in the
+shell's own style, one less process, for anyone who prefers it. It is therefore
+**off by default**.
+
+### Why off is the right default
+
+polkit allows one agent per session. The loser of that race logs an error and
+does nothing, so a module defaulting to on would print an error on every start
+for every user who already runs `hyprpolkitagent` — which on Hyprland is most of
+them.
+
+The gate is the SINGLETON'S OWN INSTANTIATION, not a hidden window: `shell.qml`
+reads `moduleEnabled("polkit")` before it touches `PolkitService`, and `&&`
+short-circuits, so with the module off nothing in the file is ever constructed
+and no agent registers. Registering the role and then not prompting would be
+worse than staying out of the way — polkit stops looking once an agent answers.
+
+Verified: module off -> zero polkit lines in the log and no `polkit` IPC
+handler, i.e. the singleton was never built.
+
+### Three defects, all found by running it
+
+1. **The window never appeared.** The dialog latched its output in
+   `Connections { target: PolkitService; onActiveChanged }` — a handler that
+   could never fire, because the LazyLoader created the dialog *because* active
+   went true, installing the handler after the transition it waited for.
+   `targetScreen` stayed null and `visible` was gated on it.
+2. **`Keys` on a `PanelWindow` does nothing.** "Could not attach Keys property
+   … is not an Item" — Escape silently never worked. It lives on the text field
+   now.
+3. **A rejected password said nothing.** The field emptied itself and that was
+   all. Two causes: polkit leaves `supplementaryMessage` EMPTY for the whole
+   retry window (measured — `""` for 7 s while the request stayed live), and the
+   loader keyed on `isActive`, which polkit drops briefly between prompts, tore
+   the dialog down mid-conversation and took any local error state with it.
+
+The fix for (3) came from the configs sitting next to this one: end4 parks its
+retry flag on the SERVICE, not in the window, so it survives the window. Same
+here — `PolkitService.failureMessage`, set from `authenticationFailed`, cleared
+on `authenticationRequestStarted`. The dialog is now stateless about it, and is
+retained for the whole conversation rather than per prompt (which then needed
+the screen latched per request, the same shape `activePanelScreen` uses).
+
+### Verified end to end
+
+`pkexec /usr/bin/true` with the external agent stopped: prompt appears on the
+focused output with the action's own message; the field takes focus and
+"Authenticate" stays disabled until something is typed; a wrong password clears
+the field, keeps focus and shows "Authentication failed"; the request stays live
+for a retry; cancel releases the caller and unmaps the surface.
+
+`AuthFlow` is not exposed declaratively by Quickshell, so every `agent.flow`
+read is an unresolved-type warning. All reads funnel through one property with
+an inline `// qmllint disable unresolved-type`, keeping the ratchet at 49
+instead of paying a permanent +1.
+
+---
+
 ## A front door for IPC (2026-09-01)
 
 Stage 5. Config-first means `config.json` and IPC ARE the interface, and the IPC

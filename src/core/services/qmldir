@@ -1,4 +1,5 @@
 module qs.src.core.services
+
 NotifData 1.0 NotifData.qml
 singleton ActiveWindowService 1.0 ActiveWindowService.qml
 singleton AppFrequencyService 1.0 AppFrequencyService.qml
@@ -25,6 +26,7 @@ singleton NotificationDND 1.0 NotificationDND.qml
 singleton NotificationHistory 1.0 NotificationHistory.qml
 singleton NotificationRateLimiter 1.0 NotificationRateLimiter.qml
 singleton NotificationService 1.0 NotificationService.qml
+singleton PolkitService 1.0 PolkitService.qml
 singleton PopoutsState 1.0 PopoutsState.qml
 singleton ScreenshotService 1.0 ScreenshotService.qml
 singleton SystemMonitorService 1.0 SystemMonitorService.qml
@@ -33,5 +35,5 @@ singleton VPNService 1.0 VPNService.qml
 singleton WallpaperCache 1.0 WallpaperCache.qml
 singleton WallpaperManager 1.0 WallpaperManager.qml
 singleton WallpaperSourceRegistry 1.0 WallpaperSourceRegistry.qml
-singleton WeatherIcons 1.0 WeatherIcons.qml
 singleton Weather 1.0 Weather.qml
+singleton WeatherIcons 1.0 WeatherIcons.qml

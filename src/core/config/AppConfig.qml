@@ -24,7 +24,8 @@ Singleton {
     readonly property var moduleDefaults: ({
         bar: true, dock: false, wallpaper: true, dashboard: true,
         launcher: true, notifications: true, osd: true, lockscreen: false,
-        powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true
+        powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true,
+        polkit: false
     })
 
     function moduleEnabled(name) {

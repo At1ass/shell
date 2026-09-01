@@ -168,6 +168,11 @@
           "default": true,
           "description": "Toast messages. When false, ToastService errors/successes are silently dropped (console only)."
         },
+        "polkit": {
+          "type": "boolean",
+          "default": false,
+          "description": "In-shell polkit authentication agent. OFF by default because polkit allows one agent per session and Hyprland setups normally run hyprpolkitagent already — the loser of that race only logs an error. Turn this on (and stop the other agent, e.g. `systemctl --user disable --now hyprpolkitagent`) to get the prompt in the shell's own style. With it off, nothing here is constructed and no agent is registered."
+        },
         "popouts": {
           "type": "boolean",
           "default": true,
