@@ -160,19 +160,25 @@ Scope {
         // Offsets are now RELATIVE TO THE SURFACE, which already sits at
         // baseMargin, so the column starts at 0.
         const yByScreen = ({})
+        const countByScreen = ({})
         for (let i = 0; i < popupWindows.length; i++) {
             const popup = popupWindows[i]
             if (!popup) continue
             if (_destroyingSet[popup.notifId]) continue
             const key = popup.screenName ?? ""
             if (yByScreen[key] === undefined) yByScreen[key] = 0
+            countByScreen[key] = (countByScreen[key] ?? 0) + 1
             popup.y = yByScreen[key]
             yByScreen[key] += (popup.implicitHeight > 0 ? popup.implicitHeight : 100) + popupSpacing
         }
         // Surface height follows the stack; trailing spacing is not part of it.
+        // The COUNT goes with it because the surface's `visible` keys off that
+        // and must never key off geometry -- see NotificationPopupSurface.
         for (const key in manager._surfaces) {
             const total = yByScreen[key]
-            manager._surfaces[key].stackHeight =
+            const surface = manager._surfaces[key]
+            surface.popupCount = countByScreen[key] ?? 0
+            surface.stackHeight =
                 total === undefined ? 0 : Math.max(0, total - popupSpacing)
         }
     }

@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.ui.base
@@ -22,6 +23,7 @@ Scope {
         // was only correct while every open rebuilt the window.
         screen: GlobalStates.activePanelScreen ?? null
 
+        WlrLayershell.namespace: "quickshell:cheatsheet"
         color: "transparent"
         exclusiveZone: 0
         focusable: true

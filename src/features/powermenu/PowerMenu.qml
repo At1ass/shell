@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.ui.feedback
@@ -42,6 +43,7 @@ Scope {
         // was only correct while every open rebuilt the window.
         screen: GlobalStates.activePanelScreen ?? null
 
+        WlrLayershell.namespace: "quickshell:powermenu"
         color: "transparent"
         exclusiveZone: 0
         focusable: true

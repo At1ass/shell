@@ -160,6 +160,16 @@ Full field documentation: [`config/config.schema.json`](config/config.schema.jso
 
 Reference config with defaults: [`config/default.json`](config/default.json)
 
+The config is **validated against the schema on load**, including on hot-reload. A mistyped or
+misplaced key, a wrong type, a value outside its range or outside an `enum` is reported as a toast
+and logged with its path and a suggestion:
+
+```
+config.json — bar.heigth: unknown key — did you mean one of: height, widgets, margin?
+```
+
+Before this, a typo was simply ignored: the accessor fell back to its default and nothing said so.
+
 ### Top-level sections
 
 ```
@@ -358,11 +368,36 @@ Interactions:
 
 Runtime pin order lives in `~/.config/quickshell/state.json` (`dock.pinnedApps`); the shell never writes back to `config.json`.
 
+### What survives a restart
+
+`state.json` also holds the user-owned toggles, so they are restored on the next start and across a QML reload:
+`idleInhibitor.enabled` (caffeine), `nightLight.enabled`, `notifications.doNotDisturb`, `gamingMode.active`,
+and the per-monitor wallpaper selection. Toggles backed by the system rather than the shell — WiFi, Bluetooth,
+VPN — are not stored here; they are read back from NetworkManager and bluetoothd.
+
 ---
 
 ## IPC commands
 
-Drive the shell from outside:
+Drive the shell from outside. `tools/shell-ctl` is the front door — it discovers
+the handler list from the running shell, so its help and its tab completion can
+never drift from what the shell actually exposes:
+
+```bash
+tools/shell-ctl help                 # the live IPC surface, plus the shortcuts
+tools/shell-ctl status               # instance, config paths, schema validation
+tools/shell-ctl config validate      # check config.json without restarting
+tools/shell-ctl launcher             # shortcuts over the same calls
+tools/shell-ctl caffeine on
+tools/shell-ctl notifications count  # any handler/function, straight through
+
+tools/shell-ctl completion > ~/.zsh/completions/_shell-ctl
+```
+
+Symlink it onto `PATH` (`ln -s ~/.config/quickshell/shell/tools/shell-ctl ~/.local/bin/`)
+if you want it without the path prefix.
+
+The raw form works too, and is what the shortcuts call:
 
 ```bash
 qs ipc call <handler> <function> [argument]
@@ -407,6 +442,12 @@ qs ipc call globalstates disableGamingMode
 # Night light
 qs ipc call globalstates toggleNightLight
 qs ipc call globalstates setNightLightTemperature 4500
+qs ipc call globalstates nightLight           # bool — is it on?
+
+# Caffeine (idle inhibitor)
+qs ipc call globalstates toggleIdleInhibitor  # returns the new state
+qs ipc call globalstates setIdleInhibitor true
+qs ipc call globalstates idleInhibitor        # bool — is it on?
 
 # Cheatsheet
 qs ipc call globalstates toggleCheatsheet

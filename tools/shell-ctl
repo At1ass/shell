@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# One entry point for driving the shell from outside.
+#
+# Config-first means config.json and IPC ARE the interface, and until now the
+# IPC half had no front door: every call was a hand-typed
+# `qs -p <path> ipc call <handler> <function> [arg]`, with the handler list
+# living in three places that drift (the code, the cheatsheet's reference, the
+# README).
+#
+# So this DISCOVERS the surface from the running shell (`qs ipc show`) instead
+# of restating it. `help` renders what the shell actually exposes today, tab
+# completion is generated from the same source, and an unknown verb is checked
+# against it rather than guessed at. The convenience verbs below are aliases
+# over that surface, never a second copy of it.
+set -u
+
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+SELF="$(basename "$0")"
+
+die() { printf '%s: %s\n' "$SELF" "$*" >&2; exit 1; }
+
+# The shell answers to both `qs` and `quickshell` (/usr/bin/qs is a symlink), and
+# a crashed instance can leave a zombie behind that pgrep happily returns. Ask
+# Quickshell itself instead of guessing from the process table.
+running() {
+    qs list --all 2>/dev/null | grep -q "Config path: $ROOT/shell.qml"
+}
+
+ipc() { qs -p "$ROOT" ipc call "$@"; }
+
+surface() { qs -p "$ROOT" ipc show 2>/dev/null; }
+
+# handler -> functions, from the live shell.
+handlers() { surface | awk '/^target /{print $2}'; }
+functions_of() {
+    surface | awk -v want="$1" '
+        /^target /{ inside = ($2 == want); next }
+        inside && /^  function /{ sub(/^  function /, ""); print }'
+}
+
+cmd_help() {
+    cat <<EOF
+$SELF — drive the shell from outside.
+
+  $SELF <handler> <function> [arg]   any IPC call, tab-completed
+  $SELF help                         this text, from the running shell
+  $SELF status                       instance, config and validation state
+
+Shortcuts (aliases over the same IPC surface):
+  launcher | dashboard | notifications | cheatsheet | powermenu
+                                     toggle the panel
+  lock                               lock the session
+  close                              close every panel
+  caffeine  [on|off|status]          idle inhibitor
+  night     [on|off|status|<K>]      night light, or set its temperature
+  gaming    [on|off]                 gaming mode
+  dnd       [on|off|status]          do not disturb
+  volume    [up|down|mute|<0..1>]    master volume
+  wall      [next|prev|status|<path>]  wallpaper
+  config    [validate|path|state]    configuration
+
+EOF
+    if running; then
+        echo "IPC surface of the running shell:"
+        surface | sed 's/^target /\n  /; s/^  function /      /'
+    else
+        echo "(shell not running — start it to list its IPC surface)"
+    fi
+}
+
+cmd_status() {
+    if running; then
+        qs list --all 2>/dev/null | awk '/^Instance|Process ID|Launch time/'
+    else
+        echo "shell:  not running"
+        return 1
+    fi
+    echo
+    echo "config: $(ipc config path 2>/dev/null)"
+    echo "state:  $(ipc config statePath 2>/dev/null)"
+    echo
+    ipc config validate 2>/dev/null || echo "validation unavailable"
+}
+
+# `qs ipc call` reports an unknown target with a bare non-zero exit, which reads
+# as "the shell is broken" rather than "you typed the wrong word". Check the
+# discovered surface first and say which one it was.
+require_handler() {
+    local h="$1"
+    running || die "shell is not running"
+    handlers | grep -qx "$h" || die "no IPC handler '$h'. Available: $(handlers | tr '\n' ' ')"
+}
+
+# Some shortcut verbs share a name with an IPC handler (`notifications`,
+# `config`). An argument the shortcut does not know is not necessarily a typo --
+# it may be a function of that handler. Try the raw call before complaining.
+fallthrough() {  # fallthrough <handler> <message> <args...>
+    local handler="$1" message="$2"; shift 2
+    if [ "$#" -ge 1 ] && handlers | grep -qx "$handler" \
+       && functions_of "$handler" | sed 's/(.*//' | grep -qx "$1"; then
+        ipc "$handler" "$@"
+        return
+    fi
+    die "$message"
+}
+
+panel() {  # panel <name> <toggle-fn> <open-fn> <close-fn> [action]
+    local name="$1" tog="$2" op="$3" cl="$4" action="${5:-toggle}"
+    case "$action" in
+        toggle) ipc globalstates "$tog" ;;
+        open)   ipc globalstates "$op" ;;
+        close)  ipc globalstates "$cl" ;;
+        *) shift 4; fallthrough "$name" "$name: expected toggle|open|close, got '$action'" "$@" ;;
+    esac
+}
+
+main() {
+    local cmd="${1:-help}"; shift || true
+    case "$cmd" in
+        help|-h|--help) cmd_help ;;
+        status)         cmd_status ;;
+
+        launcher)       panel launcher toggleLauncher openLauncher closeLauncher "$@" ;;
+        dashboard)      [ "${1:-toggle}" = "toggle" ] && ipc globalstates toggleDashboard \
+                            || ipc globalstates openDashboardTab "${1}" ;;
+        notifications)  panel notifications toggleNotificationCenter openNotificationCenter \
+                              closeNotificationCenter "$@" ;;
+        cheatsheet)     panel cheatsheet toggleCheatsheet openCheatsheet closeCheatsheet "$@" ;;
+        powermenu)      panel powermenu togglePowerMenu openPowerMenu closePowerMenu "$@" ;;
+        lock)           ipc globalstates lockScreen ;;
+        close)          ipc globalstates closeAll ;;
+
+        caffeine)
+            case "${1:-toggle}" in
+                on)     ipc globalstates setIdleInhibitor true ;;
+                off)    ipc globalstates setIdleInhibitor false ;;
+                status) ipc globalstates idleInhibitor ;;
+                toggle) ipc globalstates toggleIdleInhibitor ;;
+                *) die "caffeine: expected on|off|toggle|status" ;;
+            esac ;;
+        night)
+            case "${1:-toggle}" in
+                toggle) ipc globalstates toggleNightLight ;;
+                status) ipc globalstates nightLight ;;
+                on|off) die "night: no on/off in the shell's IPC — use 'night toggle' or check 'night status'" ;;
+                *[!0-9]*) die "night: expected toggle|status|<kelvin>" ;;
+                *)      ipc globalstates setNightLightTemperature "$1" ;;
+            esac ;;
+        gaming)
+            case "${1:-toggle}" in
+                on)     ipc globalstates enableGamingMode ;;
+                off)    ipc globalstates disableGamingMode ;;
+                toggle) ipc globalstates toggleGamingMode ;;
+                *) die "gaming: expected on|off|toggle" ;;
+            esac ;;
+        dnd)
+            case "${1:-toggle}" in
+                on)     ipc notifications setDnd true ;;
+                off)    ipc notifications setDnd false ;;
+                status) ipc notifications isDnd ;;
+                toggle) ipc notifications toggleDnd ;;
+                *) die "dnd: expected on|off|toggle|status" ;;
+            esac ;;
+        volume)
+            case "${1:-}" in
+                up)    ipc audio volumeUp ;;
+                down)  ipc audio volumeDown ;;
+                mute)  ipc audio toggleMute ;;
+                "")    ipc audio getMasterVolume ;;
+                *)     ipc audio setVolume "$1" ;;
+            esac ;;
+        wall)
+            case "${1:-status}" in
+                status) ipc wallpaper status ;;
+                next)   ipc wallpaper next "${2:-}" ;;
+                prev)   ipc wallpaper previous "${2:-}" ;;
+                *)      ipc wallpaper setAll "$1" ;;
+            esac ;;
+        config)
+            case "${1:-validate}" in
+                validate) ipc config validate ;;
+                path)     ipc config path ;;
+                schema)   ipc config schemaPath ;;
+                state)    ipc config statePath ;;
+                *) fallthrough config "config: expected validate|path|schema|state" "$@" ;;
+            esac ;;
+
+        completion)     cmd_completion ;;
+        *)
+            require_handler "$cmd"
+            [ "$#" -ge 1 ] || die "$cmd: needs a function. Available: $(functions_of "$cmd" | sed 's/(.*//' | tr '\n' ' ')"
+            ipc "$cmd" "$@" ;;
+    esac
+}
+
+# zsh completion, generated from the live surface for the same reason the help
+# text is: a static list would be wrong the first time a handler is added.
+cmd_completion() {
+    cat <<'EOF'
+#compdef shell-ctl
+_shell_ctl() {
+  local -a verbs handlers
+  verbs=(help status launcher dashboard notifications cheatsheet powermenu lock
+         close caffeine night gaming dnd volume wall config completion)
+  handlers=(${(f)"$(shell-ctl __handlers 2>/dev/null)"})
+  if (( CURRENT == 2 )); then
+    _describe 'command' verbs -- handlers
+  elif (( CURRENT == 3 )); then
+    case "$words[2]" in
+      launcher|notifications|cheatsheet|powermenu) _values 'action' toggle open close ;;
+      caffeine|dnd) _values 'action' on off toggle status ;;
+      gaming) _values 'action' on off toggle ;;
+      night)  _values 'action' toggle status ;;
+      volume) _values 'action' up down mute ;;
+      wall)   _values 'action' status next prev ;;
+      config) _values 'action' validate path schema state ;;
+      *) _values 'function' ${(f)"$(shell-ctl __functions $words[2] 2>/dev/null)"} ;;
+    esac
+  fi
+}
+compdef _shell_ctl shell-ctl
+EOF
+}
+
+case "${1:-}" in
+    __handlers)  handlers; exit 0 ;;
+    __functions) functions_of "${2:-}" | sed 's/(.*//'; exit 0 ;;
+esac
+
+main "$@"

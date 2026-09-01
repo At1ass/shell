@@ -139,6 +139,24 @@ ShellRoot {
         }
     }
 
+    // config.json validation results. AppConfig only PUBLISHES them -- the
+    // config layer must not reach into services -- so the toast is raised here.
+    // Without this a mistyped key is silently ignored and the user is left
+    // believing a setting that never applied.
+    Connections {
+        target: AppConfig
+        function onConfigErrorsChanged() {
+            const errors = AppConfig.configErrors
+            if (errors.length === 0)
+                return
+            const first = errors[0]
+            ToastService.warning(errors.length === 1
+                ? `config.json — ${first.path}: ${first.message}`
+                : `config.json — ${errors.length} problems, first: ${first.path}: ${first.message}`,
+                8000)
+        }
+    }
+
     // Launcher
     LazyLoader {
         active: AppConfig.moduleEnabled("launcher") && (GlobalStates.launcherOpen || GlobalStates.panelRetained("launcher"))

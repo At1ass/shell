@@ -9,7 +9,11 @@ import qs.src.core.config
 Singleton {
     id: root
 
-    property bool enabled: false
+    // USER state, so it lives in state.json: a plain in-memory bool reset to
+    // false on every restart and every QML hot-reload, silently dropping the
+    // filter while the toggle still read as off. Derive-from-state /
+    // write-to-state, the shape NotificationDND documents.
+    readonly property bool enabled: AppConfig.stateData?.nightLight?.enabled ?? false
 
     // Runtime override (IPC) wins while set; config hot-reload keeps
     // working because the base stays a live binding — a plain read-write
@@ -72,12 +76,17 @@ Singleton {
         }
     }
 
+    function setEnabled(on) {
+        if (on !== root.enabled)
+            AppConfig.updateState("nightLight", { "enabled": on })
+    }
+
     function toggle() {
         if (!_detected) {
             ToastService.warning("hyprsunset not found - night light unavailable")
             return
         }
-        enabled = !enabled
+        root.setEnabled(!root.enabled)
     }
 
     function setTemperature(temp) {
@@ -93,6 +102,14 @@ Singleton {
     function _stopSunset() {
         if (sunsetProc.running)
             sunsetProc.running = false
+    }
+
+    // State is restored from disk before `which hyprsunset` has answered, so an
+    // enable coming back from state.json hits _startSunset() while _detected is
+    // still false and is dropped. Start once detection lands.
+    on_DetectedChanged: {
+        if (root._detected && root.enabled)
+            root._startSunset()
     }
 
     Component.onCompleted: {

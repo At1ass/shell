@@ -26,6 +26,19 @@ PanelWindow {
     // Total height of the stack; the manager keeps it in sync.
     property int stackHeight: 0
 
+    // How many live cards this surface holds. Also written by the manager, and
+    // the ONLY thing `visible` is allowed to depend on.
+    //
+    // `visible` used to read `_appliedHeight > 0`, which closed a real cycle: a
+    // card's height depends on its width (the body wraps), the width comes from
+    // the window, and the window's geometry depends on `visible`. Qt reported it
+    // as a binding loop on `visible`, reproducibly whenever a notification
+    // carried an IMAGE -- the async load grows implicitHeight after the card is
+    // already positioned, re-entering the chain mid-flight (see the manager's
+    // implicitHeightChanged hookup). A count is a fact the manager already has
+    // and no geometry can feed back into.
+    property int popupCount: 0
+
     // Height handed to the layer surface. It GROWS with the stack and never
     // shrinks until the stack empties, because Hyprland animates layer-surface
     // geometry (`animation = layers`, easeOutQuint): a shrink leaves the strip
@@ -56,7 +69,7 @@ PanelWindow {
     property alias cardLayer: cardLayer
 
     color: "transparent"
-    visible: surface._appliedHeight > 0
+    visible: surface.popupCount > 0
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "shell:notification-popup"

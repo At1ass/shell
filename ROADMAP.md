@@ -13,6 +13,352 @@ Recent history that informs the items below:
 
 ---
 
+## A front door for IPC (2026-09-01)
+
+Stage 5. Config-first means `config.json` and IPC ARE the interface, and the IPC
+half had no entry point: every call was a hand-typed
+`qs -p <path> ipc call <handler> <function> [arg]`, and the handler list lived in
+three places that drift — the code, the cheatsheet's `IpcReferenceData`, and the
+README.
+
+### Discovered, not restated
+
+`tools/shell-ctl` reads the surface from the running shell (`qs ipc show`)
+rather than carrying a copy:
+
+- `shell-ctl help` renders what the shell exposes *today*.
+- `shell-ctl completion` emits zsh completion that calls back into the same
+  discovery, so adding an IPC function needs no CLI change at all.
+- An unknown verb is checked against the discovered handlers and named:
+  "no IPC handler 'x'. Available: …", instead of `qs`'s bare non-zero exit,
+  which reads as "the shell is broken" rather than "you typed the wrong word".
+
+The convenience verbs (`launcher`, `caffeine`, `dnd`, `wall`, …) are aliases
+over that surface, never a second copy of it.
+
+### Config validation reachable from outside
+
+New `config` IPC handler on `AppConfig`: `validate`, `path`, `schemaPath`,
+`statePath`. `shell-ctl config validate` runs **the same validator the shell
+runs on load** — a config can now be checked without restarting the shell and
+reading its log. Deliberately not a CLI reimplementation: there is exactly one
+notion of "valid".
+
+    $ shell-ctl config validate
+    2 problem(s) in /home/at1ass/.config/quickshell/config.json
+      appearance.fontScale: 9 is above the maximum 2
+      bar.heigth: unknown key — did you mean one of: height, widgets, margin?
+
+### One design defect, found by testing rather than review
+
+`notifications` and `config` are BOTH shortcut verbs and IPC handler names, so
+`shell-ctl notifications count` hit the panel shortcut and was rejected as a bad
+action. A shortcut now falls through to the raw call when its argument names a
+real function of the same-named handler, and only complains when it does not:
+
+    shell-ctl notifications open      -> panel shortcut
+    shell-ctl notifications count     -> handler function
+    shell-ctl notifications bogusfn   -> rejected, with the valid actions listed
+
+The first attempt at that fallback passed the argument list twice and produced
+"Too many arguments provided (0 required but 1 were provided)". Both were caught
+by running the thing, not by reading it.
+
+### Process lookup
+
+`shell-ctl` asks `qs list --all` whether an instance owns this config, rather
+than grepping the process table. `/usr/bin/qs` is a symlink to
+`/usr/bin/quickshell`, so the shell answers to two names, and a crashed instance
+leaves a zombie that `pgrep` happily returns — both of which bit this work
+earlier (see the stage-4 entry).
+
+---
+
+## The notification surface stopped deciding whether it exists from its own size (2026-09-01)
+
+Found in the instance logs while chasing an unrelated crash, then reproduced,
+fixed and re-verified against the same repro.
+
+    WARN scene: QML NotificationPopupSurface: Binding loop detected for
+    property "visible": NotificationPopupSurface.qml:59:5
+
+### The cycle
+
+`visible: surface._appliedHeight > 0` closed a real loop:
+
+    visible -> window geometry -> card width -> body text wraps -> the card's
+    implicitHeight -> _recalculateStack() -> surface.stackHeight ->
+    _appliedHeight -> visible
+
+`_appliedHeight` is a ratchet that only grows (it exists to stop Hyprland
+animating a shrinking layer surface into a card-shaped ghost). That damps the
+oscillation, which is why the shell behaved, but the dependency is still there
+and Qt reports it.
+
+### It reproduces only with an IMAGE
+
+Two plain notifications on a fresh instance produce nothing. Three notifications
+carrying an image reproduce it every time — which is exactly what the manager's
+own comment predicts: "async image loads grow popupItem.implicitHeight after the
+popup is already positioned", and `implicitHeightChanged` is wired straight into
+`_recalculateStack`. The late height change re-enters the chain mid-flight.
+
+That also explains why the warning looked sporadic in the logs — once per
+instance lifetime (Qt deduplicates), and only when an image notification arrived.
+
+### Fix
+
+`visible` now reads `popupCount`, a plain count the manager already knows and
+that no geometry can feed back into:
+
+    property int popupCount: 0            // written by the manager
+    visible: surface.popupCount > 0
+
+`_recalculateStack` publishes it in the same loop that publishes `stackHeight`.
+`_appliedHeight` stays exactly as it was — it still drives `implicitHeight`, and
+the ghost it prevents is a separate concern from deciding whether the surface
+should exist at all.
+
+### Verified
+
+Same repro, fresh instance, three image notifications: 1 warning before, 0
+after. The stack itself is unchanged — empty stack maps no layer surface, three
+popups map one 360x442 surface, `dismissAll` unmaps it, and the cards render
+stacked with wrapped bodies and their countdowns.
+
+**Lesson worth keeping:** whether a surface EXISTS must not be derived from how
+big its contents turned out to be. The count was available the whole time.
+
+---
+
+## Stage 4 audited away, and what the audit found instead (2026-08-31)
+
+Both planned items were checked against the code before being built, and
+neither survived. What the audit did produce is one behaviour worth writing
+down, one real gap, and one defect in the probe shipped two commits earlier.
+
+### `Proc`: a wrapper for problems this shell does not have
+
+DankMaterialShell's `Common/Proc.qml` debounces by id, kills on timeout and
+guarantees a `destroy()`. The plan was to adopt it so that the §10 rules around
+`Process` became API instead of convention. Auditing the 38 `Process` blocks:
+
+- **`running = true` on a live process does not leak.** Tested against a live
+  engine: assigning it twice yields two PIDs, sequentially, one `started` and
+  one `exited` each. Quickshell QUEUES a restart. So the `!running` rule is
+  about avoiding redundant work, not about safety, and the 26 sites a naive
+  grep flags as violations are mostly deliberate — `ClipboardService` documents
+  the queue semantics and relies on them.
+- **Nothing needs `destroy()`.** Every one of the 38 is declarative; DMS needs
+  the wrapper because it builds `Process` objects from strings at runtime, which
+  §10 already forbids here.
+- **Failure handling is present or deliberately absent.** Ten blocks ignore the
+  exit code; each was read. They are `mkdir`, cache eviction, long-running
+  monitors that restart in `onExited`, and `which hyprsunset` where a non-zero
+  exit IS the answer. `screenshotSwappyProc` carries a comment explaining why an
+  error there would be wrong (closing swappy is a normal action).
+
+A wrapper would convert clean declarative QML into imperative callbacks and fix
+nothing. Dropped.
+
+### Unified focus grab: the exclusivity machine already does it
+
+end4's `GlobalFocusGrab` keeps one `HyprlandFocusGrab` for the whole shell with
+`persistent` and `dismissable` lists. This shell has eight grabs, five of them
+panels keyed on `GlobalStates.<x>Open` — mutually exclusive by construction,
+because `activePanel` is a single string.
+
+A two-grab probe established the mechanic that the plan assumed was dangerous:
+**arming a second grab clears the first**, and the first's `active` reads back
+`false` while the QML condition driving it is still `true`. So a naive reading
+says panel A's `onCleared` would fire when panel B arms, closing B through
+`closeAllPanels()`.
+
+**That was tested and did not happen.** Dashboard -> launcher -> cheatsheet all
+transition correctly, and a deliberately sabotaged `onCleared` calling
+`closeAllPanels()` did NOT break the transition either. The outgoing grab is
+disarmed by its own binding in the same turn, so nothing delivers a clear. The
+hypothesis was wrong and the test is what said so — it would have been recorded
+as a load-bearing invariant otherwise.
+
+Popouts, the dock context menu and the tray menu sit outside the panel machine
+and can overlap a panel. No misbehaviour was reproducible, and the overlap
+resolves the way a user would want (opening one dismisses the other). Left alone.
+
+### The real gap: three panels had no layershell namespace
+
+`launcher`, `cheatsheet` and `powermenu` mapped under the default `quickshell`,
+while every other surface names itself. That blocks per-panel `layerrule`
+targeting — the documented way to get compositor-side blur, which costs the
+shell nothing — and it made these three indistinguishable in `hyprctl layers`,
+which slowed this very investigation down. They are now
+`quickshell:launcher`, `quickshell:cheatsheet`, `quickshell:powermenu`,
+matching the existing split: `shell:*` for persistent surfaces, `quickshell:*`
+for transient panels.
+
+### And a defect in perf-probe itself
+
+`/usr/bin/qs` is a symlink to `/usr/bin/quickshell`. Every probe resolved the
+shell with `pgrep -x qs`, which finds nothing when the shell was started under
+the other name — and happily returns a ZOMBIE left by an earlier probe, whose
+`/proc` entries are unreadable. Both happened here: the probe died on
+`PermissionError` reading a zombie's environ while the real shell, started as
+`quickshell`, ran fine.
+
+`shell_pid()` now tries both names and skips non-running states, and
+`perf-probe.sh render` relaunches from the shell's own `/proc/<pid>/cmdline`
+rather than a hardcoded `qs --config shell`, so restoring cannot hand the user a
+shell their session did not start.
+
+---
+
+## The schema now runs (2026-08-31)
+
+Stage 3 of the borrowed-practices plan, scoped by measurement rather than by the
+plan, which had assumed a much larger job.
+
+### What the audit found first
+
+The plan called for deep-merging `default.json` into `AppConfig` to end the
+duplicate defaults. Before doing a 78-property refactor, the duplication was
+measured:
+
+- Every one of the 78 config paths `AppConfig` reads is present in
+  `default.json` — 0 missing.
+- Every one is present in `config.schema.json` — 0 missing.
+- Every `?? literal` matches the value `default.json` documents — **0
+  divergences.**
+
+So the two sources of truth are duplicated but not drifting, and the refactor
+would have fixed no bug while risking 78 accessors. It was dropped in favour of
+a `check.sh` rule that makes drift unrepresentable: `config-default-drift`
+counts missing keys and mismatched fallbacks and fails on any. Verified by
+injecting three faults (a changed literal, a renamed key) and confirming all
+three are named and the check fails.
+
+That is the whole value of the refactor, at a fraction of the risk.
+
+### What was actually missing
+
+The 46 KB schema was never executed. Config-first means `config.json` IS the
+interface, and a typo in it did nothing observable: the key was ignored, the
+accessor fell back to its default, and the user was left believing a setting
+that never applied.
+
+`ui`-free `core/config/ConfigValidator.qml` walks the config against the schema,
+supporting the subset this schema uses — type, enum, const, required,
+`additionalProperties`, minimum/maximum, minLength, minItems, uniqueItems,
+pattern, local `$ref`, `oneOf`, `allOf` and `if`/`then`. The conditional forms
+matter: `barWidget` selects a per-type settings schema through eleven
+`if`/`then` branches, so without them widget settings would go unchecked.
+
+Anything the validator does not understand is SKIPPED rather than guessed at. A
+validator that cries wolf over a valid config is worse than none — it teaches
+the user to ignore it.
+
+Errors are PUBLISHED, not shown: `AppConfig` may not reach into services
+(AGENTS §3), so it exposes `configErrors` and `shell.qml` raises the toast.
+
+### Verified against a live engine, not by inspection
+
+A probe shell ran the real validator over the real schema:
+
+| input | result |
+|---|---|
+| the live `config.json` | 0 errors |
+| `bar` -> `barr` | `barr: unknown key — did you mean one of: bar, osd, dock?` |
+| `bar.height` -> `bar.heigth` | `did you mean one of: height, widgets, margin?` |
+| `bar.height: "38"` | `expected integer, got string` |
+| `bar.position: "middle"` | `not one of: top` |
+| `appearance.fontScale: 9` | `9 is above the maximum 2` |
+| widget `showWindows` -> `showWindow` | caught through `if`/`then`, suggests `showWindows` |
+| widget `type: "workspacez"` | lists all eleven valid types |
+| `version: 2` | `must be 1` |
+
+Each produced exactly one error — no cascade. The edit-distance suggestion named
+the intended key in every typo case.
+
+Then live: editing `config.json` to `bar.heigth` while the shell ran produced
+the log line and the toast within the hot-reload, and restoring the file cleared
+it.
+
+### Migrations: nothing to migrate
+
+The third planned piece was a `configVersion` chain in nothingless's shape. The
+schema pins `version: const 1`, the validator now enforces it, and no key has
+ever been renamed. Building the chain before there is a migration to put in it
+would be machinery guarding an empty set. It goes in when the first rename does.
+
+---
+
+## Toggles that forgot themselves (2026-08-31)
+
+Reported from use: the idle inhibitor resets on a shell restart and on a config
+change. It did, and it was not alone.
+
+Every user-facing toggle was audited against `state.json`:
+
+| toggle | owner | persisted before |
+|---|---|---|
+| WiFi, Bluetooth, VPN | NetworkManager / bluetoothd | n/a — read back from the system |
+| Do Not Disturb | shell | yes |
+| Gaming mode | shell | yes |
+| **Idle inhibitor (caffeine)** | shell | **no** |
+| **Night light** | shell | **no** |
+| notification group expanded | shell | no, and correctly so — view state |
+
+Both offenders held their flag in memory: `GlobalStates.inhibit` and
+`NightLightService.enabled` were plain `property bool ... : false`. A restart
+reset them, and so did any QML hot-reload, which is why editing the config
+appeared to clear them — singletons are rebuilt with the tree.
+
+The failure was quiet in the worst way: the shell stopped inhibiting or dropped
+the colour filter while the toggle read as off, so nothing looked wrong.
+
+### Fix
+
+Both now use the shape `NotificationDND` already documents — persisted state is
+the single source of truth, the property only DERIVES from it, the setter only
+WRITES it:
+
+    readonly property bool inhibit: AppConfig.stateData?.idleInhibitor?.enabled ?? false
+    function setInhibit(on) {
+        if (on !== root.inhibit) AppConfig.updateState("idleInhibitor", { "enabled": on })
+    }
+
+A read-write property with an `onChanged` persister would loop through
+`stateData` and sever its own binding on the first imperative write.
+
+`GlobalStates.inhibit` is gone; the service owns its own state, which also puts
+it on the right side of the layer graph (services -> config, not services ->
+services).
+
+**Night light needed one more thing.** `state.json` is read before
+`which hyprsunset` answers, so a restored `enabled: true` reached
+`_startSunset()` while `_detected` was still false and was dropped on the floor.
+An `on_DetectedChanged` handler starts it once detection lands. The handler
+spelling for an underscore-prefixed property was verified against a live engine
+rather than assumed — a misspelled `on...Changed` is a load error, but the wrong
+CASE would have been accepted silently and never fired.
+
+### Verified
+
+Restart and config change, over IPC:
+
+    idleInhibitor  -> true   (after shell restart)
+    idleInhibitor  -> true   (after editing config.json)
+    nightLight     -> true   (after restart), and hyprsunset -t 4500 running again
+
+New IPC to go with it, since every other shell-owned toggle had some:
+`toggleIdleInhibitor`, `setIdleInhibitor`, `idleInhibitor`, `nightLight`.
+Mirrored into the cheatsheet's IPC reference and README.
+
+**Convention, now in AGENTS.md:** a toggle the SHELL owns belongs in
+`state.json`. A toggle backed by the system does not — it is read back from the
+system.
+
+---
+
 ## A hidden bar no longer animates (2026-08-31)
 
 Acting on the previous entry's finding: the bar is 82% of a compositor

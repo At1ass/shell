@@ -32,6 +32,80 @@ Singleton {
         return (v === undefined || v === null) ? (moduleDefaults[name] ?? true) : v
     }
 
+    // === Config validation ===
+    //
+    // Config-first means config.json IS the interface, and a typo in it used to
+    // do nothing observable: the key was ignored, the accessor fell back to its
+    // default, and the user was left believing a setting that never applied.
+    // The schema described every key exactly and was simply never executed.
+    //
+    // Errors are PUBLISHED, not shown: this layer must not reach into services
+    // (AGENTS §3), so shell.qml turns them into a toast.
+    property var configErrors: []
+    property var _schema: null
+
+    FileView {
+        id: schemaFile
+        path: Qt.resolvedUrl("../../../config/config.schema.json").toString().replace("file://", "")
+        onLoaded: {
+            try {
+                root._schema = JSON.parse(text())
+            } catch (e) {
+                console.warn("AppConfig: config.schema.json is not valid JSON:", e)
+                root._schema = null
+            }
+            root._validate()
+        }
+        // An installed shell without its schema simply does not validate.
+        onLoadFailed: root._schema = null
+    }
+
+    // Whichever of the three arrives last runs the check: the schema file, the
+    // config itself, or the ready flag. _validate() is guarded, so the earlier
+    // two are no-ops.
+    onDataChanged: root._validate()
+    onReadyChanged: root._validate()
+
+    function _validate() {
+        if (!root._schema || !root.ready)
+            return
+        const errors = ConfigValidator.validate(root.data, root._schema)
+        root.configErrors = errors
+        for (const e of errors)
+            console.warn(`config.json: ${e.path}: ${e.message}`)
+    }
+
+    // Same validator the shell runs on load, reachable from outside so a
+    // config can be checked WITHOUT reloading the shell and reading its log.
+    // Config-first means the file is the interface; this is how you interrogate
+    // it. Lives here rather than in a CLI reimplementation so there is exactly
+    // one notion of "valid".
+    IpcHandler {
+        target: "config"
+
+        function validate(): string {
+            if (!root._schema)
+                return "schema unavailable (config/config.schema.json not readable)"
+            const errors = ConfigValidator.validate(root.data, root._schema)
+            if (errors.length === 0)
+                return "OK: " + root.configPath + " matches the schema"
+            const lines = errors.map(e => `  ${e.path}: ${e.message}`)
+            return `${errors.length} problem(s) in ${root.configPath}\n` + lines.join("\n")
+        }
+
+        function path(): string {
+            return root.configPath
+        }
+
+        function schemaPath(): string {
+            return schemaFile.path
+        }
+
+        function statePath(): string {
+            return root.statePath
+        }
+    }
+
     // === Performance profile ===
 
     // Panels retained after their first open. Rebuilding a panel blocks the UI

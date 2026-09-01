@@ -276,6 +276,21 @@ if (Keycodes.letter(event) === action.key) activate()
 ### Два файла, строго разделённых
 - **`config.json`** (`$XDG_CONFIG_HOME/quickshell/config.json`, fallback `config/default.json`) — **пользователь редактирует, код только читает.** `FileView { watchChanges: true }` → hot-reload. Есть `config/config.schema.json` (draft-07) — авторитетная справка по конфигу; обновляй её при добавлении ключей.
 - **`state.json`** — **runtime-состояние, пишет только код** (gaming mode, текущие обои, порядок пинов дока). `updateState(section, data)`.
+  **Тоггл, которым владеет шелл, обязан жить здесь** (caffeine, night light, DND, gaming mode): свойство только
+  ВЫВОДИТСЯ из `AppConfig.stateData`, сеттер только ПИШЕТ через `updateState` — образец в `NotificationDND`.
+  Read-write свойство с персистером в `onChanged` зацикливается через `stateData` и рвёт собственный биндинг
+  на первой императивной записи. Тоггл, состояние которого держит система (WiFi, Bluetooth, VPN), сюда не пишется —
+  оно читается обратно из системы. Хранить такой флаг в памяти нельзя: он молча теряется и при рестарте,
+  и при hot-reload QML.
+- **Конфиг валидируется по схеме при каждой загрузке** (`ConfigValidator`, вызывается из `AppConfig`).
+  Новый ключ обязан попасть в `config.schema.json` и `default.json`, иначе `tools/check.sh` падает
+  (`config-default-drift`): он же сверяет литерал `?? default` в `AppConfig` со значением в `default.json`.
+  `AppConfig` только ПУБЛИКУЕТ ошибки в `configErrors` — тост поднимает `shell.qml`, потому что
+  слой `config` не имеет права трогать `services`. Снаружи проверяется через `tools/shell-ctl config validate`
+  (IPC-хендлер `config`) — тем же валидатором, без перезапуска шелла.
+- **`tools/shell-ctl`** — единая точка входа в IPC. Список хендлеров он ОБНАРУЖИВАЕТ через `qs ipc show`,
+  а не хранит: справка и zsh-автодополнение поэтому не могут разойтись с кодом. Добавил IPC-функцию —
+  ничего в CLI править не надо; ярлыки (`launcher`, `caffeine`, …) — только алиасы поверх той же поверхности.
 - **Шелл НИКОГДА не пишет в `config.json`** (кроме явных GUI-действий через `updateConfig`, заменяющих секцию целиком). Конфликт — «config edit wins».
 - Запись дебаунсится (`Timer interval: 500`); самозапись защищена флагом `_suppressConfigReload` от reload-цикла.
 - Доступ — типизированные `readonly property` с `?.`/`??`: `data.appearance?.theme?.darkMode ?? true`. `default.json` должен содержать ВСЕ возможные ключи.

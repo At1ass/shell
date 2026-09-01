@@ -25,6 +25,22 @@ sock="$runtime/hypr/${HYPRLAND_INSTANCE_SIGNATURE:-}/.socket2.sock"
 
 py() { python3 -c "$1" "${@:2}"; }
 
+# The shell binary answers to both names: /usr/bin/qs is a symlink to
+# /usr/bin/quickshell, so `pgrep -x qs` finds nothing when it was started under
+# the other one -- and it happily returns a ZOMBIE left by an earlier probe,
+# whose /proc entries are unreadable. Every probe resolves the pid through here.
+shell_pid() {
+    local pid
+    for pid in $(pgrep -x qs; pgrep -x quickshell); do
+        case "$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null)" in
+            Z|"") continue ;;
+        esac
+        printf '%s\n' "$pid"
+        return 0
+    done
+    return 1
+}
+
 cmd_events() {
     local secs="${1:-15}" out="${2:-/dev/stdout}"
     [ -S "$sock" ] || { echo "no Hyprland event socket at $sock" >&2; exit 1; }
@@ -173,9 +189,9 @@ def gui(a, b, pid):
 
 cmd_cpu() {
     local secs="${1:-10}"
-    SECS="$secs" py "$_cpu_snippet"'
+    SECS="$secs" SHELL_PID="$(shell_pid)" py "$_cpu_snippet"'
 import subprocess
-pid = int(subprocess.check_output(["pgrep", "-x", "qs"]).split()[0])
+pid = int(os.environ["SHELL_PID"])
 a = snap(pid); time.sleep(float(os.environ["SECS"])); b = snap(pid)
 rows = [r for r in diff(a, b) if r[0] > 0.2]
 print("cpu over %s s (threads: %d)" % (os.environ["SECS"], len(b)))
@@ -190,9 +206,9 @@ for ms, nm, t in rows[:8]:
 # first minus QML compilation -- which is what this separates.
 cmd_panels() {
     local reps="${1:-5}"
-    REPS="$reps" ROOT="$root" py "$_cpu_snippet"'
+    REPS="$reps" ROOT="$root" SHELL_PID="$(shell_pid)" py "$_cpu_snippet"'
 import subprocess
-pid = int(subprocess.check_output(["pgrep", "-x", "qs"]).split()[0])
+pid = int(os.environ["SHELL_PID"])
 def ipc(*a):
     subprocess.run(["qs", "-p", os.environ["ROOT"], "ipc", "call", *a],
                    capture_output=True, text=True)
@@ -218,9 +234,9 @@ ipc("globalstates", "closeAll")
 # expense is the model rebuild and the binding invalidation it fans out to.
 cmd_gestures() {
     local reps="${1:-10}"
-    REPS="$reps" py "$_cpu_snippet"'
+    REPS="$reps" SHELL_PID="$(shell_pid)" py "$_cpu_snippet"'
 import json, subprocess
-pid = int(subprocess.check_output(["pgrep", "-x", "qs"]).split()[0])
+pid = int(os.environ["SHELL_PID"])
 N = int(os.environ["REPS"])
 
 def gui_over(fn):
@@ -294,8 +310,15 @@ import os, signal, subprocess, time
 # than the one the user has.
 ENV = dict(os.environ)
 def pid():
-    r = subprocess.run(["pgrep", "-x", "qs"], capture_output=True, text=True)
-    return int(r.stdout.split()[0]) if r.stdout.strip() else None
+    r = subprocess.run(["bash", "-c", "pgrep -x qs; pgrep -x quickshell"],
+                       capture_output=True, text=True)
+    for line in r.stdout.split():
+        try:
+            if open("/proc/%s/stat" % line).read().split()[2] != "Z":
+                return int(line)
+        except OSError:
+            continue
+    return None
 _live = pid()
 if _live:
     for kv in open("/proc/%d/environ" % _live, "rb").read().split(b"\0"):
@@ -303,9 +326,22 @@ if _live:
             k, v = kv.decode(errors="replace").split("=", 1)
             if k.startswith(("QT_", "QSG_", "QML", "WAYLAND_", "XDG_", "HYPRLAND_")):
                 ENV[k] = v
+# Relaunch exactly the way the shell was already running: it answers to both
+# `qs` and `quickshell`, and restoring it under a different argv would leave the
+# user with a shell their session did not start.
+ARGV = ["qs", "--config", "shell"]
+if _live:
+    try:
+        raw = open("/proc/%d/cmdline" % _live, "rb").read().split(b"\0")
+        argv = [a.decode() for a in raw if a]
+        if argv:
+            ARGV = argv
+    except OSError:
+        pass
+
 def launch(extra, log):
     e = dict(ENV); e.update(extra)
-    subprocess.Popen(["qs", "--config", "shell"], env=e, stdout=open(log, "w"),
+    subprocess.Popen(ARGV, env=e, stdout=open(log, "w"),
                      stderr=subprocess.STDOUT, start_new_session=True)
     for _ in range(60):
         time.sleep(0.5)
@@ -359,8 +395,7 @@ if p:
 }
 
 cmd_rss() {
-    local pid; pid="$(pgrep -x qs | head -1)"
-    [ -n "$pid" ] || { echo "no running qs" >&2; exit 1; }
+    local pid; pid="$(shell_pid)" || { echo "no running shell (qs/quickshell)" >&2; exit 1; }
     awk '/^VmRSS|^VmHWM|^Threads/{printf "%-9s %s %s\n", $1, $2, $3}' "/proc/$pid/status"
     printf '%-9s %s\n' "fds" "$(ls "/proc/$pid/fd" | wc -l)"
 }

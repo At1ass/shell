@@ -23,7 +23,6 @@ Singleton {
     readonly property bool powerMenuOpen: activePanel === "powermenu"
 
     property int  dashboardOpenIndex: 0
-    property bool inhibit: false
 
     // Lockscreen has its own lifecycle (WlSessionLock), not a panel.
     property bool lockscreenActive: false
@@ -370,6 +369,23 @@ Singleton {
 
         function setNightLightTemperature(temp: int): void {
             NightLightService.setTemperature(temp)
+        }
+
+        function nightLight(): bool {
+            return NightLightService.enabled
+        }
+
+        function toggleIdleInhibitor(): bool {
+            IdleInhibitorService.toggleInhibit()
+            return IdleInhibitorService.inhibit
+        }
+
+        function setIdleInhibitor(enabled: bool): void {
+            IdleInhibitorService.setInhibit(enabled)
+        }
+
+        function idleInhibitor(): bool {
+            return IdleInhibitorService.inhibit
         }
     }
 }

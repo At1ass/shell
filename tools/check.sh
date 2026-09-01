@@ -66,6 +66,98 @@ count easing-unpaired-tokens \
         END { if (pending != "") bad++; print bad + 0 }' 2>/dev/null | awk '{s+=$1} END {print s+0}')"
 count font-pointsize \
     "$(grep -rE 'font\.pointSize' "$root/src" --include='*.qml' | wc -l)"
+# Config defaults live in two places by design: config/default.json (the file a
+# user reads) and the `?? literal` on each AppConfig accessor (what actually
+# applies when a key is absent). Deep-merging them into one source was
+# considered and dropped -- it is a 78-property refactor that fixes no current
+# bug, because the two are already in sync. This check is what keeps them that
+# way, and it also enforces the AGENTS rule that default.json and the schema
+# describe EVERY key the code reads.
+count config-default-drift "$(python3 - "$root" <<'PYEOF'
+import json, re, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+src = (root / "src/core/config/AppConfig.qml").read_text()
+default = json.loads((root / "config/default.json").read_text())
+schema = json.loads((root / "config/config.schema.json").read_text())
+
+def get(d, path):
+    cur = d
+    for p in path.split("."):
+        if not isinstance(cur, dict) or p not in cur:
+            return None, False
+        cur = cur[p]
+    return cur, True
+
+def in_schema(path):
+    cur = schema
+    for p in path.split("."):
+        props = cur.get("properties")
+        if not props or p not in props:
+            return False
+        cur = props[p]
+    return True
+
+def literal(s):
+    s = s.strip().rstrip(")").strip()
+    if s in ("true", "false"):
+        return s == "true"
+    if re.fullmatch(r"-?\d+", s):
+        return int(s)
+    if re.fullmatch(r"-?\d*\.\d+", s):
+        return float(s)
+    m = re.fullmatch(r'"([^"]*)"', s)
+    return m.group(1) if m else None
+
+bad = 0
+seen = set()
+for m in re.finditer(r"\bdata\.([A-Za-z_][\w?.]*)", src):
+    path = m.group(1).replace("?.", ".").rstrip(".")
+    if not path or path in seen:
+        continue
+    seen.add(path)
+    dv, present = get(default, path)
+    if not present:
+        print("missing from default.json: " + path, file=sys.stderr); bad += 1
+    if not in_schema(path):
+        print("missing from schema: " + path, file=sys.stderr); bad += 1
+
+for m in re.finditer(r"data\.([A-Za-z_][\w?.]*?)\s*\?\?\s*([^\n/]+)", src):
+    path = m.group(1).replace("?.", ".")
+    lit = literal(m.group(2))
+    if lit is None:
+        continue
+    dv, present = get(default, path)
+    if not present:
+        continue
+    same = (abs(float(dv) - float(lit)) < 1e-9
+            if isinstance(dv, (int, float)) and isinstance(lit, (int, float))
+            else dv == lit)
+    if not same:
+        print(f"default drift: {path} — AppConfig {lit!r} vs default.json {dv!r}", file=sys.stderr)
+        bad += 1
+print(bad)
+PYEOF
+)"
+
+# Shell-owned toggles that keep their flag in memory. A `toggle*()` in a service
+# whose file never touches stateData/updateState resets on restart AND on QML
+# hot-reload, silently: the shell stops doing the thing while the toggle still
+# reads as off. Caffeine and night light both shipped that way.
+#
+# The exclusions are services whose state the SYSTEM owns and hands back
+# (NetworkManager, bluetoothd, PipeWire, MPRIS), plus GlobalStates (panels are
+# not user settings) and the notification group-expansion view state.
+count unpersisted-toggle "$(
+    for f in "$root"/src/core/services/*.qml; do
+        case "$(basename "$f")" in
+            AudioService.qml|BluetoothService.qml|NetworkService.qml|VPNService.qml|\
+            MprisController.qml|GlobalStates.qml|NotificationService.qml|NotificationHistory.qml)
+                continue ;;
+        esac
+        grep -qE '^[[:space:]]*function toggle' "$f" || continue
+        grep -qE 'updateState|stateData' "$f" || echo "$f"
+    done | wc -l)"
+
 # MultiEffect drop shadows. The effect renders its SOURCE into a framebuffer and
 # re-blurs it whenever that source changes, and every elevated surface carries a
 # `Behavior on color` -- so a palette transition paid an FBO plus blur passes per
