@@ -139,6 +139,46 @@ print(bad)
 PYEOF
 )"
 
+# Asynchronous loads of `image://icon/`. That provider is Quickshell's
+# IconImageProvider, which calls QIcon::fromTheme(...).pixmap() -- KIconEngine
+# and KIconLoader, which are NOT thread safe. `asynchronous: true` hands the
+# call to Qt's QQuickPixmapReader thread and the shell segfaults there; three
+# coredumps in 2026-09 came from the one site that did it. Quickshell's own
+# IconImage defaults it to false.
+#
+# Matches an Image block that mentions an icon-provider source and sets
+# asynchronous within the same declaration.
+count async-icon-provider "$(python3 - "$root" <<'PYEOF'
+import pathlib, re, sys
+root = pathlib.Path(sys.argv[1])
+bad = 0
+for f in root.joinpath("src").rglob("*.qml"):
+    if "plugins" in str(f):
+        continue
+    text = f.read_text()
+    for m in re.finditer(r"\bImage\s*\{", text):
+        start = m.end() - 1
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+        block = text[start:i + 1]
+        if "asynchronous" not in block:
+            continue
+        if not re.search(r"asynchronous\s*:\s*true", block):
+            continue
+        if "image://icon" in block or "appIconSource" in block or "iconSource" in block:
+            print("%s:%d async icon-provider load" % (f, text[:start].count("\n") + 1),
+                  file=sys.stderr)
+            bad += 1
+print(bad)
+PYEOF
+)"
+
 # Shell-owned toggles that keep their flag in memory. A `toggle*()` in a service
 # whose file never touches stateData/updateState resets on restart AND on QML
 # hot-reload, silently: the shell stops doing the thing while the toggle still

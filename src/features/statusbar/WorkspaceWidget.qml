@@ -221,7 +221,23 @@ BarElement {
                                 sourceSize.height: workspaceWidget.iconFontSize
                                 fillMode: Image.PreserveAspectFit
                                 smooth: true
-                                asynchronous: true
+                                // NOT asynchronous. `image://icon/` resolves
+                                // through Quickshell's IconImageProvider, which
+                                // calls QIcon::fromTheme(...).pixmap() -- i.e.
+                                // KIconEngine/KIconLoader, which is not thread
+                                // safe. Loading asynchronously hands that call
+                                // to Qt's QQuickPixmapReader thread and the
+                                // shell segfaults there: three coredumps on
+                                // 2026-09-01/02, every one on a thread named
+                                // QQuickPixmapRea inside
+                                // KIconEngine::createPixmap, and this was the
+                                // only asynchronous icon-provider load in the
+                                // shell. It fired when a window appeared and
+                                // its chip icon loaded. Quickshell's own
+                                // IconImage defaults asynchronous to false for
+                                // the same reason, and the dock has always
+                                // loaded its icons synchronously -- which is
+                                // why the dock never crashed.
                                 visible: winIcon.hasAppIcon
                             }
 

@@ -13,6 +13,58 @@ Recent history that informs the items below:
 
 ---
 
+## The shell was segfaulting in the icon loader (2026-09-02)
+
+Reported as "Quickshell crashed, and the same happened on a file-picker request
+from the browser". Three coredumps in two days, all with the same signature:
+
+    Thread: QQuickPixmapRea
+    #4  KIconEngine::createPixmap            (libKF6IconThemes)
+    #5  KIconEngine::scaledPixmap
+    #7  QIcon::pixmap
+    #9  QIcon::pixmap                        (quickshell)
+
+The crashing thread is Qt's **asynchronous pixmap reader**, and the call is
+Quickshell's `image://icon/` provider. `IconImageProvider::requestPixmap` does
+`QIcon::fromTheme(...).pixmap(...)` — KIconEngine and KIconLoader, which are not
+thread safe. Loading such an image with `asynchronous: true` hands that call to
+the reader thread.
+
+**Exactly one site in the shell did that**: the app icon on a workspace chip
+(`WorkspaceWidget`, added 2026-08-21 with `7bdfbfc3`). It fires when a window
+appears and its chip icon loads — which is why a browser opening a file picker
+triggered it. The dock and the dock previews use the same provider and have
+always loaded synchronously, which is why they never crashed. Quickshell's own
+`IconImage` defaults `asynchronous` to false for the same reason.
+
+Fixed by removing it, and `check.sh` now fails on any `Image` that sets
+`asynchronous: true` while its source mentions the icon provider (verified by
+re-injecting the fault). Icons on the chips still render — bar revealed and
+captured after the change.
+
+### Two processes died in the same second
+
+09:30:44 and 09:30:45, one `qs --config shell` and one `/usr/bin/quickshell`.
+Separate processes crashing together points at shared state rather than an
+in-process race: `~/.cache/icon-cache.kcache` is a `KSharedDataCache`, mapped by
+every KIconLoader user. That file is 10.5 MB and dated 2026-07-19, months stale
+against the current icon theme. Deleting it (it regenerates) is worth doing —
+the thread-safety fix removes the shell's exposure, but a corrupt shared cache
+can take down anything else that reads icons.
+
+### And a probe that could have left the session bare
+
+Restoring the shell after this work failed with "Could not find default config
+directory": `perf-probe.sh render` relaunches from the shell's own
+`/proc/<pid>/cmdline`, added so a restore cannot change how the session started
+— but a shell running as a bare `/usr/bin/quickshell` resolves its config from
+context that a detached relaunch does not reproduce. The probe kills the shell
+before it restores one, so this is exactly the wrong place for a single point of
+failure. It now falls back to the explicit `qs -p <root>` form when the captured
+argv does not come up.
+
+---
+
 ## Polkit agent, audited as the primary one (2026-09-01)
 
 Promoted to the session's only agent (`hyprpolkitagent` stopped and disabled),
@@ -838,6 +890,22 @@ pixel. No tuning needed.
 **The saving itself is NOT measurable here** — see the baseline: scene-graph
 rendering is 3.6% of render-thread time on a 4070 Ti. This is a change made on
 mechanism, to be confirmed on the N3050.
+
+### Landed: delegate recycling — later reverted where the rows vary in height
+
+**Update (2026-09-01): `reuseItems` was reverted in the notification centre.**
+Reported from use: cards overlapped each other and the section headers.
+Reproduced with twelve notifications of mixed body length — a recycled delegate
+is positioned from its PREVIOUS height before the new body has wrapped, and the
+sectioned list compounds it. Reverted there, kept in the launcher whose rows are
+a fixed 64 px, and the rule is now in AGENTS.md: `reuseItems` only with
+fixed-height delegates.
+
+Worth noting how it got in: it was added on principle, as a standard list
+optimisation, and its cost at open was measured (nil) — but its BENEFIT never
+was. The section below argued it was "free at open, helps scrolling"; the second
+half of that was assumed. The measured cost in this panel is construction, not
+scrolling, so there was nothing to win and a layout to lose.
 
 ### Landed: delegate recycling, without its usual companion
 

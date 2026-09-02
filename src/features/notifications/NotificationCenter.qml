@@ -287,23 +287,23 @@ Scope {
 
                             model: NotificationService.historyList
 
-                            // Recycle delegates instead of destroying and
-                            // rebuilding one per row that crosses the viewport.
-                            // Every model role is a `required property`, so the
-                            // bindings re-resolve on reuse; only the delegate's
-                            // OWN transient state has to be undone by hand,
-                            // which is what onReused below does.
+                            // NO reuseItems, and NO cacheBuffer.
                             //
-                            // NO cacheBuffer here, deliberately. The obvious
-                            // companion setting (DankMaterialShell pairs the
-                            // two) builds roughly ten delegates beyond the
-                            // viewport, and this panel is rebuilt on every
-                            // open: measured interleaved over three rounds with
-                            // 60 rows in history, it cost +28% on open
+                            // reuseItems was tried and REVERTED: these rows are
+                            // variable height (the body wraps) and the list is
+                            // sectioned, and a recycled delegate gets positioned
+                            // from its previous height before the new text has
+                            // laid out. Cards overlapped each other and the
+                            // section headers. It was never shown to buy
+                            // anything here either — the measured cost in this
+                            // panel is construction at open, not scrolling.
+                            //
+                            // cacheBuffer likewise: measured interleaved over
+                            // three rounds with 60 rows, it cost +28% on open
                             // (13.2 -> 17.0 ms of GUI thread) with no overlap
-                            // between the two distributions. Opening is the
-                            // dominant cost here; scrolling is not.
-                            reuseItems: true
+                            // between the distributions, because it builds ~10
+                            // delegates past the viewport of a panel that is
+                            // rebuilt on every open.
 
                             section.property: AppConfig.notificationGroupByApp ? "appName" : ""
                             section.delegate: NotificationGroupHeader {
@@ -347,15 +347,6 @@ Scope {
                                 width: notifList.width
                                 height: itemVisible ? implicitHeight : 0
                                 visible: itemVisible
-
-                                // The add/remove transitions below animate this
-                                // Column's opacity and scale, and a recycled
-                                // delegate inherits wherever they stopped.
-                                ListView.onReused: {
-                                    row.opacity = 1
-                                    row.scale = 1
-                                    historyItem.resetSwipe()
-                                }
 
                                 NotificationHistoryItem {
                                     id: historyItem

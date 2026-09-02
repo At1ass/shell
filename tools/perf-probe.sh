@@ -304,7 +304,7 @@ for what in ("clients", "workspaces", "monitors"):
 cmd_render() {
     local out="${1:-/tmp/perf-probe-render.log}"
     OUT="$out" ROOT="$root" py '
-import os, signal, subprocess, time
+import os, signal, subprocess, sys, time
 # Inherit the environment the live shell actually runs with -- guessing
 # QT_QPA_PLATFORM here is how a probe ends up measuring a different shell
 # than the one the user has.
@@ -339,13 +339,23 @@ if _live:
     except OSError:
         pass
 
+# The captured argv is preferred but not guaranteed to work: a shell started as
+# a bare /usr/bin/quickshell resolves its config from the environment, and
+# relaunching it detached from here can miss that and die with "Could not find
+# default config directory". This probe KILLS the running shell, so the restore
+# must not depend on the captured form: if it does not come up, fall back to the
+# explicit one rather than leaving the session bare.
+FALLBACK = ["qs", "-p", os.environ["ROOT"]]
+
 def launch(extra, log):
     e = dict(ENV); e.update(extra)
-    subprocess.Popen(ARGV, env=e, stdout=open(log, "w"),
-                     stderr=subprocess.STDOUT, start_new_session=True)
-    for _ in range(60):
-        time.sleep(0.5)
-        if pid(): return
+    for argv in ([ARGV, FALLBACK] if ARGV != FALLBACK else [FALLBACK]):
+        subprocess.Popen(argv, env=e, stdout=open(log, "w"),
+                         stderr=subprocess.STDOUT, start_new_session=True)
+        for _ in range(60):
+            time.sleep(0.5)
+            if pid(): return
+        print("shell did not come up as %r, falling back" % (argv,), file=sys.stderr)
     raise RuntimeError("shell did not come up")
 def stop():
     p = pid()
