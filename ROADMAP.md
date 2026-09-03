@@ -13,6 +13,157 @@ Recent history that informs the items below:
 
 ---
 
+## Screen recordings are now visible to the shell (2026-09-03)
+
+The shell can be recording your screen for an hour and say nothing about it. It
+now says so: a floating indicator with the elapsed time and pause/stop controls,
+for recordings it did not start.
+
+Scope is deliberate. The shell observes and controls; it does not launch. The
+existing `~/.local/bin/record.sh` on its Hyprland bind keeps working untouched,
+and everything below applies to it.
+
+### Everything keys on one socket path
+
+`gpu-screen-recorder` refuses to start when its `-ipc` socket is already bound
+("another program is already listening"), which makes the path a mutex: one
+recording at a time, enforced by gsr rather than by us. Sharing the path the
+script already uses means the shell and the script control each other's
+recordings and cannot produce two.
+
+Verified: two recorders on one socket -- the second exits immediately with that
+error; on separate sockets both record correctly and `stop` on one leaves the
+other running.
+
+### Four assumptions that measurement overturned
+
+**The indicator IS in the video.** An overlay layer is composited into the
+captured frame -- recorded a monitor with a test pill on it and read the pixels
+back. So the indicator picks a monitor that is NOT being captured. With every
+monitor captured it still shows by default (`showOnCapturedMonitor`): a mark in
+the corner of the file costs less than an unnoticed recording.
+
+**`screencast` events are a trigger, not a state.** They flap: four paired
+start/stop events arrived during the first 20 s of ONE continuous recording,
+then nothing at all for the rest of it (zero events in 22 s mid-recording). A
+naive binding would have blinked the indicator on and off. The recording state
+comes from the process; the events only prompt a look.
+
+**The socket file alone is not proof.** A recorder killed with SIGKILL leaves it
+behind. Liveness is the process holding it, found once with `pgrep -f <socket>`
+-- matching the path, not the name, which also sidesteps pgrep's 15-character
+limit. A stale socket is harmless otherwise: `gsr-cli status` correctly says
+"not running" and a new recorder starts on the same path.
+
+**Pause is not askable.** `gsr-cli status` answers "running" whether paused or
+not, and the PipeWire stream stays up. It has to be inferred, and the obvious
+one-second sampling is wrong: writes reach the block layer in bursts, and four
+of six one-second samples read ZERO during a perfectly normal recording. Over a
+six-second window the signals separate -- bytes written is exactly zero when
+paused and never zero when running; CPU time guards the case of an idle screen
+under a variable-framerate capture (3-4 ticks per six seconds paused against 12
+to 25 running). External pauses therefore surface in about six seconds; a pause
+issued from the shell shows at once.
+
+### Two defects, both found by running it
+
+The optimistic state set by our own pause command was overwritten one second
+later by a sampler still holding a window full of pre-command evidence. It now
+drops its samples when a command is issued and refuses to rule on a partial
+window.
+
+And the monitor being captured was learned only from a compositor event, so a
+shell restarted mid-recording never learned it -- and a KMS capture, which
+raises no events at all, never would. The recorder's own argv is now read as a
+second source, which covers `-w <output>` exactly.
+
+### Verified end to end
+
+Started from the user's own script: detected, timed, placed on the free monitor.
+Paused and resumed from both sides. Stopped from the shell -- file saved (161 s
+of video), indicator torn down, socket cleaned. A KMS capture of DP-3 put the
+indicator on DP-2 with no compositor event involved.
+
+Note the elapsed time is wall-clock since the recorder started, so a recording
+that spent time paused shows more than its video duration.
+
+### Starting, added the same day
+
+The first cut could stop, pause and resume a recording but not start one, which
+left the surface unbindable for the thing a key is actually for. `start` and
+`toggle` now build the recorder's argv from a `recorder` config block --
+capture target, codec, quality, framerate mode, audio sources, output directory
+and container -- so the settings live in `config.json` instead of environment
+variables.
+
+The recorder is launched through a LITERAL `sh -c` wrapper with every variable
+part passed positionally, for the two things argv cannot express: creating the
+output directory, and sending the recorder's own once-a-second fps chatter to a
+log rather than into the shell's. `exec` replaces the shell so the recorder
+keeps the pid detection finds. The handle is kept for diagnosis only -- a
+Quickshell child survives the shell exiting, so after a hot reload the recording
+is picked up again through the socket like any other.
+
+Verified against the user's script in both directions: a recording started by
+the shell is seen and stopped by `record.sh`, and one started by the script is
+seen, paused, resumed and stopped by the shell. Starting twice is refused, and
+one recorder remains.
+
+One deliberate difference from the script: `restorePortalSession` defaults to
+true here. On a key binding, being asked to pick a source every time is the
+wrong default.
+
+### The portal already draws the region
+
+`-w region` needs a geometry and does not prompt, but the portal's own picker has
+a Region tab and draws the rectangle itself -- so recording part of the screen
+needs no picker of the shell's own and no rework of the screenshot overlay. What
+was missing was a way to reach that picker, since `restorePortalSession` skips
+it: `pick` (shortcut `recorderPick`) starts a recording with the selector open,
+and the token it returns means the next plain start reuses the same region.
+
+Three defects surfaced while wiring it, all from the same wrong assumption --
+that a live recorder process means a live recording:
+
+- gsr binds its socket BEFORE the portal is answered, so the indicator appeared
+  at `00:00`, with pause and stop buttons, over an open picker. A recording the
+  shell starts through the portal now waits for the recorder to actually write a
+  byte. Recordings found already running are unaffected, and so is a direct KMS
+  or window capture, which never stops to ask.
+- Hiding the indicator was only half of it, as the user pointed out: the clock
+  ran anyway, because it was derived from the process start time and the process
+  starts before the source has been chosen. Answer the picker after half a minute
+  of deliberation and the recording opened at `00:30`. A recording the shell
+  starts is now timed from its first byte instead. One that was already running
+  when the shell found it still uses the process age -- that is the only way to
+  show a true duration for a recording begun before the shell existed.
+
+  The compositor's screencast event was the obvious candidate for "capture has
+  begun" and turned out to be useless for it: measured arriving 8.8 s after
+  launch, well after the first bytes. It is kept only as a backstop.
+- `stop` and `setPaused` were gated on that same state, so a recording the shell
+  had just started could not be stopped by it. They act on the process now.
+- `start` was gated on it too, and happily launched a second recorder. gsr
+  refused the bound socket, so nothing was lost except the running recorder's
+  log, which the new process truncated on its way out.
+
+And one found by reading the instrumentation rather than the symptom: the pid
+search ran only when the socket appeared, so a pid lost to an async race could
+never be recovered -- the socket was already there, so no further transition
+would come. It retries on the poll tick now, but at most three times: a recorder
+killed with SIGKILL leaves its socket forever, and an unbounded retry would fork
+pgrep every five seconds for the rest of the session.
+
+### Not done here
+
+The bar widget. The indicator covers every case on its own, and the bar
+auto-hides exactly when recording usually happens; adding a widget means
+deciding which of the two is visible. Worth doing only if the indicator proves
+insufficient.
+
+
+---
+
 ## The shell was segfaulting in the icon loader (2026-09-02)
 
 Reported as "Quickshell crashed, and the same happened on a file-picker request

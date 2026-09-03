@@ -187,11 +187,15 @@ PYEOF
 # The exclusions are services whose state the SYSTEM owns and hands back
 # (NetworkManager, bluetoothd, PipeWire, MPRIS), plus GlobalStates (panels are
 # not user settings) and the notification group-expansion view state.
+# RecorderService belongs to the first group: the recorder process owns whether
+# it is paused, and the shell reads that back out of /proc. Persisting it would
+# be actively wrong -- the flag would outlive the recording it described.
 count unpersisted-toggle "$(
     for f in "$root"/src/core/services/*.qml; do
         case "$(basename "$f")" in
             AudioService.qml|BluetoothService.qml|NetworkService.qml|VPNService.qml|\
-            MprisController.qml|GlobalStates.qml|NotificationService.qml|NotificationHistory.qml)
+            MprisController.qml|GlobalStates.qml|NotificationService.qml|NotificationHistory.qml|\
+            RecorderService.qml)
                 continue ;;
         esac
         grep -qE '^[[:space:]]*function toggle' "$f" || continue

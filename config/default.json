@@ -1,6 +1,5 @@
 {
   "version": 1,
-
   "appearance": {
     "theme": {
       "source": "wallpaper",
@@ -9,18 +8,18 @@
       "darkMode": true
     },
     "designSystem": "md3",
-  "fontScale": 1.3,
+    "fontScale": 1.3,
     "reduceMotion": false,
     "motionScale": 1.0
   },
-
   "performance": {
-
-    "keepPanelsLoaded": ["launcher", "dashboard", "notificationCenter", "cheatsheet"]
-
+    "keepPanelsLoaded": [
+      "launcher",
+      "dashboard",
+      "notificationCenter",
+      "cheatsheet"
+    ]
   },
-
-
   "modules": {
     "bar": true,
     "dock": false,
@@ -35,9 +34,9 @@
     "screenshot": true,
     "toasts": true,
     "popouts": true,
-    "polkit": false
+    "polkit": false,
+    "recorder": true
   },
-
   "bar": {
     "position": "top",
     "height": 48,
@@ -154,7 +153,6 @@
       }
     ]
   },
-
   "dock": {
     "position": "bottom",
     "autoHide": true,
@@ -162,12 +160,10 @@
     "iconSize": 48,
     "pinnedApps": []
   },
-
   "dashboard": {
     "width": 900,
     "height": 640
   },
-
   "notifications": {
     "historyTTLDays": 30,
     "panel": {
@@ -199,7 +195,6 @@
       "noHistory": []
     }
   },
-
   "launcher": {
     "maxResults": 10,
     "width": 600,
@@ -207,21 +202,52 @@
     "topMargin": 56,
     "hiddenApps": []
   },
-
   "osd": {
     "timeout": 2000
   },
-
+  "recorder": {
+    "socket": "",
+    "output": {
+      "directory": "",
+      "container": "mkv"
+    },
+    "capture": {
+      "target": "portal",
+      "restorePortalSession": true,
+      "cursor": true
+    },
+    "video": {
+      "fps": 60,
+      "codec": "av1",
+      "quality": "very_high",
+      "framerateMode": "vfr"
+    },
+    "audio": {
+      "sources": [
+        "default_output"
+      ]
+    },
+    "indicator": {
+      "position": "topRight",
+      "margin": 24,
+      "showControls": true,
+      "showOnCapturedMonitor": true
+    }
+  },
   "lockscreen": {
     "blurWallpaper": true,
     "showClock": true
   },
-
   "powerMenu": {
     "confirmActions": true,
-    "actions": ["lock", "suspend", "reboot", "shutdown", "logout"]
+    "actions": [
+      "lock",
+      "suspend",
+      "reboot",
+      "shutdown",
+      "logout"
+    ]
   },
-
   "gamingMode": {
     "disableAnimations": true,
     "disableWeather": true,
@@ -234,7 +260,6 @@
       "rounding": 0
     }
   },
-
   "wallpaper": {
     "primaryMonitor": "",
     "defaultWallpaper": "",
@@ -245,7 +270,6 @@
     },
     "monitors": {}
   },
-
   "services": {
     "weather": {
       "enabled": true,

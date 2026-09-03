@@ -5,20 +5,19 @@
   "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported — changes apply immediately.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version"],
-
+  "required": [
+    "version"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
       "description": "JSON Schema URI for editor validation."
     },
-
     "version": {
       "type": "integer",
       "const": 1,
       "description": "Config schema version. Must be 1."
     },
-
     "appearance": {
       "type": "object",
       "description": "Visual theme settings.",
@@ -31,13 +30,24 @@
           "properties": {
             "source": {
               "type": "string",
-              "enum": ["wallpaper", "custom"],
+              "enum": [
+                "wallpaper",
+                "custom"
+              ],
               "default": "wallpaper",
               "description": "'wallpaper' — generate palette from the current wallpaper. 'custom' — use a fixed seed color (reserved, not yet implemented)."
             },
             "variant": {
               "type": "string",
-              "enum": ["tonalspot", "vibrant", "expressive", "content", "fidelity", "neutral", "monochrome"],
+              "enum": [
+                "tonalspot",
+                "vibrant",
+                "expressive",
+                "content",
+                "fidelity",
+                "neutral",
+                "monochrome"
+              ],
               "default": "tonalspot",
               "description": "Material color scheme variant. Controls how the palette is derived from the seed: 'tonalspot' (balanced, default), 'vibrant' (saturated), 'expressive' (shifted hues), 'content' (stays close to the seed), 'fidelity' (closest to the seed), 'neutral' (desaturated), 'monochrome' (greyscale)."
             },
@@ -56,15 +66,15 @@
           }
         },
         "designSystem": {
-      "type": "string",
-      "enum": [
-        "md3",
-        "minimal"
-      ],
-      "default": "md3",
-      "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' \u2014 Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' \u2014 flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
-    },
-    "fontScale": {
+          "type": "string",
+          "enum": [
+            "md3",
+            "minimal"
+          ],
+          "default": "md3",
+          "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' — Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' — flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
+        },
+        "fontScale": {
           "type": "number",
           "default": 1.3,
           "minimum": 0.5,
@@ -85,7 +95,6 @@
         }
       }
     },
-
     "performance": {
       "type": "object",
       "description": "Runtime cost/quality trade-offs. Nothing here changes what the shell does, only what it spends doing it.",
@@ -95,14 +104,19 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["dashboard", "launcher", "notificationCenter", "cheatsheet", "powermenu"]
+            "enum": [
+              "dashboard",
+              "launcher",
+              "notificationCenter",
+              "cheatsheet",
+              "powermenu"
+            ]
           },
           "uniqueItems": true,
           "description": "Panels whose QML tree stays alive after the first open instead of being torn down on close and rebuilt on the next one. Rebuilding blocks the UI thread for the whole construction (measured 13-32 ms on a 9950X3D, and it scales with the machine), which is the largest single stall in the shell. The cost is the retained object tree; the one-time caches are paid on first open either way. Empty list restores the rebuild-every-time behaviour."
         }
       }
     },
-
     "modules": {
       "type": "object",
       "description": "Central on/off switches for every top-level UI element. Each key toggles one element; omitted keys use the listed default. Hot-reload applies changes immediately.",
@@ -177,10 +191,14 @@
           "type": "boolean",
           "default": true,
           "description": "Global popout host (e.g. tray menus). When false, tray right-click menus and other popouts won't appear."
+        },
+        "recorder": {
+          "type": "boolean",
+          "default": true,
+          "description": "Screen recording indicator and controls. Observes recordings started with gpu-screen-recorder on the socket named by `recorder.socket` -- the shell does not start them. Self-disables when gsr-cli is not installed."
         }
       }
     },
-
     "bar": {
       "type": "object",
       "description": "Top status bar.",
@@ -188,7 +206,9 @@
       "properties": {
         "position": {
           "type": "string",
-          "enum": ["top"],
+          "enum": [
+            "top"
+          ],
           "default": "top",
           "description": "Bar position. Currently only 'top' is supported."
         },
@@ -225,7 +245,6 @@
         }
       }
     },
-
     "dock": {
       "type": "object",
       "description": "Application dock at the bottom of the screen. Shows pinned and running applications with auto-hide support.",
@@ -233,7 +252,12 @@
       "properties": {
         "position": {
           "type": "string",
-          "enum": ["bottom", "top", "left", "right"],
+          "enum": [
+            "bottom",
+            "top",
+            "left",
+            "right"
+          ],
           "default": "bottom",
           "description": "Screen edge the dock attaches to. 'bottom'/'top' are horizontal (row of icons); 'left'/'right' are vertical (column of icons)."
         },
@@ -264,7 +288,6 @@
         }
       }
     },
-
     "dashboard": {
       "type": "object",
       "description": "Dashboard panel (5-tab control center: Quick, Weather, Calendar, Audio, Network). Toggle via hotkey or by clicking bar widgets.",
@@ -284,7 +307,6 @@
         }
       }
     },
-
     "notifications": {
       "type": "object",
       "description": "Notification center and popup settings.",
@@ -327,7 +349,12 @@
             },
             "position": {
               "type": "string",
-              "enum": ["top-right", "top-left", "bottom-right", "bottom-left"],
+              "enum": [
+                "top-right",
+                "top-left",
+                "bottom-right",
+                "bottom-left"
+              ],
               "default": "top-right",
               "description": "Screen corner where popups appear."
             },
@@ -448,7 +475,6 @@
         }
       }
     },
-
     "launcher": {
       "type": "object",
       "description": "Application launcher with fuzzy search, calculator, and clipboard history.",
@@ -490,7 +516,6 @@
         }
       }
     },
-
     "osd": {
       "type": "object",
       "description": "On-screen display overlays for volume/brightness changes.",
@@ -504,7 +529,168 @@
         }
       }
     },
-
+    "recorder": {
+      "type": "object",
+      "description": "Screen recording through gpu-screen-recorder. The shell starts recordings, times them, and can pause or stop them -- including recordings started elsewhere, as long as they use the same control socket.",
+      "additionalProperties": false,
+      "properties": {
+        "socket": {
+          "type": "string",
+          "default": "",
+          "description": "gpu-screen-recorder -ipc socket path to watch. Empty uses $XDG_RUNTIME_DIR/gsr-record.sock. Recordings started with any other socket path are not detected, because they could not be controlled either. gsr refuses to start on an already-bound socket, so one path means one recording at a time."
+        },
+        "output": {
+          "type": "object",
+          "description": "Where finished recordings are written.",
+          "additionalProperties": false,
+          "properties": {
+            "directory": {
+              "type": "string",
+              "default": "",
+              "description": "Directory for recordings, created if missing. Empty means $HOME/Videos/Recordings."
+            },
+            "container": {
+              "type": "string",
+              "default": "mkv",
+              "enum": [
+                "mkv",
+                "mp4",
+                "webm",
+                "flv",
+                "mov",
+                "ts"
+              ],
+              "description": "Container format, and the file extension. mkv survives a killed recorder better than mp4, which needs its trailer written."
+            }
+          }
+        },
+        "capture": {
+          "type": "object",
+          "description": "What gets recorded.",
+          "additionalProperties": false,
+          "properties": {
+            "target": {
+              "type": "string",
+              "default": "portal",
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "description": "gpu-screen-recorder -w value: 'portal' to pick a source through the desktop portal, 'focused' for the focused monitor, or a monitor name such as DP-1 for direct KMS capture. KMS capture costs less (measured: about 40% less capture CPU than the portal path) but is invisible to PipeWire and to the compositor, so nothing else on the system can tell the screen is being recorded."
+            },
+            "restorePortalSession": {
+              "type": "boolean",
+              "default": true,
+              "description": "Reuse the previous portal source instead of asking again. Only applies when target is 'portal'. The portal's own picker offers screen, window and region -- it draws the region rectangle itself -- so with this off every start lets you choose, and the recorder IPC 'pick' (shortcut recorderPick) forces that picker regardless of this setting."
+            },
+            "cursor": {
+              "type": "boolean",
+              "default": true,
+              "description": "Record the mouse cursor."
+            }
+          }
+        },
+        "video": {
+          "type": "object",
+          "description": "Encoding settings.",
+          "additionalProperties": false,
+          "properties": {
+            "fps": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Frames per second."
+            },
+            "codec": {
+              "type": "string",
+              "default": "av1",
+              "enum": [
+                "h264",
+                "hevc",
+                "av1",
+                "vp8",
+                "vp9",
+                "hevc_hdr",
+                "av1_hdr",
+                "hevc_10bit",
+                "av1_10bit"
+              ],
+              "description": "Video codec. Falls back to CPU encoding if the GPU cannot encode it."
+            },
+            "quality": {
+              "type": "string",
+              "default": "very_high",
+              "enum": [
+                "medium",
+                "high",
+                "very_high",
+                "ultra"
+              ],
+              "description": "Quality preset."
+            },
+            "framerateMode": {
+              "type": "string",
+              "default": "vfr",
+              "enum": [
+                "cfr",
+                "vfr",
+                "content"
+              ],
+              "description": "Constant, variable, or content-driven frame rate. Variable keeps the file small when the screen is still."
+            }
+          }
+        },
+        "audio": {
+          "type": "object",
+          "description": "Audio captured alongside the video.",
+          "additionalProperties": false,
+          "properties": {
+            "sources": {
+              "type": "array",
+              "default": [
+                "default_output"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "description": "gpu-screen-recorder -a values, one track each: 'default_output', 'default_input', 'device:<name>', or 'app:<name>'. An empty list records no audio. Run `gpu-screen-recorder --list-audio-devices` for the names."
+            }
+          }
+        },
+        "indicator": {
+          "type": "object",
+          "description": "The floating recording indicator. It stays visible while the bar is hidden, which is when recording usually happens.",
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": "string",
+              "default": "topRight",
+              "enum": [
+                "topLeft",
+                "topRight",
+                "bottomLeft",
+                "bottomRight"
+              ],
+              "description": "Screen corner the indicator sits in."
+            },
+            "margin": {
+              "type": "integer",
+              "default": 24,
+              "minimum": 0,
+              "description": "Distance in px from the screen edges."
+            },
+            "showControls": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show pause and stop buttons on the indicator. With this off the indicator takes no pointer input at all and recording is driven only by shortcuts and IPC."
+            },
+            "showOnCapturedMonitor": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether the indicator may sit on a monitor that is being recorded. An overlay layer IS composited into the captured video, so the indicator prefers a monitor that is not being captured; when every monitor is captured this decides between an indicator burned into the recording (true) and no indicator at all (false)."
+            }
+          }
+        }
+      }
+    },
     "lockscreen": {
       "type": "object",
       "description": "WlSessionLock-based lockscreen. Activated via IPC lockScreen() or loginctl lock-session.",
@@ -522,7 +708,6 @@
         }
       }
     },
-
     "powerMenu": {
       "type": "object",
       "description": "Full-screen power actions overlay.",
@@ -539,14 +724,25 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["lock", "suspend", "reboot", "shutdown", "logout"]
+            "enum": [
+              "lock",
+              "suspend",
+              "reboot",
+              "shutdown",
+              "logout"
+            ]
           },
-          "default": ["lock", "suspend", "reboot", "shutdown", "logout"],
+          "default": [
+            "lock",
+            "suspend",
+            "reboot",
+            "shutdown",
+            "logout"
+          ],
           "description": "Actions to show. Order is preserved in the UI."
         }
       }
     },
-
     "gamingMode": {
       "type": "object",
       "description": "Gaming mode disables visual effects for performance. State persists across restarts — Hyprland settings are saved before and restored after.",
@@ -603,7 +799,6 @@
         }
       }
     },
-
     "wallpaper": {
       "type": "object",
       "description": "Multi-monitor wallpaper management via swww.",
@@ -631,7 +826,10 @@
           "items": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["id", "type"],
+            "required": [
+              "id",
+              "type"
+            ],
             "properties": {
               "id": {
                 "type": "string",
@@ -639,7 +837,10 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["local", "wallhaven"],
+                "enum": [
+                  "local",
+                  "wallhaven"
+                ],
                 "description": "Source type. 'local' = filesystem directory. 'wallhaven' = wallhaven.cc API."
               },
               "name": {
@@ -668,19 +869,38 @@
               },
               "sorting": {
                 "type": "string",
-                "enum": ["date_added", "relevance", "random", "views", "favorites", "toplist", "hot"],
+                "enum": [
+                  "date_added",
+                  "relevance",
+                  "random",
+                  "views",
+                  "favorites",
+                  "toplist",
+                  "hot"
+                ],
                 "default": "date_added",
                 "description": "For type=wallhaven: result ordering."
               },
               "order": {
                 "type": "string",
-                "enum": ["desc", "asc"],
+                "enum": [
+                  "desc",
+                  "asc"
+                ],
                 "default": "desc",
                 "description": "For type=wallhaven: ascending or descending."
               },
               "topRange": {
                 "type": "string",
-                "enum": ["1d", "3d", "1w", "1M", "3M", "6M", "1y"],
+                "enum": [
+                  "1d",
+                  "3d",
+                  "1w",
+                  "1M",
+                  "3M",
+                  "6M",
+                  "1y"
+                ],
                 "default": "1M",
                 "description": "For type=wallhaven: time window — only used when sorting='toplist'."
               },
@@ -779,7 +999,6 @@
         }
       }
     },
-
     "services": {
       "type": "object",
       "description": "External service integrations.",
@@ -817,7 +1036,10 @@
             },
             "units": {
               "type": "string",
-              "enum": ["metric", "imperial"],
+              "enum": [
+                "metric",
+                "imperial"
+              ],
               "default": "metric",
               "description": "'metric' = celsius, km/h. 'imperial' = fahrenheit, mph."
             },
@@ -924,7 +1146,6 @@
       }
     }
   },
-
   "definitions": {
     "monitorFilter": {
       "description": "'all' for every monitor, a single monitor name, or an array of monitor names.",
@@ -943,21 +1164,41 @@
       ],
       "default": "all"
     },
-
     "clickAction": {
       "type": "string",
-      "enum": ["dashboard-quick", "dashboard-weather", "dashboard-calendar", "dashboard-audio", "dashboard-network", "notification-center", "launcher"],
+      "enum": [
+        "dashboard-quick",
+        "dashboard-weather",
+        "dashboard-calendar",
+        "dashboard-audio",
+        "dashboard-network",
+        "notification-center",
+        "launcher"
+      ],
       "description": "Panel to open when the widget is left-clicked."
     },
-
     "barWidget": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["workspaces", "activewindow", "weather", "clock", "media", "notifications", "volume", "network", "battery", "layout", "tray"],
+          "enum": [
+            "workspaces",
+            "activewindow",
+            "weather",
+            "clock",
+            "media",
+            "notifications",
+            "volume",
+            "network",
+            "battery",
+            "layout",
+            "tray"
+          ],
           "description": "Widget type identifier."
         },
         "enabled": {
@@ -967,7 +1208,11 @@
         },
         "section": {
           "type": "string",
-          "enum": ["left", "center", "right"],
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ],
           "default": "left",
           "description": "Bar section where this widget appears."
         },
@@ -990,7 +1235,9 @@
                 "const": "workspaces"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1007,7 +1254,9 @@
                 "const": "activewindow"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1024,7 +1273,9 @@
                 "const": "weather"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1041,7 +1292,9 @@
                 "const": "clock"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1058,7 +1311,9 @@
                 "const": "media"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1075,7 +1330,9 @@
                 "const": "notifications"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1092,7 +1349,9 @@
                 "const": "volume"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1109,7 +1368,9 @@
                 "const": "network"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1126,7 +1387,9 @@
                 "const": "battery"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1143,7 +1406,9 @@
                 "const": "layout"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1160,7 +1425,9 @@
                 "const": "tray"
               }
             },
-            "required": ["type"]
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "properties": {
@@ -1172,7 +1439,6 @@
         }
       ]
     },
-
     "workspacesSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1205,13 +1471,15 @@
         },
         "activeIndicator": {
           "type": "string",
-          "enum": ["pill", "dot"],
+          "enum": [
+            "pill",
+            "dot"
+          ],
           "default": "pill",
           "description": "Active workspace indicator style."
         }
       }
     },
-
     "activewindowSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1230,7 +1498,6 @@
         }
       }
     },
-
     "weatherWidgetSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1253,7 +1520,6 @@
         }
       }
     },
-
     "clockSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1272,7 +1538,6 @@
         }
       }
     },
-
     "mediaSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1296,7 +1561,6 @@
         }
       }
     },
-
     "notificationsWidgetSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1309,7 +1573,6 @@
         }
       }
     },
-
     "volumeSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1327,7 +1590,6 @@
         }
       }
     },
-
     "networkSettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1340,7 +1602,6 @@
         }
       }
     },
-
     "batterySettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1358,7 +1619,6 @@
         }
       }
     },
-
     "traySettings": {
       "type": "object",
       "additionalProperties": false,
@@ -1380,7 +1640,6 @@
         }
       }
     },
-
     "emptySettings": {
       "type": "object",
       "additionalProperties": false,

@@ -15,6 +15,7 @@ import qs.src.features.screenshot
 import qs.src.features.lockscreen
 import qs.src.features.powermenu
 import qs.src.features.polkit
+import qs.src.features.recorder
 import qs.src.features.cheatsheet
 import qs.src.core.config
 import qs.src.core.services
@@ -213,6 +214,17 @@ ShellRoot {
     LazyLoader {
         active: AppConfig.moduleEnabled("polkit")
         PolkitDialog {}
+    }
+
+    // Screen recording indicator.
+    //
+    // `moduleEnabled` is read FIRST so `&&` short-circuits: with the module off
+    // RecorderService is never referenced, never constructed, and never polls.
+    // With it on, reading `active` here is what constructs the service, which is
+    // how detection starts.
+    LazyLoader {
+        active: AppConfig.moduleEnabled("recorder") && RecorderService.active
+        RecordingIndicator {}
     }
 
     // Cheatsheet overlay

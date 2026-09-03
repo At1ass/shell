@@ -55,6 +55,7 @@ Shortcuts (aliases over the same IPC surface):
   night     [on|off|status|<K>]      night light, or set its temperature
   gaming    [on|off]                 gaming mode
   dnd       [on|off|status]          do not disturb
+  record    [start|pick|stop|toggle|pause|resume|status]  screen recording
   volume    [up|down|mute|<0..1>]    master volume
   wall      [next|prev|status|<path>]  wallpaper
   config    [validate|path|state]    configuration
@@ -161,6 +162,19 @@ main() {
                 toggle) ipc notifications toggleDnd ;;
                 *) die "dnd: expected on|off|toggle|status" ;;
             esac ;;
+        record)
+            case "${1:-status}" in
+                status)       ipc recorder status ;;
+                start)        ipc recorder start ;;
+                pick)         ipc recorder pick ;;
+                stop)         ipc recorder stop ;;
+                toggle)       ipc recorder toggle ;;
+                pause)        ipc recorder pause ;;
+                resume)       ipc recorder resume ;;
+                pause-toggle) ipc recorder togglePause ;;
+                elapsed)      ipc recorder elapsed ;;
+                *) die "record: expected start|pick|stop|toggle|pause|resume|pause-toggle|status|elapsed" ;;
+            esac ;;
         volume)
             case "${1:-}" in
                 up)    ipc audio volumeUp ;;
@@ -201,7 +215,7 @@ cmd_completion() {
 _shell_ctl() {
   local -a verbs handlers
   verbs=(help status launcher dashboard notifications cheatsheet powermenu lock
-         close caffeine night gaming dnd volume wall config completion)
+         close caffeine night gaming dnd record volume wall config completion)
   handlers=(${(f)"$(shell-ctl __handlers 2>/dev/null)"})
   if (( CURRENT == 2 )); then
     _describe 'command' verbs -- handlers
@@ -209,6 +223,7 @@ _shell_ctl() {
     case "$words[2]" in
       launcher|notifications|cheatsheet|powermenu) _values 'action' toggle open close ;;
       caffeine|dnd) _values 'action' on off toggle status ;;
+      record) _values 'action' start pick stop toggle pause resume pause-toggle status elapsed ;;
       gaming) _values 'action' on off toggle ;;
       night)  _values 'action' toggle status ;;
       volume) _values 'action' up down mute ;;

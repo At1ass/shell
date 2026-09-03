@@ -28,6 +28,7 @@ singleton NotificationRateLimiter 1.0 NotificationRateLimiter.qml
 singleton NotificationService 1.0 NotificationService.qml
 singleton PolkitService 1.0 PolkitService.qml
 singleton PopoutsState 1.0 PopoutsState.qml
+singleton RecorderService 1.0 RecorderService.qml
 singleton ScreenshotService 1.0 ScreenshotService.qml
 singleton SystemMonitorService 1.0 SystemMonitorService.qml
 singleton ToastService 1.0 ToastService.qml

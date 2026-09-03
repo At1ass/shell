@@ -25,7 +25,7 @@ Singleton {
         bar: true, dock: false, wallpaper: true, dashboard: true,
         launcher: true, notifications: true, osd: true, lockscreen: false,
         powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true,
-        polkit: false
+        polkit: false, recorder: true
     })
 
     function moduleEnabled(name) {
@@ -206,6 +206,25 @@ Singleton {
 
     // OSD
     readonly property int osdTimeout: data.osd?.timeout ?? 2000
+
+    // Screen recording. Empty socket means the gsr default this shell assumes,
+    // $XDG_RUNTIME_DIR/gsr-record.sock -- resolved in RecorderService, since the
+    // config layer has no business reading the environment.
+    readonly property string recorderSocket: data.recorder?.socket ?? ""
+    readonly property string recorderDirectory: data.recorder?.output?.directory ?? ""
+    readonly property string recorderContainer: data.recorder?.output?.container ?? "mkv"
+    readonly property string recorderTarget: data.recorder?.capture?.target ?? "portal"
+    readonly property bool recorderRestorePortal: data.recorder?.capture?.restorePortalSession ?? true
+    readonly property bool recorderCursor: data.recorder?.capture?.cursor ?? true
+    readonly property int recorderFps: data.recorder?.video?.fps ?? 60
+    readonly property string recorderCodec: data.recorder?.video?.codec ?? "av1"
+    readonly property string recorderQuality: data.recorder?.video?.quality ?? "very_high"
+    readonly property string recorderFramerateMode: data.recorder?.video?.framerateMode ?? "vfr"
+    readonly property var recorderAudioSources: data.recorder?.audio?.sources ?? ["default_output"]
+    readonly property string recorderIndicatorPosition: data.recorder?.indicator?.position ?? "topRight"
+    readonly property int recorderIndicatorMargin: data.recorder?.indicator?.margin ?? 24
+    readonly property bool recorderIndicatorControls: data.recorder?.indicator?.showControls ?? true
+    readonly property bool recorderIndicatorOnCaptured: data.recorder?.indicator?.showOnCapturedMonitor ?? true
 
     // Lockscreen
     readonly property bool lockscreenBlurWallpaper: data.lockscreen?.blurWallpaper ?? true

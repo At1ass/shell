@@ -98,6 +98,56 @@ QtObject {
                 { name: "status", params: "", description: "Cache statistics" },
                 { name: "evict", params: "", description: "Trigger cache eviction" }
             ]
+        },
+        {
+            name: "recorder",
+            functions: [
+                { name: "start", params: "", description: "Start a recording using the recorder config block" },
+                { name: "toggle", params: "", description: "Start a recording, or stop the running one" },
+                { name: "pick", params: "", description: "Start a recording, choosing screen/window/region in the portal picker" },
+                { name: "status", params: "", description: "idle / recording MM:SS / paused MM:SS" },
+                { name: "elapsed", params: "", description: "Seconds since the recording started" },
+                { name: "pause", params: "", description: "Pause the running recording" },
+                { name: "resume", params: "", description: "Resume the paused recording" },
+                { name: "togglePause", params: "", description: "Pause or resume the running recording" },
+                { name: "stop", params: "", description: "Stop and save the running recording" }
+            ]
+        },
+        {
+            name: "polkit",
+            functions: [
+                { name: "registered", params: "", description: "Whether the shell's polkit agent is registered" },
+                { name: "active", params: "", description: "Whether an authentication request is open" },
+                { name: "actionId", params: "", description: "Action id of the open request" },
+                { name: "prompt", params: "", description: "Prompt text of the open request" },
+                { name: "error", params: "", description: "Last failure message, empty when none" },
+                { name: "state", params: "", description: "One-line summary of the agent state" },
+                { name: "cancel", params: "", description: "Cancel the open request" }
+            ]
+        },
+        {
+            name: "config",
+            functions: [
+                { name: "validate", params: "", description: "Check config.json against the schema" },
+                { name: "path", params: "", description: "Path of the active config.json" },
+                { name: "schemaPath", params: "", description: "Path of config.schema.json" },
+                { name: "statePath", params: "", description: "Path of state.json" }
+            ]
+        },
+        {
+            name: "notifications",
+            functions: [
+                { name: "count", params: "", description: "Total notifications in history" },
+                { name: "unread", params: "", description: "Unread notification count" },
+                { name: "activeCount", params: "", description: "Currently shown popup count" },
+                { name: "markAllRead", params: "", description: "Mark every notification read" },
+                { name: "dismissAll", params: "", description: "Dismiss the visible popups" },
+                { name: "clear", params: "", description: "Clear notification history" },
+                { name: "isDnd", params: "", description: "Whether do-not-disturb is on" },
+                { name: "dndActive", params: "", description: "Whether do-not-disturb is currently suppressing" },
+                { name: "setDnd", params: "enabled: bool", description: "Set do-not-disturb" },
+                { name: "toggleDnd", params: "", description: "Toggle do-not-disturb" }
+            ]
         }
     ]
 }

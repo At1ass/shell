@@ -1,0 +1,3 @@
+module qs.src.features.recorder
+
+RecordingIndicator 1.0 RecordingIndicator.qml
