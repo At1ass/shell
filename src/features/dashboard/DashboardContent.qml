@@ -17,6 +17,11 @@ Item {
     // must not switch tabs or close the panel (Escape used to bypass the
     // EventDialog dirty-discard prompt and nuke the whole dashboard).
     readonly property var _tabLoaders: [quickLoader, weatherLoader, calendarLoader, audioLoader, networkLoader]
+
+    // Extra height the ACTIVE tab is asking for right now -- a section it has
+    // unfolded, say. The window is sized per tab from a fixed table, so without
+    // this an expanding section has nowhere to grow and is simply clipped.
+    readonly property int tabExtraHeight: (_tabLoaders[tabView.currentIndex]?.item?.extraHeight) ?? 0
     readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
     function _closeTopModal() {
         const item = _tabLoaders[tabView.currentIndex]?.item

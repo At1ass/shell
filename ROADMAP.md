@@ -13,6 +13,162 @@ Recent history that informs the items below:
 
 ---
 
+## Dashboard — layout, player, and expandable widgets (planned)
+
+The Quick tab's problem is composition, not colour. Measured from a screenshot of
+the live panel (900x640):
+
+| element | area | how often it is touched |
+|---|---|---|
+| profile card (name, distro, uptime) | ~70 800 px² | never |
+| system metrics | ~79 100 px² | never |
+| weather | ~36 500 px² | never — it also has its own tab |
+| **toggles** | **~33 900 px²** | **constantly** |
+| volume + brightness | ~39 200 px² | often |
+
+Read-only content occupies five times the area of the toggles, in a panel that
+exists for the toggles.
+
+### Why nothing lines up
+
+`QuickTab` declares `GridLayout { columns: 4; rows: 4 }`, but no child is sized
+to that grid: Weather pins `preferredWidth: 240`, the sliders 70, MediaPlayer
+`400x250`, SystemMonitoring `preferredHeight: 100`, and QuickActions alone fills.
+So five fixed boxes divide the leftover space instead of columns of equal width.
+That is the whole explanation for the mismatched columns and the ragged bottom
+edge — `SystemMonitoring` is 100 tall next to a block that fills two rows — and
+for the sparklines being clipped by the panel edge.
+
+The fix is a column of full-width sections rather than a grid with hand-placed
+spans: shared gutters and a content-driven bottom edge come for free.
+
+### The media player hides its most-needed control
+
+Source selection is triggered by clicking the album art. There is no icon, no
+chevron, and the active player is never named anywhere in the card. When there is
+no art the trigger silently moves to the track title — the code says so, calling
+it a fallback for when "the art click target does not exist". It is enabled only
+while `availablePlayers.length > 1`, so the same click does nothing with one
+player. The menu then opens on top of the art that was clicked, and its
+click-outside dismisser sits at `z: -1`, behind the card's own content.
+
+There is also no non-mouse path at all: the `mpris` IPC target has twenty
+functions and not one lists or switches players.
+
+### A prototype, before touching anything
+
+Built as a separate Quickshell config symlinked to `src/`, so the running shell
+was never involved. Same kit, same palette, static data. Result at 720x412
+against the current 900x640:
+
+- panel area down 48%
+- toggles from 5.9% of the panel to 19.7%
+- read-only content from 32.4% to 4.7%
+
+Everything in the kit rendered unchanged — `Surface(outlined)`, `Divider`,
+`MaterialText`, `MonoText`, `IconButton`. The layout was the problem, not the kit.
+
+**Both stages are done.** What follows is what they turned out to involve.
+
+### Stage 1 — kit and QuickTab (~3-4 hours)
+
+- **`ToggleTile`** (new): icon + label + on-state. The current quick actions are
+  icon-only, so what a toggle does is learned by memory.
+- **A colour hook on `MaterialSlider`.** It hardcodes `Theme.primary` in three
+  places (fill, handle, stop indicator), so accent cannot be rationed while the
+  sliders are the loudest thing on screen.
+- **`QuickTab` as a column of sections**: toggles first, then labelled horizontal
+  sliders with a value, then a compact media row, then metrics as one line.
+  Weather and the profile card leave the tab — the first has its own tab, the
+  second is not an action.
+
+### Stage 2 — player and source switching (~2-3 hours)
+
+- Compact media row with the source **named inline** (`Linkin Park · Spotify ⌄`),
+  the chevron being the affordance the album art never had, and the menu anchored
+  to that control instead of over the art.
+- Replace the hand-rolled `Rectangle` + `Repeater` + `z: -1` dismisser with the
+  kit's `MaterialMenu`, already used by `DockContextMenu`.
+- `mpris` IPC gains `listPlayers`, `switchPlayer`, `cyclePlayer`, plus a
+  `shell-ctl` verb and a shortcut. With two players a cycle key beats any menu,
+  and it works without opening the panel at all.
+
+### What the stages actually cost
+
+Three defects surfaced only by running it, none visible in review:
+
+- `ToggleTile`'s inactive outline was derived from the hover opacity. At the
+  minimal pack's 0.05 that is a 0.10 outline, which on screen is no outline at
+  all: half the tiles read as labels floating in the panel.
+- The dashboard window is sized per tab from a fixed table, so an unfolding
+  section had nowhere to grow and was simply clipped. Each card now publishes
+  what its expansion costs and the tab sums them.
+- Summing only ONE of the two expandable sections cost the metrics tiles their
+  bottom 30 px the first time both were open — exactly the failure a hand-kept
+  constant produces, which is why the card measures itself.
+
+Removing the old 404-line `MediaPlayer` took four raw `Rectangle`s in features
+with it, so that ratchet tightened from 81 to 77. `qmllint` went to 51: the one
+warning that cannot be suppressed is `PostReloadHook`, which lands on line 35 of
+every service declaring a `GlobalShortcut` whatever is written there.
+
+### Reported from use: the shell sat on whichever player it saw first
+
+The auto-pick re-ran only when the player LIST changed. Nothing re-picked when
+an existing player started or stopped playing -- which is the ordinary case: two
+players are already registered and one of them begins.
+
+It looked correct right after a restart and drifted afterwards, and that is the
+tell: while `trackedPlayer` is null the `?? _defaultPick(...)` fallback IS
+reactive, because reading `p.isPlaying` inside the pick makes it a binding
+dependency. The moment anything assigned `trackedPlayer`, that path was bypassed
+and only a list change could ever move it again.
+
+Reproduced by pausing Firefox and starting Spotify with a player tracked: the
+shell held Firefox. An Instantiator over `Mpris.players` now watches each
+player's `isPlaying`, and the most recently started playback wins -- what
+playerctld does and what people expect.
+
+PipeWire was the suggested source for "who is actually playing" and is not
+needed: MPRIS reports playback state per player already, the defect was that
+nothing re-asked. PipeWire would only help as a tiebreaker between two
+simultaneously playing players, at the cost of matching its node names to MPRIS
+identities (Firefox's identity is "Mozilla firefox"; its node is not) and a peak
+monitor per node.
+
+Two smaller things fell out of it: `switchPlayer`/`cyclePlayer` did not pin the
+choice the way picking from the list does, so auto-follow could take it straight
+back; and a pin had no release short of the player disconnecting or the shell
+restarting, which left no way back to following playback. A pin now clears when
+the player it names stops.
+
+Emergent, and kept on purpose: with several players going, the pause key walks
+through them. Each press pauses the followed player, the handover moves to the
+next one still playing, and the press after the last is an ordinary resume -- N
+presses silence N players and it settles rather than cycling. It falls out of
+two independent rules, so it is noted in the code: fixing the fact that the
+title changes between presses would remove the walk with it.
+
+### Expandable widgets (part of stage 1's kit work)
+
+Widgets that are compact by default and expand on demand to reveal secondary
+information and actions — the player showing queue, shuffle/repeat and volume
+only when asked.
+
+`CollapsibleSection` already exists in the kit and is the wrong shape for this:
+it is an accordion (a header row with a hidden body), whereas what is wanted is a
+widget that WORKS in its collapsed form and grows. It also has zero call sites
+today, so it is either repurposed as the base or deleted rather than left as kit
+nobody uses.
+
+The new primitive takes a compact slot, an expanded slot, and an expand control.
+State is view state, not a setting: it defaults to collapsed and is deliberately
+NOT persisted, the same call `check.sh` already exempts for notification group
+expansion. Height animates through `Behavior on implicitHeight`, and the
+dashboard already animates its own height, so the panel follows.
+
+---
+
 ## Screen recordings are now visible to the shell (2026-09-03)
 
 The shell can be recording your screen for an hour and say nothing about it. It

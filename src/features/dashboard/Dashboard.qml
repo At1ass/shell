@@ -14,9 +14,11 @@ Scope {
     property int sidebarWidth: AppConfig.dashboardWidth
     property int sidebarHeight: AppConfig.dashboardHeight
 
-    // Extra window height per tab (Weather and Calendar content run taller).
-    // Indexed by GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
-    readonly property list<int> tabExtraHeight: [0, 20, 60, 0, 0]
+    // Height adjustment per tab, in BOTH directions: Weather and Calendar run
+    // taller than the base, and Quick -- a column of compact sections since the
+    // layout rework -- runs a good deal shorter. Indexed by
+    // GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
+    readonly property list<int> tabExtraHeight: [-186, 20, 60, 0, 0]
 
     PanelWindow {
         id: dashboardWindow
@@ -30,7 +32,9 @@ Scope {
 
         color: "transparent"
         implicitWidth: root.sidebarWidth
-        implicitHeight: root.sidebarHeight + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
+        implicitHeight: root.sidebarHeight
+                        + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
+                        + ((dashboardLoader.item as DashboardContent)?.tabExtraHeight ?? 0)
 
         Behavior on implicitHeight {
             MotionAnimation {

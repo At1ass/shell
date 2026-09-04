@@ -19,6 +19,17 @@ Slider {
     implicitWidth: orientation === Qt.Horizontal ? 200 : 48
     implicitHeight: orientation === Qt.Horizontal ? 48 : 200
 
+    // Colour. Role form preferred, raw colour as the escape hatch -- the shape
+    // MaterialIcon and IconButton already use.
+    //
+    // These exist because the three accent surfaces below were hardcoded to
+    // Theme.primary, which made a slider the loudest object in any panel it sat
+    // in and left a caller no way to quiet it down.
+    property string accentRole: "primary"
+    property color accentColor: accentRole !== "" ? (Theme[accentRole] ?? Theme.primary) : Theme.primary
+    property string trackRole: "surfaceContainerHighest"
+    property color trackColor: trackRole !== "" ? (Theme[trackRole] ?? Theme.surfaceContainerHighest) : Theme.surfaceContainerHighest
+
     property real trackHeight: 24
     property real thumbWidth: 4
     property real thumbHeight: 48
@@ -50,7 +61,7 @@ Slider {
                     ? parent.height
                     : Math.max(0, control.visualPosition * parent.height - control.thumbWidth / 2 - control.thumbTrackGap)
             radius: control.trackInsideCornerSize
-            color: Theme.surfaceContainerHighest
+            color: control.trackColor
 
 
             // Stop indicator (dot at the end of the track)
@@ -87,7 +98,7 @@ Slider {
                     ? parent.height
                     : Math.max(0, parent.height - y)
             radius: control.trackInsideCornerSize
-            color: control.enabled ? Theme.primary : Theme.onSurface
+            color: control.enabled ? control.accentColor : Theme.onSurface
             opacity: control.enabled ? 1.0 : Tokens.state.disabledContentOpacity
 
             Behavior on color {
@@ -112,7 +123,7 @@ Slider {
             width: (control.pressed || control.hovered || control.visualFocus) ? 44 : 0
             height: width
             radius: width / 2
-            color: Theme.primary
+            color: control.accentColor
             opacity: control.pressed ? Tokens.stateLayer.pressedOpacity
                      : (control.hovered || control.visualFocus) ? Tokens.stateLayer.hoverOpacity : 0
             visible: control.enabled
@@ -137,7 +148,7 @@ Slider {
             width: control.orientation === Qt.Horizontal ? control.thumbWidth : control.thumbHeight
             height: control.orientation === Qt.Horizontal ? control.thumbHeight : control.thumbWidth
             radius: control.orientation === Qt.Horizontal ? control.thumbWidth / 2 : control.thumbHeight / 2
-            color: control.enabled ? Theme.primary : Theme.onSurface
+            color: control.enabled ? control.accentColor : Theme.onSurface
             opacity: control.enabled ? 1.0 : 0.38
 
             // M3 elevation via subtle border

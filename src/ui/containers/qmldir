@@ -3,8 +3,9 @@ module qs.src.ui.containers
 Surface 1.0 Surface.qml
 MaterialCard 1.0 MaterialCard.qml
 BarElement 1.0 BarElement.qml
+ExpandableCard 1.0 ExpandableCard.qml
 Divider 1.0 Divider.qml
 ListItem 1.0 ListItem.qml
 ScrollableList 1.0 ScrollableList.qml
-CollapsibleSection 1.0 CollapsibleSection.qml
 SurfaceTint 1.0 SurfaceTint.qml
+ToggleTile 1.0 ToggleTile.qml
