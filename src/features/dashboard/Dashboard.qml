@@ -14,11 +14,15 @@ Scope {
     property int sidebarWidth: AppConfig.dashboardWidth
     property int sidebarHeight: AppConfig.dashboardHeight
 
-    // Height adjustment per tab, in BOTH directions: Weather and Calendar run
-    // taller than the base, and Quick -- a column of compact sections since the
-    // layout rework -- runs a good deal shorter. Indexed by
+    // Height adjustment per tab for the tabs that do NOT measure themselves:
+    // Weather and Calendar run taller than the base. Indexed by
     // GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
-    readonly property list<int> tabExtraHeight: [-186, 20, 60, 0, 0]
+    //
+    // Quick carries a 0 because it reports its own content height instead. It
+    // used to carry a constant, and that constant went stale the first time the
+    // pack changed its spacing -- a fixed number cannot track content it does
+    // not measure.
+    readonly property list<int> tabExtraHeight: [0, 20, 60, 0, 0]
 
     PanelWindow {
         id: dashboardWindow
@@ -32,9 +36,21 @@ Scope {
 
         color: "transparent"
         implicitWidth: root.sidebarWidth
-        implicitHeight: root.sidebarHeight
-                        + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
-                        + ((dashboardLoader.item as DashboardContent)?.tabExtraHeight ?? 0)
+        readonly property DashboardContent _content: dashboardLoader.item as DashboardContent
+        readonly property int _measured: _content?.tabContentHeight ?? 0
+
+        // A tab that measures itself already counts its expanded sections --
+        // its content height IS the column including them -- so the expansion
+        // allowance applies only to the tabs sized from the fixed table.
+        implicitHeight: _measured > 0
+            ? _measured + chromeHeight
+            : root.sidebarHeight
+              + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
+              + (_content?.tabExtraHeight ?? 0)
+
+        // Everything the window holds around the tab's own content: the loader's
+        // margins and the tab bar above it.
+        readonly property int chromeHeight: Tokens.spacing.small * 2 + (_content?.chromeHeight ?? 0)
 
         Behavior on implicitHeight {
             MotionAnimation {

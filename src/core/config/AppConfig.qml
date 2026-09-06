@@ -134,6 +134,15 @@ Singleton {
     // back to md3 rather than leaving the shell with unset tokens.
     readonly property string designSystem: data.appearance?.designSystem === "minimal" ? "minimal" : "md3"
     readonly property real fontScale: data.appearance?.fontScale ?? 1.3
+    // Empty means "whatever the design pack asks for" -- see Tokens.typography.
+    readonly property string fontFamily: data.appearance?.fontFamily ?? ""
+    readonly property string monoFamily: data.appearance?.monoFamily ?? ""
+    // Opacity of the shell's own panel surfaces. Opaque by default: a panel you
+    // can read the desktop through is not a composition, and the compositor
+    // cannot fix that from its side -- Hyprland's layer rules carry `blur` and
+    // `ignore_alpha` but no opacity, so how solid a layer is stays the client's
+    // call. Lower this to hand the compositor something to blur.
+    readonly property real panelOpacity: Math.max(0.1, Math.min(1.0, data.appearance?.panelOpacity ?? 1.0))
     readonly property bool reduceMotion: data.appearance?.reduceMotion ?? false
     readonly property real motionScale: data.appearance?.motionScale ?? 1.0
 

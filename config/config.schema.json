@@ -81,6 +81,23 @@
           "maximum": 2.0,
           "description": "Global font size multiplier applied to all Material typography tokens. 1.0 = default M3 sizes, 0.8 = 80%, 1.2 = 120%. Supports hot-reload."
         },
+        "fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for shell text. Empty follows the design pack: 'md3' uses Roboto, 'minimal' uses the monospace family, because straight lines and even columns are part of that pack's voice and a proportional face fights it -- numbers jitter as they change and labels never line up."
+        },
+        "monoFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for code, IPC signatures and keybinds, and for the whole shell under the 'minimal' pack. Empty resolves 'monospace' through fontconfig."
+        },
+        "panelOpacity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "Opacity of the shell's panel surfaces (dashboard, dock). 1.0 is opaque, which is the default: a panel you can read the desktop through is not a composition. The compositor cannot decide this -- Hyprland's layer rules carry blur and ignore_alpha but no opacity -- so lower this if you want to give a compositor blur rule something to blur."
+        },
         "reduceMotion": {
           "type": "boolean",
           "default": false,

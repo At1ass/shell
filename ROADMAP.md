@@ -13,6 +13,107 @@ Recent history that informs the items below:
 
 ---
 
+## The minimal pack was missing its voice (2026-09-04)
+
+Reported from use: the shell "looks bland, a lot of stock QML". Correct, and not
+a dashboard problem. The pack changed shape and motion and stopped there, so
+everything else stayed Material: a humanist sans, filled icons, the MD3 spacing
+grid, and one border alpha for every state.
+
+### What the pack now decides
+
+**Typography.** The minimal pack draws in monospace, where numbers stop jittering
+as they change and labels line up down a column; md3 keeps Roboto.
+`appearance.fontFamily` and `appearance.monoFamily` override both.
+
+**Icons.** FILL is the axis that shows -- a filled glyph is a solid mass, an
+unfilled one is a line drawing -- and side by side that dwarfs the difference
+between the Rounded and Sharp cuts, which at 24px comes down to the play triangle
+and the gamepad shell. So the fill goes off first and the squarer cut second.
+
+**An outline that carries state.** Under a pack with no shadow and one surface
+tier the outline is the only structural device there is, and it never changed;
+state lived entirely in a fill overlay. `BorderTokens` now carries rest/hover/
+active alphas, with hover BELOW rest: the hover fill rises at the same moment, so
+dimming the edge while lifting the surface reads as flat rather than merely unlit.
+
+**Density.** The MD3 grid is itself an expressive choice, and keeping it while
+flattening everything else left panels reading as sparse. The scale now runs
+about two thirds of what it did at the top end, and `SizeTokens.control` names a
+control's height so density is one edit rather than a judgement call per call
+site.
+
+**The slider** follows the pack: a track with an edge, a fill inside it, a
+straight handle. MD3's thick bare bar with a pill handle reads as a progress
+indicator once everything around it has been flattened.
+
+### Four defects, each found by looking rather than reviewing
+
+- Switching the family overlapped a slider with its own label: the level rows
+  pinned a 78px label column, ample in Roboto and too narrow for the same word in
+  monospace. It measures itself now.
+- The Quick tab's window height was a constant, and that constant went stale the
+  moment the density changed. The tab reports its measured content height and the
+  window follows -- which also removed its expansion allowance, since a measured
+  column already contains its expanded sections and adding the allowance on top
+  double-counted.
+- `EmptyState` was a bare `Item` measuring 0x0 with its content anchored to the
+  centre of nothing. Usable only where a caller supplied bounds, and silently
+  zero for anyone laying it out or putting a backdrop behind it -- which is
+  exactly what the calendar needed once monospace widened "Press N to add an
+  event" into the hour labels behind it.
+- The greeter has no `AppConfig`, and `sync-ui.sh`'s FATAL guard stopped the
+  first run rather than letting it surface at the login screen.
+
+### The comparison that had to be made twice
+
+The first icon render showed every filled glyph with a serrated edge. That looked
+like a font defect and was not: the throwaway harness omitted `renderType:
+Text.NativeRendering`, and Qt's distance-field renderer corrupts this variable
+font. `MaterialIcon` has carried that override, and a check.sh rule guarding it,
+since an earlier round -- but the rule matches only files NAMED MaterialIcon.qml,
+so a new component drawing Material Symbols directly would not be caught. Worth
+widening.
+
+### Verified across the shell
+
+Dashboard, launcher, notification centre, cheatsheet and the calendar tab all
+render consistently under the new voice. The bar and dock were NOT checked: a
+fullscreen window covered them for the whole session.
+
+### Panels are opaque now, and the blur route was measured before dropping it
+
+The dashboard was 85% opaque with nothing blurring behind it, so the desktop read
+straight through every panel.
+
+Layer rules were added and did nothing, and the diagnosis is worth keeping. Four
+identical layers under a matching namespace, at alphas 0.10/0.30/0.60/0.85,
+created AFTER `hyprctl reload`, all showed the text behind them perfectly sharp.
+That rules out `ignore_alpha` (equal at every alpha), stale surfaces (layer rules
+apply at creation, and these were recreated), and the global settings (blur
+enabled, size 6, passes 10, xray off -- which would be very visible). Hyprland
+0.56 has no way to query active layer rules, so whether the `namespace` predicate
+matched at all could not be confirmed; the next test is a `.*` match, which
+separates "wrong pattern" from "layers do not blur here".
+
+It was dropped rather than chased. Glass is not part of a pack built on straight
+lines, and `appearance.panelOpacity` defaults to 1.0. The key exists because the
+compositor genuinely cannot decide this: Hyprland's layer rules carry `blur` and
+`ignore_alpha` but NO opacity, so how solid a layer is stays the client's call,
+and an opaque shell leaves a blur rule with nothing to blur.
+
+### Still open
+
+The shell's layers carry two namespace prefixes, `shell:` and `quickshell:`,
+which no single compositor rule can match. Worth unifying whatever happens with
+blur.
+
+Cards inside panels still tint themselves with alpha over the panel background
+(0.80 in the weather, calendar and audio tabs) rather than taking a surface role
+-- a tonal step done the MD3 way in a pack that has no tonal steps.
+
+---
+
 ## Dashboard — layout, player, and expandable widgets (planned)
 
 The Quick tab's problem is composition, not colour. Measured from a screenshot of

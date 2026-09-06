@@ -9,6 +9,9 @@
     },
     "designSystem": "md3",
     "fontScale": 1.3,
+    "fontFamily": "",
+    "monoFamily": "",
+    "panelOpacity": 1.0,
     "reduceMotion": false,
     "motionScale": 1.0
   },

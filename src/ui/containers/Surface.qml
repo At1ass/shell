@@ -73,6 +73,18 @@ Item {
                 curve: "standard"
             }
         }
+
+        // Neutral lift for a pack that separates surfaces by value instead of by
+        // an outline. Painted here rather than folded into `color` so an explicit
+        // `color:` at the call site -- which most panels set -- still gets the
+        // step; folding it in would have meant every such site losing it.
+        // Zero under MD3, where the surfaceContainer tiers already do this job.
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            visible: root._level.neutralOverlay > 0
+            color: Qt.alpha(Theme.onSurface, root._level.neutralOverlay)
+        }
     }
 
     // Children render above the surface fill.

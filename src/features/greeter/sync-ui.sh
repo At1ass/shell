@@ -9,6 +9,8 @@
 #   - import qs.src.ui.{feedback,base}  ->  (dropped; same-module in qs.ui)
 #   - Theme.  ->  GreeterTheme.   /   Theme[ -> GreeterTheme[
 #   - Tokens: AppConfig.fontScale -> a literal (greeter has no AppConfig)
+#   - Tokens: the font-family overrides -> empty, so the greeter always takes
+#     the pack default rather than a family the logged-out session cannot read
 #
 # This script is the single source of truth: edit src/ui, then re-run. Do not hand-edit
 # greeter/ui/*.qml — changes will be overwritten.
@@ -93,6 +95,8 @@ sed -E \
   -e "s|AppConfig\.reduceMotion|false|" \
   -e "s|AppConfig\.motionScale|1.0|" \
   -e "s|AppConfig\.designSystem|\"$GREETER_DESIGN_SYSTEM\"|" \
+  -e "s|AppConfig\.fontFamily|\"\"|" \
+  -e "s|AppConfig\.monoFamily|\"\"|" \
   "$ROOT/src/core/config/Tokens.qml" \
   | with_header > "$DST/Tokens.qml"
 say "  generated ui/Tokens.qml  <- src/core/config/Tokens.qml (fontScale=$GREETER_FONT_SCALE)"

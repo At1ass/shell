@@ -30,12 +30,22 @@ Slider {
     property string trackRole: "surfaceContainerHighest"
     property color trackColor: trackRole !== "" ? (Theme[trackRole] ?? Theme.surfaceContainerHighest) : Theme.surfaceContainerHighest
 
-    property real trackHeight: 24
-    property real thumbWidth: 4
-    property real thumbHeight: 48
-    property real thumbTrackGap: 6
-    property real trackCornerSize: 8
-    property real trackInsideCornerSize: 2
+    // The minimal pack draws a control you can see: a track with an edge, a fill
+    // inside it and a straight handle. MD3's shape -- a thick bare bar with a
+    // pill handle -- reads as a progress indicator once the pack has flattened
+    // the corners off everything around it.
+    // Asked directly rather than inferred from whether surfaces are outlined:
+    // see Tokens.compactControls for what inferring it cost.
+    readonly property bool _quiet: Tokens.compactControls
+
+    property real trackHeight: _quiet ? 10 : 24
+    property real thumbWidth: _quiet ? 2 : 4
+    property real thumbHeight: _quiet ? 18 : 48
+    property real thumbTrackGap: _quiet ? 3 : 6
+    property real trackCornerSize: _quiet ? Tokens.shape.extraSmall : 8
+    property real trackInsideCornerSize: _quiet ? Tokens.shape.none : 2
+    // An outline on the inactive track, so an empty slider is still a slider.
+    property bool outlinedTrack: _quiet
     property real stopIndicatorSize: 6
 
     background: Item {
@@ -62,6 +72,9 @@ Slider {
                     : Math.max(0, control.visualPosition * parent.height - control.thumbWidth / 2 - control.thumbTrackGap)
             radius: control.trackInsideCornerSize
             color: control.trackColor
+            border.width: control.outlinedTrack ? Math.max(1, Tokens.border.width) : 0
+            border.color: control.outlinedTrack
+                          ? Qt.alpha(Theme.onSurface, Tokens.border.restAlpha) : "transparent"
 
 
             // Stop indicator (dot at the end of the track)

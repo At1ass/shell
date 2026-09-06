@@ -32,7 +32,20 @@ Item {
     // the metrics tiles their bottom 30 px the first time both were open.
     readonly property int extraHeight: mediaRow.expandedDelta + metrics.expandedDelta
 
+    // Both level rows share one label column so their sliders start at the same
+    // x. Measured, not pinned: a fixed 78px was fine in Roboto and immediately
+    // overlapped the slider once the minimal pack switched the shell to
+    // monospace, where the same word is wider.
+    readonly property int _levelLabelWidth: Math.max(volumeLabel.implicitWidth,
+                                                     brightnessLabel.implicitWidth)
+
+    // What this tab actually needs, published so the window can be sized to it
+    // rather than to a constant. The constant version broke the moment the pack
+    // changed density -- exactly the drift a measured value cannot have.
+    readonly property int contentHeight: column.implicitHeight + Tokens.spacing.small * 2
+
     ColumnLayout {
+        id: column
         anchors.fill: parent
         anchors.margins: Tokens.spacing.small
         spacing: Tokens.spacing.medium
@@ -118,7 +131,9 @@ Item {
                 onClicked: AudioService.toggleMasterMute()
             }
             MaterialText {
-                Layout.preferredWidth: 78
+                id: volumeLabel
+                Layout.rightMargin: Tokens.spacing.small
+                Layout.preferredWidth: root._levelLabelWidth
                 text: "Volume"
                 textStyle: "labelMedium"
                 colorRole: "onSurfaceVariant"
@@ -129,10 +144,6 @@ Item {
                 from: 0
                 to: 1
                 value: AudioService.masterVolume
-                trackHeight: 4
-                thumbWidth: 3
-                thumbHeight: 16
-                thumbTrackGap: 4
                 onMoved: AudioService.setMasterVolume(value)
             }
             MonoText {
@@ -163,7 +174,9 @@ Item {
                 }
             }
             MaterialText {
-                Layout.preferredWidth: 78
+                id: brightnessLabel
+                Layout.rightMargin: Tokens.spacing.small
+                Layout.preferredWidth: root._levelLabelWidth
                 text: "Brightness"
                 textStyle: "labelMedium"
                 colorRole: "onSurfaceVariant"
@@ -174,10 +187,6 @@ Item {
                 from: 0
                 to: 1
                 value: BrightnessService.brightness
-                trackHeight: 4
-                thumbWidth: 3
-                thumbHeight: 16
-                thumbTrackGap: 4
                 onMoved: BrightnessService.setBrightness(value)
             }
             MonoText {
@@ -290,7 +299,5 @@ Item {
                 height: metrics.expandedHeight
             }
         }
-
-        Item { Layout.fillHeight: true }
     }
 }

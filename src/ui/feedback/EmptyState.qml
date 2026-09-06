@@ -13,7 +13,15 @@ Item {
     property int iconContainerSize: 80
     property int iconSize: 48
 
+    // Publishes its own size. Without this it was a bare Item measuring 0x0 with
+    // its content anchored to the centre of nothing: usable only where a caller
+    // gave it explicit bounds, and silently zero for anyone trying to lay it
+    // out, wrap it, or put a backdrop behind it.
+    implicitWidth: content.implicitWidth
+    implicitHeight: content.implicitHeight
+
     ColumnLayout {
+        id: content
         anchors.centerIn: parent
         spacing: Tokens.spacing.medium
 

@@ -22,6 +22,15 @@ Item {
     // unfolded, say. The window is sized per tab from a fixed table, so without
     // this an expanding section has nowhere to grow and is simply clipped.
     readonly property int tabExtraHeight: (_tabLoaders[tabView.currentIndex]?.item?.extraHeight) ?? 0
+
+    // A tab that measures itself, if it does. 0 means "use the fixed table".
+    readonly property int tabContentHeight: (_tabLoaders[tabView.currentIndex]?.item?.contentHeight) ?? 0
+
+    // Everything this component adds around a tab: the tab bar and the divider
+    // under it. A measuring tab reports only its own content, so the window has
+    // to be told what sits above it.
+    readonly property int chromeHeight: root.tabBarHeight + 1
+    readonly property int tabBarHeight: 92
     readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
     function _closeTopModal() {
         const item = _tabLoaders[tabView.currentIndex]?.item
@@ -146,7 +155,7 @@ Item {
 
     MaterialCard {
         anchors.fill: parent
-        color: Qt.alpha(Theme.surfaceContainer, 0.85)
+        color: Qt.alpha(Theme.surfaceContainer, AppConfig.panelOpacity)
         radius: Tokens.shape.large
 
         ColumnLayout {
@@ -157,7 +166,7 @@ Item {
             // ===== TAB BAR =====
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 92
+                Layout.preferredHeight: root.tabBarHeight
 
                 RowLayout {
                     anchors.fill: parent

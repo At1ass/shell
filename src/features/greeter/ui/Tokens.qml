@@ -59,9 +59,17 @@ Singleton {
     }
 
     component TypographyTokens: QtObject {
-        readonly property string fontFamily: "Roboto"
+        // The pack's voice. MD3 speaks in a humanist sans; the minimal pack is
+        // built on straight lines and even columns, and a proportional face
+        // fights that -- numbers jitter as they change and labels never line up.
+        // Config wins over both, for anyone who wants neither default.
+        readonly property string fontFamily: "" !== ""
+            ? ""
+            : (root.pack === "minimal" ? monoFamily : "Roboto")
         // Resolved by fontconfig; used via MonoText for code/IPC/keybind text.
-        readonly property string monoFamily: "monospace"
+        readonly property string monoFamily: "" !== ""
+            ? ""
+            : "monospace"
 
         readonly property TypeStyle displayLarge: TypeStyle {
             size: Math.round(57 * root.fontScale)
@@ -212,6 +220,26 @@ Singleton {
     component BorderTokens: QtObject {
         property int width
         property real minContrast
+
+        // How a control's OUTLINE carries state, alongside the fill overlay in
+        // StateLayerTokens. Under a pack with no shadow and one surface tier the
+        // outline is the only structural device there is, and leaving it
+        // constant meant an inactive control had nothing to say for itself.
+        //
+        // Note the trade: `hover` sits BELOW `rest`. The hover fill rises at the
+        // same moment, so dimming the outline hands emphasis from the edge to
+        // the surface rather than doubling both, which is what reads as flat
+        // rather than merely unlit.
+        property real restAlpha
+        property real hoverAlpha
+        property real activeAlpha
+    }
+
+    // Sizes of the things you hit, as opposed to the gaps between them. Named by
+    // role, so density is one edit rather than fifty judgement calls at call
+    // sites picking a step off the spacing scale by eye.
+    component SizeTokens: QtObject {
+        property int control
     }
 
     component FocusRingTokens: QtObject {
@@ -233,6 +261,13 @@ Singleton {
         // surfaceRole cannot apply (bar/dock over wallpaper). Values follow
         // the pre-tonal M3 elevation overlay scale.
         property real tintOpacity: 0.0
+        // Neutral lift, for a pack that separates surfaces by VALUE rather than
+        // by outline. MD3 leaves this at 0 and uses the surfaceContainer tiers;
+        // a pack that collapses those tiers into one role needs some other way
+        // to say "this sits above that", and a step of onSurface is one that
+        // does not depend on the palette having a usable tonal ladder -- which,
+        // wallpaper-derived, it may not.
+        property real neutralOverlay: 0.0
     }
 
     component ElevationTokens: QtObject {
@@ -289,6 +324,16 @@ Singleton {
     // pack: the MCU palette is the same either way.
     readonly property string pack: "md3"
 
+    // Whether controls draw in their compact form: a thin track with a visible
+    // edge and a straight handle, rather than MD3's thick bare bar with a pill
+    // handle. A shape decision, and it needs saying out loud.
+    //
+    // It used to be inferred from `border.width > 0` -- "a pack that structures
+    // by line rather than by tone". That coupled two unrelated decisions, and
+    // the moment this pack stopped outlining its surfaces every slider in the
+    // shell silently doubled in height and grew a 48px handle.
+    readonly property bool compactControls: root.pack === "minimal"
+
     // The pack's own motion character, multiplied with the user's motionScale so
     // config keeps the final say. Minimal is quicker by design, not by preference.
     readonly property real packMotionScale: root.pack === "minimal" ? 0.55 : 1.0
@@ -344,6 +389,14 @@ Singleton {
     readonly property BorderTokens md3Border: BorderTokens {
         width: 0
         minContrast: 1.0
+        // MD3 separates by tone and shadow, so its outlines stay quiet.
+        restAlpha: 0.16
+        hoverAlpha: 0.24
+        activeAlpha: 1.0
+    }
+
+    readonly property SizeTokens md3Size: SizeTokens {
+        control: 40
     }
 
     readonly property StateLayerTokens md3StateLayer: StateLayerTokens {
@@ -422,15 +475,18 @@ Singleton {
     // Same names, one step tighter each. The two that matter are small and medium:
     // together they are 258 of the 356 spacing uses in the shell, so they decide how
     // much room the design actually gives back.
+    // A quiet pack is a DENSE one: the roomy MD3 grid is itself an expressive
+    // choice, and keeping it while flattening everything else left panels that
+    // read as sparse rather than compact.
     readonly property SpacingTokens minimalSpacing: SpacingTokens {
         none: 0
         extraSmall: 2
-        small: 6
-        medium: 12
-        large: 16
-        extraLarge: 24
-        huge: 32
-        extraHuge: 40
+        small: 4
+        medium: 8
+        large: 12
+        extraLarge: 16
+        huge: 24
+        extraHuge: 32
     }
 
     // A pointer is not a fingertip. 48dp exists so a finger can hit a control it
@@ -440,12 +496,30 @@ Singleton {
         minimum: 36
     }
 
-    // 2.2 rather than the 3:1 non-text floor: this line separates two surfaces, it
-    // does not carry information, and at 3:1 it stops being a hairline and starts
-    // being a frame. Raise it here if it reads too faint on some wallpaper.
+    // No outline on surfaces at all.
+    //
+    // This pack used to separate every surface with a line, and the panels showed
+    // what that costs: a dashboard was a bordered box, holding bordered chips,
+    // above a bordered media block, above a bordered stat strip -- four nested
+    // frames, each a full-strength line, none of them carrying information. The
+    // eye reads them as structure and finds none.
+    //
+    // Separation moves to VALUE (see minimalElevation.neutralOverlay) and to the
+    // hairline Divider where a real boundary exists. `restAlpha` and friends stay
+    // for the controls that still draw an edge deliberately.
     readonly property BorderTokens minimalBorder: BorderTokens {
-        width: 1
+        width: 0
         minContrast: 2.2
+        // Derived from nothing else on purpose. Tying rest to the hover overlay
+        // (0.05) produced a 0.10 outline, which on screen is no outline at all:
+        // half a grid of tiles read as labels floating in the panel.
+        restAlpha: 0.28
+        hoverAlpha: 0.20
+        activeAlpha: 1.0
+    }
+
+    readonly property SizeTokens minimalSize: SizeTokens {
+        control: 30
     }
 
     readonly property StateLayerTokens minimalStateLayer: StateLayerTokens {
@@ -464,15 +538,18 @@ Singleton {
         emphasizedAcceleratePoints: [0.4, 0.0, 1.0, 1.0, 1.0, 1.0]
     }
 
-    // No shadow and no tonal lift anywhere. Everything above the ground shares one
-    // container role, so surfaces are told apart by their outline, not by a tier.
+    // No shadow anywhere, and one container role -- but surfaces are told apart by
+    // a step of VALUE rather than by an outline. The steps are deliberately small:
+    // this is the difference between "above" and "below", not between two colours,
+    // and the whole point is that a panel with four nested surfaces still reads as
+    // one object.
     readonly property ElevationTokens minimalElevation: ElevationTokens {
         level0: ElevationLevel {}
-        level1: ElevationLevel { surfaceRole: "surfaceContainer" }
-        level2: ElevationLevel { surfaceRole: "surfaceContainer" }
-        level3: ElevationLevel { surfaceRole: "surfaceContainer" }
-        level4: ElevationLevel { surfaceRole: "surfaceContainer" }
-        level5: ElevationLevel { surfaceRole: "surfaceContainer" }
+        level1: ElevationLevel { surfaceRole: "surfaceContainer"; neutralOverlay: 0.04 }
+        level2: ElevationLevel { surfaceRole: "surfaceContainer"; neutralOverlay: 0.07 }
+        level3: ElevationLevel { surfaceRole: "surfaceContainer"; neutralOverlay: 0.10 }
+        level4: ElevationLevel { surfaceRole: "surfaceContainer"; neutralOverlay: 0.13 }
+        level5: ElevationLevel { surfaceRole: "surfaceContainer"; neutralOverlay: 0.16 }
     }
 
     // ---- Public tokens ---------------------------------------------------------
@@ -500,6 +577,9 @@ Singleton {
     // Outline separation - width 0 means the pack does not use outlines
     readonly property BorderTokens border: root.pack === "minimal" ? root.minimalBorder : root.md3Border
 
+    // Control sizing
+    readonly property SizeTokens size: root.pack === "minimal" ? root.minimalSize : root.md3Size
+
     // Keyboard focus indicator
     readonly property FocusRingTokens focusRing: FocusRingTokens {}
 
@@ -508,6 +588,21 @@ Singleton {
 
     // Icon sizes
     readonly property IconSizeTokens iconSize: IconSizeTokens {}
+
+    // Which Material Symbols cut the pack draws with, and whether its glyphs are
+    // filled.
+    //
+    // FILL is the axis that shows: a filled glyph is a solid mass, an unfilled
+    // one is a line drawing, and side by side that difference dwarfs the one
+    // between the Rounded and Sharp cuts (compared at 24px -- the cuts differ
+    // only in details like the play triangle and the gamepad shell). So the
+    // minimal pack turns the fill off first and takes the squarer cut second.
+    //
+    // Both cuts must be installed; Material Symbols ships Outlined, Rounded and
+    // Sharp as separate families rather than as one axis.
+    readonly property string iconFamily: root.pack === "minimal"
+        ? "Material Symbols Sharp" : "Material Symbols Rounded"
+    readonly property real iconFill: root.pack === "minimal" ? 0.0 : 1.0
 
     // Minimum pointer/touch target - also IconButton's implicit size
     readonly property TouchTargetTokens touchTarget: root.pack === "minimal" ? root.minimalTouchTarget : root.md3TouchTarget

@@ -7,9 +7,11 @@ Rectangle {
     id: root
 
     property string iconName: ""
-    readonly property string fontFamily: "Material Symbols Rounded"
+    // Follows the design pack: the minimal pack draws unfilled glyphs from the
+    // Sharp cut. See Tokens.iconFamily.
+    readonly property string fontFamily: Tokens.iconFamily
     property int fontSize: Tokens.typography.bodyLarge.size
-    property real fill: enabled ? 1 : 0
+    property real fill: enabled ? Tokens.iconFill : 0
     property int grade: 0
     property real sizePadding: 1.2  // Multiplier for auto-sizing (fontSize * sizePadding)
 

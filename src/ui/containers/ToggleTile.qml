@@ -6,11 +6,15 @@ import qs.src.ui.feedback
 
 // A labelled on/off tile.
 //
-// State is carried on TWO axes, fill and outline, rather than fill alone. Under
-// a pack with no shadow and one surface tier the outline is the only structural
-// device there is, and leaving it constant meant an inactive control had nothing
-// to say for itself -- the quick actions distinguished on/off by icon tint and
-// nothing else.
+// State is carried by FILL and by a status dot, on one axis of value. It used to
+// be carried by a permanent outline as well, and a grid of these was the single
+// biggest source of visual noise in the dashboard: eight full-strength rectangles
+// competing with their own labels, the active ones outlined in the accent colour
+// so that "on" read as "focused" instead.
+//
+// The dot is what an outline was standing in for -- a mark that says on/off
+// without restating the whole shape. Accent appears there and nowhere else on the
+// tile, which is what makes it visible at all.
 //
 // The label is not optional. The panel this replaces used icon-only buttons with
 // a hover tooltip, so what a toggle did was learned by memory or by waiting.
@@ -25,29 +29,23 @@ Item {
     signal clicked()
 
     implicitWidth: Math.max(96, row.implicitWidth + Tokens.spacing.small * 2)
-    implicitHeight: Math.max(Tokens.touchTarget.minimum * 0.84, row.implicitHeight + Tokens.spacing.small)
+    implicitHeight: Math.max(Tokens.size.control, row.implicitHeight + Tokens.spacing.small)
 
     Rectangle {
         id: surface
         anchors.fill: parent
         radius: Tokens.shape.small
-        color: root.active ? Qt.alpha(Theme.primary, Tokens.stateLayer.pressedOpacity * 1.4)
-                           : "transparent"
-        border.width: Math.max(1, Tokens.border.width)
-        // Not derived from the hover opacity: at the minimal pack's 0.05 that
-        // produced a 0.10 outline, which on screen was no outline at all -- half
-        // the tiles read as floating labels. An inactive tile still has to be a
-        // tile.
-        border.color: root.active ? Theme.primary : Qt.alpha(Theme.onSurface, 0.28)
+        // Two steps of the same neutral, so an inactive tile is still a tile and
+        // an active one is simply nearer. Under MD3 the border tokens are 0 and
+        // this is the whole story; a pack that still wants an edge sets one.
+        color: Qt.alpha(Theme.onSurface, root.active ? Tokens.stateLayer.draggedOpacity
+                                                     : Tokens.stateLayer.hoverOpacity * 0.7)
+        border.width: Tokens.border.width
+        border.color: border.width > 0
+            ? Qt.alpha(Theme.onSurface, Tokens.border.restAlpha)
+            : "transparent"
 
         Behavior on color {
-            MotionColorAnimation {
-                duration: Tokens.motion.duration.short4
-                curve: "standard"
-            }
-        }
-
-        Behavior on border.color {
             MotionColorAnimation {
                 duration: Tokens.motion.duration.short4
                 curve: "standard"
@@ -67,11 +65,21 @@ Item {
             anchors.rightMargin: Tokens.spacing.small
             spacing: Tokens.spacing.small
 
+            // The state mark. An icon says WHAT the tile is; this says whether it
+            // is on, and it is the only accent on the control.
+            MaterialIndicator {
+                Layout.alignment: Qt.AlignVCenter
+                size: "extraSmall"
+                colorRole: root.active ? "primary" : "outline"
+                animated: true
+            }
+
             MaterialIcon {
                 iconName: root.iconName
+                visible: root.iconName !== ""
                 fontSize: Tokens.iconSize.medium
                 backgroundColor: "transparent"
-                iconColor: root.active ? Theme.primary : Theme.onSurfaceVariant
+                iconColor: root.active ? Theme.onSurface : Theme.onSurfaceVariant
             }
 
             MaterialText {

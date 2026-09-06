@@ -71,7 +71,7 @@ Surface {
 
     elevation: 3                       // MD3: floating/overlay surface
     radius: Tokens.shape.large
-    color: Qt.alpha(Theme.surfaceContainer, 0.95)
+    color: Qt.alpha(Theme.surfaceContainer, AppConfig.panelOpacity)
     clip: true
 
     // Surface tint (parent is Surface's content holder — use root.radius).

@@ -663,12 +663,25 @@ Item {
                         }
                     }
 
-                    EmptyState {
+                    // Backed, because this sits ON the hour ruler rather than
+                    // beside it: centred bare text collided with the hour labels
+                    // behind it as soon as the pack widened the face.
+                    Surface {
                         anchors.centerIn: parent
                         visible: root.selectedDayEvents.length === 0
-                        iconName: "event_busy"
-                        title: "No events"
-                        subtitle: "Press N to add an event"
+                        implicitWidth: dayEmpty.implicitWidth + Tokens.spacing.extraLarge * 2
+                        implicitHeight: dayEmpty.implicitHeight + Tokens.spacing.large * 2
+                        color: Theme.surfaceContainerHigh
+                        radius: Tokens.shape.medium
+                        outlined: true
+
+                        EmptyState {
+                            id: dayEmpty
+                            anchors.centerIn: parent
+                            iconName: "event_busy"
+                            title: "No events"
+                            subtitle: "Press N to add an event"
+                        }
                     }
                 }
 

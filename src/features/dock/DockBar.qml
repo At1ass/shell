@@ -33,7 +33,7 @@ Surface {
 
     elevation: 2                       // MD3: floating bar/menu surface
     radius: Tokens.shape.large
-    color: Qt.alpha(Theme.surfaceContainer, 0.90)
+    color: Qt.alpha(Theme.surfaceContainer, AppConfig.panelOpacity)
     clip: false
 
     // Scale + opacity reveal (no translate — avoids Wayland clipping). Scales from the
