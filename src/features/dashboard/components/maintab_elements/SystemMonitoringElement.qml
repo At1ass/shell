@@ -4,155 +4,103 @@ import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
 
+// What the collapsed metrics line CANNOT show: the last few minutes, and what
+// the hardware actually is.
+//
+// It used to show neither. Unfolding drew four 96px cards that repeated the
+// icon, the percentage and the temperature already sitting one line above --
+// with a threshold colour, a coloured edge and a heading each -- and put the
+// history behind all of it at 30% opacity. More paint for the same numbers.
+//
+// So: the history, at the width of the column it belongs to, and one dim line
+// naming the part. Nothing here appears anywhere else.
 Item {
+    id: root
+
+    // Sized by what it holds. It used to be handed a constant from the caller,
+    // which is the same drift the dashboard's height table has: the number was
+    // right once, and then the content changed.
+    anchors.left: parent.left
+    anchors.right: parent.right
+    implicitHeight: strip.implicitHeight
+    height: implicitHeight
+
     RowLayout {
-        anchors.fill: parent
-        spacing: Tokens.spacing.small
+        id: strip
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        // The same column rhythm as the collapsed line above, so a sparkline
+        // sits under the number it belongs to rather than near it.
+        spacing: Tokens.spacing.medium
 
         Repeater {
             model: [
-                { icon: "developer_board", type: "cpu" },
-                { icon: "videogame_asset", type: "gpu" },
-                { icon: "memory",          type: "ram" },
-                { icon: "storage",         type: "disk" }
+                { type: "cpu" },
+                { type: "gpu" },
+                { type: "ram" },
+                { type: "disk" }
             ]
 
-            delegate: Rectangle {
-                id: metricCell
+            delegate: ColumnLayout {
+                id: cell
                 required property var modelData
 
-                visible: modelData.type !== "gpu" || SystemMonitorService.hasGpuStats
+                readonly property var historyValues: {
+                    switch (cell.modelData.type) {
+                    case "cpu": return SystemMonitorService.cpuHistory
+                    case "gpu": return SystemMonitorService.gpuHistory
+                    case "ram": return SystemMonitorService.ramHistory
+                    // Disk usage does not move on the scale of a panel being
+                    // open, so there is no history worth a line.
+                    default:    return []
+                    }
+                }
+
+                readonly property string caption: {
+                    switch (cell.modelData.type) {
+                    case "cpu": return SystemMonitorService.cpuModel
+                    case "gpu": return SystemMonitorService.gpuModel
+                    case "ram": return SystemMonitorService.ramTotal + "G total"
+                    default:    return SystemMonitorService.diskTotal + " total"
+                    }
+                }
+
+                visible: cell.modelData.type !== "gpu" || SystemMonitorService.hasGpuStats
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                radius: Tokens.shape.small
-                color: Theme.surfaceContainerHighest
-                clip: true
+                Layout.preferredWidth: 1
+                Layout.alignment: Qt.AlignTop
+                spacing: Tokens.spacing.extraSmall
 
-                property real currentPercent: {
-                    switch (modelData.type) {
-                        case "cpu":  return SystemMonitorService.cpuUsage;
-                        case "gpu":  return SystemMonitorService.gpuUsage;
-                        case "ram":  return SystemMonitorService.ramUsage;
-                        case "disk": return SystemMonitorService.diskUsage;
+                // The height is reserved by the wrapper, not by the chart. A
+                // column with no history -- disk -- would otherwise collapse and
+                // hang its caption a chart's height above the others.
+                Item {
+                    Layout.fillWidth: true
+                    Layout.rightMargin: Tokens.spacing.medium
+                    Layout.preferredHeight: Tokens.iconSize.extraLarge
+
+                    Sparkline {
+                        anchors.fill: parent
+                        values: cell.historyValues
+                        visible: cell.historyValues.length > 1
+                        // One neutral, like the gauge above it: this is a
+                        // quantity over time, and colouring it by threshold
+                        // spends the accent on something that changes every
+                        // two seconds.
+                        lineColor: Theme.onSurfaceVariant
+                        fillColor: Qt.alpha(Theme.onSurface, Tokens.stateLayer.hoverOpacity)
+                        lineWidth: 1
                     }
                 }
 
-                property string currentExtra: {
-                    switch (modelData.type) {
-                        case "cpu":  return SystemMonitorService.hasCpuTemp ? SystemMonitorService.cpuTemp + "\u00B0" : "--";
-                        case "gpu":  return SystemMonitorService.gpuTemp + "\u00B0";
-                        case "ram":  return SystemMonitorService.ramUsed + "G";
-                        case "disk": return SystemMonitorService.diskUsed;
-                    }
-                }
-
-                property string subtitle: {
-                    switch (modelData.type) {
-                        case "cpu":  return SystemMonitorService.cpuModel;
-                        case "gpu":  return SystemMonitorService.gpuModel;
-                        case "ram":  return SystemMonitorService.ramTotal + "G";
-                        case "disk": return SystemMonitorService.diskTotal;
-                    }
-                }
-
-                property var historyValues: {
-                    switch (modelData.type) {
-                        case "cpu":  return SystemMonitorService.cpuHistory;
-                        case "gpu":  return SystemMonitorService.gpuHistory;
-                        case "ram":  return SystemMonitorService.ramHistory;
-                        case "disk": return [];
-                    }
-                }
-
-                property real animatedProgress: currentPercent / 100
-                property color thresholdColor: {
-                    if (animatedProgress < 0.5) return Theme.primary;
-                    if (animatedProgress < 0.8) return Theme.tertiary;
-                    return Theme.error;
-                }
-
-                Behavior on animatedProgress {
-                    MotionAnimation {
-                        duration: Tokens.motion.duration.long2
-                        curve: "emphasizedDecelerate"
-                    }
-                }
-
-                Behavior on thresholdColor {
-                    MotionColorAnimation {
-                        duration: Tokens.motion.duration.medium2
-                        curve: "standard"
-                    }
-                }
-
-                // Sparkline background — fills bottom portion
-                Sparkline {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: parent.height * 0.55
-                    values: metricCell.historyValues
-                    lineColor: Qt.alpha(metricCell.thresholdColor, 0.3)
-                    fillColor: Qt.alpha(metricCell.thresholdColor, 0.08)
-                    lineWidth: 1
-                    visible: metricCell.historyValues.length > 1
-                }
-
-                // Color-coded left border
-                Rectangle {
-                    width: 3
-                    height: parent.height
-                    radius: Tokens.shape.small
-                    color: parent.thresholdColor
-                    anchors.left: parent.left
-                }
-
-                // Two-line content
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.spacing.medium
-                    anchors.rightMargin: Tokens.spacing.small
-                    anchors.topMargin: Tokens.spacing.small
-                    anchors.bottomMargin: Tokens.spacing.small
-                    spacing: 2
-
-                    // Line 1: icon + label + percent + extra
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Tokens.spacing.small
-
-                        MaterialIcon {
-                            iconName: metricCell.modelData.icon
-                            fontSize: Tokens.iconSize.small
-                            iconColor: Theme.onSurfaceVariant
-                            backgroundColor: "transparent"
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        MaterialText {
-                            text: Math.round(metricCell.currentPercent) + "%"
-                            textStyle: "titleMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Bold
-                        }
-
-                        MaterialText {
-                            text: metricCell.currentExtra
-                            textStyle: "labelMedium"
-                            colorRole: "onSurfaceVariant"
-                        }
-                    }
-
-                    // Line 2: subtitle (model name / total)
-                    MaterialText {
-                        Layout.fillWidth: true
-                        text: metricCell.subtitle
-                        textStyle: "labelSmall"
-                        colorRole: "onSurfaceVariant"
-                        opacity: 0.7
-                        elide: Text.ElideMiddle
-                    }
+                MaterialText {
+                    Layout.fillWidth: true
+                    Layout.rightMargin: Tokens.spacing.medium
+                    text: cell.caption
+                    textStyle: "labelSmall"
+                    colorRole: "onSurfaceVariant"
+                    elide: Text.ElideRight
                 }
             }
         }

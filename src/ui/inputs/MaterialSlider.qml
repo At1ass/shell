@@ -16,8 +16,13 @@ Slider {
     // neither could ever engage.
     focusPolicy: Qt.StrongFocus
 
-    implicitWidth: orientation === Qt.Horizontal ? 200 : 48
-    implicitHeight: orientation === Qt.Horizontal ? 48 : 200
+    // The cross-axis size is a HIT TARGET, and MD3's 48 is sized for a
+    // fingertip. The compact pack already decided a pointer needs 36 (see
+    // Tokens.touchTarget), and 48 around a 4px bar left a seek control
+    // reserving a third of the space an expanded player has.
+    readonly property int _crossSize: _quiet ? Tokens.touchTarget.minimum : 48
+    implicitWidth: orientation === Qt.Horizontal ? 200 : _crossSize
+    implicitHeight: orientation === Qt.Horizontal ? _crossSize : 200
 
     // Colour. Role form preferred, raw colour as the escape hatch -- the shape
     // MaterialIcon and IconButton already use.
@@ -30,22 +35,31 @@ Slider {
     property string trackRole: "surfaceContainerHighest"
     property color trackColor: trackRole !== "" ? (Theme[trackRole] ?? Theme.surfaceContainerHighest) : Theme.surfaceContainerHighest
 
-    // The minimal pack draws a control you can see: a track with an edge, a fill
-    // inside it and a straight handle. MD3's shape -- a thick bare bar with a
-    // pill handle -- reads as a progress indicator once the pack has flattened
-    // the corners off everything around it.
+    // The compact form is a bar and a marker: a thin track, a fill, and a
+    // straight handle that says where you are. MD3's shape -- a thick bare bar
+    // with a pill handle -- reads as a progress indicator once the pack has
+    // flattened the corners off everything around it.
+    //
+    // It used to be neither: a 10px track with its own outline, a gap on both
+    // sides of the handle, and a dot parked at the far end. Three devices
+    // saying the same thing, and the outline made a level control look like an
+    // input field.
     // Asked directly rather than inferred from whether surfaces are outlined:
     // see Tokens.compactControls for what inferring it cost.
     readonly property bool _quiet: Tokens.compactControls
 
-    property real trackHeight: _quiet ? 10 : 24
+    property real trackHeight: _quiet ? 4 : 24
     property real thumbWidth: _quiet ? 2 : 4
-    property real thumbHeight: _quiet ? 18 : 48
+    property real thumbHeight: _quiet ? 14 : 48
     property real thumbTrackGap: _quiet ? 3 : 6
-    property real trackCornerSize: _quiet ? Tokens.shape.extraSmall : 8
-    property real trackInsideCornerSize: _quiet ? Tokens.shape.none : 2
-    // An outline on the inactive track, so an empty slider is still a slider.
-    property bool outlinedTrack: _quiet
+    property real trackCornerSize: _quiet ? trackHeight / 2 : 8
+    property real trackInsideCornerSize: _quiet ? trackHeight / 2 : 2
+    // An empty track is legible on its own at this height; the outline it used
+    // to carry only made it look like a field to type in.
+    property bool outlinedTrack: false
+    // The dot at the end of the track is MD3's, and it restates the track's own
+    // end. On a 4px bar it reads as dirt.
+    property bool showStopIndicator: !_quiet
     property real stopIndicatorSize: 6
 
     background: Item {
@@ -91,9 +105,10 @@ Slider {
                 height: control.stopIndicatorSize
                 radius: control.stopIndicatorSize / 2
                 color: Theme.onSurfaceVariant
-                // visible: control.visualPosition < 0.99
-                visible: control.orientation === Qt.Horizontal ? control.visualPosition < 0.99
-                                                               : 1.0 - control.visualPosition < 0.99
+                visible: control.showStopIndicator
+                         && (control.orientation === Qt.Horizontal
+                             ? control.visualPosition < 0.99
+                             : 1.0 - control.visualPosition < 0.99)
 
             }
         }

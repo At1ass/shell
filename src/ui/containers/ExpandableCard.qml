@@ -91,7 +91,16 @@ Item {
     Item {
         id: expandedSlot
         anchors.left: parent.left
+        // Stops where the compact content stops, not where the card does. The
+        // fold control sits outside the compact slot, so a full-width expansion
+        // is wider than the thing it expands and any column shared between the
+        // two states drifts by that button's width.
+        //
+        // As a margin rather than an anchor to compactSlot: that slot is a
+        // child of compactRow, so it is this item's nephew, and anchoring to it
+        // is refused -- silently leaving the slot with no width at all.
         anchors.right: parent.right
+        anchors.rightMargin: compactRow.width - compactSlot.width
         anchors.top: compactRow.bottom
         anchors.topMargin: root.spacing
         implicitHeight: childrenRect.height

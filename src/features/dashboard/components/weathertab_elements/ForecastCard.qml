@@ -26,7 +26,15 @@ MaterialCard {
     color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
     radius: Tokens.shape.medium
 
+    // Stated, because a Pane does not learn it from an anchored child. The
+    // column below fills this card by anchors, so the card reported no height
+    // of its own -- invisible while the tab was sized by a constant with slack
+    // in it, and immediately visible once the tab was sized to its content: the
+    // bottom row of every forecast card sat flush against its own edge.
+    implicitHeight: forecastColumn.implicitHeight + Tokens.spacing.small * 2
+
     ColumnLayout {
+        id: forecastColumn
         anchors.fill: parent
         anchors.margins: Tokens.spacing.small
         spacing: Tokens.spacing.extraSmall

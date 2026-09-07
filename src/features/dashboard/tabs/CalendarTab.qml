@@ -187,9 +187,14 @@ Item {
 
     Component.onCompleted: updateCalendar()
 
+    // What this tab needs, so the window can be sized to it instead of to a
+    // constant kept in a table indexed by tab number. See Dashboard.qml.
+    readonly property int contentHeight: panels.implicitHeight + Tokens.panelPadding * 2
+
     RowLayout {
+        id: panels
         anchors.fill: parent
-        anchors.margins: Tokens.spacing.large
+        anchors.margins: Tokens.panelPadding
         spacing: Tokens.spacing.large
 
         // Left panel — month grid
@@ -199,7 +204,15 @@ Item {
             color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
             radius: Tokens.shape.large
 
+            // Stated, because a Pane does not learn it. The column below fills
+            // this card by ANCHORS, and an anchored child contributes nothing to
+            // its parent's implicit size -- so the card reported almost nothing,
+            // the tab's measured height came out short, and the grid was
+            // squeezed until the last row of days lost its hover ring.
+            implicitHeight: monthColumn.implicitHeight + Tokens.spacing.large * 2
+
             ColumnLayout {
+                id: monthColumn
                 anchors.fill: parent
                 anchors.margins: Tokens.spacing.large
                 spacing: Tokens.spacing.medium

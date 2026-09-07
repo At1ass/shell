@@ -334,6 +334,14 @@ Singleton {
     // shell silently doubled in height and grew a 48px handle.
     readonly property bool compactControls: root.pack === "minimal"
 
+    // The gutter between a panel's edge and its content. One name, because it
+    // is one decision and it has to be made in six places: the header, each
+    // tab, the height each tab reports, and the negative margin the media strip
+    // uses to reach the edge. Spelling it as a raw spacing token in all of them
+    // is how a panel came up short with its bottom row sliced off -- the layout
+    // used one token and the height calculation another.
+    readonly property int panelPadding: root.spacing.extraLarge
+
     // The pack's own motion character, multiplied with the user's motionScale so
     // config keeps the final say. Minimal is quicker by design, not by preference.
     readonly property real packMotionScale: root.pack === "minimal" ? 0.55 : 1.0

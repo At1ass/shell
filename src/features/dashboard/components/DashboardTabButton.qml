@@ -1,79 +1,49 @@
 import QtQuick
-import QtQuick.Layouts
 import qs.src.ui.base
-import qs.src.ui.feedback
 import qs.src.core.config
 
+// A dashboard tab: its name, and a rule under the current one.
+//
+// It used to be a 96px-wide icon over a label, five of them across a 92px bar --
+// 22% of the panel's height spent on navigation, in a panel whose whole content
+// is four rows tall. The icons were decoration too: nobody identifies the weather
+// tab by a cloud when the word "Weather" is under it.
 Item {
     id: tabBtn
 
     property bool isActive: false
-    property string nameIcon: "star"
     property string label: "Tab"
 
     signal clicked()
 
-    Rectangle {
-        anchors.fill: parent
-        radius: Tokens.shape.small
-        color: "transparent"
+    implicitWidth: labelText.implicitWidth
+    implicitHeight: labelText.implicitHeight + Tokens.spacing.extraSmall + rule.height
 
-        StateLayer {
-            hovered: mouseArea.containsMouse
-            pressed: mouseArea.pressed
-        }
-
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: tabBtn.clicked()
-        }
-    }
-
-    ColumnLayout {
-        anchors.centerIn: parent
-        spacing: Tokens.spacing.extraSmall
-
-        MaterialIcon {
-            iconName: tabBtn.nameIcon
-            fontSize: Tokens.typography.headlineMedium.size
-            iconColor: tabBtn.isActive ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
-            backgroundColor: "transparent"
-            fill: tabBtn.isActive ? 1 : 0
-            Layout.alignment: Qt.AlignHCenter
-
-            Behavior on iconColor {
-                MotionColorAnimation {
-                    duration: Tokens.motion.duration.short4
-                    curve: "standard"
-                }
-            }
-
-            Behavior on fill {
-                MotionAnimation {
-                    duration: Tokens.motion.duration.short4
-                    curve: "standard"
-                }
-            }
-        }
-
-        MaterialText {
-            text: tabBtn.label
-            textStyle: "labelMedium"
-            colorRole: tabBtn.isActive ? "onSurface" : "onSurfaceVariant"
-            Layout.alignment: Qt.AlignHCenter
-        }
-    }
-
-    // Active tab indicator
-    Rectangle {
-        anchors.bottom: parent.bottom
+    MaterialText {
+        id: labelText
         anchors.horizontalCenter: parent.horizontalCenter
-        width: parent.width * 0.6
+        anchors.top: parent.top
+        text: tabBtn.label
+        textStyle: "labelLarge"
+        colorRole: tabBtn.isActive ? "onSurface" : "onSurfaceVariant"
+
+        Behavior on color {
+            MotionColorAnimation {
+                duration: Tokens.motion.duration.short4
+                curve: "standard"
+            }
+        }
+    }
+
+    // The only accent in the header. It marks one thing, which is what makes it
+    // readable at a glance.
+    Rectangle {
+        id: rule
+        anchors.top: labelText.bottom
+        anchors.topMargin: Tokens.spacing.extraSmall
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: labelText.implicitWidth
         height: 2
-        radius: Tokens.shape.full
         color: Theme.primary
         opacity: tabBtn.isActive ? 1 : 0
 
@@ -83,5 +53,14 @@ Item {
                 curve: "emphasizedDecelerate"
             }
         }
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        anchors.margins: -Tokens.spacing.small
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: tabBtn.clicked()
     }
 }

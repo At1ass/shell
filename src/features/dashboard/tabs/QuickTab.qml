@@ -42,15 +42,27 @@ Item {
     // What this tab actually needs, published so the window can be sized to it
     // rather than to a constant. The constant version broke the moment the pack
     // changed density -- exactly the drift a measured value cannot have.
-    readonly property int contentHeight: column.implicitHeight + Tokens.spacing.small * 2
+    // The gutter is counted twice because it exists twice, and it has to be the
+    // SAME token the column is laid out with -- these drifted apart the moment
+    // the gutter changed, and the panel came up 16px short with the media strip
+    // sliced off at the bottom edge.
+    readonly property int contentHeight: column.implicitHeight + Tokens.panelPadding * 2
 
     ColumnLayout {
         id: column
         anchors.fill: parent
-        anchors.margins: Tokens.spacing.small
+        // The panel's gutter. It was `small` -- 4px against a 900px panel, so
+        // every row started on the edge and the whole thing read as cropped.
+        anchors.margins: Tokens.panelPadding
         spacing: Tokens.spacing.medium
 
         // ===== toggles: the reason the panel is opened, so they lead =====
+        // Equal columns. `fillWidth` alone divides the SLACK, not the width, so
+        // each tile kept its own implicit width and "Do not disturb" came out
+        // wider than "VPN" -- eight controls of the same kind in eight
+        // different sizes. The pair below is the shape used for the metric
+        // columns: an equal share each, and a minimum of zero so a long label
+        // elides instead of pushing its column wider.
         GridLayout {
             Layout.fillWidth: true
             columns: 4
@@ -59,6 +71,8 @@ Item {
 
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: NetworkService.icon
                 label: "Wi-Fi"
                 active: NetworkService.wifiEnabled
@@ -66,6 +80,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: BluetoothService.icon
                 label: "Bluetooth"
                 active: BluetoothService.enabled
@@ -73,6 +89,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: VPNService.icon
                 label: "VPN"
                 active: VPNService.connected
@@ -80,6 +98,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: "coffee"
                 label: "Caffeine"
                 active: IdleInhibitorService.inhibit
@@ -87,6 +107,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: "do_not_disturb_on"
                 label: "Do not disturb"
                 active: NotificationService.doNotDisturb
@@ -94,6 +116,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: "nightlight"
                 label: "Night light"
                 active: NightLightService.enabled
@@ -101,6 +125,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: "sports_esports"
                 label: "Gaming"
                 active: GamingModeService.gamingModeActive
@@ -108,6 +134,8 @@ Item {
             }
             ToggleTile {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 iconName: "screenshot_region"
                 label: "Screenshot"
                 active: false
@@ -140,6 +168,11 @@ Item {
             }
             MaterialSlider {
                 Layout.fillWidth: true
+                // A level is a QUANTITY. Filled with the accent it became the
+                // largest coloured area in the panel -- a full-width bar of it,
+                // twice -- which is most of what made the accent stop meaning
+                // anything anywhere else.
+                accentRole: "onSurfaceVariant"
                 enabled: AudioService.defaultSink !== null
                 from: 0
                 to: 1
@@ -183,6 +216,7 @@ Item {
             }
             MaterialSlider {
                 Layout.fillWidth: true
+                accentRole: "onSurfaceVariant"
                 enabled: BrightnessService.available
                 from: 0
                 to: 1
@@ -198,25 +232,13 @@ Item {
             }
         }
 
-        Divider { Layout.fillWidth: true }
-
-        // ===== media =====
-        QuickMediaRow {
-            id: mediaRow
-            Layout.fillWidth: true
-        }
-
-        Divider {
-            Layout.fillWidth: true
-            visible: mediaRow.visible
-        }
-
         // ===== metrics: read-only, so one line until asked otherwise =====
         ExpandableCard {
             id: metrics
             Layout.fillWidth: true
-
-            readonly property int expandedHeight: 96
+            // The gauge and the history it belongs to need a gap between them,
+            // or the chart reads as part of the bar above it.
+            spacing: Tokens.spacing.medium
 
             RowLayout {
                 width: parent.width
@@ -224,24 +246,32 @@ Item {
 
                 Repeater {
                     model: [
-                        { icon: "developer_board", label: "CPU" },
-                        { icon: "videogame_asset", label: "GPU" },
-                        { icon: "memory",          label: "RAM" },
-                        { icon: "storage",         label: "SSD" }
+                        { label: "CPU" },
+                        { label: "GPU" },
+                        { label: "RAM" },
+                        { label: "SSD" }
                     ]
 
-                    delegate: RowLayout {
+                    // Three tiers, not one line. It used to be
+                    // `icon CPU 1% 56°` at a single size, four of those in a
+                    // row: nothing to fix on, so reading it meant reading all
+                    // of it. Now the name is small and quiet, the number it is
+                    // named for is large, the secondary reading sits beside it
+                    // at label size, and the bar answers "how full" before any
+                    // of them are read at all.
+                    delegate: ColumnLayout {
                         id: metricEntry
                         required property var modelData
 
-                        readonly property string value: {
+                        readonly property real fraction: {
                             switch (metricEntry.modelData.label) {
-                            case "CPU": return Math.round(SystemMonitorService.cpuUsage) + "%"
-                            case "GPU": return SystemMonitorService.gpuUsage + "%"
-                            case "RAM": return Math.round(SystemMonitorService.ramUsage) + "%"
-                            default:    return Math.round(SystemMonitorService.diskUsage) + "%"
+                            case "CPU": return SystemMonitorService.cpuUsage / 100
+                            case "GPU": return SystemMonitorService.gpuUsage / 100
+                            case "RAM": return SystemMonitorService.ramUsage / 100
+                            default:    return SystemMonitorService.diskUsage / 100
                             }
                         }
+                        readonly property string value: Math.round(metricEntry.fraction * 100) + "%"
                         readonly property string detail: {
                             switch (metricEntry.modelData.label) {
                             // ramUsed/ramTotal come back as bare numbers -- the
@@ -262,31 +292,38 @@ Item {
                         // readouts drifted out of any rhythm.
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+                        Layout.alignment: Qt.AlignTop
                         spacing: Tokens.spacing.extraSmall
 
-                        MaterialIcon {
-                            iconName: metricEntry.modelData.icon
-                            fontSize: Tokens.iconSize.small
-                            backgroundColor: "transparent"
-                            colorRole: "onSurfaceVariant"
-                        }
                         MaterialText {
                             text: metricEntry.modelData.label
                             textStyle: "labelSmall"
                             colorRole: "onSurfaceVariant"
                         }
-                        MonoText {
-                            text: metricEntry.value
-                            textStyle: "labelMedium"
-                            colorRole: "onSurface"
-                        }
-                        MonoText {
+
+                        RowLayout {
                             Layout.fillWidth: true
-                            Layout.leftMargin: Tokens.spacing.extraSmall
-                            text: metricEntry.detail
-                            textStyle: "labelSmall"
-                            colorRole: "onSurfaceVariant"
-                            elide: Text.ElideRight
+                            spacing: Tokens.spacing.small
+
+                            MonoText {
+                                text: metricEntry.value
+                                textStyle: "titleMedium"
+                                colorRole: "onSurface"
+                            }
+                            MonoText {
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignBaseline
+                                text: metricEntry.detail
+                                textStyle: "labelSmall"
+                                colorRole: "onSurfaceVariant"
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        LevelBar {
+                            Layout.fillWidth: true
+                            Layout.rightMargin: Tokens.spacing.medium
+                            value: metricEntry.fraction
                         }
                     }
                 }
@@ -294,10 +331,23 @@ Item {
 
             // The detailed tiles are not deleted, only folded away: they carry
             // the history sparklines, which a single line cannot.
-            expandedContent: SystemMonitoringElement {
-                width: metrics.width
-                height: metrics.expandedHeight
-            }
+            expandedContent: SystemMonitoringElement {}
+        }
+
+        // ===== media: last, and flush with the bottom edge =====
+        // It sits below everything because it is the one section that is read
+        // rather than operated -- and because it is the only one that grows, so
+        // growing downwards costs nothing above it.
+        QuickMediaRow {
+            id: mediaRow
+            Layout.fillWidth: true
+            // Negative by exactly the gutter: the strip is the one thing that
+            // reaches the panel edge, and it has to keep doing that when the
+            // gutter changes.
+            Layout.bottomMargin: -Tokens.panelPadding
+            Layout.leftMargin: -Tokens.panelPadding
+            Layout.rightMargin: -Tokens.panelPadding
+            Layout.topMargin: Tokens.spacing.large
         }
     }
 }

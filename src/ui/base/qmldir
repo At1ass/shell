@@ -1,16 +1,16 @@
 module qs.src.ui.base
-
-MaterialIcon 1.0 MaterialIcon.qml
-MaterialText 1.0 MaterialText.qml
-MaterialMarqueeText 1.0 MaterialMarqueeText.qml
-MaterialButton 1.0 MaterialButton.qml
-IconButton 1.0 IconButton.qml
-MaterialIndicator 1.0 MaterialIndicator.qml
-SectionHeader 1.0 SectionHeader.qml
 CircleAvatar 1.0 CircleAvatar.qml
-Sparkline 1.0 Sparkline.qml
-FAB 1.0 FAB.qml
 ElevationShadow 1.0 ElevationShadow.qml
+FAB 1.0 FAB.qml
+IconButton 1.0 IconButton.qml
+LevelBar 1.0 LevelBar.qml
+MaterialButton 1.0 MaterialButton.qml
+MaterialIcon 1.0 MaterialIcon.qml
+MaterialIndicator 1.0 MaterialIndicator.qml
+MaterialMarqueeText 1.0 MaterialMarqueeText.qml
+MaterialText 1.0 MaterialText.qml
+MonoText 1.0 MonoText.qml
 MotionAnimation 1.0 MotionAnimation.qml
 MotionColorAnimation 1.0 MotionColorAnimation.qml
-MonoText 1.0 MonoText.qml
+SectionHeader 1.0 SectionHeader.qml
+Sparkline 1.0 Sparkline.qml

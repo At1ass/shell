@@ -79,6 +79,11 @@ Singleton {
     // ===== LOOP & SHUFFLE =====
     readonly property var loopState: activePlayer?.loopState ?? MprisLoopState.None
     readonly property bool loopSupported: activePlayer?.loopSupported ?? false
+    // Derived here so a view can ask what it needs to draw without importing
+    // Quickshell.Services.Mpris for the enum -- the same reason `isPlaying`
+    // exists beside `playbackState`.
+    readonly property bool loopEnabled: root.loopState !== MprisLoopState.None
+    readonly property bool loopingTrack: root.loopState === MprisLoopState.Track
     readonly property bool shuffle: activePlayer?.shuffle ?? false
     readonly property bool shuffleSupported: activePlayer?.shuffleSupported ?? false
 

@@ -26,11 +26,16 @@ Item {
     // A tab that measures itself, if it does. 0 means "use the fixed table".
     readonly property int tabContentHeight: (_tabLoaders[tabView.currentIndex]?.item?.contentHeight) ?? 0
 
-    // Everything this component adds around a tab: the tab bar and the divider
-    // under it. A measuring tab reports only its own content, so the window has
-    // to be told what sits above it.
-    readonly property int chromeHeight: root.tabBarHeight + 1
-    readonly property int tabBarHeight: 92
+    // Everything this component adds around a tab. A measuring tab reports only
+    // its own content, so the window has to be told what sits above it.
+    //
+    // No divider under the header any more: the header IS the top of the panel
+    // now, and a rule between it and the content only restated a boundary that
+    // spacing already makes.
+    readonly property int chromeHeight: root.headerHeight
+    readonly property int headerHeight: clockText.implicitHeight + dateText.implicitHeight
+                                        + Tokens.spacing.extraSmall
+                                        + Tokens.panelPadding * 2
     readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
     function _closeTopModal() {
         const item = _tabLoaders[tabView.currentIndex]?.item
@@ -163,24 +168,46 @@ Item {
             // Layout.fillWidth: true
             spacing: 0
 
-            // ===== TAB BAR =====
+            // ===== HEADER: the hour, and where you are =====
+            //
+            // The clock earns the largest type in the panel and is the only
+            // thing that does; everything below it sits in one narrow band of
+            // sizes. That is the whole hierarchy -- one thing to land on, then
+            // an even field. Navigation rides along the same line instead of
+            // taking a storey of its own.
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.tabBarHeight
+                Layout.preferredHeight: root.headerHeight
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.spacing.medium
-                    spacing: 0
+                MonoText {
+                    id: clockText
+                    anchors.left: parent.left
+                    anchors.leftMargin: Tokens.panelPadding
+                    anchors.top: parent.top
+                    anchors.topMargin: Tokens.panelPadding
+                    text: Qt.formatDateTime(DateTime.clock.date, "HH:mm")
+                    textStyle: "headlineMedium"
+                    colorRole: "onSurface"
+                }
+
+                MaterialText {
+                    id: dateText
+                    anchors.left: clockText.left
+                    anchors.top: clockText.bottom
+                    anchors.topMargin: Tokens.spacing.extraSmall
+                    text: Qt.formatDateTime(DateTime.clock.date, "dddd, d MMMM")
+                    textStyle: "labelMedium"
+                    colorRole: "onSurfaceVariant"
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Tokens.panelPadding
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Tokens.spacing.large
 
                     Repeater {
-                        model: [
-                            { icon: "dashboard",         label: "Quick" },
-                            { icon: "partly_cloudy_day", label: "Weather" },
-                            { icon: "calendar_month",    label: "Calendar" },
-                            { icon: "graphic_eq",        label: "Audio" },
-                            { icon: "wifi",              label: "Network" }
-                        ]
+                        model: ["Quick", "Weather", "Calendar", "Audio", "Network"]
 
                         delegate: DashboardTabButton {
                             id: tabButton
@@ -188,22 +215,14 @@ Item {
                             // the component is a plain button and should not
                             // carry model roles just to be used in a Repeater.
                             required property int index
-                            required property var modelData
+                            required property string modelData
 
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
                             isActive: tabView.currentIndex === tabButton.index
-                            nameIcon: tabButton.modelData.icon
-                            label: tabButton.modelData.label
+                            label: tabButton.modelData
                             onClicked: GlobalStates.dashboardOpenIndex = tabButton.index
                         }
                     }
                 }
-            }
-
-            // Divider
-            Divider {
-                Layout.fillWidth: true
             }
 
             // ===== TAB CONTENT =====

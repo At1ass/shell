@@ -22,7 +22,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Tokens.spacing.medium
+        anchors.margins: Tokens.panelPadding
         spacing: Tokens.spacing.medium
 
         // Device selection row

@@ -260,6 +260,10 @@ Singleton {
     FileView {
         id: socketProbe
         path: root.socketPath
+        // The socket being absent is the ANSWER here, not a fault -- it is what
+        // "no recording" looks like, and it is re-checked every few seconds for
+        // the whole session. Left on, it wrote a warning per tick forever.
+        printErrors: false
         onLoadFailed: (error) => {
             const present = error === FileViewError.NotAFile
             if (present === root._socketPresent)

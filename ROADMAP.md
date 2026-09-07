@@ -270,6 +270,43 @@ dashboard already animates its own height, so the panel follows.
 
 ---
 
+## The dashboard is sized by what it holds (2026-09-07)
+
+`Dashboard.qml` carried `tabExtraHeight: [0, 20, 60, 0, 0]` -- a constant per
+tab, indexed by tab NUMBER, added to a configured base. Both halves went stale
+on their own schedule, and the failure had already happened twice: once as a
+panel with a band of dead space, and once during this work as a panel 16px short
+with the media strip sliced off its bottom edge.
+
+The table is gone. Weather and Calendar report `contentHeight` the way Quick
+already did, and the numbers they report are not the numbers the table held:
+Calendar asked for 700 and needs 510, Weather asked for 660 and needs 615. Both
+render complete -- six week rows, the day panel, seven forecast cards -- in the
+smaller space. The constants were not merely stale, they were never measured.
+
+Audio and Network keep `dashboard.height` as their base, and that is not a
+half-fix: both are lists that size to whatever they are given. There is no
+content height to measure, only a choice of how much list to show, and a
+configured number is the honest way to express a choice.
+
+### Three alignment defects found alongside it
+
+`ExpandableCard` expanded to the CARD's width while its compact row stops short
+of the fold control, so every column shared between the two states drifted by
+that button's width -- the sparklines sat offset from the numbers they belong
+to. Fixed as a margin, not an anchor: the compact slot is a child of the compact
+row, so it is the expanded slot's nephew, and Qt refuses that anchor *silently*,
+leaving the slot with no width at all.
+
+The quick toggles were eight controls of one kind in eight different widths:
+`fillWidth` divides the SLACK, not the width, so each tile kept its own implicit
+width and "Do not disturb" came out wider than "VPN".
+
+And the monitoring strip was handed its height by its caller -- the same species
+of constant as the table above it. It measures itself now.
+
+---
+
 ## Screen recordings are now visible to the shell (2026-09-03)
 
 The shell can be recording your screen for an hour and say nothing about it. It

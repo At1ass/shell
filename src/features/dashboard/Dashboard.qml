@@ -14,16 +14,6 @@ Scope {
     property int sidebarWidth: AppConfig.dashboardWidth
     property int sidebarHeight: AppConfig.dashboardHeight
 
-    // Height adjustment per tab for the tabs that do NOT measure themselves:
-    // Weather and Calendar run taller than the base. Indexed by
-    // GlobalStates.dashboardOpenIndex: Quick/Weather/Calendar/Audio/Network.
-    //
-    // Quick carries a 0 because it reports its own content height instead. It
-    // used to carry a constant, and that constant went stale the first time the
-    // pack changed its spacing -- a fixed number cannot track content it does
-    // not measure.
-    readonly property list<int> tabExtraHeight: [0, 20, 60, 0, 0]
-
     PanelWindow {
         id: dashboardWindow
 
@@ -41,12 +31,19 @@ Scope {
 
         // A tab that measures itself already counts its expanded sections --
         // its content height IS the column including them -- so the expansion
-        // allowance applies only to the tabs sized from the fixed table.
+        // allowance below applies only to a tab that does not.
+        //
+        // There used to be a table here as well: `[0, 20, 60, 0, 0]`, a constant
+        // per tab indexed by tab NUMBER, added on top of a configured base. Both
+        // halves of that go stale on their own schedule -- the pack changes its
+        // spacing, a tab grows a row, the font scale moves -- and the result is
+        // either a clipped bottom edge or a band of dead space, in a panel whose
+        // content was measurable all along. Quick, Weather and Calendar report
+        // what they need; Audio and Network are lists that size to whatever they
+        // are given, so `dashboard.height` remains their base.
         implicitHeight: _measured > 0
             ? _measured + chromeHeight
-            : root.sidebarHeight
-              + (root.tabExtraHeight[GlobalStates.dashboardOpenIndex] ?? 0)
-              + (_content?.tabExtraHeight ?? 0)
+            : root.sidebarHeight + (_content?.tabExtraHeight ?? 0)
 
         // Everything the window holds around the tab's own content: the loader's
         // margins and the tab bar above it.

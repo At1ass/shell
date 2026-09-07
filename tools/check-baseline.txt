@@ -20,7 +20,7 @@ multieffect-shadow 0
 qml-compile-failures 0
 qmldir-unregistered 0
 qmllint-warnings 51
-raw-rectangle-in-features 77
+raw-rectangle-in-features 75
 sh-c-concatenation 0
 stacklayout-in-features 3
 unknown-enum-literals 0

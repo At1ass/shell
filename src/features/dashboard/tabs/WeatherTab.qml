@@ -9,9 +9,14 @@ import qs.src.features.dashboard.components.weathertab_elements
 Item {
     id: root
 
+    // What this tab needs, so the window can be sized to it instead of to a
+    // constant kept in a table indexed by tab number. See Dashboard.qml.
+    readonly property int contentHeight: column.implicitHeight + Tokens.panelPadding * 2
+
     ColumnLayout {
+        id: column
         anchors.fill: parent
-        anchors.margins: Tokens.spacing.medium
+        anchors.margins: Tokens.panelPadding
         spacing: Tokens.spacing.small
 
         // === Header: Location + Date + Sunrise/Sunset ===
