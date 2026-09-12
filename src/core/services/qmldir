@@ -3,6 +3,7 @@ module qs.src.core.services
 NotifData 1.0 NotifData.qml
 singleton ActiveWindowService 1.0 ActiveWindowService.qml
 singleton AppFrequencyService 1.0 AppFrequencyService.qml
+singleton AppLaunchService 1.0 AppLaunchService.qml
 singleton AudioService 1.0 AudioService.qml
 singleton BluetoothService 1.0 BluetoothService.qml
 singleton BrightnessService 1.0 BrightnessService.qml

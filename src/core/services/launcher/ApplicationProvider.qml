@@ -30,19 +30,23 @@ BaseProvider {
     }
 
     function _buildCorpus() {
-        const hidden = AppConfig.launcherHiddenApps.map(
-            id => id.toLowerCase().replace(/\.desktop$/, ""))
+        // Config may name an app by its id or by its file name, so an entry
+        // matches either form. Stripping ".desktop" from both sides instead
+        // collapsed "org.telegram.desktop" to "org.telegram" -- hiding one app
+        // could hide another whose id really is "org.telegram".
+        const hidden = AppConfig.launcherHiddenApps.map(id => id.toLowerCase())
         const visible = []
         const names = []
         const fullTexts = []
         for (let i = 0; i < applications.length; i++) {
             const app = applications[i]
             if (app.noDisplay) continue
-            // Terminal=true apps: DesktopEntry.execute() spawns without a
-            // TTY (upstream never uses runInTerminal), so they die
-            // instantly. Listing them would be a lie.
-            if (app.runInTerminal) continue
-            if (hidden.indexOf((app.id || "").toLowerCase().replace(/\.desktop$/, "")) !== -1) continue
+            // Terminal=true apps launch through app2unit's terminal wrapper;
+            // only an entry without a usable id would fall back to a TTY-less
+            // spawn and die instantly, so only those stay hidden.
+            if (!AppLaunchService.canLaunch(app)) continue
+            const appId = (app.id || "").toLowerCase()
+            if (hidden.indexOf(appId) !== -1 || hidden.indexOf(appId + ".desktop") !== -1) continue
             visible.push(app)
             names.push(app.name || "")
             fullTexts.push([
@@ -128,7 +132,7 @@ BaseProvider {
             data: { entry: app },
             action: function() {
                 AppFrequencyService.incrementFrequency(app.id)
-                app.execute()
+                AppLaunchService.launchEntry(app)
             }
         }
     }

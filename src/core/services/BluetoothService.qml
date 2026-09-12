@@ -91,7 +91,7 @@ Singleton {
     }
 
     function openSettings() {
-        Quickshell.execDetached(["blueman-manager"])
+        AppLaunchService.launchCommand(["blueman-manager"])
     }
 
     // Give up waiting for pairing after 30s.

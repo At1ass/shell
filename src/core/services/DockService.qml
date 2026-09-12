@@ -262,7 +262,7 @@ Singleton {
 
     function launch(app) {
         if (app && app.entry) {
-            app.entry.execute()
+            AppLaunchService.launchEntry(app.entry)
             appLaunched(app.key)
         }
     }

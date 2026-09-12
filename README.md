@@ -34,6 +34,7 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `hyprland` | Compositor (uses ext-global-shortcuts, WlrLayershell, HyprlandFocusGrab) |
 | `qt6-base`, `qt6-declarative` | Qt6 runtime |
 | `pipewire` + `wireplumber` | Audio — volume widget and OSD |
+| `app2unit` | Launches apps (launcher, dock, settings buttons) into their own systemd scopes; Terminal=true entries via `xdg-terminal-exec` |
 
 ### Optional
 

@@ -73,7 +73,7 @@ Singleton {
 
     // Open system network settings
     function openSettings() {
-        Quickshell.execDetached(["nm-connection-editor"])
+        AppLaunchService.launchCommand(["nm-connection-editor"])
     }
 
     // Get signal icon name for a given strength (0.0-1.0)

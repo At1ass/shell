@@ -98,12 +98,15 @@ cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 sudo cmake --install build          # ставит в /usr/lib/qt6/qml/
 # ⚠️ Замена .so под работающим шеллом может его уронить, а плагин всё равно
-# подхватится только после перезапуска: pkill -x qs && qs -p . (сначала
-# проверь `qs ipc call globalstates locked` — см. предупреждение ниже).
+# подхватится только после перезапуска: systemctl --user restart quickshell
+# (сначала проверь `qs ipc call globalstates locked` — см. предупреждение ниже).
 
 # Запуск
 quickshell -p ~/.config/quickshell/shell        # (сокращённо: qs -p ...)
 QT_QPA_PLATFORMTHEME=gtk3 qs -p ~/.config/quickshell/shell   # фактический паттерн запуска
+# В живой сессии шелл — user-сервис (~/.config/systemd/user/quickshell.service):
+systemctl --user restart quickshell   # полный перезапуск; НЕ pkill + qs из терминала
+journalctl --user -u quickshell -f    # логи шелла
 
 # Внешнее управление
 qs ipc call <handler> <function> [arg]
@@ -266,6 +269,7 @@ if (Keycodes.letter(event) === action.key) activate()
 - Системный stdout — `Process` + `SplitParser`/`StdioCollector`, обработка построчно.
 - Списки/модели внутри `Process.onStdout` менять только через `Qt.callLater()`.
 - Всегда безопасный fallback (`available: device !== null`).
+- **Запуск приложений — только через `AppLaunchService`** (`launchEntry(entry)` / `launchCommand(argv)` → `app2unit`, отдельный systemd scope на приложение). Прямые `DesktopEntry.execute()` и `Quickshell.execDetached` для приложений запрещены: запущенное попадает в cgroup шелла — общий учёт ресурсов и общая судьба при остановке scope или OOM-kill любого процесса в нём (`OOMPolicy=stop`).
 
 ---
 

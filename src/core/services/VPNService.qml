@@ -70,7 +70,7 @@ Singleton {
 
     // Open system network settings
     function openSettings() {
-        Quickshell.execDetached(["nm-connection-editor"])
+        AppLaunchService.launchCommand(["nm-connection-editor"])
     }
 
     // Refresh on demand — NetworkEventMonitor calls this on NM events.
