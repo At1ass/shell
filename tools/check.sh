@@ -147,7 +147,9 @@ PYEOF
 # IconImage defaults it to false.
 #
 # Matches an Image block that mentions an icon-provider source and sets
-# asynchronous within the same declaration.
+# asynchronous within the same declaration. `iconPath` counts: Quickshell.iconPath
+# returns an `image://icon/` URL, and the launcher reached KIconEngine through it
+# for weeks while this rule, which only knew the literal URL, reported clean.
 count async-icon-provider "$(python3 - "$root" <<'PYEOF'
 import pathlib, re, sys
 root = pathlib.Path(sys.argv[1])
@@ -171,7 +173,8 @@ for f in root.joinpath("src").rglob("*.qml"):
             continue
         if not re.search(r"asynchronous\s*:\s*true", block):
             continue
-        if "image://icon" in block or "appIconSource" in block or "iconSource" in block:
+        if ("image://icon" in block or "iconPath" in block
+                or "appIconSource" in block or "iconSource" in block):
             print("%s:%d async icon-provider load" % (f, text[:start].count("\n") + 1),
                   file=sys.stderr)
             bad += 1

@@ -117,7 +117,19 @@ Item {
             fillMode: Image.PreserveAspectFit
             smooth: true
             cache: true
-            asynchronous: true
+            // Synchronous, like every other icon-provider load in the shell.
+            // `Quickshell.iconPath` resolves through the same `image://icon/`
+            // provider, i.e. QIcon::fromTheme -> KIconEngine (qt6ct pulls in
+            // KIconThemes), which is not thread safe. Asynchronous hands that
+            // call to Qt's pixmap-reader thread while the dock loads its icons
+            // on the GUI thread: reproduced as a SIGSEGV in
+            // KIconEngine::createPixmap, the same stack as the 2026-09-02
+            // crashes. The state it leaves behind when it does NOT crash is the
+            // "icons vanish after a hot reload, except the dock's" bug -- the
+            // dock's pixmaps are already cached, every new lookup comes back
+            // empty. check.sh's async-icon-provider rule missed this site
+            // because it did not recognise iconPath; it does now.
+            asynchronous: false
         }
 
         // App Info

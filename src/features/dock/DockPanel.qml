@@ -102,7 +102,16 @@ PanelWindow {
 
     function _onHoverEnded(index) {
         if (_hoverIndex === index) _hoverIndex = -1
-        previewShowTimer.stop()
+        // Only the reveal that belongs to THIS icon. Qt delivers the enter on
+        // the icon under the cursor before the exit from the one it left, so
+        // moving between adjacent icons runs requestPreview(new) first and
+        // hoverEnded(old) second. Stopping the timer unconditionally here
+        // cancelled the NEW icon's pending preview: whenever no preview was
+        // already on screen -- after resting on an icon with no windows, or
+        // when such an icon was the first one hovered -- the running app that
+        // came next got its tooltip and never its window previews.
+        if (_pendingPreviewIdx === index)
+            previewShowTimer.stop()
         if (_previewIdx === index || _pendingPreviewIdx === index)
             previewHideTimer.restart()
     }
