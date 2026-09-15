@@ -63,8 +63,9 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 |---------|---------|
 | `cmake` + `ninja` | Build system |
 | `qt6-tools` | `moc`, `rcc` |
-| `qalculate-glib` | Calculator plugin headers |
+| `libqalculate` | Calculator plugin headers |
 | `libical` | Calendar plugin (requires libical ≥ 4.0 — refcounted recurrence API) |
+| `lm_sensors` | Optional: hwmon temperatures in SystemMonitor (built without them if absent) |
 
 ---
 
@@ -85,6 +86,39 @@ cmake --build build
 ```
 
 Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring).
+
+#### Arch Linux: as a package
+
+`packaging/arch/PKGBUILD` builds two packages from the **committed** state of the repo (the checked-out branch, never the working tree):
+
+- `at1ass-shell-plugins` — the plugins above, into `/usr/lib/qt6/qml`, tracked by pacman;
+- `at1ass-shell-greeter` — the greeter, into `/usr/share/at1ass-shell/greeter`, plus `/etc/greetd/greeter.json` and `/etc/greetd/hyprland-greeter.conf` as `backup` files (local edits survive upgrades; new defaults arrive as `.pacnew`).
+
+```bash
+cd ~/.config/quickshell/shell/packaging/arch
+paru -B .      # builds in paru's clean chroot (Chroot/LocalRepo in paru.conf)
+sudo pacman -Sy at1ass-shell-plugins at1ass-shell-greeter
+```
+
+The first install over plugins that were installed with `cmake --install`, and over hand-made `/etc/greetd` files, needs `--overwrite` for exactly those paths — pacman refuses unowned files otherwise:
+
+```bash
+sudo pacman -Sy \
+  --overwrite '/usr/lib/qt6/qml/Calendar/*' --overwrite '/usr/lib/qt6/qml/FuzzySearch/*' \
+  --overwrite '/usr/lib/qt6/qml/Mcu/*' --overwrite '/usr/lib/qt6/qml/Qalculate/*' \
+  --overwrite '/usr/lib/qt6/qml/SystemMonitor/*' \
+  --overwrite /etc/greetd/greeter.json --overwrite /etc/greetd/hyprland-greeter.conf \
+  at1ass-shell-plugins at1ass-shell-greeter
+```
+
+`--overwrite` does not replace the two `/etc/greetd` files: they are `backup` files, so pacman keeps whatever is already there and writes its own copy as `.pacnew` if the contents differ. Check and swap them in, or the greeter keeps running from the old path:
+
+```bash
+ls /etc/greetd/*.pacnew
+sudo mv /etc/greetd/hyprland-greeter.conf.pacnew /etc/greetd/hyprland-greeter.conf
+```
+
+The vendored `material-color-utilities` submodule is fetched over HTTPS and patched in `prepare()` (`src/plugins/patches/`), exactly as in a manual build.
 
 ### 3. Create a user config
 

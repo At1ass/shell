@@ -1,0 +1,187 @@
+diff --git a/cpp/contrast/contrast.cc b/cpp/contrast/contrast.cc
+index c94d444..a1511f9 100644
+--- a/cpp/contrast/contrast.cc
++++ b/cpp/contrast/contrast.cc
+@@ -88,7 +88,7 @@ double Lighter(double tone, double ratio) {
+   double dark_y = YFromLstar(tone);
+   double light_y = ratio * (dark_y + 5.0) - 5.0;
+   double real_contrast = RatioOfYs(light_y, dark_y);
+-  double delta = abs(real_contrast - ratio);
++  double delta = std::fabs(real_contrast - ratio);
+   if (real_contrast < ratio && delta > CONTRAST_RATIO_EPSILON) {
+     return -1;
+   }
+@@ -111,7 +111,7 @@ double Darker(double tone, double ratio) {
+   double dark_y = ((light_y + 5.0) / ratio) - 5.0;
+   double real_contrast = RatioOfYs(light_y, dark_y);
+ 
+-  double delta = abs(real_contrast - ratio);
++  double delta = std::fabs(real_contrast - ratio);
+   if (real_contrast < ratio && delta > CONTRAST_RATIO_EPSILON) {
+     return -1;
+   }
+diff --git a/cpp/dynamiccolor/dynamic_color.cc b/cpp/dynamiccolor/dynamic_color.cc
+index 3f4259d..fe43aa5 100644
+--- a/cpp/dynamiccolor/dynamic_color.cc
++++ b/cpp/dynamiccolor/dynamic_color.cc
+@@ -64,7 +64,7 @@ double ForegroundTone(double bg_tone, double ratio) {
+ 
+   if (prefer_lighter) {
+     double negligible_difference =
+-        (abs(lighter_ratio - darker_ratio) < 0.1 && lighter_ratio < ratio &&
++        (std::fabs(lighter_ratio - darker_ratio) < 0.1 && lighter_ratio < ratio &&
+          darker_ratio < ratio);
+     return lighter_ratio >= ratio || lighter_ratio >= darker_ratio ||
+                    negligible_difference
+diff --git a/cpp/dynamiccolor/material_dynamic_colors.cc b/cpp/dynamiccolor/material_dynamic_colors.cc
+index 26ddb76..f15e0c3 100644
+--- a/cpp/dynamiccolor/material_dynamic_colors.cc
++++ b/cpp/dynamiccolor/material_dynamic_colors.cc
+@@ -124,12 +124,12 @@ double FindDesiredChromaByTone(double hue, double chroma, double tone,
+       if (chroma_peak > potential_solution.get_chroma()) {
+         break;
+       }
+-      if (abs(potential_solution.get_chroma() - chroma) < 0.4) {
++      if (std::fabs(potential_solution.get_chroma() - chroma) < 0.4) {
+         break;
+       }
+ 
+-      double potential_delta = abs(potential_solution.get_chroma() - chroma);
+-      double current_delta = abs(closest_to_chroma.get_chroma() - chroma);
++      double potential_delta = std::fabs(potential_solution.get_chroma() - chroma);
++      double current_delta = std::fabs(closest_to_chroma.get_chroma() - chroma);
+       if (potential_delta < current_delta) {
+         closest_to_chroma = potential_solution;
+       }
+diff --git a/cpp/palettes/tones.cc b/cpp/palettes/tones.cc
+index cc5d1b9..d12aca3 100644
+--- a/cpp/palettes/tones.cc
++++ b/cpp/palettes/tones.cc
+@@ -79,7 +79,7 @@ Hct KeyColor::create() {
+     if (sufficient_chroma) {
+       // Either range [lower_tone, mid_tone] or [mid_tone, upper_tone] has
+       // the answer, so search in the range that is closer the pivot tone.
+-      if (abs(lower_tone - pivot_tone) < abs(upper_tone - pivot_tone)) {
++      if (std::fabs(lower_tone - pivot_tone) < std::fabs(upper_tone - pivot_tone)) {
+         upper_tone = mid_tone;
+       } else {
+         if (lower_tone == mid_tone) {
+diff --git a/cpp/quantize/wsmeans.cc b/cpp/quantize/wsmeans.cc
+index f6381b7..cadda22 100644
+--- a/cpp/quantize/wsmeans.cc
++++ b/cpp/quantize/wsmeans.cc
+@@ -27,7 +27,6 @@
+ #include <unordered_set>
+ #include <vector>
+ 
+-#include "absl/container/flat_hash_map.h"
+ #include "cpp/quantize/lab.h"
+ 
+ constexpr int kMaxIterations = 100;
+@@ -64,7 +63,7 @@ QuantizerResult QuantizeWsmeans(const std::vector<Argb>& input_pixels,
+   }
+ 
+   uint32_t pixel_count = input_pixels.size();
+-  absl::flat_hash_map<Argb, int> pixel_to_count;
++  std::unordered_map<Argb, int> pixel_to_count;
+   std::vector<uint32_t> pixels;
+   pixels.reserve(pixel_count);
+   std::vector<Lab> points;
+@@ -75,7 +74,11 @@ QuantizerResult QuantizeWsmeans(const std::vector<Argb>& input_pixels,
+     // std::unordered_map 10.2 ms
+     // absl::btree_map 9.0 ms
+     // absl::flat_hash_map 8.0 ms
+-    absl::flat_hash_map<Argb, int>::iterator it = pixel_to_count.find(pixel);
++    // std::unordered_map is used here on purpose: absl::flat_hash_map was the
++    // only reason this library linked against Abseil, whose SONAME changes on
++    // every release and silently breaks the installed QML plugin. The map is
++    // only probed by key, never iterated, so the result is unchanged.
++    std::unordered_map<Argb, int>::iterator it = pixel_to_count.find(pixel);
+     if (it != pixel_to_count.end()) {
+       it->second++;
+ 
+@@ -172,8 +175,13 @@ QuantizerResult QuantizeWsmeans(const std::vector<Argb>& input_pixels,
+         }
+       }
+       if (new_cluster_index != -1) {
++        // std::fabs, not bare abs(): dropping the Abseil header also dropped
++        // the <cmath> overload it transitively pulled in, and unqualified abs()
++        // silently resolved to abs(int), truncating this delta to 0 and
++        // freezing the k-means reassignment. Qualifying it keeps the exact
++        // behaviour the Abseil-linked build had.
+         double distanceChange =
+-            abs(sqrt(minimum_distance) - sqrt(previous_distance));
++            std::fabs(sqrt(minimum_distance) - sqrt(previous_distance));
+         if (distanceChange > kMinDeltaE) {
+           color_moved = true;
+           cluster_indices[i] = new_cluster_index;
+diff --git a/cpp/temperature/temperature_cache.cc b/cpp/temperature/temperature_cache.cc
+index 4fec3a2..015efce 100644
+--- a/cpp/temperature/temperature_cache.cc
++++ b/cpp/temperature/temperature_cache.cc
+@@ -16,6 +16,8 @@
+ 
+ #include "cpp/temperature/temperature_cache.h"
+ 
++#include <cmath>
++
+ #include <algorithm>
+ #include <map>
+ #include <vector>
+@@ -60,7 +62,7 @@ Hct TemperatureCache::GetComplement() {
+     Hct possible_answer = GetHctsByHue().at((int)round(hue));
+     double relative_temp =
+         (GetTempsByHct().at(possible_answer) - coldest_temp) / range;
+-    double error = abs(complement_relative_temp - relative_temp);
++    double error = std::fabs(complement_relative_temp - relative_temp);
+     if (error < smallest_error) {
+       smallest_error = error;
+       answer = possible_answer;
+@@ -89,7 +91,7 @@ std::vector<Hct> TemperatureCache::GetAnalogousColors(int count,
+     int hue = SanitizeDegreesInt(start_hue + i);
+     Hct hct = GetHctsByHue().at(hue);
+     double temp = GetRelativeTemperature(hct);
+-    double temp_delta = abs(temp - last_temp);
++    double temp_delta = std::fabs(temp - last_temp);
+     last_temp = temp;
+     absolute_total_temp_delta += temp_delta;
+   }
+@@ -102,7 +104,7 @@ std::vector<Hct> TemperatureCache::GetAnalogousColors(int count,
+     int hue = SanitizeDegreesInt(start_hue + hue_addend);
+     Hct hct = GetHctsByHue().at(hue);
+     double temp = GetRelativeTemperature(hct);
+-    double temp_delta = abs(temp - last_temp);
++    double temp_delta = std::fabs(temp - last_temp);
+     total_temp_delta += temp_delta;
+ 
+     double desired_total_temp_delta_for_index = (all_colors.size() * temp_step);
+diff --git a/cpp/utils/utils.cc b/cpp/utils/utils.cc
+index eaa892d..91da229 100644
+--- a/cpp/utils/utils.cc
++++ b/cpp/utils/utils.cc
+@@ -22,10 +22,9 @@
+ #include <cmath>
+ #include <cstdint>
+ #include <cstdio>
++#include <sstream>
+ #include <string>
+ 
+-#include "absl/strings/str_cat.h"
+-
+ namespace material_color_utilities {
+ 
+ int RedFromInt(const Argb argb) { return (argb & 0x00ff0000) >> 16; }
+@@ -140,7 +139,12 @@ double RotationDirection(const double from, const double to) {
+ // Converts a color in ARGB format to a hexadecimal string in lowercase.
+ //
+ // For instance: hex_from_argb(0xff012345) == "ff012345"
+-std::string HexFromArgb(Argb argb) { return absl::StrCat(absl::Hex(argb)); }
++std::string HexFromArgb(Argb argb) {
++  // Matches absl::StrCat(absl::Hex(argb)): lowercase, no zero padding.
++  std::ostringstream os;
++  os << std::hex << argb;
++  return os.str();
++}
+ 
+ Argb IntFromLstar(const double lstar) {
+   double y = YFromLstar(lstar);

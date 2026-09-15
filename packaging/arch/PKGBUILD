@@ -1,0 +1,87 @@
+# Maintainer: At1ass <nikolatesla199620@gmail.com>
+#
+# Local package for this machine: the C++ QML plugins of the Quickshell shell
+# and its greetd greeter.
+#
+# Built from the COMMITTED state of the repo (whatever branch is checked out),
+# never from the working tree. Build in the clean chroot, into the local repo:
+#   cd ~/.config/quickshell/shell/packaging/arch && paru -B .
+# then install/upgrade with pacman -S (the first install needs --overwrite for
+# the files that used to be installed by hand — see README.md, "Installation").
+
+pkgbase=at1ass-shell
+pkgname=(at1ass-shell-plugins at1ass-shell-greeter)
+pkgver=r251.52ace4d4
+pkgrel=1
+pkgdesc="at1ass Quickshell desktop shell"
+arch=(x86_64)
+url="https://git.lan/at1ass/shell"
+# The shell has no license file (private). Mcu statically links the vendored
+# material-color-utilities, which is Apache-2.0.
+license=('LicenseRef-private' 'Apache-2.0')
+makedepends=(git cmake ninja pkgconf qt6-base qt6-declarative libical libqalculate lm_sensors rapidfuzz-cpp)
+
+_mcu_commit=07b2c68508039e178bcf1317ad0cf0af4c36be0f
+_submodule=src/plugins/external/material-color-utilities
+
+source=("shell::git+file:///home/at1ass/.config/quickshell/shell"
+        "mcu::git+https://github.com/material-foundation/material-color-utilities.git#commit=${_mcu_commit}"
+        greeter.json
+        hyprland-greeter.conf)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+pkgver() {
+  cd shell
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd shell
+  # .gitmodules points the submodule at an SSH URL; use the clone makepkg
+  # already fetched instead (no network, no keys inside the chroot).
+  git submodule init "$_submodule"
+  git config "submodule.$_submodule.url" "$srcdir/mcu"
+  git -c protocol.file.allow=always submodule update "$_submodule"
+  # Drops abseil and fixes the abs()/fabs port bugs — src/plugins/patches/README.md.
+  git -C "$_submodule" apply "$srcdir/shell/src/plugins/patches/0001-drop-abseil-keep-double-abs.patch"
+}
+
+build() {
+  # FuzzySearch pulls rapidfuzz through FetchContent (a git clone at configure
+  # time). Satisfy it from the rapidfuzz-cpp package instead, and forbid any
+  # download: the build stays offline and fails loudly if the package is gone.
+  cmake -S shell/src/plugins -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=None \
+    -DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=ALWAYS \
+    -DFETCHCONTENT_FULLY_DISCONNECTED=ON \
+    -Wno-dev
+  cmake --build build
+}
+
+package_at1ass-shell-plugins() {
+  pkgdesc="C++ QML plugins of the at1ass Quickshell shell (Mcu, Qalculate, SystemMonitor, FuzzySearch, Calendar)"
+  depends=(gcc-libs glibc qt6-base qt6-declarative libical libqalculate lm_sensors)
+
+  # INSTALL_QMLDIR defaults to the absolute /usr/lib/qt6/qml (PluginInstall.cmake).
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 "shell/$_submodule/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/material-color-utilities.LICENSE"
+}
+
+package_at1ass-shell-greeter() {
+  pkgdesc="greetd greeter of the at1ass Quickshell shell"
+  depends=(at1ass-shell-plugins quickshell greetd hyprland ttf-roboto ttf-material-symbols-variable)
+  optdepends=('greetd-regreet: fallback when the Quickshell greeter fails to load')
+  backup=(etc/greetd/greeter.json etc/greetd/hyprland-greeter.conf)
+
+  # Runtime files only: sync-ui.sh is a repo tool, README goes to doc.
+  local src=shell/src/features/greeter
+  local dest="$pkgdir/usr/share/at1ass-shell/greeter"
+  install -d "$dest"
+  cp -r --no-preserve=ownership \
+    "$src"/{shell.qml,GreeterSurface.qml,qmldir,components,config,ui} "$dest/"
+  install -Dm644 "$src/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+
+  install -Dm644 greeter.json "$pkgdir/etc/greetd/greeter.json"
+  install -Dm644 hyprland-greeter.conf "$pkgdir/etc/greetd/hyprland-greeter.conf"
+}

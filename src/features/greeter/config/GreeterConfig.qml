@@ -7,31 +7,20 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Greeter config + shell state symlink live in /etc/greetd/
+    // Everything the greeter reads lives in /etc/greetd/, root-owned, and
+    // nothing comes from the user's home. It used to follow the shell's current
+    // wallpaper through /etc/greetd/shell-state.json (a symlink into
+    // ~/.config/quickshell/state.json) plus ACLs on ~/wallpapers. The traverse
+    // right on ~ that this required also let the greeter user read every
+    // world-readable file in the home directory, for the sake of one path.
+    // The background is now an image copied into /etc/greetd by hand.
     readonly property string greeterConfigPath: "/etc/greetd/greeter.json"
-    readonly property string shellStatePath: "/etc/greetd/shell-state.json"  // symlink → user's state.json
 
     property bool ready: false
     property var data: ({})
-    property var _shellState: ({})
 
-    // Wallpaper: shell-state.json monitors → greeter config wallpaperPath → ""
-    readonly property string wallpaperPath: {
-        let monitors = _shellState.wallpaper?.monitors
-        let primary = data.primaryMonitor ?? ""
-
-        if (monitors) {
-            if (primary && monitors[primary]?.currentItemId)
-                return monitors[primary].currentItemId
-
-            for (let name in monitors) {
-                if (monitors[name]?.currentItemId)
-                    return monitors[name].currentItemId
-            }
-        }
-
-        return data.wallpaperPath ?? ""
-    }
+    // Background image and palette seed; empty -> solid surfaceDim.
+    readonly property string wallpaperPath: data.wallpaperPath ?? ""
 
     readonly property bool darkMode: data.darkMode ?? true
     readonly property string themeVariant: data.themeVariant ?? "vibrant"
@@ -54,42 +43,13 @@ Singleton {
                 console.warn("GreeterConfig: failed to parse", root.greeterConfigPath, e)
                 root.data = {}
             }
-            root._checkReady()
+            root.ready = true
         }
 
         onLoadFailed: error => {
             console.info("GreeterConfig: no config at", root.greeterConfigPath, "- using defaults")
             root.data = {}
-            root._checkReady()
-        }
-    }
-
-    // /etc/greetd/shell-state.json (symlink → ~/.config/quickshell/state.json)
-    FileView {
-        id: shellStateFile
-        path: root.shellStatePath
-
-        onLoaded: {
-            try {
-                root._shellState = JSON.parse(text()) || {}
-            } catch (e) {
-                console.warn("GreeterConfig: failed to parse", root.shellStatePath, e)
-                root._shellState = {}
-            }
-            root._checkReady()
-        }
-
-        onLoadFailed: error => {
-            console.info("GreeterConfig: shell state not found at", root.shellStatePath)
-            root._shellState = {}
-            root._checkReady()
-        }
-    }
-
-    property int _loadedCount: 0
-    function _checkReady() {
-        _loadedCount++
-        if (_loadedCount >= 2)
             root.ready = true
+        }
     }
 }

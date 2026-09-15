@@ -1,0 +1,7 @@
+# makepkg / paru build artifacts
+/src/
+/pkg/
+/shell/
+/mcu/
+*.pkg.tar.*
+*.log

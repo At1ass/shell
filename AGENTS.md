@@ -96,7 +96,11 @@ plugins (C++)  ←  config  ←  services  ←  features
 cd src/plugins
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
-sudo cmake --install build          # ставит в /usr/lib/qt6/qml/
+sudo cmake --install build          # ставит в /usr/lib/qt6/qml/ — В ОБХОД pacman
+# На этой машине плагины и greeter ставятся пакетом (packaging/arch/PKGBUILD):
+#   cd packaging/arch && paru -B . && sudo pacman -Sy at1ass-shell-plugins at1ass-shell-greeter
+# Пакет собирается из ЗАКОММИЧЕННОГО состояния: сначала коммит, потом сборка.
+# Не смешивай: cmake --install поверх пакета перезапишет файлы, которыми владеет pacman.
 # ⚠️ Замена .so под работающим шеллом может его уронить, а плагин всё равно
 # подхватится только после перезапуска: systemctl --user restart quickshell
 # (сначала проверь `qs ipc call globalstates locked` — см. предупреждение ниже).

@@ -15,7 +15,7 @@ greeter/
 ├── shell.qml                  — Entry point: fullscreen PanelWindow per monitor
 ├── GreeterSurface.qml         — Wallpaper + blur + scrim + clock + form + Greetd IPC
 ├── config/
-│   ├── GreeterConfig.qml      — Config from /etc/greetd/ + wallpaper from state.json
+│   ├── GreeterConfig.qml      — Config and background from /etc/greetd/ (nothing from $HOME)
 │   ├── GreeterTheme.qml       — Material Design 3 theme (McuTheme)
 │   ├── SessionModel.qml       — Parses wayland-sessions/*.desktop and xsessions/*.desktop
 │   └── UserModel.qml          — Users from getent passwd (UID 1000–65533)
@@ -64,7 +64,12 @@ user = "greeter"
 # Adapt monitors to your hardware
 monitor = DP-1, preferred, auto, 1
 
-exec-once = qs -p /home/<USER>/.config/quickshell/shell/src/features/greeter; hyprctl dispatch exit
+# Installed as a package (packaging/arch, at1ass-shell-greeter): root-owned code,
+# no access to the user's home needed. This file itself ships in that package.
+exec-once = qs -p /usr/share/at1ass-shell/greeter || regreet; hyprctl dispatch exit
+
+# Running straight from a checkout instead (development):
+# exec-once = qs -p /home/<USER>/.config/quickshell/shell/src/features/greeter || regreet; hyprctl dispatch exit
 
 misc {
     disable_hyprland_logo = true
@@ -79,7 +84,7 @@ misc {
 
 ```json
 {
-  "primaryMonitor": "DP-1",
+  "wallpaperPath": "/etc/greetd/wallpaper.jpg",
   "darkMode": true,
   "themeVariant": "vibrant",
   "themeColor": "#6200EE",
@@ -92,7 +97,6 @@ misc {
 
 | Field            | Default     | Description                                                      |
 |------------------|-------------|------------------------------------------------------------------|
-| `primaryMonitor` | `""`        | Monitor name used to pick a wallpaper from state.json            |
 | `darkMode`       | `true`      | Dark theme                                                       |
 | `themeVariant`   | `"vibrant"` | Material You variant (vibrant, tonalspot, etc.)                  |
 | `themeColor`     | `"#6200EE"` | Fallback seed color for theme generation (when there's no image) |
@@ -100,60 +104,32 @@ misc {
 | `showClock`      | `true`      | Show clock and date                                              |
 | `defaultUser`    | `""`        | Pre-fill the username                                            |
 | `defaultSession` | `""`        | Pre-select a session by name (e.g. `"Hyprland"`)                 |
-| `wallpaperPath`  | `""`        | Manual wallpaper path (used when state.json is unavailable)      |
+| `wallpaperPath`  | `""`        | Background image, e.g. `/etc/greetd/wallpaper.jpg`; also seeds the palette. Empty → solid `surfaceDim` |
 
-### 4. Wallpaper from the main shell
+### 4. Background image
 
-The greeter picks up the current wallpaper from the main shell's `state.json` via a symlink.
-
-#### Create the symlink
+The greeter reads nothing from the user's home. Copy the image into `/etc/greetd/` by hand and point `wallpaperPath` in `greeter.json` at it; to change the background, copy a new one over it:
 
 ```bash
-sudo ln -sf /home/<USER>/.config/quickshell/state.json /etc/greetd/shell-state.json
+sudo install -Dm644 ~/wallpapers/3440x1440/some.jpg /etc/greetd/wallpaper.jpg
 ```
 
-#### ACL: access for the greeter user
+The same image seeds the Material You palette (`Mcu`). Without one, `themeColor` seeds it and the background is a solid `surfaceDim`.
 
-The `greeter` user needs **traverse** (`x`) along the directory chain down to `state.json` and **read** (`r`) on the file itself and on the wallpaper files. Traverse does not grant listing — only the ability to step through to a known path.
+Earlier versions followed the shell's current wallpaper through a `/etc/greetd/shell-state.json` symlink into `~/.config/quickshell/state.json`, plus ACLs on the wallpaper directory. That needed traverse (`x`) on the home directory for the `greeter` user — and traverse on `~` also opens every world-readable file below it, not just the ones the ACLs name. Remove the leftovers if present:
 
 ```bash
-# Traverse to state.json
-setfacl -m u:greeter:x /home/<USER>
-setfacl -m u:greeter:x /home/<USER>/.config
-setfacl -m u:greeter:x /home/<USER>/.config/quickshell
-setfacl -m u:greeter:r /home/<USER>/.config/quickshell/state.json
-
-# Read wallpapers
-setfacl -m u:greeter:rx /home/<USER>/wallpapers
-find /home/<USER>/wallpapers -type d -exec setfacl -m u:greeter:rx {} \;
-find /home/<USER>/wallpapers -type f -exec setfacl -m u:greeter:r {} \;
+sudo rm -f /etc/greetd/shell-state.json
+setfacl -R -x u:greeter ~/wallpapers
 ```
 
-#### Wallpaper selection cascade
+> The greeter **code** is still loaded from `~/.config/quickshell/shell/src/features/greeter` (step 2), so `u:greeter:x` on `~`, `~/.config` and `~/.config/quickshell` stays necessary until the greeter is installed outside the home directory.
 
-1. `shell-state.json` → `wallpaper.monitors[primaryMonitor].current`
-2. `shell-state.json` → first monitor with a wallpaper set
-3. `greeter.json` → `wallpaperPath` (manual fallback)
-4. None of the above → solid `surfaceDim` color from the theme
-
-#### Security
-
-- `greeter` only gets **read** on `state.json` and on the wallpaper files
-- `x` on directories is traverse, **not list** (`ls /home/<USER>` will fail)
-- `state.json` contains only wallpaper paths and UI state — no secrets
-- No write, no execute
-
-### 5. Verifying ACLs
+### 5. Verifying
 
 ```bash
-# Should return the contents of state.json
-sudo -u greeter cat /etc/greetd/shell-state.json
-
-# Should return a wallpaper file
-sudo -u greeter cat /home/<USER>/wallpapers/some-wallpaper.jpg > /dev/null && echo OK
-
-# Should NOT work — no list permission
-sudo -u greeter ls /home/<USER>  # Permission denied
+sudo -u greeter cat /etc/greetd/greeter.json
+sudo -u greeter test -r /etc/greetd/wallpaper.jpg && echo OK
 ```
 
 ## Greetd IPC flow

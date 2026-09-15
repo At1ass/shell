@@ -13,8 +13,8 @@ Singleton {
     // losing its wallpaper-derived palette and falling back to the seed colour
     // on every boot. Assigning through a `url` property is what makes QML
     // coerce it — this mirrors Theme.seed in the main shell.
-    // A BARE PATH IS NOT A URL. wallpaperPath comes out of shell-state.json as
-    // "/home/.../x.png"; coercing that to `url` yields a scheme-less relative
+    // A BARE PATH IS NOT A URL. wallpaperPath comes out of greeter.json as
+    // "/etc/greetd/wallpaper.jpg"; coercing that to `url` yields a scheme-less relative
     // URL that McuTheme cannot open, so the palette stayed at its uninitialised
     // #000000 for every role. WallpaperManager._asUrl does the same conversion
     // on the main-shell side — this is the greeter's copy of it.

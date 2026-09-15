@@ -1,0 +1,7 @@
+{
+  "wallpaperPath": "/etc/greetd/wallpaper.jpg",
+  "darkMode": true,
+  "themeVariant": "vibrant",
+  "showClock": true,
+  "defaultSession": "Hyprland (uwsm-managed)"
+}
