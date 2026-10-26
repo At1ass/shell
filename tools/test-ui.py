@@ -839,8 +839,35 @@ Item {
    compare(menu.depth,2)
    verify(byProperty(menu,"headline","New child")!==null,"submenu follows replacement handle")
   }
-  function test_tray_menu_long_scroll() {
-   controls.visible=false
+  function test_tray_menu_density_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_tray_menu_density(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack
+   const first=createTemporaryObject(menuEntryFixture,scene,{text:"First action"})
+   const separator=createTemporaryObject(menuEntryFixture,scene,{isSeparator:true})
+   const toggle=createTemporaryObject(menuEntryFixture,scene,{text:"Enabled",buttonType:QsMenuButtonType.CheckBox,checkState:Qt.Checked})
+   const last=createTemporaryObject(menuEntryFixture,scene,{text:"Last action"})
+   const handle=createTemporaryObject(menuEntryFixture,scene,{entries:[first,separator,toggle,last]})
+   const menu=createTemporaryObject(trayMenuFixture,scene,{trayItem:handle,maximumHeight:scene.height})
+   verify(menu!==null);wait(30)
+   const row=byProperty(menu,"headline","First action")
+   const divider=byProperty(menu,"separator",true)
+   verify(row!==null && divider!==null)
+   for(const scale of [1,1.3,2]) {
+    AppConfig.fontScale=scale;wait(20)
+    compare(divider.height,Tokens.spacing.small*2+Tokens.size.outline)
+    verify(row.height>=Tokens.touchTarget.minimum)
+    if(scale===1)verify(row.height<Tokens.size.listItem,"menu row is denser than an ordinary list row")
+    const sum=row.height+divider.height+byProperty(menu,"headline","Enabled").height+byProperty(menu,"headline","Last action").height
+    verify(Math.abs(menu.implicitHeight-sum)<=1,"menu has no extra inter-item space")
+   }
+   AppConfig.fontScale=1.3;wait(20)
+   grabImage(menu).save("RENDERS/tray-menu-density-"+data.pack+".png")
+   menu.focusInitial();keyClick(Qt.Key_Down);wait(10)
+   verify(byProperty(menu,"headline","Enabled").activeFocus,"navigation skips the compact separator")
+  }
+  function test_tray_menu_long_scroll_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_tray_menu_long_scroll(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack
    let entries=[]
    for(let i=0;i<30;i++) entries.push(createTemporaryObject(menuEntryFixture,scene,{text:"Action "+i}))
    const handle=createTemporaryObject(menuEntryFixture,scene,{entries:entries})

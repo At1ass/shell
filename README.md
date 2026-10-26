@@ -1160,6 +1160,11 @@ until hardware acceptance and the NetworkManager secret-agent audit are complete
 blueman-manager through AppLaunchService. There are no shell settings in the panel.
 
 
+Tray menu actions use compact rows (36 px in Minimal, 48 px in MD3 before text
+measurement), with short separators rather than list-sized blank rows. Large fonts
+and custom slots can increase the measured height; long menus retain scrolling
+and keyboard navigation through all actions and submenus.
+
 The cheatsheet discovers IPC handlers and signatures with `qs ipc show` on every
 open. Local descriptions enrich those commands without defining a second list.
 The query has a deadline and retry state; failed refreshes retain the last valid

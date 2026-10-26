@@ -80,7 +80,7 @@ Open before removing applets:
 - Applet removal is a separate migration after both authentication paths pass;
   nm-applet and blueman-applet remain enabled for now.
 
-Next UI work: compact oversized tray-menu rows, then dashboard motion. The user
+Tray-menu density is corrected; next UI work is dashboard motion. The user
 reports jerking/jumping and successive layout adjustments in Dashboard; Connections
 motion is abrupt but otherwise acceptable. Review opening/tab switching/lazy content
 and implicit-size transitions together; do not just increase animation durations.
@@ -3273,3 +3273,16 @@ Sources: [QS 0.3.2 WifiNetwork](https://quickshell.org/docs/v0.3.2/types/Quicksh
 [NM SecretAgent](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.SecretAgent.html),
 [NM AgentManager](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.AgentManager.html),
 [nmcli activation](https://networkmanager.dev/docs/api/latest/nmcli.html).
+
+
+## Compact tray menus — 2026-10-26
+
+Tray actions inherited full list-row minima (52/64 px), and separators set height
+inside ColumnLayout, where the layout instead used ListItem.implicitHeight. Every
+separator could therefore consume an entire list row. Use layout preferred/min/max
+height for separators and measured content height for actions, with the existing
+36/48 px touch-target minimum. ListItem exposes a minimumHeight override; its
+ordinary list default stays unchanged. Back rows still measure their supporting
+label, font scaling and icons retain space, and long menus keep keyboard scrolling.
+UI tests cover both design packs, multiple font scales, separators, checkboxes and
+End navigation to the final action. Dashboard motion review is the next UI task.

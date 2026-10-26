@@ -148,6 +148,7 @@ StackView {
                         id: backRow
                         Layout.fillWidth: true
                         visible: menuPage.isSubMenu
+                        minimumHeight: Tokens.touchTarget.minimum
                         headline: "Back"
                         supportingText: menuPage.entryLabel
                         leadingIcon: "arrow_back"
@@ -170,7 +171,12 @@ StackView {
                             readonly property bool checkable: !separator && (modelData?.buttonType ?? QsMenuButtonType.None) !== QsMenuButtonType.None
                             readonly property bool checked: (modelData?.checkState ?? Qt.Unchecked) !== Qt.Unchecked
                             Layout.fillWidth: true
-                            height: separator ? Tokens.spacing.small * 2 + Tokens.size.outline : implicitHeight
+                            minimumHeight: Tokens.touchTarget.minimum
+                            // ColumnLayout uses layout hints, not height. A separator
+                            // must not inherit an ordinary list row's implicit height.
+                            Layout.preferredHeight: separator ? Tokens.spacing.small * 2 + Tokens.size.outline : implicitHeight
+                            Layout.minimumHeight: Layout.preferredHeight
+                            Layout.maximumHeight: Layout.preferredHeight
                             clickable: !separator
                             enabled: !separator && (modelData?.enabled ?? false)
                             headlineTextFormat: Text.PlainText

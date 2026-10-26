@@ -33,12 +33,13 @@ Rectangle {
     property bool showStateLayer: true
 
     property real margin: Tokens.spacing.medium
+    property real minimumHeight: Tokens.size.listItem
 
     // Signals
     signal clicked()
 
     // Measured content also accommodates fontScale and custom slot controls.
-    implicitHeight: Math.max(Tokens.size.listItem, content.implicitHeight + Tokens.spacing.small * 2)
+    implicitHeight: Math.max(root.minimumHeight, content.implicitHeight + Tokens.spacing.small * 2)
     Accessible.role: Accessible.Button
     Accessible.name: headline
     Accessible.description: supportingText
