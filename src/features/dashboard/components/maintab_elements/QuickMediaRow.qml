@@ -78,16 +78,21 @@ Item {
     // The single parameter every position below is derived from. Animating this
     // rather than the individual geometries is what keeps them in step.
     property real morph: 0
+    property bool _motionReady: false
     Behavior on morph {
+        enabled: root._motionReady && root.visible && GlobalStates.dashboardOpen
         MotionAnimation {
             duration: Tokens.motion.duration.medium4
             curve: "emphasized"
         }
     }
 
-    // A change handler alone leaves the morph at 0 for a row BUILT expanded --
-    // which a retained dashboard does every time it is reopened.
-    Component.onCompleted: root.morph = root.expanded ? 1 : 0
+    // Initial expanded content must start at its final geometry before motion
+    // is enabled; otherwise its first frame starts a second opening transition.
+    Component.onCompleted: {
+        root.morph = root.expanded ? 1 : 0
+        root._motionReady = true
+    }
     function _l(a, b) { return a + (b - a) * root.morph }
 
     // ---- geometry ----------------------------------------------------------

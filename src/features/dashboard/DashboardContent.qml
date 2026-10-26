@@ -23,8 +23,13 @@ Item {
     // this an expanding section has nowhere to grow and is simply clipped.
     readonly property int tabExtraHeight: (_tabLoaders[tabView.currentIndex]?.item?.extraHeight) ?? 0
 
-    // A tab that measures itself, if it does. 0 means "use the fixed table".
-    readonly property int tabContentHeight: (_tabLoaders[tabView.currentIndex]?.item?.contentHeight) ?? 0
+    // A replacement lazy tab briefly has no item or measured geometry. Keep
+    // the previous target during that handover instead of resizing the window
+    // to its configured fallback and then back to the new tab's height.
+    readonly property int _rawTabContentHeight: (_tabLoaders[tabView.currentIndex]?.item?.contentHeight) ?? 0
+    property int _lastMeasuredHeight: 0
+    on_RawTabContentHeightChanged: if (_rawTabContentHeight > 0) _lastMeasuredHeight = _rawTabContentHeight
+    readonly property int tabContentHeight: _rawTabContentHeight > 0 ? _rawTabContentHeight : _lastMeasuredHeight
 
     // Everything this component adds around a tab. A measuring tab reports only
     // its own content, so the window has to be told what sits above it.

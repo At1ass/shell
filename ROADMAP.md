@@ -80,10 +80,12 @@ Open before removing applets:
 - Applet removal is a separate migration after both authentication paths pass;
   nm-applet and blueman-applet remain enabled for now.
 
-Tray-menu density is corrected; next UI work is dashboard motion. The user
-reports jerking/jumping and successive layout adjustments in Dashboard; Connections
-motion is abrupt but otherwise acceptable. Review opening/tab switching/lazy content
-and implicit-size transitions together; do not just increase animation durations.
+Tray-menu density and a first dashboard motion correction are implemented; manual
+motion acceptance remains open. The user reports jerking/jumping and successive
+layout adjustments in Dashboard; Connections motion is abrupt but otherwise
+acceptable. Native window resizing no longer has a separate QML animation, lazy
+handover retains its measured target, and the media morph applies hidden/initial
+state immediately. Verify opening, tab switching and player expansion together.
 Then continue remaining feature-specific controls and bar/dock/popout consistency.
 
 ## Interaction contract — 2026-10
@@ -3286,3 +3288,25 @@ ordinary list default stays unchanged. Back rows still measure their supporting
 label, font scaling and icons retain space, and long menus keep keyboard scrolling.
 UI tests cover both design packs, multiple font scales, separators, checkboxes and
 End navigation to the final action. Dashboard motion review is the next UI task.
+
+
+## Dashboard geometry and overlapping motion — 2026-10-26
+
+The dashboard animated PanelWindow.implicitHeight while that height was derived
+from live layout measurements. Each animation frame resized the entire layout;
+lazy tab changes could also report zero and retarget the window through its fixed
+fallback. QuickMediaRow independently animated its morph, although its sizing
+contract requires the final available space before the morph begins. These paths
+could overlap and repeatedly retarget geometry.
+
+Remove the QML animation on native window height and wait for the first measured
+content before mapping. Keep the previous positive tab measurement while a lazy
+replacement has no geometry. Media keeps its own animation when the dashboard is
+visible, and applies initial/hidden state immediately. No global animation speed
+or user Hyprland animation configuration is changed.
+
+Tests cover measurement handover, native Wayland final-height application with
+reduced motion disabled, top/bottom placement and screen bounds. Wayland fixtures
+are transparent, with no input region or focus grabs. Manual visual acceptance of
+cold/repeated opening, tab switching, media and statistics expansion is still
+needed; this correction is not a claim that every source of UI jank is eliminated.

@@ -474,6 +474,7 @@ Item {
  Component {id:trayFixture;TrayWidget {height:40}}
  Component {id:overflowFixture;TestTrayOverflow {width:320;height:400}}
  Component {id:panelState;TestPanelState {}}
+ Component {id:mediaRowFixture;QuickMediaRow {width:600;visible:true}}
  Component {id:connectionsPanel;ConnectionsContent {width:420;height:Math.min(implicitHeight,500)}}
  Component {
   id:pairingFixture
@@ -1413,6 +1414,30 @@ Item {
    scene.selected=3;wait(20);verify(tabs.activeFocus)
    keyClick(Qt.Key_Tab);verify(tile.activeFocus)
   }
+  function test_dashboard_media_initial_and_hidden_geometry() {
+   const previousMotion=AppConfig.reduceMotion
+   AppConfig.reduceMotion=false
+   const previousOpen=GlobalStates.dashboardOpen
+   GlobalStates.dashboardOpen=true
+   const row=createTemporaryObject(mediaRowFixture,scene,{expanded:true})
+   verify(row!==null);compare(row.morph,1,"initial expanded content starts at its final geometry")
+   GlobalStates.dashboardOpen=false
+   row.expanded=false;compare(row.morph,0,"hidden expansion does not keep moving")
+   row.expanded=true;compare(row.morph,1)
+   GlobalStates.dashboardOpen=previousOpen
+   AppConfig.reduceMotion=previousMotion
+  }
+  function test_dashboard_measurement_handover() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
+   verify(dashboard.tabContentHeight>0)
+   const previous=dashboard.tabContentHeight
+   // This isolated Calendar stub has no measurement, like a loading tab.
+   GlobalStates.dashboardOpenIndex=2;wait(20)
+   compare(dashboard.tabContentHeight,previous)
+   GlobalStates.dashboardOpenIndex=1;wait(30)
+   verify(dashboard.tabContentHeight>0)
+   compare(dashboard.tabContentHeight,dashboard._rawTabContentHeight)
+  }
   function test_dashboard_keyboard() {
    dashboard.visible=true;controls.visible=false;wait(30)
    dashboard.forceActiveFocus();keyClick(Qt.Key_Tab,Qt.ControlModifier)
@@ -2024,9 +2049,13 @@ ShellRoot {
    } else if(root.step===5) {
     if(++root.settle<4) return
     GlobalStates.dashboardOpen=true;root.step=6;root.settle=0
-   } else {
+   } else if(root.step===6) {
     if(++root.settle<4) return
     root.check(dashboard.window.margins.top>=BarMetrics.height && dashboard.window.anchors.top,"dashboard top margin")
+    AppConfig.reduceMotion=false;GlobalStates.dashboardOpenIndex=1;root.step=7
+   } else {
+    const target=Math.min(dashboard.window.availableHeight,dashboard.window._measured+dashboard.window.chromeHeight)
+    root.check(dashboard.window._measured>0 && dashboard.window.implicitHeight===target,"dashboard applies final native height without a second geometry animation")
     GlobalStates.dashboardOpen=false
     console.warn("BAR WAYLAND PASS");Qt.quit()
    }

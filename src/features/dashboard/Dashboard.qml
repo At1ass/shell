@@ -4,7 +4,6 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.services
 import qs.src.core.config
-import qs.src.ui.base
 
 Scope {
     id: root
@@ -49,12 +48,12 @@ Scope {
         // margins and the tab bar above it.
         readonly property int chromeHeight: Tokens.spacing.small * 2 + (_content?.chromeHeight ?? 0)
 
-        Behavior on implicitHeight {
-            MotionAnimation {
-                duration: Tokens.motion.duration.short4
-                curve: "emphasizedDecelerate"
-            }
-        }
+        // Resize the native surface once to the measured target. Animating this
+        // property resizes the entire layout every frame, retargets measurements
+        // during lazy loading and competes with the player's own morph.
+        property bool _contentReady: false
+        on_MeasuredChanged: if (_measured > 0) _contentReady = true
+        Component.onCompleted: if (_measured > 0) _contentReady = true
         anchors {
             top: AppConfig.barPosition !== "bottom"
             bottom: AppConfig.barPosition === "bottom"
@@ -64,7 +63,7 @@ Scope {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         exclusiveZone: 0
 
-        visible: GlobalStates.dashboardOpen
+        visible: GlobalStates.dashboardOpen && dashboardWindow._contentReady
 
         WlrLayershell.namespace: "quickshell:dashboard"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -72,7 +71,7 @@ Scope {
         // Auto-close on click outside the area
         HyprlandFocusGrab {
             id: focusGrab
-            active: dashboardLoader.active && GlobalStates.dashboardOpen
+            active: dashboardWindow.visible && dashboardLoader.active && GlobalStates.dashboardOpen
             windows: [dashboardWindow]
             onCleared: () => {
                 GlobalStates.closePanel("dashboard")

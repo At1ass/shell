@@ -1165,6 +1165,13 @@ measurement), with short separators rather than list-sized blank rows. Large fon
 and custom slots can increase the measured height; long menus retain scrolling
 and keyboard navigation through all actions and submenus.
 
+Dashboard native-window height follows the measured target without a QML geometry
+animation. Lazy tab handovers retain the previous measurement until the next is
+available, and the initial window waits for measured content. Media expansion
+keeps its own motion inside the final available bounds; hidden/initial media state
+changes apply immediately. This avoids stacking native surface resizing over the
+player's own animation.
+
 The cheatsheet discovers IPC handlers and signatures with `qs ipc show` on every
 open. Local descriptions enrich those commands without defining a second list.
 The query has a deadline and retry state; failed refreshes retain the last valid
