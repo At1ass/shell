@@ -4,3 +4,4 @@ singleton ConfigValidator 1.0 ConfigValidator.qml
 singleton Keycodes 1.0 Keycodes.qml
 singleton Theme 1.0 Theme.qml
 singleton Tokens 1.0 Tokens.qml
+singleton BarMetrics 1.0 BarMetrics.qml

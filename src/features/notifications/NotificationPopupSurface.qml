@@ -61,9 +61,8 @@ PanelWindow {
     readonly property string position: AppConfig.notificationPopupPosition
     readonly property bool isTop: position.startsWith("top")
     readonly property bool isRight: position.endsWith("right")
-    readonly property int baseMargin: isTop
-        ? AppConfig.barHeight + AppConfig.barMargin
-        : AppConfig.barMargin
+    readonly property int baseMargin: AppConfig.barMargin
+        + (surface.isTop === (AppConfig.barPosition !== "bottom") ? BarMetrics.reservation : 0)
 
     // Container the manager parents cards into.
     property alias cardLayer: cardLayer
@@ -83,12 +82,10 @@ PanelWindow {
         left: !surface.isRight
     }
 
-    margins {
-        top: surface.isTop ? surface.baseMargin : 0
-        bottom: !surface.isTop ? surface.baseMargin : 0
-        right: surface.isRight ? AppConfig.barMargin : 0
-        left: !surface.isRight ? AppConfig.barMargin : 0
-    }
+    Binding { target: surface; property: "margins.top"; value: surface.isTop ? surface.baseMargin : 0 }
+    Binding { target: surface; property: "margins.bottom"; value: !surface.isTop ? surface.baseMargin : 0 }
+    Binding { target: surface; property: "margins.right"; value: surface.isRight ? AppConfig.barMargin : 0 }
+    Binding { target: surface; property: "margins.left"; value: !surface.isRight ? AppConfig.barMargin : 0 }
 
     implicitWidth: AppConfig.notificationPopupWidth
     // 1 rather than 0: a zero-sized layer surface is not a legal configure.

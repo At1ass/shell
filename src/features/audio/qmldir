@@ -1,0 +1,6 @@
+module qs.src.features.audio
+AudioPanel 1.0 AudioPanel.qml
+AudioContent 1.0 AudioContent.qml
+AudioLevel 1.0 AudioLevel.qml
+AudioStreamRow 1.0 AudioStreamRow.qml
+AudioDevicePicker 1.0 AudioDevicePicker.qml

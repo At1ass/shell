@@ -1,91 +1,59 @@
 import QtQuick
-import Quickshell
+import qs.src.ui.base
 import qs.src.core.config
 
+// The QObject owner remains the widget when the visual item moves to the popup.
 Item {
     id: root
     required property var tooltip
     required property Item owner
-    property bool isMenu: false
-    property list<QtObject> grabWindows
-    property bool hoverable: isMenu
-    property bool animateSize: true
+    property string text: ""
     property bool show: false
-    property bool preloadBackground: root.visible
-
-    property real targetRelativeY: owner.height / 2
-    property real hangTime: isMenu ? 0 : 300
-
-    signal close()
-
-    readonly property alias contentItem: contentItem
-    default property alias contents: contentItem.data
-
-    property Component backgroundComponent: null
-
-    onShowChanged: {
-        if (tooltip) {
-            if (show) tooltip.setItem(this)
-            else tooltip.removeItem(this)
-        }
-    }
-
     property bool targetVisible: false
-    property real targetOpacity: 0
-    opacity: root.targetOpacity * (tooltip && tooltip.scaleMul == 0 ? 0 : (tooltip ? (1.0 / tooltip.scaleMul) : 1.0))
+    property real maximumWidth: tooltip?.maximumWidth ?? Tokens.size.fieldWidth
 
-    Behavior on targetOpacity {
-        id: opacityAnimation
-        SmoothedAnimation {
-            velocity: 6
-            duration: Tokens.motion.duration.medium1
-        }
-    }
+    property real maximumHeight: tooltip?.maximumHeight ?? Tokens.size.listItem * 8
 
-    function snapOpacity(opacity: real) {
-        opacityAnimation.enabled = false
-        targetOpacity = opacity
-        opacityAnimation.enabled = true
-    }
-
-    onTargetVisibleChanged: {
-        if (targetVisible) {
-            visible = true
-            targetOpacity = 1
-        } else {
-            close()
-            targetOpacity = 0
-        }
-    }
-
-    onTargetOpacityChanged: {
-        if (!targetVisible && targetOpacity == 0) {
-            visible = false
-            this.parent = null
-            if (tooltip) tooltip.onHidden(this)
-        }
-    }
-
-    anchors.fill: parent
+    implicitWidth: surface.implicitWidth
+    implicitHeight: surface.implicitHeight
+    width: implicitWidth
+    height: implicitHeight
     visible: false
-    implicitWidth: contentItem.implicitWidth + contentItem.anchors.leftMargin + contentItem.anchors.rightMargin
-    implicitHeight: contentItem.implicitHeight + contentItem.anchors.topMargin + contentItem.anchors.bottomMargin
+    opacity: targetVisible ? 1 : 0
 
-    readonly property Item item: contentItem
-
-    Loader {
-        anchors.fill: parent
-        active: root.backgroundComponent && (root.visible || root.preloadBackground)
-        asynchronous: !root.visible && root.preloadBackground
-        sourceComponent: root.backgroundComponent
+    onShowChanged: sync()
+    onTooltipChanged: sync()
+    Component.onCompleted: sync()
+    function sync() {
+        if (!tooltip) return
+        if (show && owner && text !== "") tooltip.setItem(root)
+        else tooltip.removeItem(root)
     }
+    onTextChanged: sync()
+    onOwnerChanged: sync()
 
-    Item {
-        id: contentItem
-        anchors.fill: parent
-        anchors.margins: Tokens.spacing.medium
-
-        implicitHeight: children.length > 0 ? children[0].implicitHeight : 0
-        implicitWidth: children.length > 0 ? children[0].implicitWidth : 0
+    function reveal(container: Item) {
+        parent = container
+        visible = true
+        targetVisible = true
     }
+    function hideImmediately() {
+        fade.enabled = false
+        targetVisible = false
+        visible = false
+        parent = null
+        fade.enabled = true
+    }
+    onOpacityChanged: {
+        if (!targetVisible && opacity === 0) {
+            visible = false
+            parent = null
+            if (tooltip) tooltip.onHidden(root)
+        }
+    }
+    Behavior on opacity {
+        id: fade
+        MotionAnimation { duration: Tokens.motion.duration.short2; curve: "standard" }
+    }
+    MaterialTooltip { id: surface; anchors.fill: parent; text: root.text; maximumWidth: root.maximumWidth; maximumHeight: root.maximumHeight }
 }

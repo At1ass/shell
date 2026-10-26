@@ -13,3 +13,6 @@ TrayWidget 1.0 TrayWidget.qml
 VolumeWidget 1.0 VolumeWidget.qml
 WorkspaceWidget 1.0 WorkspaceWidget.qml
 WeatherWidget 1.0 WeatherWidget.qml
+TrayIcon 1.0 TrayIcon.qml
+TrayModel 1.0 TrayModel.qml
+BarLayout 1.0 BarLayout.qml

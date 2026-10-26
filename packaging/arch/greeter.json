@@ -3,5 +3,12 @@
   "darkMode": true,
   "themeVariant": "vibrant",
   "showClock": true,
-  "defaultSession": "Hyprland (uwsm-managed)"
+  "defaultSession": "Hyprland (uwsm-managed)",
+  "$schema": "/usr/share/at1ass-shell/greeter/config/greeter.schema.json",
+  "designSystem": "minimal",
+  "fontScale": 1.3,
+  "showDate": true,
+  "showBattery": true,
+  "showPower": true,
+  "blurWallpaper": true
 }

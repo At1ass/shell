@@ -2,11 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import qs.src.ui.inputs
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
-import qs.src.features.dashboard.components
 import qs.src.features.dashboard.tabs
 
 Item {
@@ -16,7 +16,7 @@ Item {
     // Active tab's modal state: while a dialog is up, dashboard-level keys
     // must not switch tabs or close the panel (Escape used to bypass the
     // EventDialog dirty-discard prompt and nuke the whole dashboard).
-    readonly property var _tabLoaders: [quickLoader, weatherLoader, calendarLoader, audioLoader, networkLoader]
+    readonly property var _tabLoaders: [quickLoader, weatherLoader, calendarLoader]
 
     // Extra height the ACTIVE tab is asking for right now -- a section it has
     // unfolded, say. The window is sized per tab from a fixed table, so without
@@ -33,9 +33,12 @@ Item {
     // now, and a rule between it and the content only restated a boundary that
     // spacing already makes.
     readonly property int chromeHeight: root.headerHeight
-    readonly property int headerHeight: clockText.implicitHeight + dateText.implicitHeight
-                                        + Tokens.spacing.extraSmall
-                                        + Tokens.panelPadding * 2
+    readonly property bool _stackedHeader: root.width < clockColumn.naturalWidth
+        + tabBar.implicitWidth + Tokens.spacing.large + Tokens.panelPadding * 2
+    readonly property int headerHeight: Math.max(clockColumn.implicitHeight,
+        root._stackedHeader ? 0 : tabBar.implicitHeight)
+        + (root._stackedHeader ? tabBar.implicitHeight + Tokens.spacing.small : 0)
+        + Tokens.panelPadding * 2
     readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
     function _closeTopModal() {
         const item = _tabLoaders[tabView.currentIndex]?.item
@@ -50,20 +53,8 @@ Item {
     // openDashboardTab()/IPC keep working after manual tab switches
     // (imperative writes to currentIndex would sever the binding).
 
-    Keys.onTabPressed: (event) => {
-        if (root._modalOpen) { event.accepted = true; return }
-        GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 1) % 5
-        event.accepted = true
-    }
-
-    Keys.onBacktabPressed: (event) => {
-        if (root._modalOpen) { event.accepted = true; return }
-        GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + 4) % 5
-        event.accepted = true
-    }
-
     Keys.onPressed: (event) => {
-        // Physical key, not the layout's symbol — the H/L tab switch, the 1-5
+        // Physical key, not the layout's symbol — the H/L tab switch, the 1-3
         // jump and the whole calendar vi set below were dead on a Cyrillic
         // layout. See Keycodes.
         const key = Keycodes.key(event)
@@ -80,8 +71,18 @@ Item {
         // Every other dashboard-level key is inert while a modal is up.
         if (root._modalOpen) return
 
-        // Direct tab jump (keys 1-5)
-        if (key >= Qt.Key_1 && key <= Qt.Key_5) {
+        // Tab/Shift+Tab remain the standard control focus chain. Ctrl+Tab
+        // changes sections from anywhere in the panel, including an editor.
+        if ((key === Qt.Key_Tab || key === Qt.Key_Backtab)
+                && (event.modifiers & Qt.ControlModifier)) {
+            const backwards = key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier)
+            GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + (backwards ? 2 : 1)) % 3
+            event.accepted = true
+            return
+        }
+
+        // Direct tab jump (keys 1-3)
+        if (key >= Qt.Key_1 && key <= Qt.Key_3) {
             GlobalStates.dashboardOpenIndex = key - Qt.Key_1
             event.accepted = true
             return
@@ -104,7 +105,7 @@ Item {
                 return
             }
             if (key === Qt.Key_L || key === Qt.Key_Right) {
-                GlobalStates.dashboardOpenIndex = Math.min(4, tabView.currentIndex + 1)
+                GlobalStates.dashboardOpenIndex = Math.min(2, tabView.currentIndex + 1)
                 event.accepted = true
                 return
             }
@@ -153,6 +154,8 @@ Item {
             // g = first day (G handled above with shift)
             case Qt.Key_G:       cal.goToFirstDay(); event.accepted = true; break
 
+            case Qt.Key_T:       cal.goToToday(); event.accepted = true; break
+
             // N = new event
             case Qt.Key_N:       cal.openNewEvent(); event.accepted = true; break
         }
@@ -168,62 +171,45 @@ Item {
             // Layout.fillWidth: true
             spacing: 0
 
-            // ===== HEADER: the hour, and where you are =====
-            //
-            // The clock earns the largest type in the panel and is the only
-            // thing that does; everything below it sits in one narrow band of
-            // sizes. That is the whole hierarchy -- one thing to land on, then
-            // an even field. Navigation rides along the same line instead of
-            // taking a storey of its own.
+            // The header reserves exactly the date and tab navigation it contains.
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.headerHeight
 
-                MonoText {
-                    id: clockText
+                Column {
+                    id: clockColumn
+                    readonly property real naturalWidth: dateText.implicitWidth
+                    width: Math.min(naturalWidth, Math.max(0, parent.width - Tokens.panelPadding * 2))
                     anchors.left: parent.left
                     anchors.leftMargin: Tokens.panelPadding
                     anchors.top: parent.top
                     anchors.topMargin: Tokens.panelPadding
-                    text: Qt.formatDateTime(DateTime.clock.date, "HH:mm")
-                    textStyle: "headlineMedium"
-                    colorRole: "onSurface"
-                }
-
-                MaterialText {
-                    id: dateText
-                    anchors.left: clockText.left
-                    anchors.top: clockText.bottom
-                    anchors.topMargin: Tokens.spacing.extraSmall
-                    text: Qt.formatDateTime(DateTime.clock.date, "dddd, d MMMM")
-                    textStyle: "labelMedium"
-                    colorRole: "onSurfaceVariant"
-                }
-
-                Row {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Tokens.panelPadding
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Tokens.spacing.large
-
-                    Repeater {
-                        model: ["Quick", "Weather", "Calendar", "Audio", "Network"]
-
-                        delegate: DashboardTabButton {
-                            id: tabButton
-                            // Declared HERE rather than on DashboardTabButton:
-                            // the component is a plain button and should not
-                            // carry model roles just to be used in a Repeater.
-                            required property int index
-                            required property string modelData
-
-                            isActive: tabView.currentIndex === tabButton.index
-                            label: tabButton.modelData
-                            onClicked: GlobalStates.dashboardOpenIndex = tabButton.index
-                        }
+                    spacing: Tokens.spacing.extraSmall
+                    MaterialText {
+                        id: dateText
+                        width: clockColumn.width
+                        elide: Text.ElideRight
+                        text: Qt.formatDateTime(DateTime.clock.date, "dddd, d MMMM")
+                        textStyle: "titleSmall"
+                        colorRole: "onSurfaceVariant"
                     }
                 }
+                MaterialTabs {
+                    id: tabBar
+                    width: Math.min(implicitWidth, Math.max(0, parent.width - Tokens.panelPadding * 2))
+                    height: implicitHeight
+                    x: root._stackedHeader ? Tokens.panelPadding
+                        : parent.width - Tokens.panelPadding - width
+                    y: root._stackedHeader ? clockColumn.y + clockColumn.height + Tokens.spacing.small
+                        : (parent.height - height) / 2
+                    labels: ["Quick", "Weather", "Calendar"]
+                    currentIndex: GlobalStates.dashboardOpenIndex
+                    accessibleName: "Dashboard sections"
+                    enabled: !root._modalOpen
+                    onActivated: index => GlobalStates.dashboardOpenIndex = index
+                }
             }
+
 
             // ===== TAB CONTENT =====
             // StackLayout here is a pure positioner: each tab sits behind a
@@ -256,20 +242,8 @@ Item {
                     active: tabView.currentIndex === 2
                     sourceComponent: Component { CalendarTab {} }
                 }
-                Loader {
-                    id: audioLoader
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    active: tabView.currentIndex === 3
-                    sourceComponent: Component { AudioTab {} }
-                }
-                Loader {
-                    id: networkLoader
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    active: tabView.currentIndex === 4
-                    sourceComponent: Component { NetworkTab {} }
-                }
+
+
             }
         }
     }

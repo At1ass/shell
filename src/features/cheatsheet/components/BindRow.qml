@@ -58,6 +58,7 @@ Item {
                         model: root.modelData.modifiers || []
 
                         Rectangle {
+                            id: modifierChip
                             required property string modelData
                             width: modLabel.implicitWidth + 12
                             height: 24
@@ -67,7 +68,7 @@ Item {
                             MaterialText {
                                 id: modLabel
                                 anchors.centerIn: parent
-                                text: modelData
+                                text: modifierChip.modelData
                                 textStyle: "labelSmall"
                                 colorRole: "onPrimaryContainer"
                             }

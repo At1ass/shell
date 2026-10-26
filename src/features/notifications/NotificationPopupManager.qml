@@ -25,7 +25,7 @@ Scope {
     property var _surfaces: ({})
     readonly property string position: AppConfig.notificationPopupPosition
     readonly property bool isTop: position.startsWith("top")
-    readonly property int topMargin: AppConfig.barHeight + AppConfig.barMargin
+    readonly property int topMargin: BarMetrics.reservation + AppConfig.barMargin
     readonly property int bottomMargin: AppConfig.barMargin
     readonly property int baseMargin: isTop ? topMargin : bottomMargin
     readonly property int popupSpacing: 8

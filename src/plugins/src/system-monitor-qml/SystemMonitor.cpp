@@ -1,4 +1,8 @@
 #include "SystemMonitor.h"
+#include "StorageCollector.h"
+#include "../common/WorkerLifetime.h"
+#include <QMutex>
+#include <QMutexLocker>
 
 #include <QtCore/QFile>
 #include <QtCore/QRegularExpression>
@@ -23,6 +27,8 @@
 
 #ifdef HAVE_LIBSENSORS
 #include <sensors/sensors.h>
+static QMutex s_sensorsMutex;
+static int s_sensorsUsers = 0;
 #endif
 
 // Worker that collects metrics in a separate thread
@@ -39,16 +45,19 @@ public slots:
     void initialize();
     void setFastInterval(int ms);
     void refreshNow();
-    void setCpuModel(const QString& model) { m_cpuModel = model; }
-    void setGpuModel(const QString& model) { m_gpuModel = model; }
     void startTimers();
     void stopTimers();
+    void configureStorage(const QVariantMap& options) {
+        m_storage.setOptions(options);
+        m_storage.discover();
+    }
 
 signals:
     void snapshotReady(const StatsSnapshot& snapshot);
     void errorOccurred(const QString& message);
 
 private:
+    void initializeStaticInfo();
     void openProcFiles();
     void closeProcFiles();
     bool readProcFile(int fd, char* buffer, size_t bufferSize);
@@ -141,7 +150,6 @@ private:
     void updateLoadAvg();
 
     void detectNetInterface();
-    void detectDiskDevice();
     uint64_t readSysfsUint64(const QString& path);
 
     int m_cpuStatFd = -1;
@@ -158,6 +166,7 @@ private:
     QTimer m_fastTimer;
     QTimer m_slowTimer;
     QString m_cpuModel;
+    QString m_userName, m_osName, m_wmName;
     QString m_gpuModel;
     QString m_gpuModelNvml;
     std::optional<int> m_lastCpuTemp;
@@ -169,10 +178,7 @@ private:
     QString m_netInterface;
     int m_netRedetectCounter = 0;
 
-    // Disk I/O state
-    uint64_t m_prevReadSectors = 0, m_prevWriteSectors = 0;
-    bool m_diskIoFirstTick = true;
-    QString m_diskDevice;
+    StorageCollector m_storage;
 
     // GPU backend
     GpuBackend m_gpuBackend = GpuBackend::None;
@@ -196,20 +202,14 @@ SystemMonitor::SystemMonitor(QObject* parent)
     : QObject(parent)
 {
     qRegisterMetaType<StatsSnapshot>("StatsSnapshot");
-
-    initializeStaticInfo();
+    m_storageOptions = StorageCollector::defaultOptions();
 
     m_worker = new StatsWorker;
-    m_worker->moveToThread(&m_workerThread);
-    connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
+    m_workerThread = WorkerLifetime::create(m_worker);
     connect(m_worker, &StatsWorker::snapshotReady, this, &SystemMonitor::handleSnapshot, Qt::QueuedConnection);
     connect(m_worker, &StatsWorker::errorOccurred, this, &SystemMonitor::errorOccurred, Qt::QueuedConnection);
 
-    // Pass static values to the worker
-    QMetaObject::invokeMethod(m_worker, "setCpuModel", Qt::QueuedConnection, Q_ARG(QString, m_cpuModel));
-    QMetaObject::invokeMethod(m_worker, "setGpuModel", Qt::QueuedConnection, Q_ARG(QString, m_gpuModel));
-
-    m_workerThread.start();
+    m_workerThread->start();
     QMetaObject::invokeMethod(m_worker, "initialize", Qt::QueuedConnection);
     QMetaObject::invokeMethod(m_worker, "startTimers", Qt::QueuedConnection);
     m_isMonitoring = true;
@@ -251,6 +251,15 @@ void SystemMonitor::setMonitoring(bool enabled)
     emit isMonitoringChanged();
 }
 
+void SystemMonitor::setStorageOptions(const QVariantMap& options)
+{
+    if (m_storageOptions == options) return;
+    m_storageOptions = options;
+    if (m_worker) QMetaObject::invokeMethod(m_worker, "configureStorage", Qt::QueuedConnection,
+                                          Q_ARG(QVariantMap, options));
+    emit storageOptionsChanged();
+}
+
 // ─── StatsWorker implementation ─────────────────────────────────────────────
 
 StatsWorker::StatsWorker() {
@@ -267,11 +276,12 @@ StatsWorker::StatsWorker() {
 }
 
 void StatsWorker::initialize() {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
+    initializeStaticInfo();
     openProcFiles();
     initSensors();
     detectGpuBackend();
     detectNetInterface();
-    detectDiskDevice();
 }
 
 StatsWorker::~StatsWorker() {
@@ -279,7 +289,8 @@ StatsWorker::~StatsWorker() {
     m_nvml.shutdownIfReady();
 #ifdef HAVE_LIBSENSORS
     if (m_sensorsReady) {
-        sensors_cleanup();
+        QMutexLocker lock(&s_sensorsMutex);
+        if (--s_sensorsUsers == 0) sensors_cleanup();
         m_sensorsReady = false;
     }
 #endif
@@ -296,6 +307,7 @@ void StatsWorker::refreshNow() {
 }
 
 void StatsWorker::startTimers() {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
     // Initial collection so UI doesn't see zeroes
     pollSlow();
     pollFast();
@@ -316,7 +328,7 @@ void StatsWorker::stopTimers() {
     // instead, exactly as it does at startup.
     m_fastClock.invalidate();
     m_netFirstTick = true;
-    m_diskIoFirstTick = true;
+    m_storage.resetIo();
 }
 
 void StatsWorker::openProcFiles() {
@@ -480,48 +492,6 @@ void StatsWorker::detectNetInterface() {
 
 // ─── Disk device auto-detection ─────────────────────────────────────────────
 
-void StatsWorker::detectDiskDevice() {
-    QFile mounts(QStringLiteral("/proc/mounts"));
-    if (!mounts.open(QIODevice::ReadOnly))
-        return;
-
-    while (!mounts.atEnd()) {
-        const QByteArray line = mounts.readLine();
-        const auto parts = line.split(' ');
-        if (parts.size() < 2)
-            continue;
-        if (parts.at(1) != "/")
-            continue;
-        QString dev = QString::fromUtf8(parts.at(0));
-        // e.g. /dev/nvme0n1p2 → nvme0n1, /dev/sda1 → sda
-        dev = dev.mid(dev.lastIndexOf('/') + 1);
-        // Strip partition: nvme0n1p2 → nvme0n1
-        static QRegularExpression nvmePartRe(QStringLiteral("^(nvme\\d+n\\d+)p\\d+$"));
-        auto m = nvmePartRe.match(dev);
-        if (m.hasMatch()) {
-            m_diskDevice = m.captured(1);
-            return;
-        }
-        // sda1 → sda
-        static QRegularExpression sdPartRe(QStringLiteral("^(sd[a-z]+)\\d+$"));
-        m = sdPartRe.match(dev);
-        if (m.hasMatch()) {
-            m_diskDevice = m.captured(1);
-            return;
-        }
-        // mmcblk0p1 → mmcblk0
-        static QRegularExpression mmcPartRe(QStringLiteral("^(mmcblk\\d+)p\\d+$"));
-        m = mmcPartRe.match(dev);
-        if (m.hasMatch()) {
-            m_diskDevice = m.captured(1);
-            return;
-        }
-        // Fallback: use as-is
-        m_diskDevice = dev;
-        return;
-    }
-}
-
 // ─── CPU temperature ────────────────────────────────────────────────────────
 
 std::optional<int> StatsWorker::readCpuTempSysfs() {
@@ -599,9 +569,10 @@ std::optional<int> StatsWorker::readCpuTempSysfs() {
 
 #ifdef HAVE_LIBSENSORS
 void StatsWorker::initSensors() {
+    QMutexLocker lock(&s_sensorsMutex);
     if (m_sensorsReady)
         return;
-    if (sensors_init(nullptr) != 0)
+    if (s_sensorsUsers == 0 && sensors_init(nullptr) != 0)
         return;
 
     const sensors_chip_name* chip;
@@ -647,12 +618,14 @@ void StatsWorker::initSensors() {
         m_tempSubfeature = bestSub;
         m_chip = bestChip;
         m_sensorsReady = true;
-    } else {
+        ++s_sensorsUsers;
+    } else if (s_sensorsUsers == 0) {
         sensors_cleanup();
     }
 }
 
 std::optional<int> StatsWorker::readCpuTempSensors() {
+    QMutexLocker lock(&s_sensorsMutex);
     if (!m_sensorsReady)
         return std::nullopt;
     double val = 0.0;
@@ -895,75 +868,24 @@ void StatsWorker::updateNetwork(StatsSnapshot& snapshot, double elapsedSec) {
 // ─── Disk I/O ───────────────────────────────────────────────────────────────
 
 void StatsWorker::updateDiskIo(StatsSnapshot& snapshot, double elapsedSec) {
-    if (m_diskDevice.isEmpty() || m_diskstatsFd < 0) {
-        snapshot.hasDiskIo = false;
-        return;
-    }
-
-    // Dynamic buffer: with many loop/zram/dm devices the root device line
-    // can fall past any fixed-size buffer, silently disabling disk IO stats.
-    if (!readProcFileAll(m_diskstatsFd, m_diskstatsData))
-        return;
-
-    QByteArray devName = m_diskDevice.toUtf8();
-    uint64_t readSectors = 0, writeSectors = 0;
-    bool found = false;
-
-    m_diskstatsData.append('\0');
-    char* line = m_diskstatsData.data();
-    char* lineEnd;
-    while ((lineEnd = strchr(line, '\n')) != nullptr) {
-        *lineEnd = '\0';
-        // diskstats format: major minor name rd_ios rd_merges rd_sectors rd_ticks wr_ios wr_merges wr_sectors ...
-        unsigned int major, minor;
-        char name[64] = {0};
-        unsigned long long rdIos, rdMerges, rdSect, rdTicks, wrIos, wrMerges, wrSect;
-        int parsed = sscanf(line, "%u %u %63s %llu %llu %llu %llu %llu %llu %llu",
-                            &major, &minor, name,
-                            &rdIos, &rdMerges, &rdSect, &rdTicks,
-                            &wrIos, &wrMerges, &wrSect);
-        if (parsed >= 10 && devName == name) {
-            readSectors = rdSect;
-            writeSectors = wrSect;
-            found = true;
-            break;
-        }
-        line = lineEnd + 1;
-    }
-
-    if (!found) {
-        snapshot.hasDiskIo = false;
-        return;
-    }
-
-    if (m_diskIoFirstTick) {
-        m_prevReadSectors = readSectors;
-        m_prevWriteSectors = writeSectors;
-        m_diskIoFirstTick = false;
-        snapshot.hasDiskIo = true;
-        snapshot.diskReadSpeed = 0;
-        snapshot.diskWriteSpeed = 0;
-        snapshot.diskReadFormatted = QStringLiteral("0 B/s");
-        snapshot.diskWriteFormatted = QStringLiteral("0 B/s");
-        return;
-    }
-
-    double readBytes = (readSectors >= m_prevReadSectors) ? (readSectors - m_prevReadSectors) * 512.0 : 0;
-    double writeBytes = (writeSectors >= m_prevWriteSectors) ? (writeSectors - m_prevWriteSectors) * 512.0 : 0;
-
-    m_prevReadSectors = readSectors;
-    m_prevWriteSectors = writeSectors;
-
-    snapshot.hasDiskIo = true;
-    snapshot.diskReadSpeed = readBytes / elapsedSec;
-    snapshot.diskWriteSpeed = writeBytes / elapsedSec;
-    snapshot.diskReadFormatted = formatSpeed(readBytes / elapsedSec);
-    snapshot.diskWriteFormatted = formatSpeed(writeBytes / elapsedSec);
+    if (m_diskstatsFd >= 0 && readProcFileAll(m_diskstatsFd, m_diskstatsData))
+        m_storage.sampleIo(m_diskstatsData, elapsedSec);
+    else
+        m_storage.sampleIo({}, elapsedSec);
+    snapshot.storageVolumes = m_storage.volumes();
+    snapshot.storageDrives = m_storage.drives();
+    snapshot.storageSummary = m_storage.summary();
+    snapshot.diskReadSpeed = m_storage.readSpeed();
+    snapshot.diskWriteSpeed = m_storage.writeSpeed();
+    snapshot.hasDiskIo = m_storage.hasIo();
+    snapshot.diskReadFormatted = StorageCollector::formatSpeed(snapshot.diskReadSpeed);
+    snapshot.diskWriteFormatted = StorageCollector::formatSpeed(snapshot.diskWriteSpeed);
 }
 
 // ─── Poll methods ───────────────────────────────────────────────────────────
 
 void StatsWorker::pollFast() {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
     // Real elapsed time between polls: after suspend/resume the nominal
     // timer interval would turn hours of counter delta into an absurd
     // one-tick spike; a huge gap instead resets the speed baselines.
@@ -977,11 +899,14 @@ void StatsWorker::pollFast() {
     }
     if (elapsedSec > nominal * 10) {
         m_netFirstTick = true;
-        m_diskIoFirstTick = true;
+        m_storage.resetIo();
     }
 
     StatsSnapshot snapshot;
     snapshot.cpuModel = m_cpuModel;
+    snapshot.userName = m_userName;
+    snapshot.osName = m_osName;
+    snapshot.wmName = m_wmName;
     snapshot.gpuModel = !m_gpuModelNvml.isEmpty() ? m_gpuModelNvml : m_gpuModel;
 
     updateCpu(snapshot);
@@ -1042,6 +967,8 @@ void StatsWorker::pollFast() {
 }
 
 void StatsWorker::pollSlow() {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
+    m_storage.discover();
     // CPU temperature
     std::optional<int> t;
 #ifdef HAVE_LIBSENSORS
@@ -1185,18 +1112,19 @@ void StatsWorker::updateDisk(StatsSnapshot& snapshot) {
     snapshot.diskTotal = formatBytes(totalBytes);
 }
 
-// ─── SystemMonitor main thread ──────────────────────────────────────────────
+// Static system information is collected on the worker thread.
 
-void SystemMonitor::initializeStaticInfo()
+void StatsWorker::initializeStaticInfo()
 {
     // Username
     m_userName = qEnvironmentVariable("USER");
     if (m_userName.isEmpty()) {
-        if (passwd* pw = getpwuid(getuid())) {
-            m_userName = QString::fromLocal8Bit(pw->pw_name);
-        }
+        passwd entry{};
+        passwd* found = nullptr;
+        char storage[16384];
+        if (getpwuid_r(getuid(), &entry, storage, sizeof(storage), &found) == 0 && found)
+            m_userName = QString::fromLocal8Bit(found->pw_name);
     }
-    emit userNameChanged();
 
     // OS name from /etc/os-release
     for (const auto& path : {"/etc/os-release", "/usr/lib/os-release"}) {
@@ -1239,7 +1167,6 @@ void SystemMonitor::initializeStaticInfo()
             model.replace(QRegularExpression("AMD Ryzen (\\d) (\\w+).*"), "R\\1 \\2");
             model.replace(QRegularExpression("Intel.*Core.*i(\\d)-(\\w+).*"), "i\\1-\\2");
             m_cpuModel = model;
-            emit cpuModelChanged();
         }
     }
 
@@ -1259,13 +1186,13 @@ void SystemMonitor::initializeStaticInfo()
                 m_gpuModel = vendorName + " " + devId;
             else
                 m_gpuModel = devId;
-            emit gpuModelChanged();
         } else if (!vendorName.isEmpty()) {
             m_gpuModel = vendorName;
-            emit gpuModelChanged();
         }
     }
 }
+
+// ─── SystemMonitor main thread ──────────────────────────────────────────────
 
 void SystemMonitor::handleSnapshot(const StatsSnapshot& snapshot)
 {
@@ -1275,6 +1202,11 @@ void SystemMonitor::handleSnapshot(const StatsSnapshot& snapshot)
             signal();
         }
     };
+
+    emitIfChanged(m_userName, snapshot.userName, [this]() { emit userNameChanged(); });
+    emitIfChanged(m_osName, snapshot.osName, [this]() { emit osNameChanged(); });
+    emitIfChanged(m_wmName, snapshot.wmName, [this]() { emit wmNameChanged(); });
+    emitIfChanged(m_cpuModel, snapshot.cpuModel, [this]() { emit cpuModelChanged(); });
 
     // CPU
     emitIfChanged(m_cpuUsage, snapshot.cpuUsage, [this]() { emit cpuUsageChanged(); });
@@ -1324,6 +1256,14 @@ void SystemMonitor::handleSnapshot(const StatsSnapshot& snapshot)
     emitIfChanged(m_netInterface, snapshot.netInterface, [this]() { emit netInterfaceChanged(); });
     emitIfChanged(m_hasNet, snapshot.hasNet, [this]() { emit hasNetChanged(); });
 
+    if (m_storageVolumes != snapshot.storageVolumes || m_storageDrives != snapshot.storageDrives
+        || m_storageSummary != snapshot.storageSummary) {
+        m_storageVolumes = snapshot.storageVolumes;
+        m_storageDrives = snapshot.storageDrives;
+        m_storageSummary = snapshot.storageSummary;
+        emit storageChanged();
+    }
+
     // Status flags
     emitIfChanged(m_hasCpuTemp, snapshot.hasCpuTemp, [this]() { emit hasCpuTempChanged(); });
     emitIfChanged(m_hasGpuStats, snapshot.hasGpuStats, [this]() { emit hasGpuStatsChanged(); });
@@ -1333,12 +1273,8 @@ void SystemMonitor::handleSnapshot(const StatsSnapshot& snapshot)
 
 void SystemMonitor::stopWorker()
 {
-    m_workerThread.requestInterruption();
-    m_workerThread.quit();
-    if (!m_workerThread.wait(3000)) {
-        qWarning("SystemMonitor: worker thread did not stop in 3s, waiting indefinitely");
-        m_workerThread.wait();
-    }
+    WorkerLifetime::retire(m_workerThread);
+    m_worker = nullptr;
 }
 
 #include "SystemMonitor.moc"

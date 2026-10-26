@@ -5,7 +5,7 @@
 > Code и ссылается сюда.
 
 **Проект:** `shell` — desktop shell для Hyprland на Quickshell
-**Фреймворк:** Quickshell (QML/Qt 6) + 5 собственных C++ плагинов
+**Фреймворк:** Quickshell (QML/Qt 6) + 6 собственных C++ плагинов
 **Языки:** QML, C++17, немного shell-скриптов
 **Композитор:** Hyprland (жёстко; используется `Quickshell.Hyprland`, `hyprctl`, ext-global-shortcuts)
 
@@ -34,7 +34,7 @@
 
 `shell` — конфигурация Quickshell, реализующая бар, док, дашборд, лаунчер, уведомления,
 OSD, скриншоты, локскрин, powermenu, cheatsheet и динамическую тему из обоев. Управляется
-JSON-конфигом с hot-reload и JSON Schema. Тяжёлая логика вынесена в 5 C++ плагинов.
+JSON-конфигом с hot-reload и JSON Schema. Тяжёлая логика вынесена в 6 C++ плагинов.
 
 Проект вдохновлён Caelestia, но реализован самостоятельно (своя слоёная архитектура и своя
 MD3-библиотека компонентов). Это **не форк** — заимствования точечные и атрибутированы в коде.
@@ -49,7 +49,7 @@ MD3-библиотека компонентов). Это **не форк** — �
 | Нативные сервисы | `Quickshell.Services.Pipewire`, `.Mpris`, `Quickshell.Networking`, `Quickshell.Bluetooth`, `Quickshell.Services.Notifications` |
 | Композитор | `Quickshell.Hyprland`, `hyprctl`, ext-global-shortcuts |
 | Конфиг | `Quickshell.Io.FileView` (JSON) + `config/config.schema.json` |
-| Нативная логика | 5 C++ плагинов (Qt 6.5+, C++17, CMake + Ninja) |
+| Нативная логика | 6 C++ плагинов (Qt 6.5+, C++17, CMake + Ninja) |
 | Цвет | C++ плагин `Mcu` (Material Color Utilities, сабмодуль) |
 
 **Внешние CLI** (только там, где нет нативного API): `ddcutil`, `grim`, `wl-copy`, `swappy`,
@@ -64,7 +64,7 @@ shell.qml                     # ShellRoot: Variants per-screen + глобаль�
 src/
 ├── core/
 │   ├── config/               # AppConfig, Theme, Tokens  (НЕ зависит от features/ui)
-│   └── services/             # 33 singleton-сервиса + GlobalStates  (зависит только от config)
+│   └── services/             # singleton-сервисы + GlobalStates  (зависит только от config)
 ├── features/                 # бар, док, дашборд, лаунчер, ... — оркестрирует config+services+ui
 ├── ui/                       # MD3-библиотека: base/ containers/ feedback/ inputs/  (зависит ТОЛЬКО от config)
 └── plugins/                  # C++ плагины (требуют сборки) + external/material-color-utilities (сабмодуль)
@@ -131,7 +131,8 @@ cd src/plugins && cmake -B build-test -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DB
 tools/compile-check.sh        # exit 1 = что-то не компилируется
 ```
 
-Автотестов на QML нет; для C++ плагинов пишутся unit-тесты. Перед коммитом изменённый QML
+Изолированные UI-тесты: `tools/test-ui.py` (Qt Quick Test, реальные key events, mock-сервисы).
+Для C++ плагинов пишутся unit-тесты. Перед коммитом изменённый QML
 обязан проходить `qmllint` без предупреждений.
 
 ### ⚠️ Правка на живом шелле = риск потерять сессию
@@ -200,7 +201,9 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
 - `Tokens.motion.duration.*` (`short1..4/medium1..4/long1..4/extraLong1..4`, масштаб `durationScale`) и `Tokens.motion.easing.*` (`standard/emphasized/emphasizedDecelerate/emphasizedAccelerate` + `*Points`).
 - `Tokens.stateLayer` (`hover 0.08 / pressed 0.12 / focus 0.12 / dragged 0.16`), `Tokens.state` (disabled 0.12/0.38).
 - `Tokens.elevation.level(n)` (0–5) → `{surfaceRole, shadowRadius, shadowVerticalOffset, shadowOpacity}`. **Elevation выражается тоном поверхности + тенью, НЕ прозрачностью.**
-- `Tokens.iconSize`, `Tokens.touchTarget.minimum(48)`, `Tokens.focusRing`.
+- `Tokens.iconSize`, `Tokens.touchTarget.minimum`, `Tokens.focusRing`.
+- `Tokens.size` — семантические размеры контролов: `control`, `buttonMinimumWidth`, `field`,
+  `fieldWidth`, `iconButton`, `listItem`, `itemIcon`, `tileMinimumWidth`; значения определяет пакет дизайна.
 
 ### Правила MD3
 - Текст — `MaterialText { textStyle: "bodyMedium"; colorRole: "onSurface" }`; `font.pixelSize` (НЕ `pointSize`), `Text.NativeRendering`.
@@ -227,10 +230,35 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
   Анимация в виджете бара гейтится на `animationsActive` (= `animated && barRevealed`): скрытый авто-хайдом бар
   продолжает отслеживать состояние, но переходы выполняет мгновенно. Qt не пропускает анимации невидимого
   поддерева сам — это 30% стоимости жеста компози́тора.
+- Tooltip lifecycle: `TooltipItem` supplies owner/text/show to a per-bar `TooltipManager`;
+  `MaterialTooltip` owns appearance and text bounds, `MaterialHint` supplies local popup
+  lifecycle. Passive tooltips never take a grab. Animate content opacity only; native
+  popup dimensions must remain positive during closing. `Tokens.interaction` deadlines
+  do not scale with reduced motion. Tray submenu components are owned by StackView;
+  observe opener/child-model updates and guard deferred dismissals by request epoch.
 - **feedback/** — `StateLayer`, `Dialog`, `Snackbar`, `Badge`, `ProgressIndicator`, `MaterialMenu`, `TooltipManager`/`TooltipItem`, `EmptyState`.
-- **inputs/** — `MaterialSlider`, `MaterialSwitch`, `MaterialCheckbox`, `MaterialRadioButton`, `MaterialComboBox`, `MaterialTextField`, `SegmentedButton`, `Chip`.
+- **inputs/** — `MaterialTabs` (controlled selection, roving focus), `MaterialSlider`, `MaterialSwitch`, `MaterialCheckbox`, `MaterialRadioButton`, `MaterialComboBox`, `MaterialTextField`, `SegmentedButton`, `Chip`.
 
 Сырые `Rectangle`/`Text` допустимы **только внутри `src/ui/*`** (это их реализация). В `src/features/*` — нет.
+
+### Типы действий
+
+`ToggleTile` — управляемый режим с маркером состояния; `ActionTile` — переход
+(стрелка) или однократная команда (`trailingIcon: ""`), без on/off-маркера.
+Основной клик статусного виджета открывает `clickAction`; вложенная кнопка владеет
+своим действием. Наведение не меняет геометрию бара. IPC-справка обнаруживает
+сигнатуры через `qs ipc show`; таблица описаний не создаёт команды.
+
+### Обход фокуса
+
+Tab/Shift+Tab обходят контролы; вкладки переключаются Ctrl+Tab либо стрелками внутри
+`MaterialTabs`. Диалог владеет обходом ближайшей модальности и возвращает прежний фокус
+после закрытия. `ScrollableList` раскрывает область с фокусом по событию, без polling.
+Высота строки с reuseItems должна быть постоянной для выбранных pack/fontScale.
+Обычный `ListItem` измеряет текст/слоты; действие строки обязано иметь `onClicked`,
+повтор той же команды в trailing-иконке не добавляет второй Tab-stop. Снимки устройств
+согласуются через `ScriptModel` (Bluetooth — `objectProp: "address"`), чтобы обновление
+данных сохраняло делегат и фокус. Скролл-контейнер сам не является Tab-stop.
 
 ### Клавиатура — привязка к КЛАВИШЕ, а не к символу
 
@@ -294,7 +322,10 @@ if (Keycodes.letter(event) === action.key) activate()
   на первой императивной записи. Тоггл, состояние которого держит система (WiFi, Bluetooth, VPN), сюда не пишется —
   оно читается обратно из системы. Хранить такой флаг в памяти нельзя: он молча теряется и при рестарте,
   и при hot-reload QML.
-- **Конфиг валидируется по схеме при каждой загрузке** (`ConfigValidator`, вызывается из `AppConfig`).
+- **Конфиг валидируется по схеме ДО публикации при каждой загрузке** (`ConfigValidator`, вызывается из `AppConfig`).
+  Неверный файл не заменяет последний рабочий snapshot; синтаксические ошибки и ошибки
+  схемы остаются в `configErrors` и IPC `config validate`. На невалидном первом запуске
+  используются bundled defaults. `additionalProperties`-схемы проверяются рекурсивно.
   Новый ключ обязан попасть в `config.schema.json` и `default.json`, иначе `tools/check.sh` падает
   (`config-default-drift`): он же сверяет литерал `?? default` в `AppConfig` со значением в `default.json`.
   `AppConfig` только ПУБЛИКУЕТ ошибки в `configErrors` — тост поднимает `shell.qml`, потому что
@@ -303,15 +334,49 @@ if (Keycodes.letter(event) === action.key) activate()
 - **`tools/shell-ctl`** — единая точка входа в IPC. Список хендлеров он ОБНАРУЖИВАЕТ через `qs ipc show`,
   а не хранит: справка и zsh-автодополнение поэтому не могут разойтись с кодом. Добавил IPC-функцию —
   ничего в CLI править не надо; ярлыки (`launcher`, `caffeine`, …) — только алиасы поверх той же поверхности.
-- **Шелл НИКОГДА не пишет в `config.json`** (кроме явных GUI-действий через `updateConfig`, заменяющих секцию целиком). Конфликт — «config edit wins».
+- **Шелл НИКОГДА не пишет в `config.json`**. Конфликт — «config edit wins».
 - Запись дебаунсится (`Timer interval: 500`); самозапись защищена флагом `_suppressConfigReload` от reload-цикла.
 - Доступ — типизированные `readonly property` с `?.`/`??`: `data.appearance?.theme?.darkMode ?? true`. `default.json` должен содержать ВСЕ возможные ключи.
 
 ### UI-состояние — `GlobalStates` (в `src/core/services/GlobalStates.qml`)
 Канонический рантайм-стейт открытости панелей (`dashboardOpen`, `launcherOpen`, `lockscreenActive`, …)
-со взаимоисключением (открытие одной гасит остальные через `on<Panel>OpenChanged`), `closeAllPanels()`, power/lock-утилиты.
+со взаимоисключением через единственное поле `activePanel` и производные флаги, `closeAllPanels()`, power/lock-утилиты.
 
 > `src/features/GlobalState.qml` (одно поле `showDateSelector`) — **легаси-дубль, использовать НЕ нужно**, подлежит удалению/слиянию в `GlobalStates`.
+
+### Панель подключений
+
+`features/connections` — единственное место управления Wi-Fi/Bluetooth/VPN/Ethernet;
+в Dashboard остаются Quick/Weather/Calendar; Audio вынесено в `features/audio`. `GlobalStates.connectionsOpen`
+выводится из `activePanel`; источник открытия и запрошенный раздел хранятся там же.
+Старые `dashboard-network` и `openDashboardTab(4)` перенаправляются в Connections.
+Поиск ограничен видимостью раздела и таймаутом; подключение живёт в сервисе.
+Внешние редакторы профилей разрешены по явному действию; GUI-настроек шелла здесь нет.
+Пока собственного агента сопряжения нет, nm-applet/blueman-applet не отключать.
+
+### Аудио и трей
+
+`features/audio` владеет выбором устройств и ленивым микшером. Состояние аудио
+читается из AudioService, команды идут через его сеттеры; UI не хранит копию
+mute/volume. `dashboard-audio` и `openDashboardTab(3)` — совместимые переходы.
+Окна Audio и Connections используют `features/common/AnchoredPanel` с одним
+focus-grab, ограничением размеров и привязкой к источнику открытия.
+
+Трей ограничивается `maxVisible`; `pinnedIds` задаёт порядок по SNI ID. Overflow
+не останавливает приложения. При переходе в меню используется живой якорь бара,
+а отложенное закрытие проверяет epoch, чтобы не закрыть заменившее его меню.
+
+### Хранилища
+
+`SystemMonitor` собирает локальные тома и физические устройства в worker:
+mountinfo фильтруется до stat-вызовов, повторные Btrfs/bind mounts группируются
+по каноническому источнику ФС. Ёмкости разных строк не суммируются. I/O считается
+по целым leaf-устройствам без разделов/dm/md; счётчики сбрасываются при смене
+diskseq, пропадании устройства и больших интервалах. `storage` в конфиге задаёт
+пороги, исключённые mount paths, порядок и имена. Предупреждения о свободном месте
+не зависят от раскрытия графиков; RO/недоступный том не считается переполненным.
+`StorageSection` показывает данные, без GUI-настроек и операций с дисками.
+После изменения StorageCollector запускать `storage_test` и native/UI-пробы.
 
 ### IPC и хоткеи
 - 5 `IpcHandler`: `globalstates`, `audio`, `mpris`, `wallpaper`, `wallpaper-cache`. Вызов: `qs ipc call <handler> <fn> [arg]`.
@@ -330,14 +395,18 @@ if (Keycodes.letter(event) === action.key) activate()
 | `Qalculate 1.0` | калькулятор лаунчера (`QalculateWrapper.eval`). |
 | `SystemMonitor 1.0` | CPU/RAM/swap/GPU/disk/net из `/proc` (`SystemMonitor`, singleton). |
 | `FuzzySearch 1.0` | нечёткий поиск (`score/match/matchWeighted`). |
+| `GreeterData 1.0` | Каталоги сессий и локальных пользователей гритера: worker, desktop/Exec parser, готовый argv. |
 
 **Что обязано быть в C++, а не в QML:** парсинг строк/`.ics`, сканирование/чтение ФС, анализ
 изображений, O(n)-поиски, LRU-кэши, любая синхронная тяжёлая работа в UI-потоке.
 **Конвенции C++:** `Q_OBJECT`+`QML_ELEMENT`(+`QML_SINGLETON`); worker-thread через `moveToThread`
-с `quit()/wait(3000)` в деструкторе; `QMutexLocker`, **сигналы эмитить вне лока**; запись файлов
+с независимым временем жизни (`WorkerLifetime`): фасад запрашивает interruption + quit,
+но не ждёт worker в UI-потоке; `finished` удаляет worker и QThread. `terminate()` запрещён;
+QtConcurrent-результаты доставляются через принадлежащий фасаду QFutureWatcher (у worker нет
+указателя на фасад или QCoreApplication); `QMutexLocker`, **сигналы эмитить вне лока**; запись файлов
 атомарно (`.tmp` + rename); единый сигнал `errorOccurred(QString)` + graceful degradation.
-**НИКАКИХ `qDebug`/`qWarning` в коде thread-pool** (вызывает SIGSEGV); raw `this` в лямбдах
-`QtConcurrent::run` оборачивать в `QPointer`.
+**НИКАКИХ `qDebug`/`qWarning` в коде thread-pool** (вызывает SIGSEGV); `QtConcurrent::run` получает только независимые данные, без `this` и указателя на приложение;
+результат доставляет принадлежащий фасаду `QFutureWatcher`.
 
 ---
 
@@ -383,7 +452,7 @@ if (Keycodes.letter(event) === action.key) activate()
 27. ❌ `MouseArea`-костыли для модальности — для попаутов/меню используй `HyprlandFocusGrab` (одно окно/один grab на все экраны, Timer-задержка для right-click).
 
 **Гигиена репозитория**
-28. ❌ **Коммит артефактов сборки и мусора:** `src/plugins/build/`, `shell.zip`, `test.diff`, `*.qsb`-кэши. (В проекте НЕТ `.gitignore` — заведи его и держи актуальным.)
+28. ❌ **Коммит артефактов сборки и мусора:** `src/plugins/build/`, `shell.zip`, `test.diff`, `*.qsb`-кэши. Держи `.gitignore` актуальным.
 29. ❌ **Плодить отдельные аналитические/отчётные `.md`** (audit/plan/migration-заметки). Конвенции и решения — в `AGENTS.md`, открытую работу — в `ROADMAP.md`. Не воссоздавать архив `docs/`.
 30. ❌ **Смешение языков в комментариях.** Код-комментарии — на английском; без emoji в коде.
 
@@ -399,8 +468,10 @@ if (Keycodes.letter(event) === action.key) activate()
 ### Производительность
 - Цель — **100% non-blocking UI**. Тяжёлое → C++ (см. §9).
 - Дебаунс/троттлинг ввода: калькулятор лаунчера троттлится ~150мс + кэш результата (включая ошибки).
-- SystemMonitor: интервал 2000мс, **ноль спавна процессов** для CPU/RAM/Disk (только `/proc`+`statvfs`), FD держатся открытыми, сигналы — только при значимом изменении.
+- SystemMonitor: сбор и ограниченная история (120 отсчётов) работают независимо от видимости Dashboard; ServiceBootstrap запускает фасад при старте, UI/графики остаются ленивыми. Температуры и GPU читаются существующим slow timer (5 с). Интервал основного сбора 2000мс, **ноль спавна процессов** для CPU/RAM/Disk (только `/proc`+`statvfs`), FD держатся открытыми, сигналы — только при значимом изменении.
 - Обои: кэш отсортированных списков per-monitor, очередь сканирования с лимитом, пост-скрипты — следить за блокировкой последовательным запуском.
+- Сервисы с сохранёнными системными эффектами запускает `ServiceBootstrap`; транспорт logind — `SessionMonitor`.
+- Время жизни retained UI не определяет активность работы: discovery принадлежит раскрытому разделу панели Connections и останавливается при закрытии/скрытии; HTTP-компонент `HttpRequest` владеет таймером и отменой (browser-only `XMLHttpRequest.timeout/onerror` в QML не работают).
 - Лениво: `LazyLoader` с `active: AppConfig.moduleEnabled(...) && GlobalStates.<panel>Open`; вкладки — `Loader`, не `StackLayout`.
 
 ### Корректность
@@ -440,5 +511,15 @@ if (Keycodes.letter(event) === action.key) activate()
 - **Источники правды:** этот `AGENTS.md` + `CLAUDE.md` (конвенции), `README.md` (фичи/установка/IPC), `ROADMAP.md` (открытая работа), `config/config.schema.json` (конфиг). Других «документов-планов» в репо нет — архив `docs/` удалён, не воссоздавай.
 - **Устарело / не существует — не использовать** (следы старых планов могут встретиться в комментариях или git-истории): `ColorService.layer()` (нет в коде → `Theme.<role>`), `DesignTokens.qml` (→ `Tokens.qml`), путь `~/.config/shell/` (→ `~/.config/quickshell/config.json`). Верь коду.
 - C++ плагины должны быть **собраны и установлены**, иначе `import Mcu 1.0` падает и копит ошибки → segfault.
-- Технический долг (не плодить дальше): дубль сети (Wi-Fi нативно, eth/vpn через `nmcli`), дубль `GlobalState`/`GlobalStates`, отсутствие `.gitignore`, qmldir-асимметрия (`config`/`services` без qmldir).
+- Технический долг (не плодить дальше): дубль сети (Wi-Fi нативно, eth/vpn через `nmcli`), механический baseline предупреждений qmllint и сырых Rectangle в features.
 - Изменил поведение или фичу — обнови `README.md`/`ROADMAP.md`, а конвенцию — здесь. Не создавай новый отчётный `.md`.
+
+### Нативные каталоги гритера
+
+GreeterData читает системные каталоги сессий и /etc/passwd в worker, без shell и
+без доступа к home. GLib декодирует desktop entry и кавычки; C++ раскрывает field
+codes один раз и передаёт argv. GreeterAuth копирует argv при начале входа; QML
+не разбивает Exec повторно. Независимые QtConcurrent jobs возвращаются через
+принадлежащий фасаду QFutureWatcher, удаление фасада не ждёт worker. Новую версию
+гритера устанавливать вместе с пакетом плагинов, содержащим GreeterData. Проверки:
+greeter_data_test, tools/test-greeter.py и tools/test-greeter-data.py (read-only).

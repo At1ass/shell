@@ -9,3 +9,4 @@ ListItem 1.0 ListItem.qml
 ScrollableList 1.0 ScrollableList.qml
 SurfaceTint 1.0 SurfaceTint.qml
 ToggleTile 1.0 ToggleTile.qml
+ActionTile 1.0 ActionTile.qml

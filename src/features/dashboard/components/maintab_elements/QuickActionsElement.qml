@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
@@ -146,11 +145,10 @@ MaterialCard {
                         }
                     }
 
-                    // QtQuick.Controls ToolTip — no tooltipManager available
-                    ToolTip {
-                        visible: actionMouseArea.containsMouse && parent.tooltipText !== ""
-                        text: parent.tooltipText
-                        delay: 500
+                    MaterialHint {
+                        visible: actionMouseArea.containsMouse && actionCell.tooltipText !== ""
+                        text: actionCell.tooltipText
+                        delay: Tokens.motion.duration.long2
                     }
                 }
             }

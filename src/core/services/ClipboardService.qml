@@ -31,6 +31,7 @@ Singleton {
     Connections {
         target: Quickshell
         function onClipboardTextChanged() {
+            if (!GlobalStates.launcherOpen) return
             // Small delay to avoid a race condition with cliphist
             delayedUpdateTimer.restart()
         }
@@ -66,6 +67,9 @@ Singleton {
             } else {
                 console.error("[ClipboardService] Failed to refresh with code", exitCode, "and status", exitStatus)
             }
+            const refreshAgain = root._refreshPending && GlobalStates.launcherOpen
+            root._refreshPending = false
+            if (refreshAgain) Qt.callLater(root.refresh)
         }
     }
 
@@ -100,11 +104,13 @@ Singleton {
         deleteProc.running = true
     }
 
-    // Refresh history
+    property bool _refreshPending: false
+
     function refresh() {
-        // running=true on a live process queues a restart (upstream
-        // semantics) — the buffer is cleared in onStarted so a mid-stream
-        // refresh cannot truncate the in-flight read's results.
+        if (readProc.running) {
+            root._refreshPending = true
+            return
+        }
         readProc.running = true
     }
 
@@ -153,7 +159,7 @@ Singleton {
     // including binary/image entries so the user can scroll to a screenshot.
     // Non-empty query → fuzzy match against text entries only; binary entries
     // are dropped since their placeholder text would never match meaningfully.
-    function fuzzySearch(query) {
+    function fuzzySearch(query, limit = 50) {
         if (debug) {
             console.info("[ClipboardService.fuzzySearch] entries:", entries.length,
                         "query:", JSON.stringify(query))
@@ -166,7 +172,7 @@ Singleton {
         // what made ClipboardProvider fall back to the array index, which is the
         // exact churn this contract exists to prevent.
         if (!query || query.trim() === "") {
-            return preparedEntries.map(e => ({
+            return preparedEntries.slice(0, limit).map(e => ({
                 id: e.id, entry: e.entry, content: e.content, score: 0
             }))
         }
@@ -181,7 +187,7 @@ Singleton {
             textContents.push(preparedEntries[i].content)
         }
 
-        const hits = FuzzySearch.match(query, textContents, 50, 30.0)
+        const hits = FuzzySearch.match(query, textContents, limit, 30.0)
 
         // Map hit's text-array index back to the original cliphist index.
         const matched = hits.map(h => ({
@@ -218,6 +224,19 @@ Singleton {
     property var _thumbQueue: []
     property var _thumbOrder: []          // insertion order for eviction
     readonly property int _maxThumbnails: 48
+    property bool _thumbnailDirReady: false
+
+    Connections {
+        target: GlobalStates
+        function onLauncherOpenChanged() {
+            if (GlobalStates.launcherOpen) {
+                root.refresh()
+            } else {
+                root._thumbQueue = []
+                delayedUpdateTimer.stop()
+            }
+        }
+    }
     property var _staleThumbPaths: []
 
     function _evictThumbFiles() {
@@ -239,17 +258,20 @@ Singleton {
 
     function requestThumbnail(entry) {
         const id = _extractEntryId(entry)
-        if (!id || _thumbnailCache[id]) return
+        if (!id || _thumbnailCache[id] || (thumbDecodeProc.running && thumbDecodeProc._entryId === id)) return
         // Do not queue duplicates
         for (let i = 0; i < _thumbQueue.length; i++) {
             if (_thumbQueue[i].id === id) return
         }
-        _thumbQueue.push({ id: id, entry: entry })
+        // Only visible delegates request work; cap even that queue during fast scrolling.
+        const next = _thumbQueue.slice(-(_maxThumbnails - 1))
+        next.push({ id: id, entry: entry })
+        _thumbQueue = next
         _processNextThumb()
     }
 
     function _processNextThumb() {
-        if (thumbDecodeProc.running || _thumbQueue.length === 0) return
+        if (!_thumbnailDirReady || thumbDecodeProc.running || _thumbQueue.length === 0) return
         const item = _thumbQueue.shift()
         thumbDecodeProc._entryId = item.id
         thumbDecodeProc._entry = item.entry
@@ -268,6 +290,10 @@ Singleton {
         // over from the previous session (they are keyed to a dead cache).
         command: ["sh", "-c", 'mkdir -p "$1" && rm -f -- "$1"/* 2>/dev/null; true', "sh", root._thumbnailDir]
         running: true
+        onExited: exitCode => {
+            root._thumbnailDirReady = exitCode === 0
+            root._processNextThumb()
+        }
     }
 
     Process {
@@ -306,6 +332,6 @@ Singleton {
 
     // Initialize on startup
     Component.onCompleted: {
-        refresh()
+        if (GlobalStates.launcherOpen) root.refresh()
     }
 }

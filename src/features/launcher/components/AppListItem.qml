@@ -1,8 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
-import Quickshell.Widgets
+import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
 import qs.src.core.config
@@ -27,23 +26,38 @@ Item {
     onModelDataChanged: {
         scale = 1
         opacity = 1
+        Qt.callLater(root._requestThumbnail)
     }
 
-    implicitHeight: 64
+    readonly property bool _thumbnailWanted: GlobalStates.launcherOpen
+        && root.modelData?.data?.isImage === true
+        && root.ListView.view !== null
+        && root.y + root.height > root.ListView.view.contentY
+        && root.y < root.ListView.view.contentY + root.ListView.view.height
+    on_ThumbnailWantedChanged: if (_thumbnailWanted) root._requestThumbnail()
+    Component.onCompleted: root._requestThumbnail()
+
+    function _requestThumbnail() {
+        if (root._thumbnailWanted)
+            ClipboardService.requestThumbnail(root.modelData.data.entry)
+    }
+
+    // Constant across results, including rows without a description, so
+    // delegate reuse never positions a row using another result's height.
+    implicitHeight: Math.max(Tokens.size.listItem,
+        Math.ceil(Tokens.typography.titleMedium.lineHeight + Tokens.typography.bodySmall.lineHeight)
+        + Tokens.spacing.small * 2 + Tokens.spacing.extraSmall)
     implicitWidth: parent ? parent.width : 0
 
-    Rectangle {
+    Accessible.role: Accessible.ListItem
+    Accessible.name: modelData?.text ?? ""
+    Accessible.description: modelData?.description ?? ""
+    Accessible.selected: isCurrentItem
+    Surface {
         anchors.fill: parent
+        outlined: false
         radius: Tokens.shape.medium
         color: root.isCurrentItem ? Theme.secondaryContainer : "transparent"
-        opacity: root.isCurrentItem ? 0.12 : 0
-
-        Behavior on opacity {
-            MotionAnimation {
-                duration: Tokens.motion.duration.short4
-                curve: "standard"
-            }
-        }
     }
 
     StateLayer {
@@ -70,8 +84,8 @@ Item {
         Image {
             id: clipboardThumb
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: 40
-            Layout.preferredHeight: 40
+            Layout.preferredWidth: Tokens.size.itemIcon
+            Layout.preferredHeight: Tokens.size.itemIcon
             visible: _thumbSource !== ""
 
             readonly property string _thumbSource: {
@@ -83,19 +97,19 @@ Item {
             }
 
             source: _thumbSource ? "file://" + _thumbSource : ""
-            sourceSize.width: 40
-            sourceSize.height: 40
+            sourceSize.width: Tokens.size.itemIcon
+            sourceSize.height: Tokens.size.itemIcon
             fillMode: Image.PreserveAspectCrop
             smooth: true
             cache: false
             asynchronous: true
 
-            Rectangle {
+            Surface {
                 anchors.fill: parent
                 color: "transparent"
                 radius: Tokens.shape.small
-                border.width: 1
-                border.color: Qt.alpha(Theme.outline, 0.2)
+                outlined: true
+                outlineColor: Theme.outlineVariant
             }
         }
 
@@ -103,8 +117,8 @@ Item {
         Image {
             id: appIcon
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: 40
-            Layout.preferredHeight: 40
+            Layout.preferredWidth: Tokens.size.itemIcon
+            Layout.preferredHeight: Tokens.size.itemIcon
             visible: !clipboardThumb.visible
 
             // The ?fallback= query is resolved by Quickshell's icon image
@@ -112,8 +126,8 @@ Item {
             // the fallback away and rendered a blank gap for unknown icons.
             source: Quickshell.iconPath(root.modelData?.icon || "application-x-executable", "image-missing")
 
-            sourceSize.width: 40
-            sourceSize.height: 40
+            sourceSize.width: Tokens.size.itemIcon
+            sourceSize.height: Tokens.size.itemIcon
             fillMode: Image.PreserveAspectFit
             smooth: true
             cache: true
@@ -136,11 +150,12 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            spacing: 2
+            spacing: Tokens.spacing.extraSmall
 
             // Result Name
             MaterialText {
                 Layout.fillWidth: true
+                textFormat: Text.PlainText
                 text: root.modelData?.text || ""
                 textStyle: "titleMedium"
                 colorRole: "onSurface"
@@ -150,6 +165,7 @@ Item {
             // Result Description
             MaterialText {
                 Layout.fillWidth: true
+                textFormat: Text.PlainText
                 text: root.modelData?.description || ""
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"

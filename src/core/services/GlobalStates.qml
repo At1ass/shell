@@ -22,13 +22,64 @@ Singleton {
     readonly property bool cheatsheetOpen: activePanel === "cheatsheet"
     readonly property bool powerMenuOpen: activePanel === "powermenu"
 
-    property int  dashboardOpenIndex: 0
+    readonly property bool connectionsOpen: activePanel === "connections"
+    property string connectionsSection: ""
+    property Item connectionsSource: null
+    property int dashboardOpenIndex: 0
+
+    function openConnections(section, source) {
+        if (root.lockscreenActive || !AppConfig.moduleEnabled("connections")) return
+        root.connectionsSection = ["wifi", "bluetooth", "vpn", "ethernet"].includes(section) ? section : ""
+        root.connectionsSource = source ?? null
+        root.openPanel("connections", root.screenForItem(source))
+    }
+
+    function toggleConnections(section, source) {
+        if (root.connectionsOpen && (!section || root.connectionsSection === section)) root.closePanel("connections")
+        else root.openConnections(section, source)
+    }
+
+    readonly property bool audioOpen: activePanel === "audio"
+    property Item audioSource: null
+    function openAudio(source) {
+        if (root.lockscreenActive || !AppConfig.moduleEnabled("audio")) return
+        root.audioSource = source ?? null
+        root.openPanel("audio", root.screenForItem(source))
+    }
+    function toggleAudio(source) {
+        if (root.audioOpen) root.closePanel("audio")
+        else root.openAudio(source)
+    }
+    onAudioOpenChanged: if (!audioOpen) root.audioSource = null
+
+    function screenForItem(source) {
+        let targetScreen = null
+        if (source) {
+            const win = source.Window.window
+            const pos = source.mapToItem(null, 0, 0)
+            const x = pos.x + (win?.x ?? 0)
+            const y = pos.y + (win?.y ?? 0)
+            for (const screen of Quickshell.screens) {
+                if (!screen) continue
+                if (x >= screen.x && x < screen.x + screen.width && y >= screen.y && y < screen.y + screen.height) {
+                    targetScreen = screen
+                    break
+                }
+            }
+        }
+        return targetScreen
+    }
+
+    onConnectionsOpenChanged: if (!connectionsOpen) root.connectionsSource = null
 
     // Lockscreen has its own lifecycle (WlSessionLock), not a panel.
     property bool lockscreenActive: false
+    property string lockscreenScreenName: ""
 
     // Panel name → modules.* key gating it.
     readonly property var _panelModule: ({
+        "audio": "audio",
+        "connections": "connections",
         "dashboard": "dashboard",
         "launcher": "launcher",
         "notificationCenter": "notifications",
@@ -58,12 +109,13 @@ Singleton {
     // keyboard focus — so each panel resets its own transient state here.
     signal panelOpened(string name)
 
-    function openPanel(name) {
+    function openPanel(name, preferredScreen) {
         const mod = _panelModule[name]
         if (!mod) { console.warn("GlobalStates: unknown panel:", name); return }
-        if (!AppConfig.moduleEnabled(mod)) return
+        if (root.lockscreenActive || !AppConfig.moduleEnabled(mod)) return
 
-        const s = root.focusedScreen()
+        PopoutsState.closePopout()
+        const s = preferredScreen ?? root.focusedScreen()
         if (s) root.activePanelScreen = s
 
         if (AppConfig.panelKeptLoaded(name) && !root.panelRetained(name))
@@ -103,18 +155,20 @@ Singleton {
         const focused = Hyprland.focusedMonitor
         if (focused) {
             for (const screen of Quickshell.screens) {
-                if (screen.name === focused.name) return screen
+                if (screen && screen.name === focused.name) return screen
             }
         }
-        return Quickshell.screens[0] ?? null
+        return Quickshell.screens.find(screen => screen !== null) ?? null
     }
 
     // Open the dashboard on a specific tab.
-    // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, 3 = Audio, 4 = Network
+    // tabIndex: 0 = Quick, 1 = Weather, 2 = Calendar, legacy 3 opens Audio, legacy 4 opens Connections
     function openDashboardTab(tabIndex) {
         // Clamp: an out-of-range index (IPC typo) would deactivate every
         // tab Loader and open a blank dashboard.
-        dashboardOpenIndex = Math.max(0, Math.min(4, tabIndex))
+        if (tabIndex === 3) { root.openAudio(null); return }
+        if (tabIndex === 4) { root.openConnections("wifi", null); return }
+        dashboardOpenIndex = Math.max(0, Math.min(2, tabIndex))
         openPanel("dashboard")
     }
 
@@ -127,8 +181,12 @@ Singleton {
             case "dashboard-quick":    openDashboardTab(0); return
             case "dashboard-weather":  openDashboardTab(1); return
             case "dashboard-calendar": openDashboardTab(2); return
-            case "dashboard-audio":    openDashboardTab(3); return
-            case "dashboard-network":  openDashboardTab(4); return
+            case "audio":
+            case "dashboard-audio":    toggleAudio(null); return
+            case "connections":         toggleConnections("", null); return
+            case "connections-wifi":    toggleConnections("wifi", null); return
+            case "connections-bluetooth": toggleConnections("bluetooth", null); return
+            case "dashboard-network":  toggleConnections("wifi", null); return
             case "notification-center": togglePanel("notificationCenter"); return
             case "launcher":            togglePanel("launcher"); return
             default:
@@ -142,6 +200,7 @@ Singleton {
         // lock-session) become no-ops. See README caveat; pair with an external locker.
         if (!AppConfig.moduleEnabled("lockscreen")) return
         closeAllPanels()
+        lockscreenScreenName = focusedScreen()?.name ?? ""
         lockscreenActive = true
     }
 
@@ -173,33 +232,22 @@ Singleton {
         else ToastService.warning("Power action already in progress")
     }
 
-    // DBus lock signal listener (loginctl lock-session).
-    // logind emits Lock/Unlock on the CONCRETE session object path
-    // (/org/freedesktop/login1/session/_3xx), not on the /session/auto
-    // alias, so monitor the whole destination and match the member name.
-    Process {
-        id: lockListenerProc
-        command: ["gdbus", "monitor", "--system",
-                  "--dest", "org.freedesktop.login1"]
-        running: true
-        stdout: SplitParser {
-            onRead: data => {
-                // Member arrives as "...session.Lock ()"; the trailing space
-                // keeps the bare `Lock` from also matching `.Unlock`.
-                if (data.includes(".Session.Lock ") || data.includes(".Lock ()"))
-                    root.lockSession()
-                else if (data.includes(".Session.Unlock ") || data.includes(".Unlock ()"))
-                    root.unlockSession()
-            }
-        }
-        // dbus-daemon restart or gdbus death would silently kill lock
-        // handling; restart the monitor after a short delay.
-        onExited: lockListenerRestart.start()
+    Connections {
+        target: SessionMonitor
+        function onLockRequested() { root.lockSession() }
+        function onUnlockRequested() { root.unlockSession() }
     }
-    Timer {
-        id: lockListenerRestart
-        interval: 2000
-        onTriggered: if (!lockListenerProc.running) lockListenerProc.running = true
+
+    GlobalShortcut {
+        name: "connectionsToggle"
+        description: "Toggle connections panel"
+        onPressed: root.toggleConnections("", null)
+    }
+
+    GlobalShortcut {
+        name: "audioToggle"
+        description: "Toggle audio panel"
+        onPressed: root.toggleAudio(null)
     }
 
     // Global hotkeys
@@ -266,6 +314,14 @@ Singleton {
     // IPC commands for external control
     IpcHandler {
         target: "globalstates"
+
+        function toggleAudio(): void { root.toggleAudio(null) }
+        function openAudio(): void { root.openAudio(null) }
+        function closeAudio(): void { root.closePanel("audio") }
+
+        function toggleConnections(): void { root.toggleConnections("", null) }
+        function openConnections(section: string): void { root.openConnections(section, null) }
+        function closeConnections(): void { root.closePanel("connections") }
 
         function toggleDashboard(): void {
             root.togglePanel("dashboard")
@@ -384,6 +440,8 @@ Singleton {
             IdleInhibitorService.setInhibit(enabled)
         }
 
+        function setIdleInhibitorFor(minutes: int): bool { return IdleInhibitorService.setForMinutes(minutes) }
+        function idleInhibitorUntil(): string { return IdleInhibitorService.temporary ? new Date(IdleInhibitorService.expiresAt).toISOString() : "" }
         function idleInhibitor(): bool {
             return IdleInhibitorService.inhibit
         }

@@ -1,46 +1,50 @@
 pragma ComponentBehavior: Bound
 
-import qs.src.core.config
-import qs.src.ui.feedback
-import qs.src.ui.base
-import Quickshell
-import Quickshell.Widgets
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import qs.src.core.config
+import qs.src.ui.base
+import qs.src.ui.containers
 
+// StackView owns component-created pages, including their native menu openers.
 StackView {
     id: root
-
     required property QsMenuHandle trayItem
-
+    property real maximumHeight: Tokens.size.listItem * 10
     signal menuClosed()
-
-    implicitWidth: currentItem ? currentItem.implicitWidth : 0
-    implicitHeight: currentItem ? currentItem.implicitHeight : 0
-
+    implicitWidth: (currentItem as Item)?.implicitWidth ?? Tokens.size.fieldWidth
+    implicitHeight: (currentItem as Item)?.implicitHeight ?? 0
     initialItem: subMenuComponent
+    pushEnter: Transition {}
+    pushExit: Transition {}
+    popEnter: Transition {}
+    popExit: Transition {}
+    clip: true
 
-    pushEnter: noAnim
-    pushExit: noAnim
-    popEnter: noAnim
-    popExit: noAnim
-
-    Transition {
-        id: noAnim
-        NumberAnimation {
-            duration: 0
+    function focusInitial() { if (currentItem) currentItem.forceActiveFocus(Qt.PopupFocusReason) }
+    function back() {
+        if (depth > 1) pop()
+        else menuClosed()
+    }
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Escape || event.key === Qt.Key_Left) {
+            root.back()
+            event.accepted = true
         }
     }
 
     Component {
         id: subMenuComponent
-        Column {
-            id: menu
-
+        Item {
+            id: menuPage
             property QsMenuHandle handle: root.trayItem
-            property bool isSubMenu
-            property bool shown
-
+            property bool isSubMenu: false
+            property int lastIndex: -1
+            implicitWidth: Tokens.size.fieldWidth + Tokens.spacing.large * 2
+            implicitHeight: Math.min(root.maximumHeight, body.implicitHeight)
+            focus: true
             // Re-resolution, for menus that rebuild themselves underneath us.
             //
             // libdbusmenu applications periodically discard their whole menu tree
@@ -61,194 +65,163 @@ StackView {
             property int entryIndex: -1
 
             function reresolve(): void {
-                if (menu.handle || !menu.parentOpener || menu.entryLabel === "")
+                if (menuPage.handle || !menuPage.parentOpener || menuPage.entryLabel === "")
                     return;
-                const entries = menu.parentOpener.children?.values ?? [];
+                const entries = menuPage.parentOpener.children?.values ?? [];
                 // Same label at the same position first: a Wi-Fi list can carry the
                 // same SSID twice, and position is what tells those two apart.
-                const exact = entries[menu.entryIndex];
-                if (exact?.text === menu.entryLabel && exact.hasChildren) {
-                    menu.handle = exact;
+                const exact = entries[menuPage.entryIndex];
+                if (exact?.text === menuPage.entryLabel && exact.hasChildren) {
+                    menuPage.handle = exact;
                     return;
                 }
                 for (const entry of entries) {
-                    if (entry?.text === menu.entryLabel && entry.hasChildren) {
-                        menu.handle = entry;
+                    if (entry?.text === menuPage.entryLabel && entry.hasChildren) {
+                        menuPage.handle = entry;
                         return;
                     }
                 }
             }
 
             onHandleChanged: {
-                if (menu.handle) {
+                if (menuPage.handle) {
                     lostTimer.stop();
-                } else if (menu.parentOpener) {
-                    menu.reresolve();
+                } else if (menuPage.parentOpener) {
+                    menuPage.reresolve();
                     // The replacement usually arrives a beat later, with the
                     // parent's children signal; this only bounds the wait.
-                    if (!menu.handle)
+                    if (!menuPage.handle)
                         lostTimer.restart();
                 }
             }
 
             Connections {
-                target: menu.parentOpener
-                enabled: menu.parentOpener !== null && !menu.handle
+                target: menuPage.parentOpener
+                enabled: menuPage.parentOpener !== null && !menuPage.handle
 
                 function onChildrenChanged(): void {
-                    menu.reresolve();
+                    menuPage.reresolve();
                 }
+            }
+
+            Connections {
+                target: menuPage.parentOpener?.children ?? null
+                enabled: menuPage.parentOpener !== null && !menuPage.handle
+                function onValuesChanged() { menuPage.reresolve() }
             }
 
             // If the entry is genuinely gone — Wi-Fi switched off, a VPN profile
             // deleted — go back a level instead of leaving an empty page up.
             Timer {
                 id: lostTimer
-                interval: 3000
+                interval: Tokens.interaction.menuRefreshTimeout
                 onTriggered: {
-                    if (!menu.handle && root.depth > 1)
+                    if (!menuPage.handle && root.depth > 1)
                         root.pop();
                 }
             }
 
-            padding: Tokens.spacing.extraSmall / 2
-            spacing: 1
 
-            opacity: shown ? 1 : 0
-            scale: shown ? 1 : 0.8
-
-            Component.onCompleted: shown = true
-            StackView.onActivating: shown = true
-            StackView.onDeactivating: shown = false
-            StackView.onRemoved: destroy()
-
-            Behavior on opacity {
-                MotionAnimation {
-                    duration: Tokens.motion.duration.medium4
-                    curve: "standard"
+            function focusRow(start, direction) {
+                for (let i = 0; i < rows.count; i++) {
+                    const index = (start + direction * i + rows.count * 2) % rows.count
+                    const row = rows.itemAt(index) as ListItem
+                    if (row?.enabled && row.clickable) {
+                        row.forceActiveFocus(Qt.TabFocusReason)
+                        return
+                    }
                 }
+                if (backRow.visible) backRow.forceActiveFocus(Qt.TabFocusReason)
             }
+            onActiveFocusChanged: if (activeFocus) focusRow(Math.max(lastIndex, 0), 1)
+            StackView.onActivated: Qt.callLater(() => { if (root.currentItem === menuPage) menuPage.focusRow(Math.max(menuPage.lastIndex, 0), 1) })
 
-            Behavior on scale {
-                MotionAnimation {
-                    duration: Tokens.motion.duration.medium4
-                    curve: "standard"
-                }
-            }
-
-            QsMenuOpener {
-                id: menuOpener
-                menu: menu.handle
-            }
-
-            Repeater {
-                model: menuOpener.children
-
-                Rectangle {
-                    id: item
-
-                    // NOT required/typed-strict on access: the DBus menu can
-                    // destroy entries while delegates still exist (close,
-                    // app-side model reset) — modelData auto-nulls and every
-                    // binding below must tolerate it.
-                    required property QsMenuEntry modelData
-
-                    implicitWidth: 220
-                    implicitHeight: (modelData?.isSeparator ?? false) ? 1 : contentLoader.implicitHeight
-
-                    radius: Tokens.shape.medium
-                    color: (modelData?.isSeparator ?? false) ? Theme.outlineVariant : "transparent"
-                    border.width: 0
-
-                    Loader {
-                        // Named contentLoader — an id of `children` shadows
-                        // Item.children.
-                        id: contentLoader
-
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-
-                        active: !(item.modelData?.isSeparator ?? true)
-                        asynchronous: true
-
-                        sourceComponent: Item {
-                            implicitHeight: label.implicitHeight + Tokens.spacing.extraSmall
-
-                            MouseArea {
-                                id: mouseArea
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                enabled: item.modelData?.enabled ?? false
-
-                                onClicked: {
-                                    const entry = item.modelData;
-                                    if (!entry) return;
-                                    if (entry.hasChildren) {
-                                        root.push(subMenuComponent.createObject(null, {
-                                            handle: entry,
-                                            isSubMenu: true,
-                                            parentOpener: menuOpener,
-                                            entryLabel: entry.text,
-                                            entryIndex: (menuOpener.children?.values ?? []).indexOf(entry)
-                                        }));
-                                    } else {
-                                        entry.triggered();
-                                        root.menuClosed();
-                                    }
+            QsMenuOpener { id: menuOpener; menu: menuPage.handle }
+            ScrollableList {
+                anchors.fill: parent
+                spacing: 0
+                ColumnLayout {
+                    id: body
+                    Layout.fillWidth: true
+                    spacing: 0
+                    ListItem {
+                        id: backRow
+                        Layout.fillWidth: true
+                        visible: menuPage.isSubMenu
+                        headline: "Back"
+                        supportingText: menuPage.entryLabel
+                        leadingIcon: "arrow_back"
+                        onClicked: root.back()
+                        Keys.onDownPressed: menuPage.focusRow(0, 1)
+                        Keys.onUpPressed: menuPage.focusRow(rows.count - 1, -1)
+                    }
+                    Repeater {
+                        id: rows
+                        model: menuOpener.children
+                        onItemAdded: (_index, _item) => Qt.callLater(() => {
+                            if (root.currentItem === menuPage && menuPage.activeFocus)
+                                menuPage.focusRow(Math.max(menuPage.lastIndex, 0), 1)
+                        })
+                        ListItem {
+                            id: row
+                            required property int index
+                            required property QsMenuEntry modelData
+                            readonly property bool separator: modelData?.isSeparator ?? true
+                            readonly property bool checkable: !separator && (modelData?.buttonType ?? QsMenuButtonType.None) !== QsMenuButtonType.None
+                            readonly property bool checked: (modelData?.checkState ?? Qt.Unchecked) !== Qt.Unchecked
+                            Layout.fillWidth: true
+                            height: separator ? Tokens.spacing.small * 2 + Tokens.size.outline : implicitHeight
+                            clickable: !separator
+                            enabled: !separator && (modelData?.enabled ?? false)
+                            headlineTextFormat: Text.PlainText
+                            headline: separator ? "" : (modelData?.text ?? "")
+                            leadingImageSource: !separator && !checkable ? (modelData?.icon ?? "") : ""
+                            leadingIcon: !checkable ? "" : modelData?.buttonType === QsMenuButtonType.RadioButton
+                                ? (checked ? "radio_button_checked" : "radio_button_unchecked")
+                                : modelData?.checkState === Qt.PartiallyChecked ? "indeterminate_check_box"
+                                : checked ? "check_box" : "check_box_outline_blank"
+                            trailingIcon: !separator && (modelData?.hasChildren ?? false) ? "chevron_right" : ""
+                            opacity: enabled || separator ? 1 : Tokens.state.disabledContentOpacity
+                            Accessible.role: checkable ? Accessible.CheckBox : Accessible.MenuItem
+                            Accessible.checkable: checkable
+                            Accessible.checked: checked
+                            onActiveFocusChanged: if (activeFocus) menuPage.lastIndex = index
+                            function activate() {
+                                const entry = row.modelData
+                                if (!entry || !entry.enabled || entry.isSeparator) return
+                                if (entry.hasChildren) {
+                                    root.push(subMenuComponent, {
+                                        handle: entry, isSubMenu: true,
+                                        parentOpener: menuOpener,
+                                        entryLabel: entry.text, entryIndex: row.index
+                                    })
+                                } else {
+                                    entry.triggered()
+                                    root.menuClosed()
                                 }
                             }
-
-                            StateLayer {
-                                anchors.fill: parent
-                                hovered: mouseArea.containsMouse
-                                pressed: mouseArea.pressed
-                            }
-
-                            Loader {
-                                id: icon
-
-                                anchors.left: parent.left
-                                anchors.leftMargin: Tokens.spacing.extraSmall
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                active: (item.modelData?.icon ?? "") !== ""
-                                asynchronous: true
-
-                                sourceComponent: IconImage {
-                                    implicitSize: label.implicitHeight
-                                    source: Qt.resolvedUrl(item.modelData?.icon ?? "")
+                            onClicked: activate()
+                            Keys.onPressed: event => {
+                                switch (event.key) {
+                                case Qt.Key_Down: menuPage.focusRow(row.index + 1, 1); break
+                                case Qt.Key_Up: menuPage.focusRow(row.index - 1, -1); break
+                                case Qt.Key_Home: menuPage.focusRow(0, 1); break
+                                case Qt.Key_End: menuPage.focusRow(rows.count - 1, -1); break
+                                case Qt.Key_Right: if (row.modelData?.hasChildren) row.activate(); break
+                                case Qt.Key_Tab: menuPage.focusRow(row.index + (event.modifiers & Qt.ShiftModifier ? -1 : 1), event.modifiers & Qt.ShiftModifier ? -1 : 1); break
+                                default: return
                                 }
+                                event.accepted = true
                             }
-
-                            MaterialText {
-                                id: label
-
-                                anchors.left: icon.active ? icon.right : parent.left
-                                anchors.leftMargin: Tokens.spacing.extraSmall
-                                anchors.right: rightIcon.left
-                                anchors.rightMargin: Tokens.spacing.extraSmall
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                text: item.modelData?.text ?? ""
-                                textStyle: "bodyMedium"
-                                colorRole: (item.modelData?.enabled ?? false) ? "onSurface" : "outline"
-                                elide: Text.ElideRight
-                            }
-
-                            MaterialIcon {
-                                id: rightIcon
-
-                                anchors.right: parent.right
-                                anchors.rightMargin: Tokens.spacing.extraSmall
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                visible: item.modelData?.hasChildren ?? false
-                                iconName: "chevron_right"
-                                iconColor: (item.modelData?.enabled ?? false) ? Theme.onSurface : Theme.outline
-                                fontSize: Tokens.typography.titleMedium.size
-                            }
+                            Divider { visible: row.separator; anchors.verticalCenter: parent.verticalCenter; width: parent.width }
                         }
+                    }
+                    MaterialText {
+                        Layout.fillWidth: true
+                        Layout.margins: Tokens.spacing.medium
+                        visible: rows.count === 0
+                        text: menuPage.handle ? "No actions available" : "Updating menu…"
+                        colorRole: "onSurfaceVariant"
                     }
                 }
             }

@@ -75,6 +75,21 @@ Singleton {
     // already been ingressed (so it is in history); only the popup is skipped.
     signal popupDropped(var notification)
 
+    // Apply tighter hot-reloaded limits to queued work as well as new arrivals.
+    onIngressLimitChanged: if (_tokens > ingressLimit) _tokens = ingressLimit
+    onMaxQueueSizeChanged: {
+        if (!_ingressQueue || _ingressQueue.length <= maxQueueSize) return
+        const removed = _ingressQueue.slice(maxQueueSize)
+        _ingressQueue = _ingressQueue.slice(0,maxQueueSize)
+        for (const notification of removed) ingressDropped(notification)
+    }
+    onMaxGateQueueSizeChanged: {
+        if (!_gateQueue || _gateQueue.length <= maxGateQueueSize) return
+        const removed = _gateQueue.slice(maxGateQueueSize)
+        _gateQueue = _gateQueue.slice(0,maxGateQueueSize)
+        for (const entry of removed) popupDropped(entry.notification)
+    }
+
     // ── Bucket refill ────────────────────────────────────────────
     // Runs only while the bucket is actually short. A full bucket refilling to
     // full is a no-op that does not even emit a change signal, so leaving this

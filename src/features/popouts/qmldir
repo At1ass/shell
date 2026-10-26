@@ -2,3 +2,5 @@ module qs.src.features.popouts
 
 Popouts 1.0 Popouts.qml
 TrayMenu 1.0 TrayMenu.qml
+TrayOverflow 1.0 TrayOverflow.qml
+BarOverflow 1.0 BarOverflow.qml

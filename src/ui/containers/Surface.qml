@@ -52,6 +52,9 @@ Item {
         z: -1
 
         sourceComponent: ElevationShadow {
+            // surfaceRect is a sibling of Loader, not of the loaded shadow.
+            // Anchor the shadow to the loader box instead of crossing parents.
+            anchors.fill: parent
             target: surfaceRect
             level: root.elevation
         }

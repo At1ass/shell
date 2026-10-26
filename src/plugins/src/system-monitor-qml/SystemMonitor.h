@@ -6,6 +6,8 @@
 #include <QtCore/QAtomicInt>
 #include <QtQml/QQmlEngine>
 #include <memory>
+#include <QVariantMap>
+#include <QVariantList>
 
 class StatsWorker;
 
@@ -15,6 +17,7 @@ struct StatsSnapshot {
     qreal cpuUsage = 0.0;
     int cpuTemp = 0;
     QString cpuModel;
+    QString userName, osName, wmName;
 
     // CPU extensions
     qreal cpuFreqGHz = 0.0;
@@ -41,6 +44,9 @@ struct StatsSnapshot {
     qreal diskUsage = 0.0;
     QString diskUsed;
     QString diskTotal;
+
+    QVariantList storageVolumes, storageDrives;
+    QVariantMap storageSummary;
 
     // Disk I/O
     double diskReadSpeed = 0.0, diskWriteSpeed = 0.0;
@@ -104,6 +110,12 @@ class SystemMonitor : public QObject {
     Q_PROPERTY(QString diskWriteFormatted READ diskWriteFormatted NOTIFY diskWriteFormattedChanged)
     Q_PROPERTY(bool hasDiskIo READ hasDiskIo NOTIFY hasDiskIoChanged)
 
+    Q_PROPERTY(int storageApiVersion READ storageApiVersion CONSTANT)
+    Q_PROPERTY(QVariantList storageVolumes READ storageVolumes NOTIFY storageChanged)
+    Q_PROPERTY(QVariantList storageDrives READ storageDrives NOTIFY storageChanged)
+    Q_PROPERTY(QVariantMap storageSummary READ storageSummary NOTIFY storageChanged)
+    Q_PROPERTY(QVariantMap storageOptions READ storageOptions WRITE setStorageOptions NOTIFY storageOptionsChanged)
+
     // Network properties
     Q_PROPERTY(double netRxSpeed READ netRxSpeed NOTIFY netRxSpeedChanged)
     Q_PROPERTY(double netTxSpeed READ netTxSpeed NOTIFY netTxSpeedChanged)
@@ -114,11 +126,11 @@ class SystemMonitor : public QObject {
 
     // System info
     Q_PROPERTY(QString userName READ userName NOTIFY userNameChanged)
-    Q_PROPERTY(QString osName READ osName CONSTANT)
-    Q_PROPERTY(QString wmName READ wmName CONSTANT)
+    Q_PROPERTY(QString osName READ osName NOTIFY osNameChanged)
+    Q_PROPERTY(QString wmName READ wmName NOTIFY wmNameChanged)
 
-    // Status / control. Writable: polling is pure cost when nothing is bound to
-    // the stats, so the QML facade parks the worker while the dashboard is shut.
+    // Status / control. Background history collection remains active even
+    // when the dashboard is hidden; panel visibility only gates rendering.
     Q_PROPERTY(bool isMonitoring READ isMonitoring WRITE setMonitoring NOTIFY isMonitoringChanged)
     Q_PROPERTY(bool hasCpuTemp READ hasCpuTemp NOTIFY hasCpuTempChanged)
     Q_PROPERTY(bool hasGpuStats READ hasGpuStats NOTIFY hasGpuStatsChanged)
@@ -172,6 +184,12 @@ public:
     QString diskWriteFormatted() const { return m_diskWriteFormatted; }
     bool hasDiskIo() const { return m_hasDiskIo; }
 
+    int storageApiVersion() const { return 1; }
+    QVariantList storageVolumes() const { return m_storageVolumes; }
+    QVariantList storageDrives() const { return m_storageDrives; }
+    QVariantMap storageSummary() const { return m_storageSummary; }
+    QVariantMap storageOptions() const { return m_storageOptions; }
+
     // Network getters
     double netRxSpeed() const { return m_netRxSpeed; }
     double netTxSpeed() const { return m_netTxSpeed; }
@@ -198,8 +216,11 @@ public slots:
     // cheap and re-entry needs no re-detection. Speed baselines self-heal:
     // pollFast resets them whenever the measured gap dwarfs the nominal one.
     void setMonitoring(bool enabled);
+    void setStorageOptions(const QVariantMap& options);
 
 signals:
+    void storageChanged();
+    void storageOptionsChanged();
     void cpuUsageChanged();
     void cpuTempChanged();
     void cpuModelChanged();
@@ -238,6 +259,8 @@ signals:
     void netInterfaceChanged();
     void hasNetChanged();
     void userNameChanged();
+    void osNameChanged();
+    void wmNameChanged();
     void isMonitoringChanged();
     void hasCpuTempChanged();
     void hasGpuStatsChanged();
@@ -248,7 +271,6 @@ private slots:
     void handleSnapshot(const StatsSnapshot& snapshot);
 
 private:
-    void initializeStaticInfo();
     void stopWorker();
 
     // CPU state
@@ -292,6 +314,9 @@ private:
     QString m_diskWriteFormatted;
     bool m_hasDiskIo = false;
 
+    QVariantList m_storageVolumes, m_storageDrives;
+    QVariantMap m_storageSummary, m_storageOptions;
+
     // Network state
     double m_netRxSpeed = 0.0;
     double m_netTxSpeed = 0.0;
@@ -310,6 +335,6 @@ private:
     bool m_hasGpuStats = false;
 
     // Worker thread
-    QThread m_workerThread;
+    QThread* m_workerThread = nullptr;
     StatsWorker* m_worker = nullptr;
 };

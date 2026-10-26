@@ -10,6 +10,15 @@ import Quickshell
 Singleton {
     id: root
 
+    // Interaction deadlines stay stable when animation motion is reduced.
+    component InteractionTokens: QtObject {
+        readonly property int tooltipDelay: 400
+        readonly property int tooltipDismissDelay: 100
+        readonly property int menuRefreshTimeout: 3000
+        readonly property int popupGrabDelay: 50
+    }
+    readonly property InteractionTokens interaction: InteractionTokens {}
+
     component SpacingTokens: QtObject {
         property int none
         property int extraSmall
@@ -239,6 +248,16 @@ Singleton {
     // sites picking a step off the spacing scale by eye.
     component SizeTokens: QtObject {
         property int control
+        property int buttonMinimumWidth
+        property int field
+        property int fieldWidth
+        property int iconButton
+        property int listItem
+        property int itemIcon
+        property int tileMinimumWidth
+        readonly property int outline: 1
+        readonly property int activeOutline: 2
+        readonly property int tabIndicator: 2
     }
 
     component FocusRingTokens: QtObject {
@@ -404,6 +423,13 @@ Singleton {
 
     readonly property SizeTokens md3Size: SizeTokens {
         control: 40
+        buttonMinimumWidth: 88
+        field: 56
+        fieldWidth: 240
+        iconButton: 40
+        listItem: 64
+        itemIcon: 40
+        tileMinimumWidth: 128
     }
 
     readonly property StateLayerTokens md3StateLayer: StateLayerTokens {
@@ -527,6 +553,13 @@ Singleton {
 
     readonly property SizeTokens minimalSize: SizeTokens {
         control: 30
+        buttonMinimumWidth: 64
+        field: 40
+        fieldWidth: 240
+        iconButton: 30
+        listItem: 52
+        itemIcon: 32
+        tileMinimumWidth: 112
     }
 
     readonly property StateLayerTokens minimalStateLayer: StateLayerTokens {

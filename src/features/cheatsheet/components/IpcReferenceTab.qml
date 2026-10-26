@@ -10,6 +10,9 @@ pragma ComponentBehavior: Bound
 Item {
     id: root
 
+    property bool loading: false
+    property string errorMessage: ""
+    signal retryRequested()
     property var handlers: []
 
     ScrollView {
@@ -55,11 +58,25 @@ Item {
                 }
             }
 
+            MaterialText {
+                Layout.fillWidth: true
+                visible: root.loading || root.errorMessage !== ""
+                text: root.loading ? "Reading IPC commands…" : root.errorMessage
+                textStyle: "bodyMedium"
+                colorRole: root.errorMessage !== "" ? "error" : "onSurfaceVariant"
+                wrapMode: Text.WordWrap
+            }
+            MaterialButton {
+                visible: !root.loading && root.errorMessage !== ""
+                text: "Try again"
+                variant: "text"
+                onClicked: root.retryRequested()
+            }
             // Empty state
             MaterialText {
                 Layout.fillWidth: true
                 Layout.topMargin: Tokens.spacing.extraLarge
-                visible: root.handlers.length === 0
+                visible: root.handlers.length === 0 && !root.loading && root.errorMessage === ""
                 text: "No IPC functions found"
                 textStyle: "bodyLarge"
                 colorRole: "onSurfaceVariant"

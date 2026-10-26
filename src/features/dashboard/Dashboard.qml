@@ -1,11 +1,9 @@
 import QtQuick
-import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.services
 import qs.src.core.config
-import qs.src.ui.containers
 import qs.src.ui.base
 
 Scope {
@@ -25,7 +23,10 @@ Scope {
         screen: GlobalStates.activePanelScreen ?? null
 
         color: "transparent"
-        implicitWidth: root.sidebarWidth
+        readonly property ShellScreen targetScreen: GlobalStates.activePanelScreen
+        readonly property int availableWidth: Math.max(1, (targetScreen?.width ?? root.sidebarWidth) - Tokens.spacing.small * 2)
+        readonly property int availableHeight: Math.max(1, (targetScreen?.height ?? root.sidebarHeight) - BarMetrics.reservation - Tokens.spacing.small * 2)
+        implicitWidth: Math.min(root.sidebarWidth, availableWidth)
         readonly property DashboardContent _content: dashboardLoader.item as DashboardContent
         readonly property int _measured: _content?.tabContentHeight ?? 0
 
@@ -39,11 +40,10 @@ Scope {
         // spacing, a tab grows a row, the font scale moves -- and the result is
         // either a clipped bottom edge or a band of dead space, in a panel whose
         // content was measurable all along. Quick, Weather and Calendar report
-        // what they need; Audio and Network are lists that size to whatever they
-        // are given, so `dashboard.height` remains their base.
-        implicitHeight: _measured > 0
+        // their measured height. The configured height is only a fallback.
+        implicitHeight: Math.min(availableHeight, _measured > 0
             ? _measured + chromeHeight
-            : root.sidebarHeight + (_content?.tabExtraHeight ?? 0)
+            : root.sidebarHeight + (_content?.tabExtraHeight ?? 0))
 
         // Everything the window holds around the tab's own content: the loader's
         // margins and the tab bar above it.
@@ -56,8 +56,12 @@ Scope {
             }
         }
         anchors {
-            top: true
+            top: AppConfig.barPosition !== "bottom"
+            bottom: AppConfig.barPosition === "bottom"
         }
+        Binding { target: dashboardWindow; property: "margins.top"; value: AppConfig.barPosition !== "bottom" ? BarMetrics.reservation + Tokens.spacing.small : 0 }
+        Binding { target: dashboardWindow; property: "margins.bottom"; value: AppConfig.barPosition === "bottom" ? BarMetrics.reservation + Tokens.spacing.small : 0 }
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
         exclusiveZone: 0
 
         visible: GlobalStates.dashboardOpen

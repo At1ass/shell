@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -32,11 +34,25 @@ Scope {
             bottom: true
         }
 
-        // Focus grab for exclusive input control
+        property bool grabReady: false
+        function prepareGrab() {
+            grabReady = false
+            grabDelay.stop()
+            if (visible) grabDelay.start()
+        }
+        Component.onCompleted: prepareGrab()
+        onVisibleChanged: prepareGrab()
+        Timer {
+            id: grabDelay
+            interval: Tokens.interaction.popupGrabDelay
+            onTriggered: launcherWindow.grabReady = true
+        }
+
+        // Avoid consuming the mouse release that opened the launcher.
         HyprlandFocusGrab {
             id: focusGrab
             windows: [launcherWindow]
-            active: GlobalStates.launcherOpen
+            active: GlobalStates.launcherOpen && launcherWindow.grabReady && contentLoader.active
 
             onCleared: {
                 GlobalStates.closePanel("launcher")
@@ -61,30 +77,40 @@ Scope {
         // Content loader. Held active once the panel is retained, so the
         // expensive part -- LauncherContent and its providers -- is built once
         // rather than on every open. The entry animation below keys off the
-        // open flag, not off construction, so it still runs each time (and now
-        // gets a real exit as well).
+        // open flag, not off construction, so it still runs on each open.
         Loader {
             id: contentLoader
             active: GlobalStates.launcherOpen || GlobalStates.panelRetained("launcher")
+            width: Math.max(1, Math.min(AppConfig.launcherWidth, launcherWindow.width - Tokens.spacing.medium * 2))
+            property real preferredHeight: 1
+            function measuredHeight(component) { return component?.preferredHeight ?? 1 }
+            function syncHeight() {
+                if (item) preferredHeight = measuredHeight(item)
+            }
+            // Wrapped text settles during layout. Publish its measurement on
+            // the next event turn rather than resizing its parent inside it.
+            height: Math.max(1, Math.min(preferredHeight, launcherWindow.height
+                - anchors.topMargin - Tokens.spacing.small
+                - (AppConfig.barPosition === "bottom" ? BarMetrics.reservation : 0)))
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: AppConfig.launcherTopMargin  // barHeight + MD3 spacing
+            anchors.topMargin: Math.min(Math.max(AppConfig.launcherTopMargin, (AppConfig.barPosition === "top" ? BarMetrics.reservation : 0) + Tokens.spacing.small), Math.max(Tokens.spacing.small, launcherWindow.height - Tokens.size.field - Tokens.panelPadding * 2))  // barHeight + MD3 spacing
 
             sourceComponent: Item {
                 id: launcherCard
-                implicitWidth: AppConfig.launcherWidth
-                implicitHeight: launcherContent.implicitHeight
+                readonly property real preferredHeight: launcherContent.implicitHeight
+                onPreferredHeightChanged: Qt.callLater(contentLoader.syncHeight)
 
                 // Created by a Loader with the open flag ALREADY true, so a
                 // Behavior never saw a change and this animation was dead — see
                 // Scrim._ready. The flag holds the binding at the start value
                 // for one pass so the first evaluation is a real transition.
                 property bool _ready: false
-                Component.onCompleted: launcherCard._ready = true
+                Component.onCompleted: { launcherCard._ready = true; Qt.callLater(contentLoader.syncHeight) }
 
                 // MD3 entrance animation (slide down + fade in)
                 opacity: launcherCard._ready && GlobalStates.launcherOpen ? 1.0 : 0.0
-                y: launcherCard._ready && GlobalStates.launcherOpen ? 0 : -20
+                y: launcherCard._ready && GlobalStates.launcherOpen ? 0 : -Tokens.spacing.medium
 
                 Behavior on opacity {
                     MotionAnimation {

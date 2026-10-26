@@ -10,7 +10,13 @@ BarElement {
     id: root
     clickable: true
     hoverable: true
-    minWidth: 56
+    minWidth: Tokens.size.control
+    preferredWidth: Math.max(minWidth, (showIcon ? batteryGlyph.implicitWidth : 0)
+        + (showPercentage ? batteryLabel.implicitWidth : 0)
+        + (showIcon && showPercentage ? Tokens.spacing.extraSmall : 0) + Tokens.spacing.medium)
+    minimumWidth: preferredWidth
+    compactWidth: deviceReady && percentage <= 15 && !charging ? preferredWidth
+        : Math.max(minWidth, (showIcon ? batteryGlyph.implicitWidth : batteryLabel.implicitWidth) + Tokens.spacing.medium)
 
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
@@ -22,6 +28,7 @@ BarElement {
     // UPowerDevice.percentage is 0.0-1.0 (upstream scales the wire value
     // by 0.01) — rounding it raw pinned the widget at "0%/1%" forever.
     readonly property int percentage: device && device.percentage !== undefined ? Math.round(device.percentage * 100) : 0
+    readonly property bool needsAttention: deviceReady && percentage <= 15 && !charging
     readonly property bool charging: device && (device.state === UPowerDeviceState.Charging ||
                                                device.state === UPowerDeviceState.PendingCharge)
 
@@ -39,6 +46,7 @@ BarElement {
         spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
+            id: batteryGlyph
             visible: root.showIcon
             iconName: root.batteryIcon(root.percentage, root.charging, root.deviceReady)
             fontSize: Tokens.typography.titleLarge.size
@@ -46,7 +54,8 @@ BarElement {
         }
 
         MaterialText {
-            visible: root.showPercentage
+            id: batteryLabel
+            visible: root.showPercentage && (!root.compactPresentation || !root.showIcon || (root.percentage <= 15 && !root.charging))
             text: root.deviceReady ? `${root.percentage}%` : "--%"
             textStyle: "bodyMedium"
             colorRole: "onSurface"

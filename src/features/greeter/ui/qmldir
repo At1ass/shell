@@ -8,5 +8,8 @@ IconButton 1.0 IconButton.qml
 CircleAvatar 1.0 CircleAvatar.qml
 ElevationShadow 1.0 ElevationShadow.qml
 StateLayer 1.0 StateLayer.qml
+Surface 1.0 Surface.qml
+MaterialTextField 1.0 MaterialTextField.qml
+MaterialComboBox 1.0 MaterialComboBox.qml
 MotionAnimation 1.0 MotionAnimation.qml
 MotionColorAnimation 1.0 MotionColorAnimation.qml

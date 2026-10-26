@@ -1,0 +1,5 @@
+module qs.src.features.connections
+ConnectionsPanel 1.0 ConnectionsPanel.qml
+ConnectionsContent 1.0 ConnectionsContent.qml
+ConnectionHeader 1.0 ConnectionHeader.qml
+ConnectionRow 1.0 ConnectionRow.qml

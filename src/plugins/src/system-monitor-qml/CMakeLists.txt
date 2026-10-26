@@ -10,6 +10,8 @@ qt_add_qml_module(systemmonitorqml
     SOURCES
         SystemMonitor.h
         SystemMonitor.cpp
+        StorageCollector.h
+        StorageCollector.cpp
 )
 
 # libsensors is genuinely optional: referencing the *-NOTFOUND variables
@@ -40,3 +42,12 @@ target_link_libraries(systemmonitorqml
 
 include(../PluginInstall.cmake)
 plugin_install(systemmonitorqml)
+
+if (BUILD_TESTING)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(storage_test test/StorageTests.cpp StorageCollector.cpp)
+    set_target_properties(storage_test PROPERTIES AUTOMOC ON)
+    target_include_directories(storage_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(storage_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME storage_test COMMAND storage_test)
+endif()

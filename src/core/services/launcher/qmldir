@@ -4,3 +4,4 @@ BaseProvider 1.0 BaseProvider.qml
 CalculatorProvider 1.0 CalculatorProvider.qml
 ClipboardProvider 1.0 ClipboardProvider.qml
 ApplicationProvider 1.0 ApplicationProvider.qml
+ActionProvider 1.0 ActionProvider.qml

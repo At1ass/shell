@@ -1,291 +1,148 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.Greetd
+import Quickshell.Services.UPower
 import qs.config
 import qs.ui
 import qs.components
 
 Item {
     id: root
-
     required property ShellScreen screen
     property bool isPrimary: false
-
-    property bool _authFailed: false
-    property string _errorMessage: ""
-    property string _statusMessage: ""
-    property bool _authenticating: false
-
-    // --- Background: wallpaper + blur ---
-    Image {
-        id: wallpaperSource
-        anchors.fill: parent
-        source: GreeterConfig.wallpaperPath
-        fillMode: Image.PreserveAspectCrop
-        visible: false
-        cache: true
-
-        onStatusChanged: {
-            if (status === Image.Error)
-                console.warn("GreeterSurface: wallpaper load failed:", source)
-        }
+    property date now: new Date()
+    property string _powerDetails: ""
+    GreeterAuth {
+        id: auth
+        active: root.isPrimary
+        onClearCredentials: loginForm.clearPassword()
+        onFocusRequested: Qt.callLater(() => { if (!powerMenu.opened) loginForm.focusUsername() })
     }
-
+    Surface { anchors.fill: parent; color: GreeterTheme.surfaceDim; outlined: false; radius: Tokens.shape.none }
+    Image { id: wallpaper; anchors.fill: parent; source: GreeterConfig.wallpaperPath; fillMode: Image.PreserveAspectCrop; asynchronous: true; visible: false }
     MultiEffect {
         anchors.fill: parent
-        source: wallpaperSource
-        blurEnabled: true
+        source: wallpaper
+        blurEnabled: GreeterConfig.blurWallpaper
         blur: 1.0
-        blurMax: 80
+        blurMax: Tokens.size.control * 2
         saturation: -0.2
         autoPaddingEnabled: false
     }
-
-    // Fallback if wallpaper not loaded
-    Rectangle {
-        anchors.fill: parent
-        color: GreeterTheme.surfaceDim
-        visible: wallpaperSource.status !== Image.Ready
-    }
-
-    // Scrim overlay
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.alpha(GreeterTheme.scrim, 0.35)
-    }
-
-    // --- Center content (only on primary screen) ---
-    ColumnLayout {
-        id: contentColumn
-        anchors.centerIn: parent
-        spacing: 0
-        width: 360
-        visible: root.isPrimary
-
-        // Clock
-        Text {
-            id: clockText
-            Layout.alignment: Qt.AlignHCenter
-            text: Qt.formatTime(new Date(), "HH:mm")
-            font.family: Tokens.typography.fontFamily
-            font.pixelSize: 96
-            font.weight: Font.Light
-            font.letterSpacing: -1.5
-            color: GreeterTheme.scrimForeground
-            renderType: Text.NativeRendering
-            visible: GreeterConfig.showClock
-        }
-
-        // Date
-        MaterialText {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.extraSmall
-            text: Qt.formatDate(new Date(), "dddd, d MMMM")
-            textStyle: "titleLarge"
-            color: Qt.alpha(GreeterTheme.scrimForeground, 0.8)
-            visible: GreeterConfig.showClock
-        }
-
-        // Spacer
-        Item { Layout.preferredHeight: Tokens.spacing.extraLarge + Tokens.spacing.medium }
-
-        // Login form
-        LoginForm {
-            id: loginForm
-            Layout.alignment: Qt.AlignHCenter
-            authFailed: root._authFailed
-            errorMessage: root._errorMessage
-            statusMessage: root._statusMessage
-            authenticating: root._authenticating
-
-            onSubmit: (username, password) => {
-                root._authFailed = false
-                root._errorMessage = ""
-                root._statusMessage = "Authenticating..."
-                root._authenticating = true
-                root._pendingPassword = password
-                Greetd.createSession(username)
-            }
-        }
-
-        // Error message
-        MaterialText {
-            id: errorText
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.medium
-            text: root._errorMessage
-            textStyle: "labelMedium"
-            color: GreeterTheme.error
-            opacity: root._errorMessage ? 1 : 0
-
-            Behavior on opacity {
-                NumberAnimation { duration: Tokens.motion.duration.short4 }
-            }
-        }
-    }
-
-    // Shake animation on auth failure
-    SequentialAnimation {
-        id: shakeAnim
-        property int _offset: 12
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: shakeAnim._offset; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: -shakeAnim._offset; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: shakeAnim._offset / 2; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: -shakeAnim._offset / 2; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50 }
-    }
-
-    // Timer for clock updates
-    Timer {
-        interval: 1000
-        running: root.isPrimary && GreeterConfig.showClock
-        repeat: true
-        onTriggered: {
-            clockText.text = Qt.formatTime(new Date(), "HH:mm")
-        }
-    }
-
-    // --- Greetd IPC wiring ---
-    property string _pendingPassword: ""
-
-    Connections {
-        target: Greetd
-        enabled: root.isPrimary
-
-        function onAuthMessage(message, error, responseRequired, echoResponse) {
-            if (error) {
-                root._errorMessage = message || "Authentication error"
-                root._authenticating = false
-                return
-            }
-
-            if (responseRequired) {
-                if (root._pendingPassword) {
-                    Greetd.respond(root._pendingPassword)
-                    root._pendingPassword = ""
-                } else {
-                    root._statusMessage = message || "Enter credentials"
-                    root._authenticating = false
-                }
-            } else {
-                root._statusMessage = message || ""
-            }
-        }
-
-        function onReadyToLaunch() {
-            root._statusMessage = "Starting session..."
-            let session = SessionModel.currentSession
-            if (session) {
-                let args = session.exec.split(" ")
-                Greetd.launch(args, [], true)
-            } else {
-                root._authFailed = true
-                root._errorMessage = "No session selected"
-                root._authenticating = false
-            }
-        }
-
-        function onAuthFailure(message) {
-            root._authFailed = true
-            root._errorMessage = message || "Authentication failed"
-            root._statusMessage = ""
-            root._authenticating = false
-            root._pendingPassword = ""
-            loginForm.clearPassword()
-            shakeAnim.start()
-        }
-
-        function onError(error) {
-            root._authFailed = true
-            root._errorMessage = error || "Greetd error"
-            root._statusMessage = ""
-            root._authenticating = false
-            root._pendingPassword = ""
-            loginForm.clearPassword()
-            shakeAnim.start()
-        }
-    }
-
-    // --- Power actions (bottom of screen) ---
+    Surface { anchors.fill: parent; color: Qt.alpha(GreeterTheme.scrim, 0.35); outlined: false; radius: Tokens.shape.none }
     RowLayout {
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: Tokens.spacing.extraLarge
-        spacing: Tokens.spacing.large
-        visible: root.isPrimary
-
-        Repeater {
-            model: [
-                { icon: "power_settings_new", label: "Shutdown", cmd: ["systemctl", "poweroff"] },
-                { icon: "restart_alt",        label: "Reboot",   cmd: ["systemctl", "reboot"] },
-                { icon: "dark_mode",          label: "Suspend",  cmd: ["systemctl", "suspend"] }
-            ]
-
-            delegate: Column {
-                id: powerAction
-                required property var modelData
-                spacing: Tokens.spacing.extraSmall
-
-                Rectangle {
-                    id: powerBtn
-                    width: 64
-                    height: 64
-                    radius: Tokens.shape.extraLarge
-                    color: powerMouse.containsMouse
-                        ? Qt.alpha(GreeterTheme.surfaceContainerHigh, 0.7)
-                        : Qt.alpha(GreeterTheme.surfaceContainerHigh, 0.4)
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    Behavior on color {
-                        ColorAnimation { duration: Tokens.motion.duration.short4 }
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        iconName: powerAction.modelData.icon
-                        fontSize: Tokens.iconSize.large
-                        iconColor: Qt.alpha(GreeterTheme.scrimForeground, 0.8)
-                        backgroundColor: "transparent"
-                    }
-
-                    MouseArea {
-                        id: powerMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            powerProc.command = powerAction.modelData.cmd
-                            powerProc.running = true
-                        }
-                    }
-                }
-
-                MaterialText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: powerAction.modelData.label
-                    textStyle: "labelSmall"
-                    color: Qt.alpha(GreeterTheme.scrimForeground, 0.6)
-                }
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: Tokens.spacing.large
+        visible: root.isPrimary && GreeterConfig.showBattery && UPower.displayDevice?.ready === true && UPower.displayDevice.isLaptopBattery
+        MaterialIcon { iconName: UPower.onBattery ? "battery_full" : "battery_charging_full"; iconColor: GreeterTheme.scrimForeground }
+        MaterialText { text: Math.round((UPower.displayDevice?.percentage ?? 0) * 100) + "%"; textStyle: "labelLarge"; colorRole: "scrimForeground" }
+    }
+    Flickable {
+        id: scroll
+        anchors.fill: parent
+        anchors.margins: Tokens.spacing.large
+        anchors.topMargin: Tokens.size.control + Tokens.spacing.large
+        anchors.bottomMargin: Tokens.size.control + Tokens.spacing.large
+        contentWidth: width
+        contentHeight: Math.max(height, column.implicitHeight)
+        visible: !powerMenu.opened
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        ColumnLayout {
+            id: column
+            width: Math.min(scroll.width, Tokens.size.fieldWidth + Tokens.spacing.extraHuge * 3)
+            x: (scroll.width - width) / 2
+            y: Math.max(0, (scroll.height - implicitHeight) / 2)
+            spacing: Tokens.spacing.medium
+            MaterialText {
+                Layout.fillWidth: true
+                text: Qt.formatTime(root.now, "HH:mm")
+                textStyle: "displayLarge"
+                colorRole: "scrimForeground"
+                horizontalAlignment: Text.AlignHCenter
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: Tokens.typography.titleLarge.size
+                visible: GreeterConfig.showClock
+            }
+            MaterialText {
+                Layout.fillWidth: true
+                text: Qt.formatDate(root.now, "dddd, d MMMM")
+                textStyle: "titleMedium"
+                colorRole: "scrimForeground"
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                visible: GreeterConfig.showDate
+            }
+            LoginForm {
+                id: loginForm
+                Layout.fillWidth: true
+                visible: root.isPrimary
+                authenticating: auth.busy || powerProcess.running
+                identityLocked: auth.inProgress || powerProcess.running
+                responseRequired: auth.responseRequired
+                echoResponse: auth.echoResponse
+                prompt: auth.prompt
+                errorMessage: auth.errorMessage || GreeterConfig.configError || SessionModel.errorString
+                statusMessage: auth.statusMessage
+                onEdited: auth.errorMessage = ""
+                onCancel: auth.cancel()
+                onSubmit: (username, password) => auth.submit(username, password, sessionArgv)
             }
         }
     }
-
+    Connections {
+        target: root.Window.window
+        function onActiveFocusItemChanged() { Qt.callLater(root.revealFocus) }
+    }
+    function revealFocus() {
+        const item = root.Window.window?.activeFocusItem
+        if (!item || powerMenu.opened) return
+        let ancestor = item
+        while (ancestor && ancestor !== column) ancestor = ancestor.parent
+        if (!ancestor) return
+        const top = item.mapToItem(scroll.contentItem, 0, 0).y
+        if (top < scroll.contentY) scroll.contentY = top
+        else if (top + item.height > scroll.contentY + scroll.height) scroll.contentY = top + item.height - scroll.height
+        scroll.contentY = Math.max(0, Math.min(scroll.contentY, scroll.contentHeight - scroll.height))
+    }
+    Timer { interval: 60000; running: GreeterConfig.showClock || GreeterConfig.showDate; repeat: true; onTriggered: root.now = new Date() }
+    IconButton {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Tokens.spacing.large
+        visible: root.isPrimary && GreeterConfig.showPower
+        enabled: !powerMenu.opened
+        iconName: "power_settings_new"
+        iconColor: GreeterTheme.scrimForeground
+        Accessible.name: "Power actions"
+        onClicked: powerMenu.show()
+    }
+    PowerActions {
+        id: powerMenu
+        visible: root.isPrimary && opened
+        anchors.fill: parent
+        busy: powerProcess.running
+        onClosed: if (root.isPrimary) loginForm.focusUsername()
+        onRequested: action => {
+            if (!root.isPrimary || powerProcess.running || !["suspend", "reboot", "shutdown"].includes(action)) return
+            auth.cancel()
+            loginForm.clearPassword()
+            root._powerDetails = ""
+            powerProcess.command = ["systemctl", action === "shutdown" ? "poweroff" : action]
+            powerProcess.running = true
+        }
+    }
     Process {
-        id: powerProc
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0)
-                console.warn("GreeterSurface: power action failed with code", exitCode)
+        id: powerProcess
+        stderr: SplitParser { onRead: line => root._powerDetails = (root._powerDetails + "\n" + line).slice(-2048) }
+        onExited: code => {
+            if (code === 0) powerMenu.close()
+            else { powerMenu.opened = true; powerMenu.errorMessage = root._powerDetails.trim() || "Power action unavailable or blocked (exit " + code + ")."; powerMenu.focusCancel() }
         }
     }
-
-    Component.onCompleted: {
-        if (root.isPrimary) {
-            loginForm.focusUsername()
-        }
-    }
+    Component.onCompleted: if (isPrimary) Qt.callLater(loginForm.focusUsername)
 }

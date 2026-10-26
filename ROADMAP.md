@@ -2,6 +2,190 @@
 
 Open work. The active stream is the root-cause refactor below; feature extensions are deferred behind it.
 
+## Foundation — 2026-10
+
+The first stage fixes the audit's lifecycle/configuration defects without redesigning UI:
+- Compile checks require a completed probe, check the root shell and reject engine startup errors.
+- Config publication is transactional; syntax/type errors retain the last good snapshot and remain visible over IPC. Per-monitor additionalProperties and oneOf semantics are validated.
+- logind monitoring resolves one concrete session and checks its object path before dispatching signals.
+- Persisted system effects bootstrap explicitly; retained dashboard panels stop radio discovery on close.
+- HTTP requests own real timeout/cancellation and ignore cancelled responses; weather retries network failures and pauses fully with gaming mode.
+- Worker teardown is asynchronous and cooperative, without terminate or facade waits. MCU source changes invalidate old work; future watchers own MCU/calculator result delivery. Static system information is collected on the worker thread; libsensors state is shared safely across retiring workers.
+- Clipboard caps apply before wrappers; only visible rows request thumbnails, with a bounded queue, and clipboard refreshes pause while the launcher is closed.
+- notifications.popup.margin replaces the misleading bar.margin name, retaining the legacy fallback.
+- Selective type/scope fixes restore the existing lint ratchet without increasing its baseline.
+
+Validation: tools/test-foundation.py, the full compile probe, tools/check.sh and the C++ calendar/MCU/worker-lifetime suites. The installed C++ package must be rebuilt separately before its fixes take effect in the live shell.
+
+## UI ergonomics — 2026-10
+
+Minimal is the primary profile; MD3 remains compatible. This pass covers shared
+controls, dashboard navigation, and compact layout behavior:
+- Named size tokens replace fixed button/field/icon/launcher-row dimensions.
+- Shared MaterialTabs replaces the mouse-only dashboard tab implementation.
+  The selected tab is the only Tab stop; arrows/Home/End move inside the strip.
+  Tab traverses controls; Ctrl+Tab changes dashboard sections.
+- Tiles and combo boxes work from the keyboard. Text fields have one focus stop.
+- Dialogs constrain Tab/Shift+Tab to the nearest modal, block background tab
+  changes and restore the previous focus on close.
+- Dashboard and launcher are capped to the active screen. Header, Quick controls
+  and weather forecast reflow; scrolling reveals keyboard-focused descendants.
+- Launcher search adopts MaterialTextField; result rows keep a fixed height per
+  pack/font scale so delegate reuse stays valid.
+- The MD3 surface shadow anchors to its Loader, avoiding an invalid cross-parent
+  anchor. Generated greeter kit copies remain synchronized.
+
+Validation: tools/test-ui.py renders isolated fixtures for both packs and exercises
+real Qt key events, nested modals, font scaling and compact/wide layouts. Foundation
+and notification regressions remain covered by their existing scripts.
+
+The next pass fixes Audio/Network/Calendar keyboard operation:
+- Device pickers and network rows activate with Enter/Space; busy rows reject
+  repeated activation. Redundant icon/radio Tab stops are removed.
+- Bluetooth snapshots use ScriptModel keyed by address; device data changes and
+  insertions keep the focused delegate alive. Wi-Fi and audio lists use native
+  model reconciliation too.
+- Network details use one Loader. Connectivity chips and audio device rows reflow
+  on narrow panels, and ListItem height follows actual text/slot measurements.
+- Calendar dates form one Tab stop with arrow navigation. Event cards are reachable
+  by Tab, reveal themselves on the timeline, and restore focus after editing.
+- The Wi-Fi password form scrolls and submits from Enter; the editor precedes its
+  trailing action in the Tab chain. Scroll viewports add no extra Tab stops.
+
+Validation also includes native Quickshell model identity/focus checks; the Qt
+suite uses mock services and never connects devices or changes the network.
+
+Connections is now a standalone panel with one expanded section at a time;
+Dashboard has four tabs. Legacy `dashboard-network` and tab index 4 redirect to
+Connections / Wi-Fi. The panel has timed visible-only discovery, contextual
+menus, password retry, confirmation before forgetting, and external editor
+launches. The network bar widget accounts for wired connectivity, supports an
+optional name label and tooltip, and anchors the panel to its source monitor.
+
+Radio-off regression: hide the complete section body when its adapter/radio is
+unavailable, so an empty ColumnLayout cannot retain the former device-list height.
+UI tests cover disabling and re-enabling Wi-Fi/Bluetooth in Minimal and MD3.
+
+Open before removing applets:
+- Implement and test a BlueZ agent (PIN, passkey display/input, confirmation,
+  cancellation, disappearing devices and lock/session transitions).
+- Audit NetworkManager secret-agent coverage for saved profiles, VPN secrets and
+  enterprise Wi-Fi. The current panel delegates complex profiles to external tools.
+- Applet removal is a separate migration after both authentication paths pass;
+  nm-applet and blueman-applet remain enabled for now.
+
+Next UI work: calendar composition on narrow screens and remaining feature-specific
+controls, then bar/dock/popout consistency without adding GUI settings.
+
+## Interaction contract — 2026-10
+
+Completed first pass after the whole-shell UX review:
+- Primary clicks on clock/weather/media open the configured destination; volume
+  opens Audio and keeps mute on secondary click. Explicit user actions are preserved.
+- Clock/date and compact/full media footprints stay stable on hover. Embedded media
+  controls own their pointer events instead of also opening the parent destination.
+- Quick separates controlled mode toggles from arrow-marked destinations and
+  state-free commands. VPN/Night Light/Screenshot respect availability/module gates.
+- Cheatsheet signatures come from live IPC discovery, enriched by descriptions;
+  native tests cover success, failed refresh, retry and cancellation by deadline.
+- qmllint receives each directory's qmldir explicitly so singleton registration is
+  checked against the correct module rather than depending on import side effects.
+
+Remaining approved UX work, in order:
+1. Manual authentication acceptance: lockscreen PAM/lock-unlock, and greetd login
+   after the updated greeter package is installed. Greeter UI/config and isolated
+   authentication tests and native session/user catalogs are implemented. The updated
+   greeter requires the new GreeterData module; install both packages together.
+2. Bluetooth pairing agent and NetworkManager secret-agent coverage before applet removal.
+3. Remaining typography/defaults and nonblocking service debt.
+
+Bar priorities, Dashboard cleanup, calendar/weather hierarchy and OSD/launcher
+refinement are implemented; details and validation are recorded below.
+
+
+## Storage overview and capacity alerts — 2026-10
+
+- SystemMonitor now exposes versioned volume/device DTO lists and a storage
+  summary. A worker-only StorageCollector filters mountinfo before probing local
+  volumes with QStorageInfo, groups canonical filesystem sources, and preserves
+  mount aliases as details. No global sum of potentially shared capacities.
+- Physical leaf-device diskstats are aggregated once; partitions and virtual
+  parents are excluded. Per-device baselines reset on missing/reset counters,
+  diskseq changes and suspend gaps. Existing root capacity getters remain for
+  compatibility; legacy I/O getters now expose aggregate physical I/O.
+- StorageSection shows free/total space, progress and expandable FS details;
+  device rows show I/O and sysfs temperatures when available. Low-space state
+  appears on the System statistics disclosure even while charts are absent.
+- Config-first storage labels/order/exclusions and percentage thresholds have
+  defaults, schema descriptions and typed AppConfig getters. Read-only/unavailable
+  volumes do not alarm. New QML also works with the older installed plugin; full
+  discovery requires rebuilding/installing the packaged C++ plugin from a commit.
+- Unit fixtures cover mount escapes/filtering, Btrfs aliases, labels/order,
+  threshold boundaries, unavailable/RO volumes, alert selection, partition double
+  counting, device incarnation/reset and missing counters. Native old/new plugin
+  probes verify sampling plus actual DTO rendering on this machine (2 volumes,
+  2 physical NVMe devices). UI checks cover disclosure, unmounts and both profiles.
+
+
+## Statistics history and readings — 2026-10
+
+- Removed Dashboard visibility as a sampling gate. ServiceBootstrap eagerly starts
+  SystemMonitorService; the existing C++ worker owns its 2 s /proc and 5 s thermal/
+  GPU cadence. CPU/GPU/RAM/network history continues while all panels are closed.
+  UI and charts remain lazy; bounded arrays retain at most 120 samples in memory.
+- Restored CPU/GPU percentages and temperatures removed with the former metrics
+  header. The expanded section uses a responsive grid, includes temperature
+  histories (0–120 °C), CPU load average 1/5/15 minutes, frequency, memory/capacity,
+  and disk I/O. Unavailable sensors reset thermal history and never plot zero.
+- This supersedes the older "poll only while visible" optimization below: retaining
+  truthful history is a background requirement, independently of rendering.
+- Deterministic UI tests capture a CPU peak without a view, bound history length,
+  check sensor loss and responsive layout in both profiles. tools/test-statistics.py
+  verifies the installed native worker sampling through hidden/open/hidden states
+  and the bootstrap of existing services. No plugin ABI or algorithm change needed.
+
+
+## Tooltip and menu review — 2026-10
+
+- Replaced inconsistent widget backgrounds and size/scale/window-opacity animation
+  with MaterialTooltip, bounded plain text, and one content fade. Popup dimensions
+  settle immediately and stay positive during teardown (zero-sized xdg positioners
+  produced a fatal Wayland protocol error in the isolated native fixture).
+- Network, clock, media, tray, layout indicators and dock share tooltip styling.
+  Local hints use MaterialHint; a disabled calendar action explains its prerequisite
+  inline, because a disabled control cannot supply reliable hover feedback.
+- Interaction deadlines are independent of reduced-motion animation durations.
+- Tray menus now use kit rows, bounded scrolling, checkbox/radio indicators, keyboard
+  navigation and a Back row. StackView creates/owns submenu pages; opener and child
+  model updates re-resolve replaced DBus menu handles. Epoch guards protect close
+  callbacks when the shared popout is replaced.
+- Dock menus request keyboard focus while open and delay their focus grab. Shared
+  menus and combo dropdowns scroll; keyboard selection stays in view.
+- Regression coverage includes tooltip switching/re-entry/destruction, both profiles
+  and font scales, menu checks, submenu replacement/back focus, long menus/dropdowns,
+  plus a real Wayland PopupWindow fixture (tools/test-tooltips.py).
+- Reviewed against Quickshell v0.3.2 PopupWindow/PopupAnchor, HyprlandWindow,
+  HyprlandFocusGrab, QsMenuEntry/QsMenuOpener and Qt Item/Text/StackView documentation.
+  The installed qs reports 0.3.1 (git revision 11ca60be); native checks run on it.
+
+
+## Audio and tray overflow — 2026-10
+
+- Audio is a compact standalone panel: output/microphone level and mute, live
+  device pickers, application mixer instantiated only while expanded and visible.
+  Legacy dashboard-audio/tab index 3 redirect; Dashboard has three tabs.
+- Audio and Connections share AnchoredPanel for geometry, monitor/source anchoring,
+  delayed focus grabs and outside dismissal. No device/profile state is duplicated.
+- Quick folds system diagnostics behind a header and links directly to Audio.
+- Tray maxVisible defaults to 4, pinnedIds orders exact SNI IDs, and hidden items
+  remain reachable in a named scrollable list. Attention is visible on the overflow
+  button; application/agent processes are unaffected. Popouts-off falls back to all
+  bar icons. Epoch checks protect replacement menus from stale dismissal callbacks.
+- UI tests cover device changes, mute/levels, mixer lifetime, both design profiles,
+  tray limits, pinned order, attention, middle activation, fractional wheel steps
+  and menu replacement. Native compilation also checks both shared panel wrappers.
+
+
 Recent history that informs the items below:
 - 2026-09: **the greeter stops reading the home directory for data** — the background is an image copied by hand into `/etc/greetd` (`wallpaperPath` in `greeter.json`); the `shell-state.json` symlink into `~/.config/quickshell/state.json` and the wallpaper ACLs are gone (state.json only ever provided that one path). The traverse ACL on `~` for `greeter` had made every world-readable file in the home readable to it. Open: the greeter code still loads from the repo, so that traverse ACL stays until the greeter is installed outside `$HOME`.
 - 2026-09: **apps leave the shell's cgroup** — every launch (launcher, dock, Bluetooth/network/VPN settings) goes through `AppLaunchService` → `app2unit`, one systemd scope per app. Before, all of them shared the shell's scope: they did survive the shell exiting, but stopping that scope — or a kernel OOM kill of any process in it (`OOMPolicy=stop`) — took every one of them down together, and systemd accounted their memory/CPU to the shell. Terminal=true entries are listed again (app2unit wraps them in `xdg-terminal-exec`).
@@ -1734,6 +1918,8 @@ logind signal are the only two ways out.
 
 ## OSD review (2026-08)
 
+Historical snapshot; superseded by the focused-output OSD pass below.
+
 Nothing to fix. The module gets the things the rest of the shell had to learn
 the hard way already right:
 
@@ -2770,8 +2956,6 @@ Quickshell supports `notification.sendInlineReply(text)`. Requires a text input 
 ---
 
 ## Calendar — deferred UI polish
-- Localized weekday names (`Qt.locale().dayName(i, Locale.ShortFormat)`)
-- "Today" button in the header
 - Multi-day events in the timeline view
 - Drag-to-reschedule in the day timeline
 - Event search
@@ -2782,3 +2966,216 @@ Quickshell supports `notification.sendInlineReply(text)`. Requires a text input 
 - **Full subprocess→DBus migration** — F5 gets the event-driven win; native BlueZ/NM D-Bus remains a later, separate project
 - **Cross-shell pattern sharing / public packaging**
 - **CI / unit tests for everything** — selectively for mission-critical components only
+
+## Adaptive bar and Dashboard cleanup — 2026-10
+
+Implemented stable widget measurements, progressive compact presentations and a
+priority-based More popout. Configured order and per-monitor filtering survive
+resizing; hidden widgets keep their source state and return automatically.
+More preserves workspace, media, tray and panel actions. With popouts disabled,
+a scrollable strip provides access instead. Widgets support keyboard activation,
+and tooltips pause while panels/popouts are open. Bar height follows font metrics;
+top/bottom placement and dependent panel/notification offsets share BarMetrics.
+
+Dashboard removes the duplicate clock and inline audio controls; brightness
+reflows without fixed text widths. Minimal remains primary, MD3 compatible.
+Validation covers 240–1600 logical pixels, both packs, font scales 1/1.3/2,
+monitor filtering, overflow actions and native Wayland surfaces without input grabs.
+Calendar/weather information hierarchy, OSD and launcher refinement remain later work.
+
+## Weather/calendar hierarchy — 2026-10
+
+Weather prioritizes conditions and forecast; optional details are lazy-loaded.
+Initial missing data and refresh failures have distinct messages, with the last
+successful values retained and timestamped. Forecast weekdays follow the locale.
+Calendar switches from two columns to a scrollable stack according to available
+space and font metrics. Today/T restores the current month and day; weekday
+headings honor locale/first-day configuration. Empty days omit the hour ruler,
+while event timeline, keyboard access and editing remain available.
+Both packs are exercised at 320/480/900 logical pixels and large font scales.
+OSD and launcher refinement remain the following phase.
+
+## OSD and launcher refinement — 2026-10
+
+One meter arbitrates volume/brightness, with compact measured content and a
+restartable deadline. Passive windows have empty input regions, bounded geometry
+and token-based offsets. OSD/toasts default to the focused output; monitorPolicy
+can retain all-output presentation. Toasts wrap at three lines, preserve request
+output in the queue, and clear on lock. Meter content scales with the design pack.
+
+Launcher modes are explicit: applications, = calculator, > clipboard, : shell
+actions. The action catalog respects module gates and routes through existing
+services. A pending query is flushed before Enter, actions close the launcher
+before opening their destination, and reopening resets selection/query/scroll.
+Equal-score sorting preserves provider order. New calculator expressions cannot
+expose the previous expression's copy action; errors are non-actionable.
+Result updates avoid scale/populate animations, use one tonal selection and
+plain text; empty/pending states and keyboard help remain compact.
+
+Validation includes provider/activation regressions, narrow/font-scaled fixtures
+for both packs and passive native Wayland windows for output choice, replacement,
+repeat deadlines, long toasts and lock cleanup. The native launcher window is
+also instantiated: fixed row measurements and a deferred height publication avoid
+re-entering parent size calculation during wrapped-text layout.
+
+Launcher Tab regression: handle navigation on the TextInput's Keys attachment
+before native focus traversal. Tab/Shift+Tab select forward/backward consistently
+with an empty query, a visible clear button, a pending search or no results.
+Regression tests exercise both design packs and preserve pointer activation of
+the clear button.
+
+Weather forecast layout: seven days now share one horizontal row. Cards publish
+their natural width and stack high/low readings, allowing the full week to fit
+on normal panels without an orphan seventh day. Narrow views retain readable
+cards and expose earlier/later arrow controls; resize clamps the scroll position.
+The precipitation slot has a uniform height. Both packs, font scaling and keyboard
+access to the last forecast day are covered by the weather layout fixtures.
+
+## Lockscreen and greeter — approved review scope
+
+Both entry points are explicitly included in the remaining UI/UX review.
+- Shared interaction: password editing/submission, keyboard layout and Caps Lock
+  visibility, predictable focus/Tab order, busy state, failure/retry messages and
+  clearing sensitive input after completion or cancellation.
+- Lockscreen: WlSessionLock/PAM lifecycle, multiple outputs and output changes,
+  suspend/resume, repeated lock requests and consistent unlock behavior.
+- Greeter: user/session selection, greetd conversation/cancellation, launch failure,
+  default selection from greeter.json and continuity with the shell's design.
+- Visuals: minimal primary / MD3 compatible, large fonts and narrow/portrait
+  outputs, essential information, measured forms and restrained motion.
+
+Start with isolated visual fixtures and mocked authentication state machines;
+never trigger a real session lock as an automated UI test. The greeter remains
+an independent pre-login process using its own configuration and generated kit;
+canonical UI changes go through sync-ui.sh. Installed greetd configuration and
+package deployment are separate from source review and fixture validation.
+
+## Notification history undo and limits — 2026-10
+
+Clear all has a persisted, bounded undo snapshot and absolute deadline (8 s by
+default, configured in notifications.panel.clearUndoTimeout). The centre exposes
+Undo and Ctrl+Z; the singleton owns the operation across UI unload/restart.
+New arrivals survive clear/restore; restore runs in small batches, follows grouping,
+respects current history/TTL limits and updates pending content/close metadata.
+Read marking also reaches pending entries. Transient client handles are not
+serialized or revived after their owner closes. IPC clear remains permanent.
+
+History loading waits for validated config before applying its cap. Load and hot
+reload enforce the cap; unread counts follow actual batched removals. Ingress and
+popup queues shrink immediately when configured limits tighten, with the usual
+drop verdicts. The centre reports clearing/restoring/cap states and its header
+and keyboard-accessible Snackbar reflow on narrow views and large fonts.
+
+Validation: isolated seeded histories, clear/undo races, metadata changes, caps,
+read state, TTL, explicit permanent clear and a second process restoring pending
+Undo. Native passive centre fixtures cover both packs and font scaling; a
+100-message policy burst and hot-limit shrink keep critical admission intact.
+
+## Temporary DND and Caffeine — 2026-10
+
+TimedMode owns a persisted flag/deadline pair, a one-shot deadline timer and
+rechecks from the existing shared clock and logind monitor. No polling process
+is added. The two facades derive state and expose start/expiry/status; explicit
+manual actions cancel timers, expired startup state cannot activate effects, and
+a queued expiry rechecks the latest user intent before writing. Fullscreen DND
+is independent of the manual timer.
+
+Launcher actions accept explicit minute arguments and config-backed presets;
+Quick displays the expiry, and shell-ctl/IPC expose duration and deadline commands.
+State loading preserves queued user actions and unrelated state. Validation uses
+mock idle effects and temporary XDG directories, covers restart with the original
+deadline, timer/clock/resume expiry, cancellation and fake CLI routing. The logind
+parser still isolates the current session's Lock/Unlock events and additionally
+accepts only the manager's PrepareForSleep(false) for resume.
+
+Lockscreen/greeter layout and content are reserved for the user's upcoming
+discussion; this phase changes neither authentication UI nor installed greetd.
+
+## Configurable lockscreen content — 2026-10
+
+LockContent separates presentation from LockSurface authentication and effects.
+Clock, date, username, fresh weather, battery, read-only network status, media and
+power visibility have independent schema-backed defaults; paused playback and art
+are optional. Notifications are absent. The minimal default shows track metadata
+and playback controls without artwork, plus clock/date, username, battery and power.
+
+One output owns the password form and PAM conversation; the selected output is
+captured on lock and may be changed by clicking another output. Output removal
+falls back to an available output. Inactive forms abort PAM and clear secrets;
+startup/destruction guards prevent restarting authentication during teardown.
+The password clears after submission and before power actions. Cancelling power
+preserves unsubmitted input. Power uses argv, obeys systemctl policy/inhibitors,
+prevents overlapping processes and reports bounded stderr within the lock surface.
+Restart/shutdown have explicit confirmation, Cancel focus and contained keyboard
+navigation. No additional layer-shell windows or focus grabs are created.
+
+Isolated Qt Quick tests cover visibility, both packs, font scaling, small outputs,
+media actions, keyboard confirmation/cancellation, focus scrolling and the actual
+LockSurface adapter with fake PAM/process transports. No test acquires a session
+lock, authenticates against real PAM, suspends or powers off the host. Native
+passive rendering verifies the presentation; greeter installation is unchanged.
+
+Lockscreen password accessories share the input row: layout, visibility and submit
+remain inside one field outline; Caps Lock and authentication errors stay below.
+
+## Greeter composition and authentication UX — 2026-10
+
+The greeter uses generated Surface/TextField/ComboBox primitives, compact inline
+password accessories, no outer form backplate or avatar, explicit user switching
+and a session dropdown only when needed. Minimal is the default; md3 remains
+supported. Root-owned greeter.json controls visibility, typography and profile,
+with schema validation and complete defaults. Invalid configuration reports its
+errors and uses defaults. Generated keyboard/config-validator copies are checked
+by sync-ui; no dependency on main-shell services is introduced.
+
+GreeterAuth owns one conversation: initial hidden response, additional/visible
+PAM prompts, recoverable messages, failure/retry, cancellation and captured session
+command. Password copies clear after use. Power is an inline confirmed menu, with
+Cancel focused, contained Tab navigation, argv commands, overlap guards and
+bounded diagnostic stderr. Secondary outputs receive no exclusive keyboard focus;
+screen selection compares names. Session defaults wait for both config and discovery.
+
+Tests mock greetd and system effects, exercise authentication and user/session
+selection, and render actual surfaces offscreen. Production config loading is
+checked with temporary valid/invalid files. The installed /usr/share greeter,
+/etc/greetd and running greetd are unchanged until the user builds and installs
+the package. No automatic test logs out, locks, authenticates or changes host power.
+
+Remaining: native session/user discovery and proper desktop Exec argv parsing;
+the existing whitespace-only command handling is retained for simple commands.
+Real PAM/greetd, keyboard state and inhibitor/polkit policy need manual acceptance
+on the installed login screen. Greeter UI kit generation now includes the schema
+validator and keyboard tracker, so these copies cannot drift silently.
+
+Compilation probes exclude packaging artifacts, including root-owned Arch build
+directories; the same exclusion applies without rsync. The compiler contract
+fixture includes an invalid packaged QML file to verify that it is not loaded.
+
+## Native greeter catalogs and disappearing outputs — 2026-10
+
+OSD selection and geometry, wallpaper bindings and lockscreen activation tolerate
+null screen objects during output teardown. These guards address secondary QML
+errors; they do not claim to repair the compositor's Aquamarine resume crash.
+
+GreeterData is a separate native module with no theme/UI dependencies. A bounded
+worker snapshot collects trusted session directories and local passwd accounts;
+QFutureWatcher owns delivery, jobs capture only independent input and facade
+teardown never waits for filesystem I/O. No thread-pool logging or raw QObject
+captures are used. Local user enumeration replaces getent; Other user continues
+to support NSS/network accounts via greetd authentication.
+
+GLib decodes desktop files and quoting without launching a shell. Native field-code
+expansion preserves argument boundaries and explicit empty arguments, removes absent
+file/URL/deprecated parameters and rejects unknown codes. Hidden/NoDisplay, TryExec,
+executable availability, localization, group boundaries and precedence are honored.
+Session/user facades expose native names and lookup helpers; session selection uses
+stable IDs, and authentication captures argv before sending credentials. No QML
+Exec splitting, session scan process, passwd process or raw stdout parsing remains.
+
+Validation includes C++ fixture tests for quoting/escapes, literal shell syntax,
+fields, filtering, duplicate masks, malformed/oversized inputs, account filtering,
+async reload and destruction during work; UI tests cover argv capture and selection
+across catalog reorder. A staged CMake install is imported by real Quickshell to
+verify the module/DTO bridge against the machine's read-only catalogs. Both updated
+packages must be rebuilt together before the new greeter is used. Hyprland, driver,
+greetd policy and the installed libraries are unchanged by source development.

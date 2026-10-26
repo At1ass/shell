@@ -3,7 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import qs.src.core.config
 
 // Caffeine: holds the session awake by keeping a Wayland idle inhibitor alive.
 //
@@ -18,16 +17,15 @@ import qs.src.core.config
 Singleton {
     id: root
 
-    readonly property bool inhibit: AppConfig.stateData?.idleInhibitor?.enabled ?? false
-
-    function setInhibit(on) {
-        if (on !== root.inhibit)
-            AppConfig.updateState("idleInhibitor", { "enabled": on })
-    }
-
-    function toggleInhibit() {
-        root.setInhibit(!root.inhibit)
-    }
+    readonly property TimedMode _mode: TimedMode { section: "idleInhibitor" }
+    readonly property bool inhibit: _mode.enabled
+    readonly property bool temporary: _mode.temporary
+    readonly property real expiresAt: temporary ? _mode.expiresAt : 0
+    readonly property string statusText: _mode.statusText
+    function init() { _mode.refresh() }
+    function setInhibit(on) { _mode.setEnabled(on) }
+    function setForMinutes(minutes) { return _mode.start(minutes) }
+    function toggleInhibit() { setInhibit(!inhibit) }
 
     IdleInhibitor {
         enabled: root.inhibit

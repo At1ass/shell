@@ -101,7 +101,7 @@ Singleton {
                     "ratios":       cfg.ratios || "",
                     "colors":       cfg.colors || "",
                     "seed":         cfg.seed || "",
-                    "apiKeyEnvVar": cfg.apiKeyEnvVar || "WALLHAVEN_API_KEY"
+                    "apiKeyEnvVar": cfg.apiKeyEnvVar ?? "WALLHAVEN_API_KEY"
                 })
         }
         console.warn("WallpaperSourceRegistry: unknown source type", cfg.type, "for id", cfg.id)

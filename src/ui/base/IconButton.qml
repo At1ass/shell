@@ -17,7 +17,7 @@ Item {
                               : defaultIconColor()
 
     // Size properties
-    property int containerSize: 40
+    property int containerSize: Tokens.size.iconButton
     property int touchTargetSize: Tokens.touchTarget.minimum  // 48dp
 
     // Signals.
@@ -37,8 +37,8 @@ Item {
     signal released()
 
     // Dimensions
-    implicitWidth: touchTargetSize
-    implicitHeight: touchTargetSize
+    implicitWidth: Math.max(touchTargetSize, containerSize)
+    implicitHeight: Math.max(touchTargetSize, containerSize)
 
     // Container
     Rectangle {

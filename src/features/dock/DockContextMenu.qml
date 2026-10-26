@@ -15,6 +15,7 @@ Item {
     id: root
     anchors.fill: parent
 
+    property real availableHeight: Tokens.size.listItem * 10
     property var app: null
     property var _actions: []
     property Item anchorItem: null     // dock bar; menu sits on its inner side
@@ -58,14 +59,20 @@ Item {
         menu.visible = true
     }
 
+    function focusInitial() { menu.focusFirst() }
+    Keys.onEscapePressed: root.close()
+
     function close() {
         menu.visible = false
+        menu.model = []
+        _actions = []
         app = null
     }
 
     MaterialMenu {
         id: menu
         visible: false
+        maximumHeight: Math.max(Tokens.size.listItem, root.availableHeight)
 
         // Beside the bar on its inner side, centered on the icon along the main axis.
         x: {

@@ -30,9 +30,22 @@ Scope {
         // per-card unread dot useless: by the time the panel had finished
         // animating in, every dot it exists to show was already gone. Now the
         // dots survive the visit that reads them, and the bar badge drops when
-        // the panel goes away. The LazyLoader in shell.qml destroys this window
-        // on close, so destruction is the close event.
-        Component.onDestruction: NotificationService.markAllRead()
+        // the panel closes. Visibility also covers panels retained between
+        // visits; destruction handles a configuration reload while open.
+        property bool _wasOpen: false
+        onVisibleChanged: {
+            if (visible) {
+                NotificationService.refreshClearUndo()
+                _wasOpen = true
+                Qt.callLater(() => notifList.scheduleLayout())
+            } else if (_wasOpen) {
+                _wasOpen = false
+                NotificationService.markAllRead()
+            }
+        }
+        Component.onDestruction: {
+            if (_wasOpen) NotificationService.markAllRead()
+        }
         focusable: true
         color: "transparent"
 
@@ -67,7 +80,7 @@ Scope {
 
         Item {
             id: panelSlide
-            width: AppConfig.notificationPanelWidth
+            width: Math.max(1, Math.min(AppConfig.notificationPanelWidth, centerWindow.width - Tokens.spacing.medium * 2))
             anchors {
                 top: parent.top
                 bottom: parent.bottom
@@ -109,8 +122,10 @@ Scope {
                 function onPanelOpened(name) {
                     if (name !== "notificationCenter")
                         return
+                    panelSlide._selectedEntryId = ""
                     notifList.currentIndex = -1
                     notifList.positionViewAtBeginning()
+                    notifList.scheduleLayout()
                 }
             }
 
@@ -123,14 +138,48 @@ Scope {
             // into view — previously j/k moved an invisible cursor that could
             // walk right off the viewport, and Delete then removed a card the
             // user could not see.
+            property string _selectedEntryId: ""
+
+            // A collapsed group is one navigable header, represented by its
+            // first model row. Hidden notifications are never selected.
+            function _isGroupHeader(index) {
+                if (!AppConfig.notificationGroupByApp || index < 0) return false
+                const entry = NotificationService.historyList.get(index)
+                return entry && !NotificationService.isGroupExpanded(entry.appName)
+            }
+
+            function _isNavigable(index) {
+                if (!_isGroupHeader(index)) return true
+                return index === 0 || NotificationService.historyList.get(index - 1).appName
+                    !== NotificationService.historyList.get(index).appName
+            }
+
+            function _selectIndex(index, scroll) {
+                notifList.currentIndex = index
+                _selectedEntryId = index >= 0
+                    ? NotificationService.historyList.get(index).notificationId : ""
+                if (scroll && index >= 0)
+                    notifList.positionViewAtIndex(index, ListView.Contain)
+            }
+
+            function _syncCursor() {
+                if (!_selectedEntryId) return
+                const model = NotificationService.historyList
+                let next = Math.min(notifList.currentIndex, model.count - 1)
+                for (let i = 0; i < model.count; i++) {
+                    if (model.get(i).notificationId === _selectedEntryId) { next = i; break }
+                }
+                while (next > 0 && !_isNavigable(next)) next--
+                _selectIndex(next, false)
+            }
+
             function _moveCursor(delta) {
                 if (notifList.count === 0) return
-                const cur = notifList.currentIndex
-                const next = cur < 0
+                let next = notifList.currentIndex < 0
                     ? (delta > 0 ? 0 : notifList.count - 1)
-                    : Math.max(0, Math.min(notifList.count - 1, cur + delta))
-                notifList.currentIndex = next
-                notifList.positionViewAtIndex(next, ListView.Contain)
+                    : notifList.currentIndex + delta
+                while (next >= 0 && next < notifList.count && !_isNavigable(next)) next += delta
+                if (next >= 0 && next < notifList.count) _selectIndex(next, true)
             }
 
             Keys.onPressed: (event) => {
@@ -141,7 +190,10 @@ Scope {
                 // unchanged; they are layout-independent already.
                 const key = Keycodes.key(event)
 
-                if (key === Qt.Key_Escape) {
+                if (key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)) {
+                    NotificationService.undoClearHistory()
+                    event.accepted = true
+                } else if (key === Qt.Key_Escape) {
                     GlobalStates.closePanel("notificationCenter")
                     event.accepted = true
                 } else if (key === Qt.Key_Up || key === Qt.Key_K) {
@@ -153,7 +205,9 @@ Scope {
                 } else if (key === Qt.Key_Delete || key === Qt.Key_X) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
                         const item = NotificationService.historyList.get(notifList.currentIndex)
-                        if (item && item.notificationId)
+                        if (item && panelSlide._isGroupHeader(notifList.currentIndex))
+                            NotificationService.removeGroupFromHistory(item.appName)
+                        else if (item && item.notificationId)
                             NotificationService.removeFromHistory(item.notificationId)
                     }
                     event.accepted = true
@@ -167,8 +221,9 @@ Scope {
                 } else if (key === Qt.Key_G) {
                     if (notifList.count > 0) {
                         const target = (event.modifiers & Qt.ShiftModifier) ? notifList.count - 1 : 0
-                        notifList.currentIndex = target
-                        notifList.positionViewAtIndex(target, ListView.Contain)
+                        let next = target
+                        while (next > 0 && !panelSlide._isNavigable(next)) next--
+                        panelSlide._selectIndex(next, true)
                     }
                     event.accepted = true
                 }
@@ -185,83 +240,74 @@ Scope {
                     spacing: Tokens.spacing.small
 
                     // Header
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
-                        spacing: Tokens.spacing.small
+                        columns: width >= titleLabel.implicitWidth + headerActions.implicitWidth + columnSpacing ? 2 : 1
+                        columnSpacing: Tokens.spacing.small
+                        rowSpacing: Tokens.spacing.extraSmall
 
                         // No decorative bell here: the DND toggle on the right
                         // is also a bell, and two near-identical glyphs in one
                         // header made it ambiguous which one was interactive.
                         // The title carries the meaning; the toggle keeps the icon.
                         MaterialText {
+                            id: titleLabel
+                            Layout.fillWidth: true
                             text: "Notifications"
+                            wrapMode: Text.Wrap
                             textStyle: "titleLarge"
                             colorRole: "onSurface"
                             font.weight: Font.Medium
                         }
 
-                        Item { Layout.fillWidth: true }
+                        GridLayout {
+                            id: headerActions
+                            columns: panelSlide.width - Tokens.spacing.medium * 2 >= dndButton.implicitWidth + clearButton.implicitWidth + Tokens.spacing.small ? 2 : 1
+                            columnSpacing: Tokens.spacing.small
+                            rowSpacing: Tokens.spacing.extraSmall
+                            Layout.alignment: Qt.AlignRight
+                            // DND toggle. The selected state is the button's own
+                            // `tonal` variant, not a hand-placed Rectangle at
+                            // z: -1 with a hardcoded 0.3 opacity. The icon pair
+                            // also matches the bar widget now — it used to show
+                            // "do_not_disturb_on" while DND was OFF, i.e. the
+                            // icon for the state you were not in.
+                            IconButton {
+                                id: dndButton
+                                Layout.alignment: Qt.AlignRight
+                                Accessible.name: "Toggle do not disturb"
+                                iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
+                                iconSize: Tokens.iconSize.large
+                                variant: NotificationService.doNotDisturb ? "tonal" : "standard"
+                                iconColor: NotificationService.doNotDisturb ? Theme.onTertiaryContainer : Theme.onSurfaceVariant
+                                onClicked: NotificationService.toggleDoNotDisturb()
+                            }
 
-                        // DND toggle. The selected state is the button's own
-                        // `tonal` variant, not a hand-placed Rectangle at
-                        // z: -1 with a hardcoded 0.3 opacity. The icon pair
-                        // also matches the bar widget now — it used to show
-                        // "do_not_disturb_on" while DND was OFF, i.e. the
-                        // icon for the state you were not in.
-                        IconButton {
-                            iconName: NotificationService.doNotDisturb ? "notifications_off" : "notifications"
-                            iconSize: Tokens.iconSize.large
-                            variant: NotificationService.doNotDisturb ? "tonal" : "standard"
-                            iconColor: NotificationService.doNotDisturb ? Theme.onTertiaryContainer : Theme.onSurfaceVariant
-                            onClicked: NotificationService.toggleDoNotDisturb()
-                        }
-
-                        MaterialButton {
-                            text: "Clear all"
-                            variant: "text"
-                            enabled: NotificationService.historyList.count > 0
-                            onClicked: NotificationService.clearHistory()
+                            MaterialButton {
+                                id: clearButton
+                                Layout.alignment: Qt.AlignRight
+                                text: "Clear all"
+                                variant: "text"
+                                enabled: NotificationService.historyList.count > 0
+                                    && !NotificationService.historyClearing && !NotificationService.historyRestoring
+                                onClicked: { panelSlide._selectIndex(-1,false); NotificationService.clearHistory() }
+                            }
                         }
                     }
 
-                    // Count indicator + DND state hint
-                    RowLayout {
+                    MaterialText {
                         Layout.fillWidth: true
-                        spacing: Tokens.spacing.small
-
-                        MaterialText {
-                            text: {
-                                const count = NotificationService.historyList.count
-                                if (count === 0) return ""
-                                return count + (count === 1 ? " notification" : " notifications")
-                            }
-                            visible: text.length > 0
-                            textStyle: "labelMedium"
-                            colorRole: "onSurfaceVariant"
+                        text: {
+                            if (NotificationService.historyRestoring) return "Restoring notifications…"
+                            if (NotificationService.historyClearing) return "Clearing history…"
+                            const count = NotificationService.historyList.count
+                            const suffix = count >= AppConfig.notificationMaxHistory ? " · History limit reached" : ""
+                            const dnd = NotificationDND.active ? (NotificationDND.enabled ? " · DND on" : " · Fullscreen: popups silenced") : ""
+                            return count + (count === 1 ? " notification" : " notifications") + suffix + dnd
                         }
-
-                        // Keyboard shortcuts were fully undiscoverable: j/k,
-                        // Delete/X, Enter and g/G existed with nothing on
-                        // screen naming them.
-                        MonoText {
-                            visible: NotificationService.historyList.count > 0 && !NotificationDND.active
-                            text: "j/k move · x delete · ⏎ collapse"
-                            textStyle: "labelSmall"
-                            colorRole: "outline"
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        // Surface DND-active state — distinguish manual toggle
-                        // from the auto-suppress when a fullscreen window is in focus.
-                        MaterialText {
-                            visible: NotificationDND.active
-                            text: NotificationDND.enabled
-                                ? "DND on — popups silenced"
-                                : "Fullscreen — popups silenced"
-                            textStyle: "labelSmall"
-                            colorRole: "tertiary"
-                        }
+                        textStyle: "labelMedium"
+                        colorRole: "onSurfaceVariant"
+                        wrapMode: Text.Wrap
                     }
 
                     Divider {
@@ -276,6 +322,28 @@ Scope {
                         ListView {
                             id: notifList
                             anchors.fill: parent
+
+                            // Flow and async images settle after initial placement.
+                            // Coalesce measurements into one deferred layout pass.
+                            function scheduleLayout() { Qt.callLater(relayout) }
+                            function relayout() {
+                                if (!centerWindow.visible) return
+                                forceLayout()
+                                panelSlide._syncCursor()
+                            }
+                            Component.onCompleted: scheduleLayout()
+                            onWidthChanged: scheduleLayout()
+                            onCountChanged: scheduleLayout()
+
+                            Connections {
+                                target: NotificationService.historyList
+                                function onRowsMoved() { notifList.scheduleLayout() }
+                                function onDataChanged() { notifList.scheduleLayout() }
+                            }
+                            Connections {
+                                target: NotificationHistory
+                                function on_GroupVersionChanged() { notifList.scheduleLayout() }
+                            }
                             spacing: 0
                             clip: true
                             // Selection is drawn by the delegate's own focus
@@ -318,6 +386,8 @@ Scope {
                                 groupCount: NotificationHistory.getGroupCount(section)
                                 groupAppIcon: NotificationHistory.getGroupIcon(section)
                                 expanded: NotificationService.isGroupExpanded(section)
+                                selected: !expanded && notifList.currentIndex >= 0
+                                    && NotificationService.historyList.get(notifList.currentIndex)?.appName === section
                                 onToggleExpanded: NotificationService.toggleGroupExpanded(section)
                             }
 
@@ -347,10 +417,12 @@ Scope {
                                 width: notifList.width
                                 height: itemVisible ? implicitHeight : 0
                                 visible: itemVisible
+                                onHeightChanged: notifList.scheduleLayout()
 
                                 NotificationHistoryItem {
                                     id: historyItem
                                     width: parent.width
+                                    onImplicitHeightChanged: notifList.scheduleLayout()
                                     rowIndex: row.index
                                     entryId: row.notificationId
                                     notifId: row.notifId
@@ -418,6 +490,24 @@ Scope {
                             title: "No notifications"
                             subtitle: "New notifications will appear here"
                         }
+                    }
+                    Snackbar {
+                        id: undoNotice
+                        Layout.fillWidth: true
+                        visible: NotificationService.canUndoClear || NotificationService.historyRestoring
+                        message: NotificationService.historyRestoring ? "Restoring notifications…"
+                            : NotificationService.clearedHistoryCount + (NotificationService.clearedHistoryCount === 1 ? " notification cleared" : " notifications cleared")
+                        actionText: NotificationService.canUndoClear ? "Undo" : ""
+                        onActionClicked: NotificationService.undoClearHistory()
+                    }
+                    MaterialText {
+                        Layout.fillWidth: true
+                        visible: NotificationService.historyList.count > 0 || NotificationService.canUndoClear
+                        text: (NotificationService.historyList.count > 0 ? "↑↓ / j k: Select · Del: Remove · Enter: Collapse" : "")
+                            + (NotificationService.canUndoClear ? (NotificationService.historyList.count > 0 ? " · " : "") + "Ctrl+Z: Undo" : "")
+                        textStyle: "labelSmall"
+                        colorRole: "onSurfaceVariant"
+                        wrapMode: Text.Wrap
                     }
                 }
             }

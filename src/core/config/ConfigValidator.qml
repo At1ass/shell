@@ -27,6 +27,15 @@ Singleton {
         return errors
     }
 
+    function parse(rawText, schema) {
+        try {
+            const value = JSON.parse(rawText)
+            return { value: value, errors: root.validate(value, schema) }
+        } catch (e) {
+            return { value: null, errors: [{ path: "(root)", message: "Invalid JSON: " + e.message }] }
+        }
+    }
+
     function _resolve(node, rootSchema) {
         // Only local "#/definitions/x" refs exist in this schema.
         let seen = 0
@@ -115,9 +124,9 @@ Singleton {
         }
 
         if (node.oneOf !== undefined) {
-            const ok = node.oneOf.some(branch => root._matches(value, branch, rootSchema))
+            const ok = node.oneOf.filter(branch => root._matches(value, branch, rootSchema)).length === 1
             if (!ok)
-                errors.push({ path: where, message: "does not match any allowed form" })
+                errors.push({ path: where, message: "must match exactly one allowed form" })
         }
 
         if (value !== null && typeof value === "object" && !Array.isArray(value)) {
@@ -136,6 +145,9 @@ Singleton {
                     errors.push({ path: path === "" ? key : `${path}.${key}`,
                                   message: "unknown key" + (known.length
                                       ? ` — did you mean one of: ${root._nearest(key, known)}?` : "") })
+                } else if (node.additionalProperties && typeof node.additionalProperties === "object") {
+                    root._check(value[key], node.additionalProperties, rootSchema,
+                                path === "" ? key : `${path}.${key}`, errors)
                 }
             }
 

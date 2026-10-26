@@ -3,97 +3,72 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import qs.src.core.config
-import qs.src.ui.base
 import qs.src.ui.containers
 
-// Material Design 3 Menu (presentational). `model` is an array of strings or objects
-// { label, icon, enabled, separator }. Caller positions it inside a popup/PopupWindow.
+// Presentational menu; its owning surface handles dismissal and focus restore.
 Surface {
     id: root
-
     property var model: []
-    property int itemWidth: 220
-
+    property int itemWidth: Tokens.size.fieldWidth
+    property real maximumHeight: (root.Window.window?.height ?? Tokens.size.listItem * 10) - Tokens.spacing.large * 2
     signal triggered(int index)
 
-    elevation: 3
+    elevation: 2
     radius: Tokens.shape.extraSmall
     color: Theme.surfaceContainer
-
     implicitWidth: itemWidth
-    implicitHeight: col.implicitHeight + Tokens.spacing.small * 2
+    implicitHeight: Math.min(maximumHeight, column.implicitHeight + Tokens.spacing.small * 2)
 
-    Column {
-        id: col
-        y: Tokens.spacing.small
-        width: parent.width
+    function focusItem(start, direction) {
+        if (!items.count) return
+        for (let i = 0; i < items.count; i++) {
+            const index = (start + direction * i + items.count * 2) % items.count
+            const row = items.itemAt(index)
+            if (row && row.enabled && row.activeFocusOnTab) {
+                row.forceActiveFocus(Qt.TabFocusReason)
+                return
+            }
+        }
+    }
+    function focusFirst() { root.focusItem(0, 1) }
 
-        Repeater {
-            model: root.model
-
-            delegate: Item {
-                id: item
-                required property int index
-                required property var modelData
-
-                readonly property bool isObject: (typeof modelData === "object" && modelData !== null)
-                readonly property bool isSeparator: isObject && modelData.separator === true
-                readonly property bool itemEnabled: !(isObject && modelData.enabled === false)
-                readonly property string itemLabel: isObject ? (modelData.label ?? "") : modelData
-                readonly property string itemIcon: isObject ? (modelData.icon ?? "") : ""
-
-                width: col.width
-                height: isSeparator ? (Tokens.spacing.small * 2 + 1) : 48
-                opacity: itemEnabled ? 1.0 : Tokens.state.disabledContentOpacity
-
-                Divider {
-                    visible: item.isSeparator
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width
-                }
-
-                StateLayer {
-                    visible: !item.isSeparator && item.itemEnabled
-                    target: item
-                    layerColor: Theme.onSurface
-                    hovered: itemMouse.containsMouse
-                    pressed: itemMouse.pressed
-                    showFocusRing: false
-                }
-
-                RowLayout {
-                    visible: !item.isSeparator
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.spacing.medium
-                    anchors.rightMargin: Tokens.spacing.medium
-                    spacing: Tokens.spacing.medium
-
-                    MaterialIcon {
-                        visible: item.itemIcon !== ""
-                        iconName: item.itemIcon
-                        fontSize: Tokens.iconSize.large
-                        iconColor: Theme.onSurfaceVariant
-                        backgroundColor: "transparent"
+    ScrollableList {
+        anchors.fill: parent
+        contentPadding: Tokens.spacing.small
+        spacing: 0
+        Column {
+            id: column
+            Layout.fillWidth: true
+            Repeater {
+                id: items
+                model: root.model
+                delegate: ListItem {
+                    id: row
+                    required property int index
+                    required property var modelData
+                    readonly property bool isObject: typeof modelData === "object" && modelData !== null
+                    readonly property bool isSeparator: isObject && modelData.separator === true
+                    width: column.width
+                    height: isSeparator ? Tokens.spacing.small * 2 + Tokens.size.outline : implicitHeight
+                    enabled: !isObject || modelData.enabled !== false
+                    clickable: !isSeparator
+                    headlineTextFormat: Text.PlainText
+                    headline: isSeparator ? "" : (isObject ? modelData.label ?? "" : modelData)
+                    leadingIcon: isObject ? modelData.icon ?? "" : ""
+                    opacity: enabled ? 1 : Tokens.state.disabledContentOpacity
+                    onClicked: root.triggered(row.index)
+                    Keys.onPressed: event => {
+                        switch (event.key) {
+                        case Qt.Key_Tab: root.focusItem(row.index + (event.modifiers & Qt.ShiftModifier ? -1 : 1), event.modifiers & Qt.ShiftModifier ? -1 : 1); break
+                        case Qt.Key_Down: root.focusItem(row.index + 1, 1); break
+                        case Qt.Key_Up: root.focusItem(row.index - 1, -1); break
+                        case Qt.Key_Home: root.focusFirst(); break
+                        case Qt.Key_End: root.focusItem(items.count - 1, -1); break
+                        default: return
+                        }
+                        event.accepted = true
                     }
-
-                    MaterialText {
-                        text: item.itemLabel
-                        textStyle: "labelLarge"
-                        color: Theme.onSurface
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                }
-
-                MouseArea {
-                    id: itemMouse
-                    visible: !item.isSeparator
-                    anchors.fill: parent
-                    enabled: !item.isSeparator && item.itemEnabled
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.triggered(item.index)
+                    Divider { visible: row.isSeparator; anchors.verticalCenter: parent.verticalCenter; width: parent.width }
                 }
             }
         }

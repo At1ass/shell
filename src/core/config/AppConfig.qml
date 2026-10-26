@@ -22,7 +22,7 @@ Singleton {
     // Central on/off map for every top-level UI element. A user disables anything
     // via the `modules` block in config.json; absent keys fall back to these defaults.
     readonly property var moduleDefaults: ({
-        bar: true, dock: false, wallpaper: true, dashboard: true,
+        bar: true, dock: false, wallpaper: true, dashboard: true, connections: true, audio: true,
         launcher: true, notifications: true, osd: true, lockscreen: false,
         powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true,
         polkit: false, recorder: true
@@ -44,6 +44,13 @@ Singleton {
     // (AGENTS §3), so shell.qml turns them into a toast.
     property var configErrors: []
     property var _schema: null
+    property string _schemaError: ""
+    property var _defaults: null
+    property string _configText: ""
+    property string _configReadError: ""
+    property bool _configReceived: false
+    property bool _hasUserConfig: false
+    property bool _configReadPending: true
 
     FileView {
         id: schemaFile
@@ -52,28 +59,42 @@ Singleton {
             try {
                 root._schema = JSON.parse(text())
             } catch (e) {
-                console.warn("AppConfig: config.schema.json is not valid JSON:", e)
-                root._schema = null
+                root._schemaError = "Cannot parse config.schema.json: " + e.message
             }
-            root._validate()
+            root._applyCandidate()
         }
-        // An installed shell without its schema simply does not validate.
-        onLoadFailed: root._schema = null
+        onLoadFailed: {
+            root._schemaError = "Cannot read config.schema.json"
+            root._applyCandidate()
+        }
     }
 
-    // Whichever of the three arrives last runs the check: the schema file, the
-    // config itself, or the ready flag. _validate() is guarded, so the earlier
-    // two are no-ops.
-    onDataChanged: root._validate()
-    onReadyChanged: root._validate()
-
-    function _validate() {
-        if (!root._schema || !root.ready)
+    // Publish a complete validated snapshot only. A rejected edit leaves every
+    // consumer on the last good snapshot; diagnostics describe the rejected file.
+    function _applyCandidate() {
+        if (!root._configReceived || root._defaults === null)
             return
-        const errors = ConfigValidator.validate(root.data, root._schema)
+        if (!root._schema && root._schemaError === "")
+            return
+        let errors = []
+        let candidate = root._defaults
+        if (root._schemaError !== "") {
+            errors = [{ path: "(schema)", message: root._schemaError }]
+        } else if (root._configReadError !== "") {
+            errors = [{ path: "(file)", message: root._configReadError }]
+        } else if (root._hasUserConfig) {
+            const result = ConfigValidator.parse(root._configText, root._schema)
+            candidate = result.value
+            errors = result.errors
+        }
         root.configErrors = errors
         for (const e of errors)
             console.warn(`config.json: ${e.path}: ${e.message}`)
+        if (errors.length === 0)
+            root.data = candidate
+        else if (!root.ready)
+            root.data = root._defaults
+        root.ready = true
     }
 
     // Same validator the shell runs on load, reachable from outside so a
@@ -87,7 +108,11 @@ Singleton {
         function validate(): string {
             if (!root._schema)
                 return "schema unavailable (config/config.schema.json not readable)"
-            const errors = ConfigValidator.validate(root.data, root._schema)
+            if (root._configReadPending)
+                return "config.json read in progress"
+            if (!root.ready)
+                return "configuration is not ready"
+            const errors = root.configErrors
             if (errors.length === 0)
                 return "OK: " + root.configPath + " matches the schema"
             const lines = errors.map(e => `  ${e.path}: ${e.message}`)
@@ -149,18 +174,36 @@ Singleton {
     // Bar
     readonly property string barPosition: data.bar?.position ?? "top"
     readonly property int barHeight: data.bar?.height ?? 48
-    readonly property int barMargin: data.bar?.margin ?? 16
+    readonly property int barMargin: notificationPopupMargin
     readonly property bool barTransparent: data.bar?.transparent ?? false
     readonly property bool barAutoHide: data.bar?.autoHide ?? false
+    function barWidgetPriority(widget): int {
+        const automatic = {clock:100,workspaces:90,battery:85,volume:80,network:75,notifications:70,layout:60,tray:50,media:40,weather:30,activewindow:20}
+        return widget?.priority ?? automatic[widget?.type] ?? 50
+    }
     readonly property var barWidgets: data.bar?.widgets || []
 
     // Dashboard
+    readonly property int audioWidth: data.audio?.width ?? 420
+    readonly property int audioMaxHeight: data.audio?.maxHeight ?? 640
+
+    readonly property int connectionsWidth: data.connections?.width ?? 420
+    readonly property int connectionsMaxHeight: data.connections?.maxHeight ?? 640
+
     readonly property int dashboardWidth: data.dashboard?.width ?? 900
     readonly property int dashboardHeight: data.dashboard?.height ?? 640
+
+    // Storage display policy; the native worker performs discovery and grouping.
+    readonly property real storageWarningFreePercent: data.storage?.warningFreePercent ?? 10
+    readonly property real storageCriticalFreePercent: data.storage?.criticalFreePercent ?? 5
+    readonly property list<string> storageExcludedMounts: data.storage?.excludedMounts ?? ["/boot", "/boot/efi", "/efi"]
+    readonly property list<string> storageOrder: data.storage?.order ?? ["/", "/home"]
+    readonly property var storageLabels: data.storage?.labels ?? ({})
 
     // Notifications
     readonly property int notificationPanelWidth: data.notifications?.panel?.width ?? 400
     readonly property int notificationPopupWidth: data.notifications?.popup?.width ?? 360
+    readonly property int notificationPopupMargin: data.notifications?.popup?.margin ?? data.bar?.margin ?? 16
     // Base timeout. `timeoutNormal` falls back to it rather than to a second
     // hardcoded 7000 — otherwise `popup.timeout` had no reachable effect at all
     // (every urgency had its own default), which is how it sat dead in the
@@ -170,6 +213,7 @@ Singleton {
     readonly property int notificationTimeoutNormal: data.notifications?.popup?.timeoutNormal ?? notificationPopupTimeout
     readonly property int notificationTimeoutCritical: data.notifications?.popup?.timeoutCritical ?? 15000
     readonly property int notificationPopupMaxVisible: data.notifications?.popup?.maxVisible ?? 5
+    readonly property int notificationClearUndoTimeout: data.notifications?.panel?.clearUndoTimeout ?? 8000
     readonly property bool notificationGroupByApp: data.notifications?.panel?.groupByApp ?? true
     readonly property string notificationPopupPosition: data.notifications?.popup?.position ?? "top-right"
     // "focused" or an exact output name. See NotificationPopupManager._targetScreen.
@@ -187,6 +231,8 @@ Singleton {
     // Per-app filters, lowercased once here so the hot path is a plain lookup.
     readonly property var notificationNoPopupApps: (data.notifications?.filters?.noPopup ?? []).map(s => String(s).toLowerCase())
     readonly property var notificationNoHistoryApps: (data.notifications?.filters?.noHistory ?? []).map(s => String(s).toLowerCase())
+
+    readonly property var temporaryModeDurations: data.temporaryModes?.durationsMinutes ?? [15, 30, 60, 120]
 
     // Launcher
     readonly property int launcherMaxResults: data.launcher?.maxResults ?? 10
@@ -214,6 +260,7 @@ Singleton {
     readonly property string vpnName: data.services?.vpn?.name ?? ""
 
     // OSD
+    readonly property string osdMonitorPolicy: data.osd?.monitorPolicy ?? "focused"
     readonly property int osdTimeout: data.osd?.timeout ?? 2000
 
     // Screen recording. Empty socket means the gsr default this shell assumes,
@@ -238,6 +285,15 @@ Singleton {
     // Lockscreen
     readonly property bool lockscreenBlurWallpaper: data.lockscreen?.blurWallpaper ?? true
     readonly property bool lockscreenShowClock: data.lockscreen?.showClock ?? true
+    readonly property bool lockscreenShowDate: data.lockscreen?.showDate ?? true
+    readonly property bool lockscreenShowUsername: data.lockscreen?.showUsername ?? true
+    readonly property bool lockscreenShowWeather: data.lockscreen?.showWeather ?? false
+    readonly property bool lockscreenShowBattery: data.lockscreen?.showBattery ?? true
+    readonly property bool lockscreenShowNetwork: data.lockscreen?.showNetwork ?? false
+    readonly property bool lockscreenShowPower: data.lockscreen?.showPower ?? true
+    readonly property bool lockscreenShowMedia: data.lockscreen?.showMedia ?? true
+    readonly property bool lockscreenMediaShowPaused: data.lockscreen?.mediaShowPaused ?? true
+    readonly property bool lockscreenMediaShowArt: data.lockscreen?.mediaShowArt ?? false
 
     // Power Menu
     readonly property bool powerMenuConfirmActions: data.powerMenu?.confirmActions ?? true
@@ -273,54 +329,49 @@ Singleton {
     // Wallpaper state (from state.json)
     readonly property var wallpaperState: stateData.wallpaper ?? ({})
 
-    // FileView for config loading
     FileView {
         id: configFile
         path: root.configPath
         watchChanges: true
-
         onLoaded: {
-            // Keep the last good config when the file is transiently invalid
-            // (e.g. a hot-reload fired mid-edit on a half-saved JSON).
-            const parsed = root.parseConfigText(text())
-            if (parsed !== null) root.data = parsed
-            root.ready = true
+            root._configText = text()
+            root._configReadError = ""
+            root._hasUserConfig = true
+            root._configReceived = true
+            root._configReadPending = false
+            root._applyCandidate()
         }
-
         onLoadFailed: error => {
-            console.warn("Failed to load config:", error, "- falling back to", root.defaultConfigPath)
-            root.loadDefaultConfig()
+            root._hasUserConfig = false
+            root._configReadError = error === FileViewError.FileNotFound && !root.ready
+                ? "" : "Cannot read config.json (error " + error + ")"
+            root._configReceived = true
+            root._configReadPending = false
+            root._applyCandidate()
         }
-
-        onFileChanged: reload()
-    }
-
-    // Returns the parsed object, or null when the text is not valid JSON.
-    function parseConfigText(rawText) {
-        try {
-            return JSON.parse(rawText) || {}
-        } catch (e) {
-            console.warn("Config parse: failed to parse JSON", e)
-            return null
+        onFileChanged: {
+            root._configReadPending = true
+            reload()
         }
-    }
-
-    function loadDefaultConfig() {
-        defaultConfigLoader.path = root.defaultConfigPath
     }
 
     FileView {
         id: defaultConfigLoader
-
+        path: root.defaultConfigPath
         onLoaded: {
-            root.data = root.parseConfigText(text()) ?? {}
-            root.ready = true
+            try {
+                const parsed = JSON.parse(text())
+                if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
+                    throw new Error("expected an object")
+                root._defaults = parsed
+            } catch (e) {
+                root.configErrors = [{ path: "(defaults)", message: "Invalid default.json: " + e.message }]
+                return
+            }
+            root._applyCandidate()
         }
-
-        onLoadFailed: error => {
-            console.error("Failed to load default config:", error)
-            root.data = {}
-            root.ready = true
+        onLoadFailed: {
+            root.configErrors = [{ path: "(defaults)", message: "Cannot read default.json" }]
         }
     }
 

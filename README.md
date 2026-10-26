@@ -8,10 +8,12 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 |-----------|-------------|
 | **Status Bar** | Configurable widgets: workspaces, active window, clock, weather, media, notifications, volume, network, battery, layout, tray. Optional auto-hide. |
 | **Dock** | Per-screen application dock with running-window previews and auto-hide |
-| **Dashboard** | 5-tab control center: Quick, Weather, Calendar, Audio, Network. System-stat polling runs only while it is open |
-| **Launcher** | Application search with fuzzy matching + calculator + clipboard history |
-| **Notification Center** | History panel, per-app grouping, unread badge, DND (critical always gets through), repeat counters, per-app filters |
-| **OSD** | Volume and brightness overlays |
+| **Audio** | Compact output/microphone controls, live device selection and a lazy application mixer |
+| **Connections** | Standalone Wi-Fi/Bluetooth/VPN/Ethernet panel, expandable sections, contextual actions and external profile editors |
+| **Dashboard** | 3-tab overview: Quick, Weather, Calendar. System history continues while it is closed |
+| **Launcher** | Application search, calculator, clipboard history and shell actions |
+| **Notification Center** | History panel, per-app grouping, remembered expansion during the session, keyboard navigation through visible cards and collapsed group headers, unread badge, DND, repeat counters, per-app filters |
+| **OSD** | One compact volume/brightness meter on the focused output |
 | **Toast** | Info / success / warning / error popups |
 | **Screenshot** | Region selection via mouse or keyboard (hjkl), annotations through swappy |
 | **Gaming Mode** | Auto-disables Hyprland animations / blur / shadows; restores them on exit |
@@ -46,11 +48,12 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `ddcutil` | External-monitor brightness via DDC/CI |
 | `cliphist` | Clipboard history in the launcher |
 | `qalculate-glib` | Calculator in the launcher (also a build dep for the plugin) |
+| `glib2` | Desktop entry and command-line parsing for GreeterData |
 | `libical` | Native calendar plugin (events, RRULE expansion) |
 | `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
 | `hyprsunset` | Night Light temperature shift |
 | `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
-| `bluez` | Bluetooth status in the Dashboard |
+| `bluez` | Bluetooth support for the Connections panel |
 
 > Bluetooth pairing note: the shell intentionally runs **no** background pairing
 > agent (an always-on auto-confirm agent would accept any nearby pairing
@@ -85,7 +88,7 @@ cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 ```
 
-Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring).
+Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv).
 
 #### Arch Linux: as a package
 
@@ -174,13 +177,19 @@ bind = SUPER ALT, N, global, quickshell:nightLightToggle
 ### 6. Run
 
 ```bash
-quickshell -p ~/.config/quickshell/shell
+QT_QPA_PLATFORMTHEME=gtk3 quickshell -p ~/.config/quickshell/shell
 ```
+
+The GTK platform theme makes application and tray icons follow GTK's selected
+icon theme. For a systemd user service, add `Environment=QT_QPA_PLATFORMTHEME=gtk3`
+to its `[Service]` section; this overrides a session-wide `qt6ct` setting for the
+shell. The Qt 6 GTK platform plugin must be installed (`libqgtk3.so`, provided by
+`qt6-base` on Arch Linux).
 
 Or add it to Hyprland's autostart:
 
 ```conf
-exec-once = quickshell -p ~/.config/quickshell/shell
+exec-once = env QT_QPA_PLATFORMTHEME=gtk3 quickshell -p ~/.config/quickshell/shell
 ```
 
 ---
@@ -203,7 +212,14 @@ and logged with its path and a suggestion:
 config.json — bar.heigth: unknown key — did you mean one of: height, widgets, margin?
 ```
 
-Before this, a typo was simply ignored: the accessor fell back to its default and nothing said so.
+Only a fully validated snapshot is published. Invalid JSON, wrong types and invalid
+per-monitor bindings leave the last good configuration active. On an invalid first
+load the bundled defaults are used. `tools/shell-ctl config validate` reports the
+latest rejected file, including syntax errors, rather than validating the retained
+snapshot. Schema and default files must be present in the installation.
+
+`notifications.popup.margin` controls notification placement. The old `bar.margin`
+key remains a deprecated fallback when the new key is absent; it never moves the bar.
 
 ### Top-level sections
 
@@ -217,7 +233,7 @@ performance.keepPanelsLoaded — panels kept alive after their first open instea
 modules                  — on/off switch for every top-level shell element (see below)
 bar                      — status bar and widgets
 bar.transparent          — transparent bar background
-bar.autoHide             — reveal the bar only at the top screen edge (no reserved space)
+bar.autoHide             — reveal the bar only at its configured screen edge (no reserved space)
 dock                     — application dock (position, auto-hide, icon size, pinned apps)
 dashboard                — control-center dimensions
 notifications            — popups and notification center
@@ -381,6 +397,157 @@ When a module is off, the corresponding element is never instantiated and its ho
 - `toasts: false` — `ToastService` errors/successes are silently dropped (visible only in the console log).
 - `notifications: false` disables both the center and popups. The bar's bell widget is toggled separately via its own `enabled` flag in `bar.widgets` (the counter keeps updating because the underlying service still runs).
 
+### Native greeter catalogs
+
+`GreeterData 1.0` scans trusted `/usr/local/share` and `/usr/share` session directories
+and the local `/etc/passwd` file on an independent worker. It publishes bounded DTO
+snapshots; QML does no filesystem scanning or Exec parsing. Desktop entry values
+and quoted arguments are decoded with GLib, field codes expand once, and greetd
+receives a captured argv list. No shell, variable expansion or command substitution
+runs during parsing. Hidden/NoDisplay entries, missing executables and TryExec are
+filtered; higher-priority entries mask duplicates by session ID. Nonlocal accounts
+remain available through Other user and are authenticated by greetd.
+
+Build/install the updated plugins and greeter together before using this greeter.
+Native tests: `greeter_data_test`; the real QML bridge is checked with
+`python3 tools/test-greeter-data.py` (set QML_IMPORT_PATH to a temporary install root
+when testing an uninstalled build). UI/auth tests retain fake greetd and catalogs.
+
+### Greeter content
+
+The standalone greetd UI uses the same compact password row and has no outer form
+backplate. User switching is explicit; session selection appears only with multiple
+sessions. Power actions share a confirmed inline menu. Its own root-owned
+`/etc/greetd/greeter.json` controls profile, font scale, motion and element visibility;
+`src/features/greeter/config/greeter.schema.json` supplies validation. See the
+[greeter README](src/features/greeter/README.md) for defaults, packaging and tests.
+Updating checkout files does not update the installed greeter; rebuild its package
+from committed source. `python3 tools/test-greeter.py` uses fake authentication and
+power actions, plus offscreen native previews.
+
+### Lockscreen content
+
+The lockscreen has no notifications. Its centered password form is immediately
+available, with keyboard layout switching, Caps Lock feedback and reserved error
+space. Track title/artist and previous/play-pause/next appear below the form when
+a player is available; controls respect the player's capabilities. Text elides
+instead of scrolling. Power is one button opening an inline menu; restart and
+shutdown require confirmation with Cancel focused first. System power policy and
+inhibitors are respected; failures are displayed on the lockscreen.
+
+Configure visibility through `lockscreen` in config.json:
+
+```json
+{
+  "lockscreen": {
+    "blurWallpaper": true,
+    "showClock": true,
+    "showDate": true,
+    "showUsername": true,
+    "showWeather": false,
+    "showBattery": true,
+    "showNetwork": false,
+    "showPower": true,
+    "showMedia": true,
+    "mediaShowPaused": true,
+    "mediaShowArt": false
+  }
+}
+```
+
+Clock and date visibility are independent. Battery status only appears when a
+battery is present; weather requires fresh data. The password form and necessary
+authentication feedback are always available. The form starts on the focused
+output; other outputs show the clock/date. Click another output to move the form
+there. Disconnecting the selected output falls back to an available output. Small
+outputs and large fonts scroll, keeping the focused password field visible.
+
+### Temporary DND and Caffeine
+
+Use `: dnd 30` or `: caffeine 90` in the launcher to enable a mode for that many
+minutes. Without a duration, the action catalog offers presets from
+`temporaryModes.durationsMinutes` (default `[15, 30, 60, 120]`). An empty list hides
+preset rows; direct duration actions and IPC accept whole minutes from 1 to 1440.
+Quick tiles show the expiry time while a temporary mode is active.
+
+```sh
+tools/shell-ctl dnd for 30
+tools/shell-ctl caffeine for 90
+tools/shell-ctl dnd until
+tools/shell-ctl caffeine until
+# Raw IPC equivalents:
+qs ipc call notifications setDndFor 30
+qs ipc call globalstates setIdleInhibitorFor 90
+```
+
+Deadlines live in state.json and survive shell restart without restarting the
+countdown. Sleep/resume and the shared clock recheck wall time. Expiry releases
+only the relevant manual mode; automatic fullscreen DND still applies. Manual
+on/off/toggle cancels the deadline; explicit on makes the mode permanent. Starting
+a duration replaces its prior deadline, including a previously permanent mode.
+The `until` calls return an ISO UTC deadline or an empty string for a mode without
+a timer. Caffeine expiry releases the inhibitor and lets the usual idle policy run.
+
+`python3 tools/test-timed-modes.py` tests state loading, expiry, manual overrides,
+restart, resume and CLI arguments with isolated state and a fake idle effect.
+
+### Notification history and Undo
+
+Clear all offers Undo in the centre, also available with Ctrl+Z while the undo
+window is open. `notifications.panel.clearUndoTimeout` sets that window in
+milliseconds (default 8000). The pending operation survives panel unloading and
+shell restart; a second clear replaces the previous undo opportunity. The IPC
+`notifications clear` command remains permanent and invalidates pending Undo.
+
+New arrivals stay above restored older records. Restoration is batched, respects
+the history cap and TTL, and preserves read state, grouped ordering and updated
+content/actions. Clearing history leaves live popups alone. Expired clients are
+not resurrected by Undo. History limits apply after startup and config reload;
+the centre indicates when the cap is reached. Tightening rate-limit queues also
+drops excess queued work through the normal lifecycle policy.
+
+### Launcher modes
+
+Type an application name, `= expression` to calculate, `> text` to search clipboard
+history, or `: action` to find shell actions. Examples: `: audio`, `: calendar`,
+`: dnd`, `: lock`. Only enabled modules contribute actions; Power menu opens its
+existing choices. Arrow keys or Tab/Shift+Tab select results, PageUp/PageDown move
+by a page, Enter activates and Escape closes. Tab/Shift+Tab keep the search editor
+focused while selecting results, with both empty and nonempty queries. Home/End
+remain text-editing keys.
+The footer names the current mode and action. Empty results and pending
+calculations have explicit messages. Enter flushes a pending text search before
+activating; calculations expose a copy action only for the current expression.
+Opening the launcher resets its query, selection and scroll position.
+
+### Passive OSD and toasts
+
+Volume and brightness share one compact meter: the latest action replaces the
+previous one and restarts the hide timeout. OSD and toast windows pass pointer
+input through and never grab focus. Position and dimensions respect the bar,
+output bounds and font scale. Toast text is plain, wraps and is limited to three
+lines; queued messages keep the output on which they were requested. Locking
+clears overlays and queued messages.
+
+`osd.monitorPolicy` defaults to `"focused"`: new actions choose the focused output.
+Use `"all"` to retain presentation on every output. `osd.timeout` remains the meter
+hide timeout after the final action. Configuration remains in config.json.
+
+### Weather and calendar overview
+
+Weather shows current conditions, feels-like temperature and the seven-day
+forecast first. The seven days stay in one row, with high/low temperatures stacked
+in each card. Narrow panels allow horizontal scrolling with arrow buttons while
+keeping labels readable. Wind, humidity, pressure and daylight are behind Weather details;
+their components load only while expanded. The last update is visible. A failed
+refresh keeps the last successful values with an explicit status, and the initial
+loading/error state shows no fabricated zero readings.
+
+Calendar uses side-by-side month/day views when space permits and a scrollable
+column otherwise. Empty days show a short summary instead of an empty 24-hour
+ruler. Timed events retain their timeline and editor. Weekday headings follow the
+system locale and configured first weekday; Today/T resets month and selection.
+
 ### Bar widgets
 
 Every widget in `bar.widgets` shares these fields:
@@ -393,6 +560,19 @@ Every widget in `bar.widgets` shares these fields:
 | `monitors` | `"all"`, a monitor name (`"DP-2"`), or an array |
 | `clickAction` | Action triggered on click (see below) |
 | `settings` | Widget-specific parameters |
+| `priority` | `null` for automatic ordering, or 0–100; higher stays visible longer |
+
+The bar first shortens titles and labels, then uses compact widget presentations.
+If space remains insufficient, lower-priority widgets move into “More”; expanding
+the screen restores them automatically. More retains actions, media controls,
+workspace switching and the application tray. Clock and workspaces have the
+highest automatic priorities; a low battery gets extra priority. With popouts
+disabled, a horizontally scrollable strip keeps every control accessible.
+The bar follows top/bottom placement and grows when larger fonts require it.
+
+Dashboard Quick keeps modes, destination tiles, brightness and system/media
+information. Audio controls live in the Audio panel, and the header shows the
+date without duplicating the bar clock.
 
 Available widget types:
 
@@ -410,6 +590,68 @@ Available widget types:
 | `layout` | Current keyboard layout |
 | `tray` | System tray |
 
+Bar primary clicks open the configured `clickAction`. Clock, weather and the media
+body also retain their former right-click shortcut. Volume opens Audio by default;
+right-click toggles mute and scrolling adjusts volume. Individual media buttons
+control playback without opening a panel. Existing explicit click actions are
+respected; bundled clock defaults now open Calendar.
+
+Clock/date and media keep a stable width on hover. `clock.settings.showDate`
+shows a persistent inline date. `media.settings.compact` shows an icon and play/pause;
+full mode adds bounded track text and previous/next buttons. Hover reveals details
+in a tooltip rather than moving adjacent controls.
+
+Quick → System statistics shows CPU/GPU usage and temperature trends, current
+percentages, CPU load average (1/5/15 minutes), memory and storage usage, and disk
+read/write rates. The native worker samples in the background; closing Dashboard
+or collapsing statistics does not pause history. Each series retains at most 120
+samples (about four minutes at the default two-second cadence), in memory until
+the shell reloads/restarts. Temperature trends use a fixed 0–120 °C scale; usage
+trends use 0–100%. Unsupported temperature sensors are marked unavailable.
+
+
+Storage expands into local mounted filesystems and physical devices. Repeated
+Btrfs/bind mounts share one capacity row. Network/pseudo/loop mounts are omitted;
+boot mounts are excluded by default. Each volume shows available/total space and
+an occupancy indicator; its details show mount paths, filesystem type, device and
+read-only state. Device rows show I/O and temperature where sysfs exposes it.
+Aggregate I/O counts whole leaf devices once, without adding partition/dm/md
+counters again. Filesystem capacities are never summed into a misleading total.
+Low-space state remains visible on the collapsed System statistics header, with
+no toast or blinking. Defaults: warning at <=10% available, critical at <=5%.
+The native storage API requires an updated SystemMonitor plugin; older installed
+plugins retain the system-volume summary until the package is upgraded.
+
+```json
+"storage": {
+  "warningFreePercent": 10,
+  "criticalFreePercent": 5,
+  "excludedMounts": ["/boot", "/boot/efi", "/efi"],
+  "order": ["/", "/home"],
+  "labels": {"/mnt/games": "Games"}
+}
+```
+
+Names and order use primary mount paths. A read-only volume or failed space probe
+never raises a low-space indicator. Thresholds apply to space available to the
+current user; critical is clamped to warning if configured larger. Discovery and
+space/temperature reads run on the existing worker slow cadence (5 s), while I/O
+uses the existing fast cadence. `python3 tools/test-statistics.py` checks native
+sampling/UI; set `STORAGE_PLUGIN_IMPORT` to a build's parent of `SystemMonitor/`
+to exercise an uninstalled plugin. `storage_test` covers grouping, thresholds and
+counter resets with fixtures.
+
+Bar, dock and local hints share the UI kit's tooltip surface: a short hover delay,
+plain text, bounded wrapping and a single fade. Passive bar hints never take input
+focus. Closing a panel-suppressed tooltip retains its last native position and size
+until the window is unmapped, avoiding a jump to the screen edge. Long text is ellipsized after eight lines or at the available screen height.
+Tray menus scroll within the screen, show checkbox/radio states, and support
+Up/Down, Home/End and Tab. Right opens a submenu; Left/Escape returns one level;
+Enter/Space activates the focused action. Submenus also have a visible Back row.
+The dock context menu supports keyboard focus and Escape. Configuration remains
+file-only.
+
+
 Available `clickAction` values:
 
 | Value | Action |
@@ -417,8 +659,12 @@ Available `clickAction` values:
 | `dashboard-quick` | Open Dashboard on the Quick tab |
 | `dashboard-weather` | Open Dashboard on the Weather tab |
 | `dashboard-calendar` | Open Dashboard on the Calendar tab |
-| `dashboard-audio` | Open Dashboard on the Audio tab |
-| `dashboard-network` | Open Dashboard on the Network tab |
+| `audio` | Toggle the standalone audio panel |
+| `dashboard-audio` | Compatibility alias for the audio panel |
+| `connections` | Toggle the compact connections panel |
+| `connections-wifi` | Open/toggle Connections with Wi-Fi expanded |
+| `connections-bluetooth` | Open/toggle Connections with Bluetooth expanded |
+| `dashboard-network` | Compatibility alias for Connections / Wi-Fi |
 | `notification-center` | Toggle the notification center |
 | `launcher` | Open the launcher |
 
@@ -490,7 +736,7 @@ qs ipc call <handler> <function> [argument]
 ```bash
 # Dashboard
 qs ipc call globalstates toggleDashboard
-qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar 3=Audio 4=Network
+qs ipc call globalstates openDashboardTab 0   # 0=Quick 1=Weather 2=Calendar; legacy 3 opens Audio, 4 opens Connections / Wi-Fi
 
 # Launcher
 qs ipc call globalstates toggleLauncher
@@ -559,7 +805,9 @@ qs ipc call notifications setDnd true
 qs ipc call notifications isDnd           # manual toggle only
 qs ipc call notifications dndActive       # toggle OR fullscreen suppression
 qs ipc call notifications dismissAll      # close every visible popup
-qs ipc call notifications clear           # wipe history
+qs ipc call notifications clear           # permanently wipe history; discard pending undo
+qs ipc call notifications undoClear       # restore the latest undoable Clear all
+qs ipc call notifications canUndoClear    # whether its undo window is still open
 qs ipc call notifications markAllRead     # clear the unread badge
 qs ipc call notifications count           # history entries
 qs ipc call notifications unread          # unread entries (what the bar badge shows)
@@ -675,10 +923,10 @@ shell/
 │   ├── features/
 │   │   ├── statusbar/           # Status bar and widgets
 │   │   ├── dock/                # Application dock with window previews
-│   │   ├── dashboard/           # 5-tab control center
+│   │   ├── dashboard/           # 3-tab overview
 │   │   ├── launcher/            # Application search
 │   │   ├── notifications/       # Notification center and popups
-│   │   ├── osd/                 # VolumeOSD, BrightnessOSD, ToastOverlay
+│   │   ├── osd/                 # SystemOSD, OsdMeterContent, ToastOverlay
 │   │   ├── screenshot/          # Region-selection overlay
 │   │   ├── cheatsheet/          # Keybinding reference
 │   │   ├── lockscreen/          # Lock screen
@@ -691,6 +939,7 @@ shell/
 │   │       ├── mcu-qml/         # Material Color Utilities
 │   │       ├── fuzzy-search-qml/# Fuzzy matching
 │   │       ├── qalculate-qml/   # Calculator
+│   │       ├── greeter-data-qml/ # Native greeter catalogs and session argv
 │   │       ├── calendar-qml/    # iCalendar via libical (events, RRULE, reminders)
 │   │       └── system-monitor-qml/ # CPU / RAM / GPU / disk / network monitoring
 │   └── ui/                      # Reusable MD3 components
@@ -765,3 +1014,170 @@ Full list of shortcuts for `hyprland.conf` (`bind = ..., global, quickshell:<nam
 | `audioToggleMute` | Mute / unmute |
 | `brightnessUp` | Brightness +5% (DDC/CI + backlight) |
 | `brightnessDown` | Brightness −5% (DDC/CI + backlight) |
+
+Notification regressions can be checked with `tools/test-notifications.py`. It runs
+the real list, cards and history in an isolated offscreen shell with temporary
+XDG directories. It checks wrapped actions, text updates, async images, resizing,
+scrolling and keyboard selection. On a collapsed group header, Enter expands the
+group and Delete/X removes that group from history.
+
+
+## Foundation regression checks
+
+```bash
+tools/test-foundation.py
+tools/check.sh
+cmake -B /tmp/shell-plugins-test -S src/plugins -G Ninja -DBUILD_TESTING=ON
+cmake --build /tmp/shell-plugins-test
+QT_QPA_PLATFORM=offscreen ctest --test-dir /tmp/shell-plugins-test --output-on-failure
+```
+
+The foundation checks use temporary configuration/state directories, a local HTTP
+server and a fake logind transport. They cover rejected config edits and recovery,
+IPC diagnostics, real request timeout/cancellation, foreign-session signals and
+compile probes that fail to start or never finish. They never modify the running
+shell's config or send lock/unlock commands to logind.
+
+Retained panels keep their UI trees but stop radio discovery when closed. Clipboard
+history reads pause while the launcher is closed; visible image rows own preview requests.
+Caffeine, night light and gaming mode restore independently of dashboard loading.
+Calendar/SystemMonitor workers finish cooperatively after their facade is removed;
+MCU and calculator results use facade-owned future watchers. UI destruction neither
+terminates a worker nor waits for unfinished I/O. Retiring SystemMonitor workers
+share refcounted, serialized libsensors state across reloads.
+
+C++ changes require rebuilding the installed plugin package and restarting the
+shell after checking that it is unlocked. Building the test targets does not
+replace installed plugins.
+
+
+## Keyboard and compact layouts
+
+The minimal pack is the primary desktop profile; MD3 uses the same components
+with its own density tokens. Shared buttons, fields, icon buttons and launcher
+rows follow those tokens and the configured font scale.
+
+- Dashboard: Tab/Shift+Tab traverse controls; Ctrl+Tab/Ctrl+Shift+Tab change
+  sections. Inside the section strip, arrows and Home/End select a tab. Existing
+  number and vi navigation shortcuts remain available when an editor is not
+  consuming them.
+- Audio/Connections: Enter or Space activates device rows; radio/switch actions remain
+  controlled by the native services. Bluetooth list updates preserve focus by
+  device address. Busy operations cannot be activated again from their row.
+- Calendar: Tab enters/leaves the date grid; arrows move its focused day and Enter
+  selects it. Tab reaches events; Enter opens the editor and scrolls the timeline
+  to the focused card. The Today button or T returns to the current day.
+  Month and day views stack on narrow panels; Tab reveals actions below the fold.
+- Mode tiles show on/off state; destination tiles have arrows and command tiles
+  have no state marker. Unavailable VPN, Night Light and disabled Screenshot
+  actions are omitted from Quick. Tiles support Space and Enter. Combo boxes support arrows, Home/End,
+  Space/Enter and Escape.
+- Dialogs keep keyboard traversal inside the nearest open modal and restore
+  the previous focus on close. Editors have a single Tab stop.
+- Dashboard and launcher sizes are limited to the active screen. Quick controls
+  and weather cards reflow and scroll on narrower outputs; scroll containers
+  reveal a focused control automatically.
+- The launcher uses the shared text field. Its existing search debounce, Enter
+  activation and clipboard navigation remain in place.
+
+Run `tools/test-ui.py` for isolated Qt Quick tests with real key events and mock
+system services. It checks both packs, font scales 1/1.3/2, modal focus, compact
+and wide dashboard/weather layouts. Rendered fixtures are saved under
+`/tmp/shell-ui-renders`; they contain no live desktop or user data.
+
+
+## Connections panel
+
+The standalone panel replaces Dashboard's Network tab. One section is expanded
+at a time: Wi-Fi, Bluetooth or VPN. Ethernet appears as a compact connected row.
+Quick's Wi-Fi/Bluetooth actions open the corresponding section; VPN is available inside Connections.
+
+```bash
+qs ipc call globalstates toggleConnections
+qs ipc call globalstates openConnections wifi
+qs ipc call globalstates openConnections bluetooth
+qs ipc call globalstates closeConnections
+# Optional Hyprland binding:
+# bind = SUPER, N, global, quickshell:connectionsToggle
+```
+
+`modules.connections` enables the panel. `connections.width` (420) and
+`connections.maxHeight` (640) set its preferred logical dimensions; both are
+clamped to the output and long lists scroll. `performance.keepPanelsLoaded` can
+include `connections`. User configuration is never rewritten.
+
+The network bar widget supports `connections`, `connections-wifi` and
+`connections-bluetooth` click actions. Its `settings.showLabel` defaults to false;
+connection names remain available in the tooltip. Existing explicit click actions
+are respected. Openings from the widget stay on its monitor and hold that bar open.
+
+Enter/Space activates rows. Connected rows open actions instead of disconnecting
+immediately. Menus support arrows/Home/End, and Escape returns focus to the initiating
+control. Forgetting a network/device requires confirmation. A personal Wi-Fi
+password can be entered or retried inside the panel; enterprise/unknown security
+uses the external connection editor. OWE networks connect without a password.
+
+Wi-Fi discovery runs only in the visible expanded Wi-Fi section and stops after
+20 seconds. Bluetooth discovery starts from **Pair new device**, stops after
+30 seconds, and ends when leaving the section or closing the panel. Connection
+operations belong to services and can finish after the panel closes.
+
+This panel does not replace authentication agents yet. Keep nm-applet and
+blueman-applet enabled while using it: Bluetooth PIN/passkey confirmation still
+relies on the external agent. **Edit connections** opens nm-connection-editor;
+**Bluetooth manager** opens blueman-manager through AppLaunchService. There are
+no shell settings in the panel.
+
+
+The cheatsheet discovers IPC handlers and signatures with `qs ipc show` on every
+open. Local descriptions enrich those commands without defining a second list.
+The query has a deadline and retry state; failed refreshes retain the last valid
+surface. Filters update after discovery, including new Connections commands.
+
+
+## Audio panel and bounded tray
+
+Audio is a standalone panel; Dashboard contains Quick, Weather and Calendar.
+Left-clicking the volume widget opens Audio (including legacy `dashboard-audio`
+click actions), right-click toggles mute, and the wheel adjusts output volume.
+Quick offers a direct Audio action; system diagnostics are collapsed by default.
+
+```bash
+qs ipc call globalstates toggleAudio
+qs ipc call globalstates openAudio
+qs ipc call globalstates closeAudio
+# Optional Hyprland binding:
+# bind = SUPER, A, global, quickshell:audioToggle
+```
+
+`modules.audio` enables the panel; `audio.width` defaults to 420 and
+`audio.maxHeight` to 640. Geometry is clamped to the active output. The panel shows
+output and microphone volume/mute, live device pickers and an application mixer
+that only binds stream nodes while expanded and visible. Missing devices retain a
+short status row without disabled sliders. Tab traverses controls; device lists
+also accept arrows/Home/End. Escape closes the picker, then the expanded mixer,
+then the panel. `performance.keepPanelsLoaded` may include `audio`.
+
+Tray widget settings now include:
+
+```json
+"settings": {
+  "iconSize": 20,
+  "spacing": 8,
+  "maxVisible": 4,
+  "pinnedIds": []
+}
+```
+
+At most `maxVisible` icons occupy the bar; the rest are available from its overflow
+button in a scrollable list with application names. Set 0 for an overflow-only
+tray. `pinnedIds` lists exact StatusNotifierItem IDs, in priority order; pinning
+respects the same visible limit. App registration order otherwise remains stable.
+A dot on the overflow button signals hidden items requesting attention.
+
+Left/middle/right actions and wheel input remain available on bar icons. Overflow
+rows activate with Enter/Space; arrows/Home/End navigate, Menu/Shift+F10 or the
+trailing button opens the application menu. Switching from overflow into a menu
+keeps a surviving bar anchor. If popouts are disabled, all icons stay on the bar
+so they remain reachable. Hidden icons keep their applications and authentication
+agents running; nm-applet and blueman-applet are not stopped.

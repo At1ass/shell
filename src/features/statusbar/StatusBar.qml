@@ -40,7 +40,8 @@ PanelWindow {
         function onDataChanged() { statusBar._syncWidgets() }
     }
     Component.onCompleted: _syncWidgets()
-    readonly property string screenName: screen ? screen.name : ""
+    readonly property ShellScreen targetScreen: screen as ShellScreen
+    readonly property string screenName: targetScreen?.name ?? ""
     // property ShellScreen screen: null
 
     readonly property bool autoHide: AppConfig.barAutoHide
@@ -55,7 +56,7 @@ PanelWindow {
     // The dock has always had the equivalent (`_previewShowing || contextMenu.open`);
     // the bar tracked hover and nothing else.
     readonly property bool revealed: !autoHide || barHover.hovered
-                                     || _ownsPopout || _ownsMenu
+                                     || _ownsPopout || _ownsConnections || _ownsAudio || _ownsDashboard
 
     // A popout is ours when the item that requested it lives in this bar's
     // scene. Checking by screen would be wrong (two bars, one popout) and
@@ -63,10 +64,15 @@ PanelWindow {
     readonly property bool _ownsPopout: PopoutsState.open
                                         && statusBar._isOwnItem(PopoutsState.sourceItem)
 
-    // Tooltip MENUS (not plain tooltips) also take a grab and pull the pointer
-    // off the bar. tooltipManager belongs to this bar, so anything it holds
-    // open is ours by construction.
-    readonly property bool _ownsMenu: tooltipManager.activeMenu !== null
+    readonly property bool _ownsConnections: GlobalStates.connectionsOpen
+        && statusBar._isOwnItem(GlobalStates.connectionsSource)
+
+    readonly property bool _ownsDashboard: GlobalStates.dashboardOpen
+        && GlobalStates.activePanelScreen?.name === statusBar.screenName
+
+    readonly property bool _ownsAudio: GlobalStates.audioOpen
+        && statusBar._isOwnItem(GlobalStates.audioSource)
+
 
     function _isOwnItem(item) {
         for (let p = item; p; p = p.parent) {
@@ -77,7 +83,7 @@ PanelWindow {
 
     // The window keeps a constant height (no preview/menu like the dock), so the input mask
     // does all the passthrough work and there is no resize-induced HoverHandler flicker.
-    implicitHeight: AppConfig.barHeight
+    implicitHeight: BarMetrics.height
     color: "transparent"
 
     // Auto-hide reserves no screen space and overlays windows (Ignore); a fixed bar lets
@@ -90,7 +96,8 @@ PanelWindow {
 
     anchors {
         left: true
-        top: true
+        top: AppConfig.barPosition !== "bottom"
+        bottom: AppConfig.barPosition === "bottom"
         right: true
     }
 
@@ -115,7 +122,7 @@ PanelWindow {
                                        && barBackground.opacity < 0.01
 
         x: 0
-        y: 0
+        y: AppConfig.barPosition === "bottom" && _strip ? statusBar.height - height : 0
         width: statusBar.width
         height: _strip ? 1 : statusBar.height
     }
@@ -123,10 +130,13 @@ PanelWindow {
     TooltipManager {
         id: tooltipManager
         bar: statusBar
+        suspended: GlobalStates.activePanel !== "" || PopoutsState.open || GlobalStates.lockscreenActive
     }
 
-    Rectangle {
+    Surface {
         id: barBackground
+        radius: Tokens.shape.none
+        outlined: false
 
         anchors.fill: parent
 
@@ -134,7 +144,7 @@ PanelWindow {
         // top screen edge. MD3 emphasized: decelerate on appear, accelerate on hide.
         scale: statusBar.revealed ? 1.0 : 0.85
         opacity: statusBar.revealed ? 1.0 : 0.0
-        transformOrigin: Item.Top
+        transformOrigin: AppConfig.barPosition === "bottom" ? Item.Bottom : Item.Top
         visible: opacity > 0
 
         Behavior on scale {
@@ -154,92 +164,16 @@ PanelWindow {
             visible: !AppConfig.barTransparent
         }
 
-        // Center zone — pinned to the screen centre, width follows its own content. It is
-        // the layout anchor: the left/right zones fill the gaps on either side of it, so a
-        // wide left zone (e.g. many workspace windows) can never overrun the centre.
-        Item {
-            id: centerZone
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: centerSection.implicitWidth
-            clip: true
-
-            RowLayout {
-                id: centerSection
-                spacing: Tokens.spacing.small
-                anchors.centerIn: parent
-
-                Repeater {
-                    model: statusBar.centerWidgets
-                    delegate: BarWidgetLoader {
-                        barRevealed: statusBar.revealed
-                        required property var modelData
-                        screenName: statusBar.screenName
-                        widgetConfig: modelData
-                        tooltipManager: statusBar.tooltip
-                    }
-                }
-            }
-        }
-
-        // Left zone — from the screen edge up to the centre zone. Content is left-aligned;
-        // overflow is clipped on the inner (centre-facing) edge rather than overlapping.
-        Item {
-            anchors.left: parent.left
-            anchors.right: centerZone.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
+        BarLayout {
+            anchors.fill: parent
             anchors.leftMargin: Tokens.spacing.small
             anchors.rightMargin: Tokens.spacing.small
-            clip: true
-
-            RowLayout {
-                id: leftSection
-                spacing: Tokens.spacing.small
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-
-                Repeater {
-                    model: statusBar.leftWidgets
-                    delegate: BarWidgetLoader {
-                        barRevealed: statusBar.revealed
-                        required property var modelData
-                        screenName: statusBar.screenName
-                        widgetConfig: modelData
-                        tooltipManager: statusBar.tooltip
-                    }
-                }
-            }
-        }
-
-        // Right zone — from the centre zone to the screen edge. Content is right-aligned.
-        Item {
-            anchors.left: centerZone.right
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: Tokens.spacing.small
-            anchors.rightMargin: Tokens.spacing.small
-            clip: true
-
-            RowLayout {
-                id: rightSection
-                spacing: Tokens.spacing.small
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-
-                Repeater {
-                    model: statusBar.rightWidgets
-                    delegate: BarWidgetLoader {
-                        barRevealed: statusBar.revealed
-                        required property var modelData
-                        screenName: statusBar.screenName
-                        widgetConfig: modelData
-                        tooltipManager: statusBar.tooltip
-                    }
-                }
-            }
+            leftWidgets: statusBar.leftWidgets
+            centerWidgets: statusBar.centerWidgets
+            rightWidgets: statusBar.rightWidgets
+            screenName: statusBar.screenName
+            tooltipManager: statusBar.tooltip
+            barRevealed: statusBar.revealed
         }
     }
 }

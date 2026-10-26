@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Quickshell
 import Quickshell.Io
 import qs.src.ui.base
 import qs.src.ui.containers
@@ -21,6 +20,7 @@ Item {
 
     // Fallback descriptions for shell binds (used when hyprctl description is empty)
     readonly property var _shellDescriptions: ({
+        "connectionsToggle": "Toggle connections panel",
         "closeAllPanels":      "Close all open panels",
         "launcherToggle":      "Toggle application launcher",
         "screenshot":          "Take area screenshot",
@@ -38,8 +38,7 @@ Item {
 
     property var _shellBindsComputed: []
 
-    // IPC reference lives in components/IpcReferenceData.qml — the single
-    // authoritative list, shared with README.md.
+    // IPC signatures are discovered on open; descriptions only enrich them.
     readonly property var _ipcData: Components.IpcReferenceData.handlers
 
     // ═══════════════════════════════════════════════════════════════
@@ -514,6 +513,9 @@ Item {
                     sourceComponent: Component {
                         Components.IpcReferenceTab {
                             handlers: root.filteredIpcHandlers
+                            loading: Components.IpcReferenceData.busy
+                            errorMessage: Components.IpcReferenceData.errorMessage
+                            onRetryRequested: Components.IpcReferenceData.refresh()
                         }
                     }
                 }
@@ -530,12 +532,18 @@ Item {
         }
     }
 
+    Connections {
+        target: Components.IpcReferenceData
+        function onHandlersChanged() { root._applyFilter() }
+    }
+
     // Reset and fetch on visibility change
     onVisibleChanged: {
         if (visible) {
             searchField.text = ""
             currentTab = 0
-            hyprBindsProc.running = true
+            if (!hyprBindsProc.running) hyprBindsProc.running = true
+            Components.IpcReferenceData.refresh()
             Qt.callLater(function() {
                 searchField.forceActiveFocus()
             })
@@ -543,7 +551,8 @@ Item {
     }
 
     Component.onCompleted: {
-        hyprBindsProc.running = true
+        if (!hyprBindsProc.running) hyprBindsProc.running = true
+        Components.IpcReferenceData.refresh()
     }
 
     // A retained panel keeps whatever the user left in it. Reset the query and
@@ -555,6 +564,8 @@ Item {
             if (name !== "cheatsheet")
                 return
             searchField.text = ""
+            Components.IpcReferenceData.refresh()
+            if (!hyprBindsProc.running) hyprBindsProc.running = true
             searchField.forceActiveFocus()
         }
     }

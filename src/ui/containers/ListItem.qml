@@ -10,8 +10,12 @@ Rectangle {
 
     // Content properties
     property string headline: ""
+    property int headlineTextFormat: Text.AutoText
     property string supportingText: ""
+    property int supportingTextFormat: Text.AutoText
     property string trailingSupportingText: ""
+    property color headlineColor: Theme.onSurface
+    property color supportingColor: Theme.onSurfaceVariant
 
     // Leading element
     property alias leadingContent: leadingSlot.data
@@ -33,11 +37,12 @@ Rectangle {
     // Signals
     signal clicked()
 
-    // MD3 List Item sizing
-    implicitHeight: {
-        if (supportingText !== "") return 72
-        return 56
-    }
+    // Measured content also accommodates fontScale and custom slot controls.
+    implicitHeight: Math.max(Tokens.size.listItem, content.implicitHeight + Tokens.spacing.small * 2)
+    Accessible.role: Accessible.Button
+    Accessible.name: headline
+    Accessible.description: supportingText
+    Accessible.onPressAction: if (root.enabled && root.clickable) root.clicked()
 
     radius: Tokens.shape.none
     color: "transparent"
@@ -50,24 +55,24 @@ Rectangle {
         enabled: root.clickable
         hoverEnabled: root.clickable
         cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: root.clicked()
+        onClicked: { root.forceActiveFocus(Qt.MouseFocusReason); root.clicked() }
     }
 
     // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
     // and a StateLayer that could draw them, but nothing that could ever take
     // focus — so the ring was unreachable infrastructure.
-    activeFocusOnTab: root.clickable
+    activeFocusOnTab: root.clickable || root.activeFocus
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
             || event.key === Qt.Key_Enter) {
-            if (root.clickable) root.clicked()
+            if (root.enabled && root.clickable && !event.isAutoRepeat) root.clicked()
             event.accepted = true
         }
     }
 
     // State layer
     StateLayer {
-        visible: root.showStateLayer && root.clickable
+        visible: root.showStateLayer && (root.clickable || root.activeFocus)
         layerColor: Theme.onSurface
         hovered: mouseArea.containsMouse
         pressed: mouseArea.pressed
@@ -77,6 +82,7 @@ Rectangle {
 
     // Content
     RowLayout {
+        id: content
         z: 1
         anchors.fill: parent
         anchors.leftMargin: parent.margin
@@ -116,13 +122,14 @@ Rectangle {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            spacing: 2
+            spacing: Tokens.spacing.extraSmall
 
             MaterialText {
                 visible: root.headline !== ""
                 text: root.headline
+                textFormat: root.headlineTextFormat
                 textStyle: "bodyLarge"
-                colorRole: "onSurface"
+                color: root.headlineColor
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }
@@ -130,8 +137,9 @@ Rectangle {
             MaterialText {
                 visible: root.supportingText !== ""
                 text: root.supportingText
+                textFormat: root.supportingTextFormat
                 textStyle: "bodyMedium"
-                colorRole: "onSurfaceVariant"
+                color: root.supportingColor
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }

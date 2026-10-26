@@ -1,9 +1,7 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 import Quickshell
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -14,380 +12,156 @@ import qs.src.features.launcher.components as LauncherComponents
 
 Item {
     id: root
-
-    // LauncherService.filteredApps is a SINGLETON property that outlives the
-    // launcher window, so at creation it still holds the PREVIOUS session's
-    // results. Binding the list model straight to it populated the view with
-    // stale rows, and the replacement a moment later (Component.onCompleted
-    // runs the first search) left the outgoing delegates drawn ON TOP of the
-    // incoming ones — permanently, not just for the remove transition. That
-    // is the doubled first row, and the rows that came up with no icon.
-    // Reproduce by typing a query, closing, and reopening.
-    //
-    // So: show nothing until the first search for THIS session has run.
     property bool _searchReady: false
+    readonly property string mode: LauncherService.modeFor(searchField.text)
+    readonly property bool searchPending: searchDebounce.running || LauncherService.busy
+    readonly property real chromeHeight: searchField.implicitHeight + footer.implicitHeight
+        + Tokens.panelPadding * 2 + Tokens.spacing.small * 2 + Tokens.focusRing.offset * 2
+    // Fixed rows provide an exact preferred height without relying on the
+    // ListView's changing content estimate while delegates are constructed.
+    readonly property int resultCount: _searchReady ? LauncherService.filteredApps.length : 0
+    readonly property real resultRowHeight: Math.max(Tokens.size.listItem,
+        Math.ceil(Tokens.typography.titleMedium.lineHeight + Tokens.typography.bodySmall.lineHeight)
+        + Tokens.spacing.small * 2 + Tokens.spacing.extraSmall)
+    readonly property real resultsHeight: resultCount > 0
+        ? Math.min(resultCount * resultRowHeight + (resultCount - 1) * Tokens.spacing.extraSmall,
+            AppConfig.launcherListMaxHeight) : empty.implicitHeight
+    implicitHeight: chromeHeight + resultsHeight
 
-    implicitHeight: 56 + Math.min(appListView.contentHeight, AppConfig.launcherListMaxHeight) + Tokens.spacing.large * 3 + 4  // +4 for the shadow
-
-    // MD3 Shadow (Elevation Level 2)
-
-    MaterialCard {
-        id: container
-        anchors.fill: parent
-        anchors.margins: 2  // Margin for the shadow
-
-        color: Theme.surfaceContainer
-        radius: Tokens.shape.extraLarge
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Tokens.spacing.large
-            spacing: Tokens.spacing.medium
-
-            // Search Field (at top with fixed height)
-            Rectangle {
-                id: searchContainer
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                radius: Tokens.shape.pill
-                color: Theme.surfaceContainerHighest
-                border.width: searchField.activeFocus ? 2 : 0
-                border.color: searchField.activeFocus ? Theme.primary : "transparent"
-
-                Behavior on border.width {
-                    MotionAnimation {
-                        duration: Tokens.motion.duration.short4
-                        curve: "standard"
-                    }
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.spacing.small
-                    spacing: Tokens.spacing.small
-
-                    MaterialIcon {
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
-                        iconName: "search"
-                        iconColor: Theme.onSurfaceVariant
-                    }
-
-                    TextField {
-                        id: searchField
-                        Layout.fillWidth: true
-
-                        placeholderText: "Search apps..."
-                        color: Theme.onSurface
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-
-                        background: Item {}  // Transparent - the outer Rectangle is used
-
-                        // Coalesced, NOT live. Every keystroke rebuilds the
-                        // result list, which rebinds delegates and cancels
-                        // their in-flight icon loads — and a cancelled load
-                        // poisons Quickshell's icon provider for that icon
-                        // NAME for the rest of the session. The icon then
-                        // renders nowhere: not here, not in the bar's
-                        // workspace chips. Reproduce by typing fast; the
-                        // poisoned entry survives reopening the launcher, is
-                        // keyed by name rather than size, and ignores
-                        // `cache: false`, so it is below this layer.
-                        //
-                        // Holding the query still for one interval lets the
-                        // loads finish. Enter flushes a pending search first
-                        // so it can never act on a stale list.
-                        onTextChanged: {
-                            searchDebounce.restart()
-                            appListView.currentIndex = 0
-                        }
-
-                        Timer {
-                            id: searchDebounce
-                            interval: 120
-                            onTriggered: LauncherService.search(searchField.text)
-                        }
-
-                        function flushSearch() {
-                            if (searchDebounce.running) {
-                                searchDebounce.stop()
-                                LauncherService.search(searchField.text)
-                            }
-                        }
-
-                        // Tab navigation
-                        Keys.onTabPressed: (event) => {
-                            if (event.modifiers & Qt.ShiftModifier) {
-                                // Shift+Tab - up
-                                if (appListView.currentIndex > 0) {
-                                    appListView.currentIndex--
-                                }
-                            } else {
-                                // Tab - down
-                                if (appListView.currentIndex < appListView.count - 1) {
-                                    appListView.currentIndex++
-                                }
-                            }
-                            event.accepted = true
-                        }
-
-                        Keys.onBacktabPressed: (event) => {
-                            // Shift+Tab alternate handler
-                            if (appListView.currentIndex > 0) {
-                                appListView.currentIndex--
-                            }
-                            event.accepted = true
-                        }
-
-                        // Keyboard navigation
-                        Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_Down) {
-                                if (appListView.currentIndex < appListView.count - 1) {
-                                    appListView.currentIndex++
-                                }
-                                event.accepted = true
-                            } else if (event.key === Qt.Key_Up) {
-                                if (appListView.currentIndex > 0) {
-                                    appListView.currentIndex--
-                                }
-                                event.accepted = true
-                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                searchField.flushSearch()
-                                const result = appListView.currentItem?.modelData ?? null
-                                // Actionless rows (calculator errors) stay open.
-                                if (result?.action) {
-                                    LauncherService.launch(result)
-                                    GlobalStates.closePanel("launcher")
-                                }
-                                event.accepted = true
-                            } else if (event.key === Qt.Key_Escape) {
-                                GlobalStates.closePanel("launcher")
-                                event.accepted = true
-                            }
-                        }
-
-                        Component.onCompleted: searchField.forceActiveFocus()
-                    }
-
-                    IconButton {
-                        id: clearButton
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
-                        iconName: "close"
-                        visible: searchField.text.length > 0
-                        iconSize: Tokens.iconSize.medium
-
-                        onClicked: {
-                            searchField.text = ""
-                            searchField.forceActiveFocus()
-                        }
-                    }
-                }
-            }
-
-            // App List (scrollable, takes remaining space)
-            ListView {
-                id: appListView
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(
-                    contentHeight,
-                    AppConfig.launcherListMaxHeight
-                )
-
-                maximumFlickVelocity: 3000
-
-                // Recycle delegates rather than rebuild them per row crossing
-                // the viewport. Safe here because AppListItem already resets the
-                // transition state it owns whenever it is handed new data (see
-                // its onModelDataChanged) -- ScriptModel reuse had the same
-                // hazard first. It earns its keep in prefix mode (">"), where
-                // the cap rises to 50 rows carrying clipboard thumbnails.
-                reuseItems: true
-
-                // ScriptModel to track item changes
-                model: ScriptModel {
-                    id: scriptModel
-                    objectProp: "resultId"  // Fixed: all providers use "id"
-                    values: root._searchReady ? LauncherService.filteredApps : []
-
-                    onValuesChanged: appListView.currentIndex = 0
-                }
-
-                spacing: Tokens.spacing.extraSmall
-                clip: true
-
-                currentIndex: 0
-                highlightFollowsCurrentItem: false
-
-                // Auto-scroll when currentIndex changes
-                onCurrentIndexChanged: {
-                    positionViewAtIndex(currentIndex, ListView.Contain)
-                }
-
-                // Transform origin for scale animations
-                transformOrigin: Item.Center
-
-                // Highlight
-                highlight: Rectangle {
-                    visible: !!appListView.currentItem
-                    width: appListView.width
-                    height: appListView.currentItem ? appListView.currentItem.height : 0
-                    y: appListView.currentItem ? appListView.currentItem.y : 0
-                    radius: Tokens.shape.medium
-                    color: Theme.secondaryContainer
-                    opacity: 0.3
-
-                    Behavior on y {
-                        MotionAnimation {
-                            duration: Tokens.motion.duration.short4
-                            curve: "standard"
-                        }
-                    }
-
-                    Behavior on height {
-                        MotionAnimation {
-                            duration: Tokens.motion.duration.short4
-                            curve: "standard"
-                        }
-                    }
-                }
-
-                delegate: LauncherComponents.AppListItem {
-                    width: appListView.width
-                    isCurrentItem: appListView.currentIndex === index
-
-                    onClicked: {
-                        LauncherService.launch(modelData)
-                        GlobalStates.closePanel("launcher")
-                    }
-                }
-
-                // Flag to disable transitions on reopen
-                property bool transitionsEnabled: true
-
-                // MD3 transitions for list item add/remove/move
-                add: Transition {
-                    enabled: appListView.transitionsEnabled
-                    MotionAnimation {
-                        properties: "opacity,scale"; from: 0; to: 1
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
-
-                populate: Transition {
-                    enabled: appListView.transitionsEnabled
-                    MotionAnimation {
-                        properties: "opacity,scale"; from: 0; to: 1
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
-
-                // No `remove` transition. It was the only one that drove a
-                // delegate's scale toward 0, and ListView keeps an item alive
-                // for the whole transition — so interrupting it was what left
-                // rows stranded shrunk. Rows now leave at once.
-
-                move: Transition {
-                    MotionAnimation {
-                        property: "y"
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                    MotionAnimation {
-                        properties: "opacity,scale"; to: 1
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
-
-                addDisplaced: Transition {
-                    MotionAnimation {
-                        property: "y"
-                        duration: Tokens.motion.duration.short4
-                        curve: "standard"
-                    }
-                    MotionAnimation {
-                        properties: "opacity,scale"; to: 1
-                        duration: Tokens.motion.duration.short4
-                        curve: "standard"
-                    }
-                }
-
-                displaced: Transition {
-                    MotionAnimation {
-                        property: "y"
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                    MotionAnimation {
-                        properties: "opacity,scale"; to: 1
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
-
-                rebound: Transition {
-                    MotionAnimation {
-                        properties: "x,y"
-                        duration: Tokens.motion.duration.medium4
-                        curve: "standard"
-                    }
-                }
-
-                // Scrollbar - always reserve space
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AlwaysOn
-                    visible: appListView.contentHeight > appListView.height
-                    opacity: visible ? 1.0 : 0.0
-
-                    Behavior on opacity {
-                        MotionAnimation {
-                            duration: Tokens.motion.duration.short4
-                            curve: "standard"
-                        }
-                    }
-                }
-            }
-        }
+    function activateCurrent() {
+        const index = searchDebounce.running ? 0 : appListView.currentIndex
+        searchField.flushSearch()
+        const result = LauncherService.filteredApps[index]
+        if (!result?.action || LauncherService.busy) return
+        LauncherService.launch(result)
     }
-
-    // Re-run the search when cliphist entries change in clipboard-prefix mode
-    // (covers the case where ClipboardService.refresh in onVisibleChanged got
-    // back stale data, then the 100ms debounce refresh delivered the new
-    // entry afterwards — the displayed list needs to recompute).
-    Connections {
-        target: ClipboardService
-        function onEntriesChanged() {
-            if (root.visible && searchField.text.startsWith(">"))
-                LauncherService.search(searchField.text)
-        }
+    function moveSelection(delta) {
+        searchField.flushSearch()
+        if (appListView.count) appListView.currentIndex = Math.max(0,
+            Math.min(appListView.count - 1, appListView.currentIndex + delta))
     }
-
-    // Initialize on creation. The content is recreated per open (LazyLoader
-    // + Loader both gate on launcherOpen), so this IS the open hook — an
-    // onVisibleChanged reset block would be dead code here (visible never
-    // changes during the item's lifetime).
-    Component.onCompleted: {
-        // Pull fresh cliphist state — the clipboard-change watcher uses a
-        // 100 ms debounce, which races a fast Mod+Space right after a copy.
+    function reset() {
+        searchField.text = ""
+        searchDebounce.stop()
         ClipboardService.refresh()
         LauncherService.search("")
-        root._searchReady = true
+        _searchReady = true
         appListView.currentIndex = 0
+        appListView.contentY = 0
+        searchField.inputItem.forceActiveFocus()
     }
-
-    // A retained panel keeps whatever the user left in it. Reset the query and
-    // take focus on every open, so a reopened launcher behaves exactly like a
-    // freshly built one -- which is what it used to be.
-    Connections {
-        target: GlobalStates
-        function onPanelOpened(name) {
-            if (name !== "launcher")
-                return
-            searchField.text = ""
-            searchField.forceActiveFocus()
+    MaterialCard {
+        anchors.fill: parent
+        anchors.margins: Tokens.focusRing.offset
+        color: Theme.surfaceContainer
+        radius: Tokens.shape.large
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Tokens.panelPadding
+            spacing: Tokens.spacing.small
+            MaterialTextField {
+                id: searchField
+                Layout.fillWidth: true
+                variant: "filled"
+                leadingIcon: root.mode === "calculator" ? "calculate" : root.mode === "clipboard" ? "content_paste"
+                    : root.mode === "actions" ? "bolt" : "search"
+                trailingIcon: text.length > 0 ? "close" : ""
+                placeholderText: "Search applications"
+                onTrailingClicked: { text = ""; inputItem.forceActiveFocus() }
+                onAccepted: root.activateCurrent()
+                onTextChanged: { appListView.currentIndex = 0; searchDebounce.restart() }
+                Timer {
+                    id: searchDebounce
+                    interval: 120
+                    onTriggered: LauncherService.search(searchField.text)
+                }
+                function flushSearch() {
+                    if (!searchDebounce.running) return
+                    searchDebounce.stop()
+                    LauncherService.search(text)
+                }
+                // Handle navigation on the editor before Qt's default Tab
+                // traversal can move focus to the clear button.
+                Connections {
+                    target: searchField.inputItem.Keys
+                    function onPressed(event) {
+                        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+                            root.moveSelection(event.key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier) ? -1 : 1)
+                        else if (event.key === Qt.Key_Down) root.moveSelection(1)
+                        else if (event.key === Qt.Key_Up) root.moveSelection(-1)
+                        else if (event.key === Qt.Key_PageDown || event.key === Qt.Key_PageUp)
+                            root.moveSelection((event.key === Qt.Key_PageDown ? 1 : -1)
+                                * Math.max(1,Math.floor(appListView.height / (appListView.currentItem?.height ?? Tokens.size.listItem))))
+                        else if (event.key === Qt.Key_Escape) GlobalStates.closePanel("launcher")
+                        else return
+                        event.accepted = true
+                    }
+                }
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.min(root.resultsHeight, Math.max(0, root.height - root.chromeHeight))
+                ListView {
+                    id: appListView
+                    anchors.fill: parent
+                    visible: count > 0
+                    reuseItems: true
+                    clip: true
+                    spacing: Tokens.spacing.extraSmall
+                    currentIndex: 0
+                    highlightFollowsCurrentItem: false
+                    model: ScriptModel {
+                        objectProp: "resultId"
+                        values: root._searchReady ? LauncherService.filteredApps : []
+                        onValuesChanged: appListView.currentIndex = 0
+                    }
+                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                    delegate: LauncherComponents.AppListItem {
+                        width: appListView.width
+                        height: root.resultRowHeight
+                        isCurrentItem: appListView.currentIndex === index && !!modelData?.action
+                        enabled: !root.searchPending && !!modelData?.action
+                        onClicked: {
+                            if (root.searchPending) return
+                            LauncherService.launch(modelData)
+                        }
+                    }
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                }
+                ListItem {
+                    id: empty
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    visible: appListView.count === 0
+                    clickable: false
+                    leadingIcon: root.searchPending ? "hourglass_empty" : "search_off"
+                    headline: root.searchPending ? "Searching…"
+                        : root.mode === "calculator" ? "Enter an expression"
+                        : root.mode === "clipboard" ? "No clipboard entries"
+                        : root.mode === "actions" ? "No matching actions" : "No applications found"
+                    supportingText: root.mode === "calculator" ? "= 2 + 2"
+                        : root.mode === "clipboard" ? "Use > followed by text to search history"
+                        : root.mode === "actions" ? "Try : audio or : calendar" : "Try a different name"
+                }
+            }
+            MaterialText {
+                id: footer
+                Layout.fillWidth: true
+                textStyle: "labelSmall"
+                colorRole: "onSurfaceVariant"
+                wrapMode: Text.Wrap
+                text: searchField.text.trim() === "" ? "= Calculator · > Clipboard · : Shell actions"
+                    : (root.mode === "calculator" ? "Calculator · Enter: Copy"
+                        : root.mode === "clipboard" ? "Clipboard · Enter: Copy"
+                        : root.mode === "actions" ? "Shell actions · Enter: Run" : "Applications · Enter: Open")
+                        + " · ↑↓ / Tab: Select · Esc: Close"
+            }
         }
     }
+    Connections {
+        target: GlobalStates
+        function onPanelOpened(name) { if (name === "launcher") root.reset() }
+        function onLauncherOpenChanged() { if (!GlobalStates.launcherOpen) searchDebounce.stop() }
+    }
+    Component.onCompleted: reset()
 }

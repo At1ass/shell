@@ -19,15 +19,15 @@ Singleton {
     // only DERIVES from it, setEnabled() only WRITES it. A read-write
     // property with an onChanged persister loops through stateData and
     // destroys its own binding on the first imperative write.
-    readonly property bool enabled: AppConfig.stateData?.notifications?.doNotDisturb ?? false
-
-    function setEnabled(on) {
-        if (on !== enabled) AppConfig.updateState("notifications", { "doNotDisturb": on })
-    }
-
-    function toggle() {
-        setEnabled(!enabled)
-    }
+    readonly property TimedMode _mode: TimedMode { section: "notifications"; enabledKey: "doNotDisturb" }
+    readonly property bool enabled: _mode.enabled
+    readonly property bool temporary: _mode.temporary
+    readonly property real expiresAt: temporary ? _mode.expiresAt : 0
+    readonly property string statusText: _mode.statusText
+    function init() { _mode.refresh() }
+    function setEnabled(on) { _mode.setEnabled(on) }
+    function setForMinutes(minutes) { return _mode.start(minutes) }
+    function toggle() { setEnabled(!enabled) }
 
     // Fullscreen detection: don't interrupt games/videos.
     // focusedWorkspace.hasFullscreen is updated directly by the Hyprland

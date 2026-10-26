@@ -1,17 +1,16 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import qs.src.core.config
 import qs.src.ui.base
-import qs.src.ui.containers
+import qs.src.core.config
+import qs.src.ui.feedback
 
 // Small MD3 tooltip for the hovered dock icon (app name + window count). Rendered in-window
 // on the bar's inner side, centered on the icon along the main axis. Passive (no input, so
 // it needs no mask region); the coordinator decides when to show it.
-Surface {
+MaterialTooltip {
     id: root
 
-    property string text: ""
     property real center: 0            // along-axis center (x for horizontal, y for vertical)
     property bool showing: false
     property Item anchorItem: null     // dock bar
@@ -21,29 +20,17 @@ Surface {
     readonly property int _gap: Tokens.spacing.extraSmall
     readonly property int _margin: Tokens.spacing.small
 
-    visible: showing && text !== ""
-    opacity: visible ? 1 : 0
-    scale: visible ? 1 : 0.9
-    transformOrigin: position === "bottom" ? Item.Bottom
-                   : position === "top" ? Item.Top
-                   : position === "left" ? Item.Left : Item.Right
-
+    visible: showing || opacity > 0
+    opacity: showing && text !== "" ? 1 : 0
     Behavior on opacity {
-        NumberAnimation { duration: Tokens.motion.duration.short3 }
-    }
-    Behavior on scale {
-        MotionAnimation {
-            duration: Tokens.motion.duration.short3
-            curve: "emphasizedDecelerate"
-        }
+        MotionAnimation { duration: Tokens.motion.duration.short2; curve: "standard" }
     }
 
-    elevation: 2
-    radius: Tokens.shape.small
-    color: Theme.surfaceContainerHigh
-
-    implicitWidth: label.implicitWidth + Tokens.spacing.medium * 2
-    implicitHeight: label.implicitHeight + Tokens.spacing.small * 2
+    maximumWidth: Math.max(Tokens.spacing.large,
+        Math.min(Tokens.size.fieldWidth + Tokens.spacing.large * 2,
+            parent.width - (vertical ? (anchorItem?.width ?? 0) : 0) - _margin * 2 - _gap))
+    maximumHeight: Math.max(Tokens.spacing.large,
+        parent.height - (vertical ? 0 : (anchorItem?.height ?? 0)) - _margin * 2 - _gap)
 
     x: {
         if (!anchorItem) return 0
@@ -60,11 +47,4 @@ Surface {
                                   : (anchorItem.y - height - _gap)
     }
 
-    MaterialText {
-        id: label
-        anchors.centerIn: parent
-        text: root.text
-        textStyle: "labelMedium"
-        colorRole: "onSurface"
-    }
 }

@@ -15,9 +15,8 @@ Singleton {
 
     // Consumers that actually DISPLAY uptime hold a watcher while alive. The
     // only one is the dashboard's Quick tab, which exists for the seconds the
-    // panel is open — and /proc/uptime is readable only by polling. Same gate
-    // as SystemMonitorService.isMonitoring and KeyboardLayoutService's lock
-    // state: poll exactly while something is on screen to read the result.
+    // panel is open — and /proc/uptime is readable only by polling. Unlike
+    // metric history, uptime has no samples to retain while hidden.
     property int uptimeWatchers: 0
     function addUptimeWatcher()    { root.uptimeWatchers++ }
     function removeUptimeWatcher() { root.uptimeWatchers = Math.max(0, root.uptimeWatchers - 1) }

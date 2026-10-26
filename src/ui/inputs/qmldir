@@ -9,3 +9,4 @@ MaterialTextField 1.0 MaterialTextField.qml
 Chip 1.0 Chip.qml
 SegmentedButton 1.0 SegmentedButton.qml
 MaterialTextArea 1.0 MaterialTextArea.qml
+MaterialTabs 1.0 MaterialTabs.qml

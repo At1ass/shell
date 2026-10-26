@@ -19,7 +19,7 @@ url="https://git.lan/at1ass/shell"
 # The shell has no license file (private). Mcu statically links the vendored
 # material-color-utilities, which is Apache-2.0.
 license=('LicenseRef-private' 'Apache-2.0')
-makedepends=(git cmake ninja pkgconf qt6-base qt6-declarative libical libqalculate lm_sensors rapidfuzz-cpp)
+makedepends=(git cmake ninja pkgconf qt6-base qt6-declarative libical libqalculate lm_sensors rapidfuzz-cpp glib2)
 
 _mcu_commit=07b2c68508039e178bcf1317ad0cf0af4c36be0f
 _submodule=src/plugins/external/material-color-utilities
@@ -59,8 +59,8 @@ build() {
 }
 
 package_at1ass-shell-plugins() {
-  pkgdesc="C++ QML plugins of the at1ass Quickshell shell (Mcu, Qalculate, SystemMonitor, FuzzySearch, Calendar)"
-  depends=(gcc-libs glibc qt6-base qt6-declarative libical libqalculate lm_sensors)
+  pkgdesc="C++ QML plugins of the at1ass Quickshell shell (Mcu, Qalculate, SystemMonitor, FuzzySearch, Calendar, GreeterData)"
+  depends=(gcc-libs glibc qt6-base qt6-declarative libical libqalculate lm_sensors glib2)
 
   # INSTALL_QMLDIR defaults to the absolute /usr/lib/qt6/qml (PluginInstall.cmake).
   DESTDIR="$pkgdir" cmake --install build
@@ -70,7 +70,7 @@ package_at1ass-shell-plugins() {
 
 package_at1ass-shell-greeter() {
   pkgdesc="greetd greeter of the at1ass Quickshell shell"
-  depends=(at1ass-shell-plugins quickshell greetd hyprland ttf-roboto ttf-material-symbols-variable)
+  depends=("at1ass-shell-plugins>=${pkgver}" quickshell greetd hyprland ttf-roboto ttf-material-symbols-variable)
   optdepends=('greetd-regreet: fallback when the Quickshell greeter fails to load')
   backup=(etc/greetd/greeter.json etc/greetd/hyprland-greeter.conf)
 

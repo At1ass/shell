@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -7,9 +8,37 @@ import Quickshell.Networking
 Singleton {
     id: root
 
+    // Retained panels stay alive when hidden; discovery must stop on close.
+    Connections {
+        target: GlobalStates
+        function onConnectionsOpenChanged() {
+            if (!GlobalStates.connectionsOpen) root.stopScan()
+        }
+    }
+
+
     // Native Quickshell.Networking API
     readonly property var wifiDevice: _findWifiDevice()
     readonly property var networks: wifiDevice ? wifiDevice.networks.values : []
+
+    readonly property bool wifiAvailable: root.wifiDevice !== null
+    // Stable groups and names: signal-strength fluctuations never reorder rows.
+    readonly property var displayNetworks: [...root.networks].sort((a, b) =>
+        Number(b?.connected) - Number(a?.connected) || Number(b?.known) - Number(a?.known)
+        || (a?.name || "").localeCompare(b?.name || ""))
+    readonly property bool wiredConnected: {
+        const devices = Networking.devices?.values ?? []
+        for (const device of devices) {
+            if (device?.type === DeviceType.Wired && device.connected) return true
+        }
+        return false
+    }
+    readonly property string connectionIcon: root.wiredConnected ? "lan" : root.icon
+    readonly property string connectionLabel: root.wiredConnected ? "Wired connection"
+        : root.currentNetwork || (root.wifiEnabled ? "Not connected" : "Wi-Fi off")
+    readonly property bool newConnectionBusy: newConnectProc.running
+    property string errorMessage: ""
+    function clearError() { root.errorMessage = "" }
 
     // WiFi state
     readonly property bool wifiEnabled: Networking.wifiEnabled
@@ -35,6 +64,8 @@ Singleton {
 
     // Connect to a known network (NM already has credentials)
     function connectToNetwork(network) {
+        if (!network || network.stateChanging || root.newConnectionBusy) return
+        root.clearError()
         network.connect()
     }
 
@@ -42,7 +73,8 @@ Singleton {
     // The passphrase goes through STDIN (`--ask`), never through argv —
     // /proc/<pid>/cmdline is world-readable (CWE-214).
     function connectToNewNetwork(ssid, password) {
-        if (newConnectProc.running) return
+        if (newConnectProc.running || !ssid || !password) return
+        root.clearError()
         newConnectProc._password = password
         // Re-assert stdin each launch: onStarted closes it to give nmcli
         // EOF, and that imperative write severs any declarative binding.
@@ -53,12 +85,14 @@ Singleton {
 
     // Disconnect from a network
     function disconnectNetwork(network) {
+        if (!network || network.stateChanging) return
+        root.clearError()
         network.disconnect()
     }
 
     // Forget a saved network
     function forgetNetwork(network) {
-        network.forget()
+        if (network && !network.stateChanging) network.forget()
     }
 
     // Start scanning for networks
@@ -108,18 +142,30 @@ Singleton {
             }
         }
 
-        stderr: StdioCollector {
-            onStreamFinished: {
-                const err = text.trim()
-                if (err) console.warn("NetworkService: nmcli connect error:", err)
+        stderr: StdioCollector {}
+
+        onExited: exitCode => {
+            newConnectProc._password = ""
+            if (exitCode === 0) root.clearError()
+            else root.errorMessage = "Could not connect. Check the password or open the connection editor."
+            if (!GlobalStates.connectionsOpen) {
+                if (exitCode === 0) ToastService.success("Connected to network")
+                else ToastService.error(root.errorMessage)
             }
         }
+    }
 
-        onExited: (exitCode) => {
-            if (exitCode === 0)
-                ToastService.success("Connected to network")
-            else
-                ToastService.error("Failed to connect to network")
+    Instantiator {
+        model: ScriptModel { values: root.networks }
+        delegate: Connections {
+            required property var modelData
+            target: modelData
+            function onConnectionFailed(reason) {
+                root.errorMessage = reason === ConnectionFailReason.NoSecrets
+                    ? "Authentication is required. Open the network menu to retry or edit the profile."
+                    : "Could not connect: " + ConnectionFailReason.toString(reason)
+                if (!GlobalStates.connectionsOpen) ToastService.error(root.errorMessage)
+            }
         }
     }
 
@@ -128,7 +174,7 @@ Singleton {
     function _findWifiDevice() {
         const devs = Networking.devices?.values ?? []
         for (const d of devs) {
-            if (d.type === DeviceType.Wifi) return d
+            if (d?.type === DeviceType.Wifi) return d
         }
         return null
     }
@@ -136,7 +182,7 @@ Singleton {
     // Find the currently connected network
     function _findConnectedNetwork() {
         for (const n of networks) {
-            if (n.connected) return n
+            if (n?.connected) return n
         }
         return null
     }

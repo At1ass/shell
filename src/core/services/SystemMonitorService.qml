@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import SystemMonitor 1.0
+import qs.src.core.config
 
 // Thin wrapper around C++ SystemMonitor singleton
 // All heavy lifting is done in C++ for performance and reliability
@@ -52,6 +53,34 @@ Singleton {
     readonly property string diskWriteFormatted: SystemMonitor.diskWriteFormatted
     readonly property bool hasDiskIo: SystemMonitor.hasDiskIo
 
+    // Capability lookup keeps the QML usable before the packaged plugin is upgraded.
+    function _nativeProperty(name, fallback) { return SystemMonitor[name] ?? fallback }
+    function _nativeBackend() { return SystemMonitor }
+    readonly property bool storageAvailable: _nativeProperty("storageApiVersion", 0) >= 1
+    readonly property var storageVolumes: _nativeProperty("storageVolumes", [])
+    readonly property var storageDrives: _nativeProperty("storageDrives", [])
+    readonly property var storageSummary: _nativeProperty("storageSummary", ({
+        available: true, name: "System", mountPoint: "/",
+        severity: 100 - diskUsage <= Math.min(AppConfig.storageCriticalFreePercent, AppConfig.storageWarningFreePercent) ? 2
+            : 100 - diskUsage <= AppConfig.storageWarningFreePercent ? 1 : 0
+    }))
+    readonly property int storageSeverity: storageSummary.severity ?? 0
+    readonly property string storageFreeText: storageAvailable
+        ? `${storageSummary.availableFormatted ?? "—"} free`
+        : `${Math.max(0, 100 - diskUsage).toFixed(1)}% free`
+    readonly property int storageOtherAlerts: Math.max(0,
+        (storageSummary.warningCount ?? 0) + (storageSummary.criticalCount ?? 0) - 1)
+    readonly property string storageAlertText: storageSeverity > 0
+        ? `${storageSeverity === 2 ? "Critical space" : "Low space"} · ${storageSummary.name ?? "Storage"}: ${storageFreeText}${storageOtherAlerts > 0 ? ` (+${storageOtherAlerts} more)` : ""}` : ""
+    Binding {
+        target: root.storageAvailable ? root._nativeBackend() : null
+        property: "storageOptions"
+        value: ({warningFreePercent: AppConfig.storageWarningFreePercent,
+            criticalFreePercent: AppConfig.storageCriticalFreePercent,
+            excludedMounts: Array.from(AppConfig.storageExcludedMounts),
+            order: Array.from(AppConfig.storageOrder), labels: AppConfig.storageLabels})
+    }
+
     // Network
     readonly property double netRxSpeed: SystemMonitor.netRxSpeed
     readonly property double netTxSpeed: SystemMonitor.netTxSpeed
@@ -68,24 +97,17 @@ Singleton {
 
     readonly property bool isMonitoring: SystemMonitor.isMonitoring
 
-    // Poll only while something is on screen to read the numbers.
-    //
-    // The C++ singleton used to start its worker timers in the constructor and
-    // never stop: a 2 s /proc + sysfs + NVML sweep (and five 120-sample history
-    // arrays rebuilt per tick, here) ran for the whole session even with the
-    // dashboard shut. Every consumer of these stats lives in the dashboard, so
-    // that is the gate. The worker thread stays alive across the toggle — only
-    // its timers stop — so re-entry costs nothing and needs no re-detection.
-    Binding {
-        target: SystemMonitor
-        property: "isMonitoring"
-        value: GlobalStates.dashboardOpen
-    }
+    // Started by ServiceBootstrap, independently of lazy panel lifetimes.
+    // The native worker owns polling; visibility only gates rendering.
+    function init() { SystemMonitor.isMonitoring = true }
 
     // History arrays (4 min @ 2s interval = 120 samples)
     property var cpuHistory: []
     property var gpuHistory: []
     property var ramHistory: []
+    property var cpuTempHistory: []
+    property var gpuTempHistory: []
+    readonly property bool hasGpuTemp: hasGpuStats && gpuTemp > 0
     property var netRxHistory: []
     property var netTxHistory: []
     readonly property int _maxHistory: 120
@@ -118,6 +140,11 @@ Singleton {
             root.cpuHistory = root._pushed(root.cpuHistory, root.cpuUsage / 100);
             root.gpuHistory = root._pushed(root.gpuHistory, root.gpuUsage / 100);
             root.ramHistory = root._pushed(root.ramHistory, root.ramUsage / 100);
+            // A missing sensor starts a new series; never plot it as 0 °C.
+            root.cpuTempHistory = root.hasCpuTemp
+                ? root._pushed(root.cpuTempHistory, Math.max(0, Math.min(root.cpuTemp / 120, 1))) : [];
+            root.gpuTempHistory = root.hasGpuTemp
+                ? root._pushed(root.gpuTempHistory, Math.max(0, Math.min(root.gpuTemp / 120, 1))) : [];
             root.netRxHistory = root._pushed(root.netRxHistory, Math.min(root.netRxSpeed / 104857600, 1.0));
             root.netTxHistory = root._pushed(root.netTxHistory, Math.min(root.netTxSpeed / 104857600, 1.0));
         }

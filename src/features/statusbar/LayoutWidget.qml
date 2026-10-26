@@ -1,5 +1,6 @@
 import QtQuick
-import QtQuick.Controls
+import qs.src.ui.feedback
+import qs.src.core.config
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.services
@@ -7,13 +8,14 @@ import qs.src.core.services
 BarElement {
     id: layoutWidget
 
+    property var tooltipManager: null
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
 
     // BarElement configuration
     clickable: true
     hoverable: true
-    minWidth: 48
+    minWidth: Tokens.size.control
     expandOnHover: false
     animated: true
 
@@ -43,7 +45,7 @@ BarElement {
     }
 
     Column {
-        spacing: 2
+        spacing: Tokens.spacing.extraSmall / 2
 
         MaterialText {
             text: KeyboardLayoutService.currentLayoutCode.toUpperCase() || "EN"
@@ -55,7 +57,7 @@ BarElement {
         // CapsLock / NumLock indicators
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 2
+            spacing: Tokens.spacing.extraSmall / 2
 
             MaterialIndicator {
                 id: capsIndicator
@@ -70,11 +72,11 @@ BarElement {
                     anchors.fill: parent
                     hoverEnabled: true
 
-                    // QtQuick.Controls ToolTip — no tooltipManager available
-                    ToolTip {
+                    TooltipItem {
+                        tooltip: layoutWidget.tooltipManager
+                        owner: capsIndicator
+                        show: capsMouseArea.containsMouse && layoutWidget.barRevealed
                         text: "Caps Lock"
-                        visible: capsMouseArea.containsMouse
-                        delay: 1000
                     }
                 }
             }
@@ -92,11 +94,11 @@ BarElement {
                     anchors.fill: parent
                     hoverEnabled: true
 
-                    // QtQuick.Controls ToolTip — no tooltipManager available
-                    ToolTip {
+                    TooltipItem {
+                        tooltip: layoutWidget.tooltipManager
+                        owner: numIndicator
+                        show: numMouseArea.containsMouse && layoutWidget.barRevealed
                         text: "Num Lock"
-                        visible: numMouseArea.containsMouse
-                        delay: 1000
                     }
                 }
             }

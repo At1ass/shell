@@ -1,14 +1,14 @@
 #include "CalendarBackend.h"
 #include "CalendarStore.h"
 #include "ReminderEngine.h"
+#include "../common/WorkerLifetime.h"
 
 CalendarBackend::CalendarBackend(QObject* parent)
     : QObject(parent)
     , m_store(new CalendarStore)        // no parent — moved to worker thread
     , m_reminders(new ReminderEngine(this))
 {
-    m_store->moveToThread(&m_workerThread);
-    connect(&m_workerThread, &QThread::finished, m_store, &QObject::deleteLater);
+    m_workerThread = WorkerLifetime::create(m_store);
 
     connect(m_store, &CalendarStore::storeRefreshed,
             this,    &CalendarBackend::handleStoreRefreshed,    Qt::QueuedConnection);
@@ -24,21 +24,15 @@ CalendarBackend::CalendarBackend(QObject* parent)
     connect(m_reminders, &ReminderEngine::windowRefreshNeeded,
             this,        &CalendarBackend::handleReminderWindowRefreshNeeded);
 
-    m_workerThread.start();
+    m_workerThread->start();
 
     setLoading(true);
     QMetaObject::invokeMethod(m_store, "rescanAll", Qt::QueuedConnection);
 }
 
 CalendarBackend::~CalendarBackend() {
-    m_workerThread.quit();
-    // Bounded wait: a rescan stuck on dead network storage must not hang
-    // shell shutdown forever (project convention: wait(3000)).
-    if (!m_workerThread.wait(3000)) {
-        qWarning("CalendarBackend: worker thread did not stop in 3s");
-        m_workerThread.terminate();
-        m_workerThread.wait(1000);
-    }
+    WorkerLifetime::retire(m_workerThread);
+    m_store = nullptr;
 }
 
 // ── Setters ───────────────────────────────────────────────────────────

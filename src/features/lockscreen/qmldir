@@ -1,3 +1,4 @@
 module qs.src.features.lockscreen
 Lockscreen 1.0 Lockscreen.qml
 LockSurface 1.0 LockSurface.qml
+LockContent 1.0 LockContent.qml

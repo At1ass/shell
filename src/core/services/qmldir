@@ -39,3 +39,8 @@ singleton WallpaperManager 1.0 WallpaperManager.qml
 singleton WallpaperSourceRegistry 1.0 WallpaperSourceRegistry.qml
 singleton Weather 1.0 Weather.qml
 singleton WeatherIcons 1.0 WeatherIcons.qml
+
+singleton SessionMonitor 1.0 SessionMonitor.qml
+singleton ServiceBootstrap 1.0 ServiceBootstrap.qml
+HttpRequest 1.0 HttpRequest.qml
+TimedMode 1.0 TimedMode.qml

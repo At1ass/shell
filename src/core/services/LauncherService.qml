@@ -12,6 +12,14 @@ Singleton {
     // Current search query
     property string searchQuery: ""
 
+    function modeFor(query) {
+        const prefix = (query ?? "").trim().charAt(0)
+        return prefix === "=" ? "calculator" : prefix === ">" ? "clipboard"
+            : prefix === ":" ? "actions" : "applications"
+    }
+    readonly property string mode: modeFor(searchQuery)
+    readonly property bool busy: mode === "calculator" && calculatorProvider.busy
+
     // Filtered results
     property var filteredApps: []
 
@@ -24,6 +32,7 @@ Singleton {
     property list<QtObject> providers: [
         CalculatorProvider { id: calculatorProvider },
         ClipboardProvider { id: clipboardProvider },
+        ActionProvider {},
         ApplicationProvider { id: applicationProvider }
     ]
 
@@ -102,7 +111,9 @@ Singleton {
 
     // Search across all providers
     function search(query) {
+        query = (query ?? "").trim()
         searchQuery = query
+        if (mode !== "calculator") calculatorProvider.cancel()
 
         let trimmed = query ? query.trim() : ""
         let useDefaults = trimmed.length === 0
@@ -154,32 +165,32 @@ Singleton {
                 }
                 seenKeys[key] = true
 
-                let wrapper = wrapperForResult(key)
-                if (!wrapper) continue
-
-                wrapper.type = result.type || ""
-                wrapper.text = result.text || ""
-                wrapper.description = result.description || ""
-                wrapper.icon = result.icon || ""
-                wrapper.score = (typeof result.score === "number" ? result.score : 0) + provider.priority
-                wrapper.data = result.hasOwnProperty("data") ? result.data : null
-                wrapper.action = typeof result.action === "function" ? result.action : null
-
-                collectedResults.push(wrapper)
+                collectedResults.push(Object.assign({}, result, {
+                    _order: collectedResults.length,
+                    score: (typeof result.score === "number" ? result.score : 0) + provider.priority
+                }))
             }
         }
 
-        // In prefix-match mode, preserve the provider's natural order
-        // (e.g. cliphist recency for ">"). Otherwise sort by score desc.
         if (!hasPrefixMatch)
-            collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0))
-
-        // Prefix-matched provider implies a focused mode (e.g. ">" for
-        // clipboard). Don't cap to the generic launcherMaxResults — the
-        // user needs enough room to scroll through screenshots/history.
+            collectedResults.sort((a, b) => (b.score || 0) - (a.score || 0) || a._order - b._order)
         const cap = hasPrefixMatch ? Math.max(AppConfig.launcherMaxResults, 50)
                                    : AppConfig.launcherMaxResults
-        filteredApps = collectedResults.slice(0, cap)
+        const selected = collectedResults.slice(0, cap)
+        const wrappers = []
+        for (const result of selected) {
+            const wrapper = wrapperForResult(String(result.id))
+            if (!wrapper) continue
+            wrapper.type = result.type || ""
+            wrapper.text = result.text || ""
+            wrapper.description = result.description || ""
+            wrapper.icon = result.icon || ""
+            wrapper.score = result.score
+            wrapper.data = result.hasOwnProperty("data") ? result.data : null
+            wrapper.action = typeof result.action === "function" ? result.action : null
+            wrappers.push(wrapper)
+        }
+        filteredApps = wrappers
 
         if (ClipboardService.debug && hasPrefixMatch) {
             console.info("[LauncherService] prefix mode results:", filteredApps.length)
@@ -198,6 +209,9 @@ Singleton {
             return
         }
 
+        // This singleton survives unloading a non-retained launcher. Complete
+        // the handoff here so its destroyed UI context owns no follow-up work.
+        GlobalStates.closePanel("launcher")
         result.action()
     }
 

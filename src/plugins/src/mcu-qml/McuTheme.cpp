@@ -4,8 +4,8 @@
 #include <QImageReader>
 #include <QFileInfo>
 #include <QUrl>
-#include <QMetaObject>
-#include <QCoreApplication>
+#include <QFutureWatcher>
+#include <tuple>
 #include <qlogging.h>
 #include <QtConcurrent>
 #include <vector>
@@ -59,29 +59,18 @@ McuTheme::McuTheme(QObject* parent) : QObject(parent) {
 }
 
 McuTheme::~McuTheme() {
-    // Invalidate generation counters so queued callbacks do no work
-    // (QPointer protects against use-after-free, the generation guard
-    // against stale updates).
+    // Invalidate results; child watchers disconnect as the facade is destroyed.
     m_generation = UINT64_MAX;
     m_seedRequest = UINT64_MAX;
 
-    // Wait for EVERY in-flight task for a clean shutdown — superseded
-    // futures included (their lambdas only touch QPointer + statics).
-    for (auto& f : m_inflight) {
-        if (f.isRunning())
-            f.waitForFinished();
-    }
+    // Tasks capture only immutable inputs and finish independently. Child
+    // watchers never wait on destruction, including during application teardown.
 }
 
 void McuTheme::setValidInternal(bool v) {
     if (m_valid == v) return;
     m_valid = v;
     emit validChanged();
-}
-
-void McuTheme::trackFuture(const QFuture<void>& f) {
-    m_inflight.removeIf([](const QFuture<void>& g) { return g.isFinished(); });
-    m_inflight.append(f);
 }
 
 uint32_t McuTheme::qcolorToArgb(const QColor& c) {
@@ -115,6 +104,7 @@ void McuTheme::setSource(const QVariant& v) {
             qWarning() << "McuTheme: invalid QColor in source";
             return;
         }
+        ++m_seedRequest; // invalidate every outstanding image extraction
         m_source   = v;
         m_kind     = SourceKind::Color;
         m_seedArgb = qcolorToArgb(c);
@@ -138,6 +128,8 @@ void McuTheme::setSource(const QVariant& v) {
             qWarning() << "McuTheme: invalid QUrl in source";
             return;
         }
+        ++m_generation; // invalidate schemes for the previous source
+        m_seedArgb = 0; // parameter changes must wait for the new extraction
         m_source = v;
         m_kind   = SourceKind::Image;
         setValidInternal(false);
@@ -149,33 +141,33 @@ void McuTheme::setSource(const QVariant& v) {
             emit loadingChanged();
         }
 
-        auto future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, u]() {
+        using SeedResult = std::tuple<bool, uint32_t, qreal>;
+        auto* watcher = new QFutureWatcher<SeedResult>(this);
+        connect(watcher, &QFutureWatcher<SeedResult>::finished, this, [this, watcher, requestId, u]() {
+            const auto [ok, seed, luminance] = watcher->result();
+            watcher->deleteLater();
+            if (requestId != m_seedRequest) return;
+            if (!ok) {
+                qWarning() << "McuTheme: failed to extract seed from image" << u;
+                if (m_loading) {
+                    m_loading = false;
+                    emit loadingChanged();
+                }
+                return;
+            }
+            m_seedArgb = seed;
+            if (!qFuzzyCompare(m_luminance, luminance)) {
+                m_luminance = luminance;
+                emit luminanceChanged();
+            }
+            applySeed();
+        });
+        watcher->setFuture(QtConcurrent::run([u]() -> SeedResult {
             uint32_t seed = 0;
             qreal luminance = 0.5;
             const bool ok = extractSeedFromImage(u, seed, luminance);
-            auto* app = QCoreApplication::instance();
-            if (!app) return;
-            QMetaObject::invokeMethod(app, [guard, requestId, ok, seed, luminance, u]() {
-                if (!guard) return;
-                if (requestId != guard->m_seedRequest)
-                    return;
-                if (!ok) {
-                    qWarning() << "McuTheme: failed to extract seed from image" << u;
-                    if (guard->m_loading) {
-                        guard->m_loading = false;
-                        emit guard->loadingChanged();
-                    }
-                    return;
-                }
-                guard->m_seedArgb = seed;
-                if (!qFuzzyCompare(guard->m_luminance, luminance)) {
-                    guard->m_luminance = luminance;
-                    emit guard->luminanceChanged();
-                }
-                guard->applySeed();
-            }, Qt::QueuedConnection);
-        });
-        trackFuture(future);
+            return {ok, seed, luminance};
+        }));
         return;
     }
 
@@ -263,30 +255,24 @@ void McuTheme::applySeed() {
         emit loadingChanged();
     }
 
-    // Generate in the thread pool to keep the GUI thread free. The QPointer
-    // guard prevents use-after-free; the generation guard drops stale
-    // results. buildScheme is static and never touches `this`.
-    auto future = QtConcurrent::run([guard = QPointer<McuTheme>(this), requestId, seed, dark, variant, contrast]() {
-        const QVariantMap colors = buildScheme(seed, dark, variant, contrast);
-
-        auto* app = QCoreApplication::instance();
-        if (!app) return;
-        QMetaObject::invokeMethod(app, [guard, requestId, colors]() {
-            if (!guard) return;
-            if (requestId != guard->m_generation)
-                return;
-
-            guard->m_colors = colors;
-            guard->setValidInternal(true);
-            emit guard->colorsChanged();
-
-            if (guard->m_loading) {
-                guard->m_loading = false;
-                emit guard->loadingChanged();
-            }
-        }, Qt::QueuedConnection);
+    // The watcher is owned by the GUI facade. Deleting it disconnects result
+    // delivery without waiting; worker code holds no QObject or application pointer.
+    auto* watcher = new QFutureWatcher<QVariantMap>(this);
+    connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher, requestId]() {
+        const auto colors = watcher->result();
+        watcher->deleteLater();
+        if (requestId != m_generation) return;
+        m_colors = colors;
+        setValidInternal(true);
+        emit colorsChanged();
+        if (m_loading) {
+            m_loading = false;
+            emit loadingChanged();
+        }
     });
-    trackFuture(future);
+    watcher->setFuture(QtConcurrent::run([seed, dark, variant, contrast]() {
+        return buildScheme(seed, dark, variant, contrast);
+    }));
 }
 
 QVariantMap McuTheme::buildScheme(uint32_t seedArgb, bool dark, const QString& variant, double contrast) {

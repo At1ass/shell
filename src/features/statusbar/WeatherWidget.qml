@@ -12,7 +12,14 @@ BarElement {
     id: root
     clickable: true
     hoverable: true
-    minWidth: 56
+    minWidth: Tokens.size.control
+    preferredWidth: Math.max(minWidth, (showIcon ? weatherGlyph.implicitWidth : 0)
+        + (showTemp ? temperatureLabel.implicitWidth : 0)
+        + (showLocation ? Math.min(locationLabel.implicitWidth, Tokens.size.fieldWidth) : 0)
+        + Math.max(0, Number(showIcon) + Number(showTemp) + Number(showLocation) - 1) * Tokens.spacing.extraSmall
+        + Tokens.spacing.medium)
+    minimumWidth: preferredWidth
+    compactWidth: Math.max(minWidth, (showIcon ? weatherGlyph.implicitWidth : temperatureLabel.implicitWidth) + Tokens.spacing.medium)
 
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
@@ -22,8 +29,8 @@ BarElement {
 
 
     clickHandler: function(mouse) {
-        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
-            GlobalStates.handleClickAction(widgetConfig.clickAction)
+        if (mouse.button === Qt.LeftButton || mouse.button === Qt.RightButton) {
+            GlobalStates.handleClickAction(root.widgetConfig?.clickAction ?? "dashboard-weather")
             mouse.accepted = true
             return
         }
@@ -32,16 +39,22 @@ BarElement {
     }
 
     RowLayout {
+        width: Math.max(0, root.width - Tokens.spacing.medium)
         spacing: Tokens.spacing.extraSmall
 
         MaterialText {
-            visible: root.showLocation
+            id: locationLabel
+            Layout.fillWidth: true
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            visible: root.showLocation && !root.compactPresentation
             text: Weather.location
             textStyle: "bodyMedium"
             colorRole: "onSurface"
         }
 
         MaterialIcon {
+            id: weatherGlyph
             visible: root.showIcon
             iconName: Weather.icon
             fontSize: Tokens.typography.titleLarge.size
@@ -49,7 +62,8 @@ BarElement {
         }
 
         MaterialText {
-            visible: root.showTemp
+            id: temperatureLabel
+            visible: root.showTemp && (!root.compactPresentation || !root.showIcon)
             text: Math.round(Weather.tempC) + Weather.tempUnit
             textStyle: "bodyMedium"
             colorRole: "onSurface"

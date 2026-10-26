@@ -16,7 +16,8 @@ import qs.src.core.services
 PanelWindow {
     id: dock
 
-    readonly property string screenName: screen ? screen.name : ""
+    readonly property ShellScreen _screen: screen as ShellScreen
+    readonly property string screenName: _screen?.name ?? ""
     readonly property bool autoHide: AppConfig.dockAutoHide
     readonly property int iconSize: AppConfig.dockIconSize
     readonly property int dockPadding: Tokens.spacing.small
@@ -59,7 +60,7 @@ PanelWindow {
 
     // Reserve toward the screen centre for preview/menu (thickness-axis inner extent).
     readonly property int _innerReserve: isVertical
-        ? Math.min((screen ? screen.width : 1920) * 0.4, 720)
+        ? Math.min((_screen?.width ?? 1920) * 0.4, 720)
         : _previewCardHeight
     readonly property real _menuExtent: isVertical ? contextMenu.menuRect.width : contextMenu.menuRect.height
 
@@ -138,7 +139,7 @@ PanelWindow {
     color: "transparent"
     exclusiveZone: AppConfig.dockExclusive ? dockBarHeight : 0
     WlrLayershell.namespace: "shell:dock"
-    WlrLayershell.layer: WlrLayershell.Top
+    WlrLayershell.layer: WlrLayer.Top
 
     anchors {
         left: !dock.isVertical || dock.position === "left"
@@ -234,13 +235,11 @@ PanelWindow {
     // === Dock bar ===
     DockBar {
         id: bar
-        anchors.horizontalCenter: dock.isVertical ? undefined : parent.horizontalCenter
-        anchors.verticalCenter: dock.isVertical ? parent.verticalCenter : undefined
-        anchors.top: dock.position === "top" ? parent.top : undefined
-        anchors.bottom: dock.position === "bottom" ? parent.bottom : undefined
-        anchors.left: dock.position === "left" ? parent.left : undefined
-        anchors.right: dock.position === "right" ? parent.right : undefined
-        anchors.margins: Tokens.spacing.small
+        x: dock.isVertical
+            ? (dock.position === "left" ? Tokens.spacing.small : parent.width - width - Tokens.spacing.small)
+            : (parent.width - width) / 2
+        y: dock.isVertical ? (parent.height - height) / 2
+            : (dock.position === "top" ? Tokens.spacing.small : parent.height - height - Tokens.spacing.small)
 
         model: dock.dockModel
         iconSize: dock.iconSize
@@ -271,17 +270,31 @@ PanelWindow {
     // === Right-click context menu (rendered in-window, on the icon's inner side) ===
     DockContextMenu {
         id: contextMenu
+        availableHeight: (dock._screen?.height ?? dock.height) - dock.dockBarHeight - Tokens.spacing.small * 4
         anchorItem: bar
         position: dock.position
+        onOpenChanged: {
+            menuGrabTimer.stop()
+            dock.menuGrabReady = false
+            if (open) menuGrabTimer.restart()
+        }
+    }
+    property bool menuGrabReady: false
+    WlrLayershell.keyboardFocus: contextMenu.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    Timer {
+        id: menuGrabTimer
+        interval: Tokens.interaction.popupGrabDelay
+        onTriggered: {
+            dock.menuGrabReady = true
+            contextMenu.focusInitial()
+        }
     }
 
     // Dismiss the context menu on click-outside. Grabs the dock window; clicks inside
     // its input region (bar/preview/menu) are delivered, clicks elsewhere clear the grab.
     HyprlandFocusGrab {
-        active: contextMenu.open
+        active: dock.visible && contextMenu.open && dock.menuGrabReady
         windows: [dock]
-        onActiveChanged: {
-            if (!active) contextMenu.close()
-        }
+        onCleared: contextMenu.close()
     }
 }

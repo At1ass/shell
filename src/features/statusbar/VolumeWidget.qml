@@ -7,7 +7,11 @@ import qs.src.core.services
 
 BarElement {
     id: root
-    minWidth: 96
+    minWidth: Tokens.size.control
+    preferredWidth: Math.max(minWidth, volumeIcon.implicitWidth + Tokens.spacing.medium
+        + (showPercentage ? volumeLabel.implicitWidth + Tokens.spacing.small : 0))
+    minimumWidth: preferredWidth
+    compactWidth: Math.max(minWidth, volumeIcon.implicitWidth + Tokens.spacing.medium)
     clickable: true
     hoverable: true
 
@@ -51,33 +55,23 @@ BarElement {
         root.sink.audio.volume = Math.max(0, Math.min(1, current + step));
     }
 
-    clickHandler: function (mouse) {
+    clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton) {
-            // Left-click: Mute/unmute
-            if (!root.sink || !root.sink.audio) {
-                mouse.accepted = false;
-                return;
-            }
-            root.sink.audio.muted = !root.sink.audio.muted;
-            mouse.accepted = true;
-            return;
-        }
-
-        if (mouse.button === Qt.RightButton) {
-            if (widgetConfig?.clickAction) {
-                GlobalStates.handleClickAction(widgetConfig.clickAction)
-                mouse.accepted = true;
-                return;
-            }
-        }
-
-        mouse.accepted = false;
+            const action = root.widgetConfig?.clickAction ?? "audio"
+            if (action === "audio" || action === "dashboard-audio") GlobalStates.toggleAudio(root.actionAnchor)
+            else GlobalStates.handleClickAction(action)
+            mouse.accepted = true
+        } else if (mouse.button === Qt.RightButton && root.sink?.audio) {
+            root.sink.audio.muted = !root.sink.audio.muted
+            mouse.accepted = true
+        } else mouse.accepted = false
     }
 
     Row {
         spacing: Tokens.spacing.small
 
         MaterialIcon {
+            id: volumeIcon
             iconName: {
                 if (!root.sink || !root.sink.audio)
                     return "volume_up";
@@ -91,11 +85,12 @@ BarElement {
         }
 
         MaterialText {
+            id: volumeLabel
             anchors.verticalCenter: parent.verticalCenter
             text: root.formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
             textStyle: "titleMedium"
             colorRole: "onSurface"
-            visible: root.showPercentage
+            visible: root.showPercentage && !root.compactPresentation
         }
     }
 }

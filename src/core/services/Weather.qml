@@ -28,7 +28,20 @@ Singleton {
 
     // Bypass the fetchNow rate limit: after a unit switch the displayed
     // numbers are in the WRONG unit until refetched.
-    onIsImperialChanged: store._doFetch()
+    onIsImperialChanged: Qt.callLater(store._doFetch)
+    onLatitudeChanged: Qt.callLater(store._doFetch)
+    onLongitudeChanged: Qt.callLater(store._doFetch)
+
+    readonly property bool _fetchAllowed: AppConfig.ready && AppConfig.weatherEnabled
+        && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
+    on_FetchAllowedChanged: {
+        if (!_fetchAllowed) {
+            request.cancel()
+            retryTimer.stop()
+        } else {
+            store.fetchIfStale()
+        }
+    }
 
     // === Current Weather ===
     readonly property real tempC: data?.current?.temperature_2m ?? 0
@@ -118,8 +131,7 @@ Singleton {
         id: periodic
         interval: store.refreshMinutes * 60 * 1000
         repeat: true
-        running: AppConfig.weatherEnabled
-                 && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
+        running: store._fetchAllowed
         triggeredOnStart: true
         onTriggered: store.fetchIfStale()
     }
@@ -144,59 +156,35 @@ Singleton {
         _doFetch();
     }
 
-    // The request currently in flight, so a new one can cancel it. Four
-    // independent callers can reach _doFetch (periodic poll, retry backoff,
-    // unit switch, fetchNow), and two responses on separate connections have
-    // no ordering guarantee: without this the OLDER reply could land last and
-    // overwrite the newer forecast. Aborting makes "last request wins" true.
-    property var _inFlight: null
+    HttpRequest {
+        id: request
+        onSucceeded: body => {
+            try {
+                store.data = JSON.parse(body)
+                store.lastSuccessAt = new Date()
+                store._retryMs = 0
+                retryTimer.stop()
+                store.updated()
+            } catch (e) {
+                store._scheduleRetry("JSON parse error: " + e.message)
+            }
+        }
+        onFailed: (message, status) => {
+            if (status === 401 || status === 403) {
+                store.errorString = message
+                store.failed(message)
+            } else {
+                store._scheduleRetry(message)
+            }
+        }
+    }
 
     function _doFetch() {
-        if (!AppConfig.weatherEnabled)
-            return;
-        lastAttemptAt = new Date();
-        errorString = "";
-
-        // An aborted request reports status 0, which falls through every
-        // branch below — no retry is scheduled for a cancellation.
-        if (store._inFlight) store._inFlight.abort();
-
-        var xhr = new XMLHttpRequest();
-        store._inFlight = xhr;
-        xhr.open("GET", _url());
-        xhr.timeout = 15000;
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
-
-            if (store._inFlight === xhr) store._inFlight = null;
-
-            if (xhr.status === 200) {
-                try {
-                    data = JSON.parse(xhr.responseText);
-                    lastSuccessAt = new Date();
-                    _retryMs = 0;
-                    updated();
-                } catch (e) {
-                    _scheduleRetry("JSON parse error: " + e);
-                }
-            } else if (xhr.status === 401 || xhr.status === 403) {
-                errorString = "HTTP " + xhr.status + " — " + xhr.statusText;
-                failed(errorString);
-            } else if (xhr.status > 0) {
-                _scheduleRetry("HTTP " + xhr.status + " — " + xhr.statusText);
-            }
-        };
-
-        xhr.ontimeout = function () {
-            _scheduleRetry("Request timeout");
-        };
-
-        xhr.onerror = function () {
-            _scheduleRetry("Network error");
-        };
-        xhr.send();
+        if (!store._fetchAllowed) return
+        retryTimer.stop()
+        lastAttemptAt = new Date()
+        errorString = ""
+        request.get(_url())
     }
 
     function _scheduleRetry(msg) {
@@ -207,7 +195,7 @@ Singleton {
         _retryMs = Math.min(_retryMs > 0 ? _retryMs * 2 : 5000, 5 * 60 * 1000);
         // No retry churn during gaming mode (the periodic poll is already
         // gated on it).
-        if (!retryTimer.running && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather))
+        if (store._fetchAllowed)
             retryTimer.start();
     }
 }

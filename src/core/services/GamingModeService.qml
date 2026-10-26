@@ -8,6 +8,8 @@ import qs.src.core.config
 Singleton {
     id: root
 
+    function init() {}
+
     property bool gamingModeActive: false
     property var _savedHyprState: ({})
     property bool _gamingModeRestored: false
@@ -31,6 +33,8 @@ Singleton {
         root._applyHyprlandGaming()
         root.gamingModeActive = true
     }
+
+    Component.onCompleted: root._tryRestoreGamingMode()
 
     // Increments whenever an enable/disable supersedes the running save
     // chain — a stale chain completing after disable used to re-apply

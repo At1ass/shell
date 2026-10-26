@@ -28,9 +28,10 @@ OsdSurface {
             // Fresh array on every write: assigning a `var` property back to
             // itself is not a change notification (reference-equality
             // short-circuit), so anything binding to _queue would never update.
+            if (GlobalStates.lockscreenActive) return
             const next = root._queue.slice()
             if (next.length >= root.maxQueue) next.shift()
-            next.push({ message: message, icon: icon, level: level, duration: duration })
+            next.push({ message: message, icon: icon, level: level, duration: duration, screenName: GlobalStates.focusedScreen()?.name ?? "" })
             root._queue = next
             if (!root.shown) root._showNext()
         }
@@ -44,9 +45,19 @@ OsdSurface {
         _message = item.message
         _icon = item.icon
         _level = item.level
-        shown = true
+        present(item.screenName)
         hideTimer.interval = item.duration
         hideTimer.restart()
+    }
+
+    Connections {
+        target: GlobalStates
+        function onLockscreenActiveChanged() {
+            if (!GlobalStates.lockscreenActive) return
+            root._queue = []
+            root.shown = false
+            hideTimer.stop()
+        }
     }
 
     Timer {
@@ -78,15 +89,17 @@ OsdSurface {
 
     contentComponent: Component {
         Item {
-            implicitWidth: toastRow.implicitWidth + Tokens.spacing.large * 2
+            implicitWidth: Math.min(Tokens.size.fieldWidth * 2, message.implicitWidth + glyph.implicitWidth + Tokens.spacing.small + Tokens.spacing.medium * 2)
             implicitHeight: toastRow.implicitHeight + Tokens.spacing.medium * 2
 
             RowLayout {
                 id: toastRow
-                anchors.centerIn: parent
+                anchors.fill: parent
+                anchors.margins: Tokens.spacing.medium
                 spacing: Tokens.spacing.small
 
                 MaterialIcon {
+                    id: glyph
                     iconName: root._icon
                     fontSize: Tokens.typography.titleMedium.size
                     iconColor: root._fgColor(root._level)
@@ -94,10 +107,15 @@ OsdSurface {
                 }
 
                 MaterialText {
+                    id: message
+                    Layout.fillWidth: true
+                    textFormat: Text.PlainText
+                    maximumLineCount: 3
+                    elide: Text.ElideRight
                     text: root._message
                     textStyle: "bodyMedium"
                     color: root._fgColor(root._level)
-                    wrapMode: Text.NoWrap
+                    wrapMode: Text.Wrap
                 }
             }
         }

@@ -81,13 +81,72 @@ Rectangle {
         }
     }
 
+    property Item _previousFocus: null
+    readonly property bool modalFocusBoundary: true
+    readonly property bool _ownsFocus: {
+        for (let current = root.Window.window?.activeFocusItem; current; current = current.parent) {
+            if (current === root) return true
+            if (current["modalFocusBoundary"] === true) return false
+        }
+        return false
+    }
+
+    // Native editors consume Tab before it can bubble to a parent Keys handler.
+    // Window shortcuts intercept that step; only the nearest modal owns them.
+    Shortcut {
+        sequence: "Tab"
+        context: Qt.WindowShortcut
+        enabled: root.visible && root._ownsFocus
+        onActivated: root._cycleFocus(false)
+    }
+    Shortcut {
+        sequence: "Shift+Tab"
+        context: Qt.WindowShortcut
+        enabled: root.visible && root._ownsFocus
+        onActivated: root._cycleFocus(true)
+    }
+
+    function _owns(item) {
+        for (let current = item; current; current = current.parent)
+            if (current === root) return true
+        return false
+    }
+
+    function _cycleFocus(backwards) {
+        const current = root.Window.window?.activeFocusItem ?? contentWrapper
+        let next = current.nextItemInFocusChain(!backwards)
+        const start = next
+        while (next) {
+            if (root._owns(next) && next.visible && next.enabled && next.activeFocusOnTab) {
+                next.forceActiveFocus(backwards ? Qt.BacktabFocusReason : Qt.TabFocusReason)
+                return
+            }
+            next = next.nextItemInFocusChain(!backwards)
+            if (next === start) break
+        }
+        root.forceActiveFocus()
+    }
+
+    Keys.onPressed: event => {
+        if (!root.visible) return
+        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+            root._cycleFocus(event.key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier))
+            event.accepted = true
+        } else if (event.key === Qt.Key_Escape) {
+            root.requestClose()
+            event.accepted = true
+        }
+    }
+
     // Public API
     function open() {
         // A pending close (scrim dismiss + immediate reopen) would hide the
         // freshly opened dialog when its 200 ms timer fired.
         closeTimer.stop()
+        root._previousFocus = root.Window.window?.activeFocusItem ?? null
         root.visible = true
         root.opacity = 1
+        root._cycleFocus(false)
         opened()
     }
 
@@ -103,7 +162,14 @@ Rectangle {
         id: closeTimer
         interval: Tokens.motion.duration.short4
         onTriggered: {
+            const shouldRestore = root._owns(root.Window.window?.activeFocusItem)
             root.visible = false
+            if (shouldRestore) {
+                if (root._previousFocus?.visible && root._previousFocus.enabled)
+                    root._previousFocus.forceActiveFocus(Qt.OtherFocusReason)
+                else if (root.parent) root.parent.forceActiveFocus(Qt.OtherFocusReason)
+            }
+            root._previousFocus = null
             root.closed()
         }
     }

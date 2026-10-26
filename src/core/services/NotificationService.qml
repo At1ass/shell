@@ -59,7 +59,8 @@ Singleton {
 
     property int _nextEntryId: 1
 
-    readonly property int maxVisible: AppConfig.notificationPopupMaxVisible
+    // Invalid config must not make the eviction loop infinite.
+    readonly property int maxVisible: Math.max(1, AppConfig.notificationPopupMaxVisible)
 
     // ── Server + per-notification wrappers ────────────────────────
     NotificationServer {
@@ -420,7 +421,14 @@ Singleton {
 
     // ── History delegations (UI binds through the facade) ─────────
     function removeFromHistory(id)  { return NotificationHistory.remove(id) }
-    function clearHistory()         { NotificationHistory.clear() }
+    function removeGroupFromHistory(appName) { NotificationHistory.removeGroup(appName) }
+    function clearHistory()         { return NotificationHistory.clearUndoable() }
+    function undoClearHistory()     { return NotificationHistory.undoClear() }
+    function refreshClearUndo()     { NotificationHistory.refreshUndo() }
+    readonly property bool canUndoClear: NotificationHistory.canUndoClear
+    readonly property bool historyClearing: NotificationHistory.clearing
+    readonly property bool historyRestoring: NotificationHistory.restoring
+    readonly property int clearedHistoryCount: NotificationHistory.undoCount
     function isGroupExpanded(name)  { return NotificationHistory.isGroupExpanded(name) }
     function toggleGroupExpanded(n) { NotificationHistory.toggleGroupExpanded(n) }
     function getGroupCount(name)    { return NotificationHistory.getGroupCount(name) }
@@ -450,6 +458,8 @@ Singleton {
         function setDnd(enabled: bool): void {
             NotificationDND.setEnabled(enabled)
         }
+        function setDndFor(minutes: int): bool { return NotificationDND.setForMinutes(minutes) }
+        function dndUntil(): string { return NotificationDND.temporary ? new Date(NotificationDND.expiresAt).toISOString() : "" }
         function isDnd(): bool {
             return NotificationDND.enabled
         }
@@ -462,6 +472,8 @@ Singleton {
         function clear(): void {
             NotificationHistory.clear()
         }
+        function undoClear(): bool { return NotificationHistory.undoClear() }
+        function canUndoClear(): bool { NotificationHistory.refreshUndo(); return NotificationHistory.canUndoClear }
         function markAllRead(): void {
             NotificationHistory.markAllRead()
         }

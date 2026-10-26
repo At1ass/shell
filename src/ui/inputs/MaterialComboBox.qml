@@ -20,8 +20,43 @@ Item {
     property string label: ""
     property bool open: false
 
-    implicitHeight: 48
-    implicitWidth: 200
+    implicitHeight: Math.max(Tokens.size.field, Tokens.typography.bodyLarge.size + Tokens.spacing.small * 2)
+    implicitWidth: Tokens.size.fieldWidth
+
+    activeFocusOnTab: root.enabled
+    Accessible.role: Accessible.ComboBox
+    Accessible.name: root.label
+    onCurrentIndexChanged: Qt.callLater(root.revealSelection)
+    function revealSelection() {
+        if (!root.open) return
+        const top = Tokens.spacing.extraSmall + currentIndex * rowHeight
+        const bottom = top + rowHeight
+        const maximum = Math.max(0, menuColumn.implicitHeight - menuView.height)
+        if (top < menuView.contentY) menuView.contentY = Math.max(0, top)
+        else if (bottom > menuView.contentY + menuView.height)
+            menuView.contentY = Math.min(maximum, bottom - menuView.height)
+    }
+    readonly property real rowHeight: Math.max(Tokens.size.control, Tokens.typography.bodyLarge.size + Tokens.spacing.small * 2)
+    onActiveFocusChanged: if (!activeFocus) root.open = false
+
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+            root.open = false
+            return
+        }
+        if (event.key === Qt.Key_Escape) {
+            if (!root.open) return
+            root.open = false
+        } else if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            root.open = !root.open
+        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+            const step = event.key === Qt.Key_Down ? 1 : -1
+            root.currentIndex = Math.max(0, Math.min(root.model.length - 1, root.currentIndex + step))
+        } else if (event.key === Qt.Key_Home) root.currentIndex = 0
+        else if (event.key === Qt.Key_End) root.currentIndex = Math.max(0, root.model.length - 1)
+        else return
+        event.accepted = true
+    }
 
     Layout.fillWidth: true
 
@@ -32,8 +67,8 @@ Item {
         radius: Tokens.shape.small
         color: fieldMouse.containsMouse ? Qt.alpha(Theme.onSurface, Tokens.stateLayer.hoverOpacity)
                                         : Theme.surfaceContainerHighest
-        border.width: root.open ? 2 : 1
-        border.color: root.open ? Theme.primary : Theme.outline
+        border.width: root.open || root.activeFocus ? Tokens.size.activeOutline : Tokens.size.outline
+        border.color: root.open || root.activeFocus ? Theme.primary : Theme.outline
 
         Behavior on border.color {
             MotionColorAnimation { curve: "standard" }
@@ -70,7 +105,10 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.open = !root.open
+            onClicked: {
+                root.forceActiveFocus(Qt.MouseFocusReason)
+                root.open = !root.open
+            }
         }
     }
 
@@ -98,35 +136,22 @@ Item {
     Popup {
         id: popup
         visible: root.open
+        focus: false
         x: 0
-        y: _openUpward ? -implicitHeight - 4 : root.height + 4
+        y: _openUpward ? -implicitHeight - Tokens.spacing.extraSmall : root.height + Tokens.spacing.extraSmall
         width: root.width
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: root.open = false
 
-        property bool _openUpward: {
-            if (!root.open) return false
-            const overlay = Overlay.overlay
-            if (!overlay) return false
-            const mapped = root.mapToItem(overlay, 0, root.height + 4)
-            const spaceBelow = overlay.height - mapped.y
-            return spaceBelow < popup.implicitHeight && mapped.y > spaceBelow
-        }
+        readonly property Item overlayItem: Overlay.overlay
+        readonly property real spaceAbove: overlayItem ? Math.max(0, root.mapToItem(overlayItem, 0, 0).y - Tokens.spacing.extraSmall) : Tokens.size.listItem * 8
+        readonly property real spaceBelow: overlayItem ? Math.max(0, overlayItem.height - root.mapToItem(overlayItem, 0, root.height).y - Tokens.spacing.extraSmall) : Tokens.size.listItem * 8
+        readonly property bool _openUpward: spaceBelow < menuColumn.implicitHeight && spaceAbove > spaceBelow
+        margins: Tokens.spacing.small
+        onOpened: Qt.callLater(root.revealSelection)
 
-        background: Rectangle {
-            radius: Tokens.shape.small
-            color: Theme.surfaceContainer
-            border.width: 1
-            border.color: Theme.outlineVariant
-
-            // M3 elevation tint
-            SurfaceTint {
-                level: 2
-                anchors.margins: 1
-                radius: parent.radius - 1
-            }
-        }
+        background: Surface { elevation: 2; radius: Tokens.shape.extraSmall }
 
         transformOrigin: popup._openUpward ? Item.Bottom : Item.Top
 
@@ -142,66 +167,77 @@ Item {
             }
         }
 
-        contentItem: Column {
-            id: menuColumn
-            width: popup.width
-            topPadding: Tokens.spacing.extraSmall
-            bottomPadding: Tokens.spacing.extraSmall
+        contentItem: Flickable {
+            id: menuView
+            implicitHeight: Math.min(menuColumn.implicitHeight, popup._openUpward ? popup.spaceAbove : popup.spaceBelow)
+            contentWidth: width
+            contentHeight: menuColumn.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar {}
+            Column {
+                id: menuColumn
+                width: menuView.width
+                topPadding: Tokens.spacing.extraSmall
+                bottomPadding: Tokens.spacing.extraSmall
 
-            Repeater {
-                model: root.model
+                Repeater {
+                    model: root.model
 
-                delegate: Rectangle {
-                    id: menuRow
-                    required property int index
-                    required property var modelData
+                    delegate: Rectangle {
+                        id: menuRow
+                        required property int index
+                        required property var modelData
 
-                    width: menuColumn.width
-                    height: 44
-                    color: itemMouse.containsMouse
-                           ? Qt.alpha(Theme.onSurface, Tokens.stateLayer.hoverOpacity)
-                           : menuRow.index === root.currentIndex
-                             ? Qt.alpha(Theme.secondaryContainer, 0.7)
-                             : "transparent"
+                        width: menuColumn.width
+                        height: root.rowHeight
+                        color: itemMouse.containsMouse
+                               ? Qt.alpha(Theme.onSurface, Tokens.stateLayer.hoverOpacity)
+                               : menuRow.index === root.currentIndex
+                                 ? Qt.alpha(Theme.secondaryContainer, 0.7)
+                                 : "transparent"
 
-                    Behavior on color {
-                        MotionColorAnimation {
-                            duration: Tokens.motion.duration.short3
-                            curve: "standard"
-                        }
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: Tokens.spacing.medium
-                        anchors.rightMargin: Tokens.spacing.medium
-                        spacing: Tokens.spacing.small
-
-                        MaterialText {
-                            Layout.fillWidth: true
-                            text: menuRow.modelData
-                            textStyle: "bodyLarge"
-                            colorRole: menuRow.index === root.currentIndex ? "onSecondaryContainer" : "onSurface"
-                            verticalAlignment: Text.AlignVCenter
+                        Behavior on color {
+                            MotionColorAnimation {
+                                duration: Tokens.motion.duration.short3
+                                curve: "standard"
+                            }
                         }
 
-                        MaterialIcon {
-                            visible: menuRow.index === root.currentIndex
-                            iconName: "check"
-                            fontSize: Tokens.iconSize.medium
-                            iconColor: Theme.onSecondaryContainer
-                            backgroundColor: "transparent"
-                        }
-                    }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Tokens.spacing.medium
+                            anchors.rightMargin: Tokens.spacing.medium
+                            spacing: Tokens.spacing.small
 
-                    MouseArea {
-                        id: itemMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.currentIndex = menuRow.index
-                            root.open = false
+                            MaterialText {
+                                Layout.fillWidth: true
+                                text: menuRow.modelData
+                                textFormat: Text.PlainText
+                                elide: Text.ElideRight
+                                textStyle: "bodyLarge"
+                                colorRole: menuRow.index === root.currentIndex ? "onSecondaryContainer" : "onSurface"
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            MaterialIcon {
+                                visible: menuRow.index === root.currentIndex
+                                iconName: "check"
+                                fontSize: Tokens.iconSize.medium
+                                iconColor: Theme.onSecondaryContainer
+                                backgroundColor: "transparent"
+                            }
+                        }
+
+                        MouseArea {
+                            id: itemMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.currentIndex = menuRow.index
+                                root.open = false
+                            }
                         }
                     }
                 }

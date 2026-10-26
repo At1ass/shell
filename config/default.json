@@ -38,7 +38,9 @@
     "toasts": true,
     "popouts": true,
     "polkit": false,
-    "recorder": true
+    "recorder": true,
+    "connections": true,
+    "audio": true
   },
   "bar": {
     "position": "top",
@@ -57,7 +59,8 @@
           "showWindows": true,
           "maxWindowsPerWorkspace": 4,
           "activeIndicator": "pill"
-        }
+        },
+        "priority": null
       },
       {
         "type": "activewindow",
@@ -67,7 +70,8 @@
         "settings": {
           "maxWidth": 300,
           "showIcon": true
-        }
+        },
+        "priority": null
       },
       {
         "type": "weather",
@@ -79,17 +83,19 @@
           "showIcon": true,
           "showTemp": true,
           "showLocation": false
-        }
+        },
+        "priority": null
       },
       {
         "type": "clock",
         "enabled": true,
         "section": "center",
-        "clickAction": "dashboard-quick",
+        "clickAction": "dashboard-calendar",
         "settings": {
           "format": "HH:mm",
           "showDate": false
-        }
+        },
+        "priority": null
       },
       {
         "type": "media",
@@ -100,7 +106,8 @@
           "compact": true,
           "showIcon": true,
           "maxWidth": 120
-        }
+        },
+        "priority": null
       },
       {
         "type": "notifications",
@@ -109,26 +116,30 @@
         "clickAction": "notification-center",
         "settings": {
           "showCount": true
-        }
+        },
+        "priority": null
       },
       {
         "type": "volume",
         "enabled": true,
         "section": "right",
-        "clickAction": "dashboard-audio",
+        "clickAction": "audio",
         "settings": {
           "scrollable": true,
           "showPercentage": true
-        }
+        },
+        "priority": null
       },
       {
         "type": "network",
         "enabled": false,
         "section": "right",
-        "clickAction": "dashboard-quick",
+        "clickAction": "connections-wifi",
         "settings": {
-          "showIcon": true
-        }
+          "showIcon": true,
+          "showLabel": false
+        },
+        "priority": null
       },
       {
         "type": "battery",
@@ -138,12 +149,14 @@
         "settings": {
           "showPercentage": true,
           "showIcon": true
-        }
+        },
+        "priority": null
       },
       {
         "type": "layout",
         "enabled": true,
-        "section": "right"
+        "section": "right",
+        "priority": null
       },
       {
         "type": "tray",
@@ -151,8 +164,11 @@
         "section": "right",
         "settings": {
           "iconSize": 20,
-          "spacing": 8
-        }
+          "spacing": 8,
+          "maxVisible": 4,
+          "pinnedIds": []
+        },
+        "priority": null
       }
     ]
   },
@@ -171,7 +187,8 @@
     "historyTTLDays": 30,
     "panel": {
       "width": 400,
-      "groupByApp": true
+      "groupByApp": true,
+      "clearUndoTimeout": 8000
     },
     "popup": {
       "width": 360,
@@ -181,7 +198,8 @@
       "timeoutLow": 3000,
       "timeoutNormal": 7000,
       "timeoutCritical": 15000,
-      "maxVisible": 5
+      "maxVisible": 5,
+      "margin": 16
     },
     "maxHistory": 200,
     "dnd": {
@@ -206,6 +224,7 @@
     "hiddenApps": []
   },
   "osd": {
+    "monitorPolicy": "focused",
     "timeout": 2000
   },
   "recorder": {
@@ -239,7 +258,16 @@
   },
   "lockscreen": {
     "blurWallpaper": true,
-    "showClock": true
+    "showClock": true,
+    "showDate": true,
+    "showUsername": true,
+    "showWeather": false,
+    "showBattery": true,
+    "showNetwork": false,
+    "showPower": true,
+    "showMedia": true,
+    "mediaShowPaused": true,
+    "mediaShowArt": false
   },
   "powerMenu": {
     "confirmActions": true,
@@ -301,5 +329,35 @@
     "nightLight": {
       "temperature": 4500
     }
+  },
+  "connections": {
+    "width": 420,
+    "maxHeight": 640
+  },
+  "audio": {
+    "width": 420,
+    "maxHeight": 640
+  },
+  "storage": {
+    "warningFreePercent": 10,
+    "criticalFreePercent": 5,
+    "excludedMounts": [
+      "/boot",
+      "/boot/efi",
+      "/efi"
+    ],
+    "order": [
+      "/",
+      "/home"
+    ],
+    "labels": {}
+  },
+  "temporaryModes": {
+    "durationsMinutes": [
+      15,
+      30,
+      60,
+      120
+    ]
   }
 }

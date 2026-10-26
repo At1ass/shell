@@ -36,7 +36,7 @@ MaterialCard {
     // False while grouping is on — the section header already names the app.
     property bool showAppName: true
 
-    property bool expanded: true
+    readonly property bool expanded: NotificationHistory.isEntryExpanded(root.entryId)
 
     readonly property bool isCritical: root.urgency === NotificationUrgency.Critical
     // Actions are only rendered while expanded, and building them walks a
@@ -140,7 +140,9 @@ MaterialCard {
 
     ColumnLayout {
         id: contentLayout
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.margins: Tokens.spacing.medium
         spacing: Tokens.spacing.small
 
@@ -224,7 +226,7 @@ MaterialCard {
                 touchTargetSize: 32
                 variant: "standard"
                 visible: root.body !== "" || root.image !== ""
-                onClicked: root.expanded = !root.expanded
+                onClicked: NotificationHistory.setEntryExpanded(root.entryId, !root.expanded)
                 Layout.alignment: Qt.AlignTop
             }
 

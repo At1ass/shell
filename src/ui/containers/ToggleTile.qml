@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import qs.src.core.config
 import qs.src.ui.base
@@ -18,27 +19,47 @@ import qs.src.ui.feedback
 //
 // The label is not optional. The panel this replaces used icon-only buttons with
 // a hover tooltip, so what a toggle did was learned by memory or by waiting.
-Item {
+AbstractButton {
     id: root
 
     property string iconName: ""
     property string label: ""
+    property string supportingText: ""
     property bool active: false
+    property bool showStateIndicator: true
+    property string trailingIcon: ""
     property bool showLabel: true
 
-    signal clicked()
+    focusPolicy: Qt.StrongFocus
+    hoverEnabled: true
+    Keys.onPressed: event => {
+        if (event.key !== Qt.Key_Return && event.key !== Qt.Key_Enter) return
+        if (root.enabled && !event.isAutoRepeat) root.clicked()
+        event.accepted = true
+    }
+    Accessible.name: root.label
+    Accessible.description: root.supportingText
+    Accessible.role: root.showStateIndicator ? Accessible.CheckBox : Accessible.Button
+    Accessible.checked: root.active
+    Accessible.onToggleAction: if (root.enabled && root.showStateIndicator) root.clicked()
+    opacity: enabled ? 1 : Tokens.state.disabledContentOpacity
 
-    implicitWidth: Math.max(96, row.implicitWidth + Tokens.spacing.small * 2)
-    implicitHeight: Math.max(Tokens.size.control, row.implicitHeight + Tokens.spacing.small)
+    leftPadding: Tokens.spacing.small
+    rightPadding: Tokens.spacing.small
+    topPadding: Tokens.spacing.extraSmall
+    bottomPadding: Tokens.spacing.extraSmall
 
-    Rectangle {
+    implicitWidth: Math.max(Tokens.size.tileMinimumWidth, row.implicitWidth + Tokens.spacing.small * 2)
+    implicitHeight: Math.max(Tokens.size.control, row.implicitHeight + topPadding + bottomPadding)
+
+    background: Rectangle {
         id: surface
         anchors.fill: parent
         radius: Tokens.shape.small
         // Two steps of the same neutral, so an inactive tile is still a tile and
         // an active one is simply nearer. Under MD3 the border tokens are 0 and
         // this is the whole story; a pack that still wants an edge sets one.
-        color: Qt.alpha(Theme.onSurface, root.active ? Tokens.stateLayer.draggedOpacity
+        color: Qt.alpha(Theme.onSurface, root.enabled && root.active ? Tokens.stateLayer.draggedOpacity
                                                      : Tokens.stateLayer.hoverOpacity * 0.7)
         border.width: Tokens.border.width
         border.color: border.width > 0
@@ -54,50 +75,62 @@ Item {
 
         StateLayer {
             target: surface
-            hovered: mouse.containsMouse
-            pressed: mouse.pressed
+            hovered: root.enabled && root.hovered
+            pressed: root.enabled && root.down
+            focused: root.visualFocus
         }
 
-        RowLayout {
-            id: row
-            anchors.fill: parent
-            anchors.leftMargin: Tokens.spacing.small
-            anchors.rightMargin: Tokens.spacing.small
-            spacing: Tokens.spacing.small
+    }
 
-            // The state mark. An icon says WHAT the tile is; this says whether it
-            // is on, and it is the only accent on the control.
-            MaterialIndicator {
-                Layout.alignment: Qt.AlignVCenter
-                size: "extraSmall"
-                colorRole: root.active ? "primary" : "outline"
-                animated: true
-            }
+    contentItem: RowLayout {
+        id: row
+        spacing: Tokens.spacing.small
 
-            MaterialIcon {
-                iconName: root.iconName
-                visible: root.iconName !== ""
-                fontSize: Tokens.iconSize.medium
-                backgroundColor: "transparent"
-                iconColor: root.active ? Theme.onSurface : Theme.onSurfaceVariant
-            }
+        // The state mark. An icon says WHAT the tile is; this says whether it
+        // is on, and it is the only accent on the control.
+        MaterialIndicator {
+            Layout.alignment: Qt.AlignVCenter
+            visible: root.showStateIndicator
+            size: "extraSmall"
+            colorRole: root.active ? "primary" : "outline"
+            animated: true
+        }
 
+        MaterialIcon {
+            iconName: root.iconName
+            visible: root.iconName !== ""
+            fontSize: Tokens.iconSize.medium
+            backgroundColor: "transparent"
+            iconColor: root.active ? Theme.onSurface : Theme.onSurfaceVariant
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: root.showLabel && (root.label !== "" || root.supportingText !== "")
+            spacing: Tokens.spacing.extraSmall
             MaterialText {
                 Layout.fillWidth: true
-                visible: root.showLabel && root.label !== ""
+                visible: root.label !== ""
                 text: root.label
                 textStyle: "labelMedium"
                 colorRole: root.active ? "onSurface" : "onSurfaceVariant"
                 elide: Text.ElideRight
             }
+            MaterialText {
+                Layout.fillWidth: true
+                visible: root.supportingText !== ""
+                text: root.supportingText
+                textStyle: "labelSmall"
+                colorRole: "onSurfaceVariant"
+                elide: Text.ElideRight
+            }
         }
-    }
-
-    MouseArea {
-        id: mouse
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
+        MaterialIcon {
+            visible: root.trailingIcon !== ""
+            iconName: root.trailingIcon
+            fontSize: Tokens.iconSize.small
+            iconColor: Theme.onSurfaceVariant
+            backgroundColor: "transparent"
+        }
     }
 }

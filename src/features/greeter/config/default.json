@@ -1,0 +1,17 @@
+{
+  "wallpaperPath": "",
+  "darkMode": true,
+  "themeVariant": "vibrant",
+  "themeColor": "#6200EE",
+  "themeContrast": 0.0,
+  "designSystem": "minimal",
+  "fontScale": 1.3,
+  "reduceMotion": false,
+  "showClock": true,
+  "showDate": true,
+  "showBattery": true,
+  "showPower": true,
+  "blurWallpaper": true,
+  "defaultUser": "",
+  "defaultSession": ""
+}

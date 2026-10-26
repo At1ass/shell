@@ -1,10 +1,8 @@
 #include "QalculateWrapper.h"
 #include <libqalculate/qalculate.h>
-#include <QCoreApplication>
-#include <QMetaObject>
+#include <QFutureWatcher>
 #include <QMutex>
 #include <QMutexLocker>
-#include <QPointer>
 #include <QtConcurrent>
 #include <memory>
 #include <mutex>
@@ -79,15 +77,15 @@ QalculateWrapper::QalculateWrapper(QObject* parent)
 }
 
 void QalculateWrapper::evalAsync(const QString& expression, bool printExpr) {
-    auto future = QtConcurrent::run([guard = QPointer<QalculateWrapper>(this), expression, printExpr]() {
-        const QString result = evalInternal(expression, printExpr);
-        auto* app = QCoreApplication::instance();
-        if (!app) return;
-        QMetaObject::invokeMethod(app, [guard, expression, result]() {
-            if (guard) emit guard->evaluated(expression, result);
-        }, Qt::QueuedConnection);
+    auto* watcher = new QFutureWatcher<QString>(this);
+    connect(watcher, &QFutureWatcher<QString>::finished, this, [this, watcher, expression]() {
+        const auto result = watcher->result();
+        watcher->deleteLater();
+        emit evaluated(expression, result);
     });
-    Q_UNUSED(future);
+    watcher->setFuture(QtConcurrent::run([expression, printExpr]() {
+        return evalInternal(expression, printExpr);
+    }));
 }
 
 QString QalculateWrapper::eval(const QString& expression, bool printExpr) {

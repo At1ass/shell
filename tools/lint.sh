@@ -15,10 +15,26 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 
 main=()
 greeter=()
+main_metadata=()
+greeter_metadata=()
+declare -A main_seen=() greeter_seen=()
 collect() {
-    case "$(realpath -m "$1")" in
-        "$root"/src/features/greeter/*) greeter+=("$1") ;;
-        *) main+=("$1") ;;
+    local path descriptor
+    path="$(realpath -m "$1")"
+    descriptor="$(dirname "$path")/qmldir"
+    case "$path" in
+        "$root"/src/features/greeter/*)
+            greeter+=("$path")
+            if [[ -f "$descriptor" && -z "${greeter_seen[$descriptor]+x}" ]]; then
+                greeter_metadata+=("$descriptor")
+                greeter_seen[$descriptor]=1
+            fi ;;
+        *)
+            main+=("$path")
+            if [[ -f "$descriptor" && -z "${main_seen[$descriptor]+x}" ]]; then
+                main_metadata+=("$descriptor")
+                main_seen[$descriptor]=1
+            fi ;;
     esac
 }
 
@@ -32,10 +48,32 @@ else
 fi
 
 status=0
+lint_groups() {
+    local imports="$1"; shift
+    local count="$1"; shift
+    local descriptors=("${@:1:count}")
+    shift "$count"
+    local files=("$@") group=() remaining=() descriptor file
+    # qmllint's -i selects one module descriptor. Passing several -i options
+    # silently uses only the last, misclassifying singleton exports in others.
+    for descriptor in "${descriptors[@]}"; do
+        group=()
+        for file in "${files[@]}"; do
+            [[ "${file%/*}/qmldir" == "$descriptor" ]] && group+=("$file")
+        done
+        /usr/lib/qt6/bin/qmllint -I "$imports" -i "$descriptor" "${group[@]}" || status=$?
+    done
+    for file in "${files[@]}"; do
+        [[ ! -f "${file%/*}/qmldir" ]] && remaining+=("$file")
+    done
+    if [ "${#remaining[@]}" -gt 0 ]; then
+        /usr/lib/qt6/bin/qmllint -I "$imports" "${remaining[@]}" || status=$?
+    fi
+}
 if [ "${#main[@]}" -gt 0 ]; then
-    /usr/lib/qt6/bin/qmllint -I "$root/.qmllint-imports" "${main[@]}" || status=$?
+    lint_groups "$root/.qmllint-imports" "${#main_metadata[@]}" "${main_metadata[@]}" "${main[@]}"
 fi
 if [ "${#greeter[@]}" -gt 0 ]; then
-    /usr/lib/qt6/bin/qmllint -I "$root/.qmllint-imports/greeter" "${greeter[@]}" || status=$?
+    lint_groups "$root/.qmllint-imports/greeter" "${#greeter_metadata[@]}" "${greeter_metadata[@]}" "${greeter[@]}"
 fi
 exit "$status"

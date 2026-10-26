@@ -5,9 +5,6 @@
 #include <QVariant>
 #include <QVariantMap>
 #include <QQmlEngine>
-#include <QFuture>
-#include <QList>
-#include <QPointer>
 #include <memory>
 
 class McuTheme : public QObject {
@@ -79,10 +76,6 @@ private:
     // valid is bound in QML — every transition must notify.
     void setValidInternal(bool v);
 
-    // Remember every started future so the destructor can wait for ALL of
-    // them, not just the most recent (superseded tasks otherwise outlive
-    // the object into application teardown).
-    void trackFuture(const QFuture<void>& f);
 
 private:
     QVariant m_source;                // last valid input (QColor or QUrl)
@@ -101,5 +94,4 @@ private:
     // Async generation bookkeeping
     quint64 m_generation = 0;         // scheme-generation request version
     quint64 m_seedRequest = 0;        // image-seed-extraction request version
-    QList<QFuture<void>> m_inflight;  // every not-yet-finished task
 };

@@ -24,6 +24,16 @@ BarElement {
     property bool showWindows: widgetSettings.showWindows ?? true
     property int maxWindows: widgetSettings.maxWindowsPerWorkspace ?? 4
 
+    property int _metricRevision: 0
+    function fullWidth() {
+        let total = Tokens.spacing.medium + Math.max(0, wsCount - 1) * Tokens.spacing.extraSmall
+        for (let i = 0; i < workspaceItems.count; i++) total += workspaceItems.itemAt(i)?.fullWidth ?? chipSize
+        return total
+    }
+    preferredWidth: { const revision = _metricRevision; return fullWidth() }
+    minimumWidth: preferredWidth
+    compactWidth: Tokens.spacing.medium + wsCount * chipSize + Math.max(0, wsCount - 1) * Tokens.spacing.extraSmall
+
     hoverable: false
     clickable: false
 
@@ -74,6 +84,9 @@ BarElement {
         spacing: Tokens.spacing.extraSmall
 
         Repeater {
+            id: workspaceItems
+            onItemAdded: workspaceWidget._metricRevision++
+            onItemRemoved: workspaceWidget._metricRevision++
             model: workspaceWidget.wsCount
 
             Item {
@@ -91,8 +104,8 @@ BarElement {
                 // otherwise show every indicator.
                 property bool showIndicator: workspaceWidget.showWindows ? (exists || active) : true
 
-                implicitWidth: hasWindows ? windowIconsRow.implicitWidth + Tokens.spacing.small * 2
-                                          : workspaceWidget.chipSize
+                readonly property real fullWidth: hasWindows ? windowIconsRow.implicitWidth + Tokens.spacing.small * 2 : workspaceWidget.chipSize
+                implicitWidth: workspaceWidget.compactPresentation ? workspaceWidget.chipSize : fullWidth
                 implicitHeight: workspaceWidget.chipSize
 
                 Behavior on implicitWidth {
@@ -149,7 +162,7 @@ BarElement {
                 MaterialIndicator {
                     animated: workspaceWidget.animationsActive
                     anchors.centerIn: parent
-                    visible: !wsItem.hasWindows
+                    visible: !wsItem.hasWindows || workspaceWidget.compactPresentation
                     shape: "rounded"
                     size: wsItem.active ? "extraLarge" : (wsItem.showIndicator ? "medium" : "small")
                     colorRole: wsItem.active ? "primary" : (wsItem.showIndicator ? "secondaryContainer" : "outline")
@@ -160,7 +173,7 @@ BarElement {
                     id: windowIconsRow
                     anchors.centerIn: parent
                     spacing: Tokens.spacing.extraSmall
-                    visible: wsItem.hasWindows
+                    visible: wsItem.hasWindows && !workspaceWidget.compactPresentation
 
                     // Declarative enter/reposition animation — fires only for genuinely new
                     // delegates (ScriptModel reuses existing ones), not on every toplevel event.

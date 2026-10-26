@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "quickshell-shell-config",
   "title": "Quickshell Shell Configuration",
-  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported — changes apply immediately.",
+  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported \u2014 changes apply immediately.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -35,7 +35,7 @@
                 "custom"
               ],
               "default": "wallpaper",
-              "description": "'wallpaper' — generate palette from the current wallpaper. 'custom' — use a fixed seed color (reserved, not yet implemented)."
+              "description": "'wallpaper' \u2014 generate palette from the current wallpaper. 'custom' \u2014 use a fixed seed color (reserved, not yet implemented)."
             },
             "variant": {
               "type": "string",
@@ -72,7 +72,7 @@
             "minimal"
           ],
           "default": "md3",
-          "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' — Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' — flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
+          "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' \u2014 Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' \u2014 flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
         },
         "fontScale": {
           "type": "number",
@@ -126,7 +126,9 @@
               "launcher",
               "notificationCenter",
               "cheatsheet",
-              "powermenu"
+              "powermenu",
+              "connections",
+              "audio"
             ]
           },
           "uniqueItems": true,
@@ -177,7 +179,7 @@
         "lockscreen": {
           "type": "boolean",
           "default": false,
-          "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops — pair with an external locker."
+          "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops \u2014 pair with an external locker."
         },
         "powerMenu": {
           "type": "boolean",
@@ -202,7 +204,7 @@
         "polkit": {
           "type": "boolean",
           "default": false,
-          "description": "In-shell polkit authentication agent. OFF by default because polkit allows one agent per session and Hyprland setups normally run hyprpolkitagent already — the loser of that race only logs an error. Turn this on (and stop the other agent, e.g. `systemctl --user disable --now hyprpolkitagent`) to get the prompt in the shell's own style. With it off, nothing here is constructed and no agent is registered."
+          "description": "In-shell polkit authentication agent. OFF by default because polkit allows one agent per session and Hyprland setups normally run hyprpolkitagent already \u2014 the loser of that race only logs an error. Turn this on (and stop the other agent, e.g. `systemctl --user disable --now hyprpolkitagent`) to get the prompt in the shell's own style. With it off, nothing here is constructed and no agent is registered."
         },
         "popouts": {
           "type": "boolean",
@@ -213,6 +215,16 @@
           "type": "boolean",
           "default": true,
           "description": "Screen recording indicator and controls. Observes recordings started with gpu-screen-recorder on the socket named by `recorder.socket` -- the shell does not start them. Self-disables when gsr-cli is not installed."
+        },
+        "connections": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the standalone connections panel for Wi-Fi, Bluetooth, VPN and Ethernet."
+        },
+        "audio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the standalone output, microphone and application volume panel."
         }
       }
     },
@@ -241,7 +253,8 @@
           "default": 16,
           "minimum": 0,
           "maximum": 100,
-          "description": "Gap between bar and screen edge in logical pixels."
+          "description": "Deprecated alias for notifications.popup.margin. This is the notification popup inset; it does not offset the bar.",
+          "deprecated": true
         },
         "transparent": {
           "type": "boolean",
@@ -251,7 +264,7 @@
         "autoHide": {
           "type": "boolean",
           "default": false,
-          "description": "Auto-hide the bar. When true, the bar reveals only while the cursor reaches the top screen edge and reserves no screen space (its exclusive zone is turned off)."
+          "description": "Auto-hide the bar. Reveals at the configured top/bottom edge and reserves no space while auto-hide is enabled."
         },
         "widgets": {
           "type": "array",
@@ -298,7 +311,7 @@
         "pinnedApps": {
           "type": "array",
           "default": [],
-          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) — those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
+          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) \u2014 those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
           "items": {
             "type": "string"
           }
@@ -307,7 +320,7 @@
     },
     "dashboard": {
       "type": "object",
-      "description": "Dashboard panel (5-tab control center: Quick, Weather, Calendar, Audio, Network). Toggle via hotkey or by clicking bar widgets.",
+      "description": "Dashboard panel with Quick, Weather and Calendar tabs. Audio and Connections are standalone panels.",
       "additionalProperties": false,
       "properties": {
         "width": {
@@ -350,6 +363,13 @@
               "type": "boolean",
               "default": true,
               "description": "Group notifications by application."
+            },
+            "clearUndoTimeout": {
+              "type": "integer",
+              "default": 8000,
+              "minimum": 1000,
+              "maximum": 60000,
+              "description": "Undo window in milliseconds for Clear all in notification history. The latest clear can be restored; new arrivals are preserved."
             }
           }
         },
@@ -410,6 +430,13 @@
               "minimum": 1,
               "maximum": 20,
               "description": "Maximum simultaneous notification popups."
+            },
+            "margin": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 16,
+              "description": "Notification popup inset from screen edges and gap below the bar, in logical pixels. Takes precedence over the legacy bar.margin alias."
             }
           }
         },
@@ -535,7 +562,7 @@
     },
     "osd": {
       "type": "object",
-      "description": "On-screen display overlays for volume/brightness changes.",
+      "description": "Passive volume/brightness meters and toast output placement.",
       "additionalProperties": false,
       "properties": {
         "timeout": {
@@ -543,6 +570,15 @@
           "default": 2000,
           "minimum": 500,
           "description": "Auto-hide delay in ms after the last change."
+        },
+        "monitorPolicy": {
+          "type": "string",
+          "enum": [
+            "focused",
+            "all"
+          ],
+          "default": "focused",
+          "description": "Show OSD and toasts on the output focused when requested, or on every output."
         }
       }
     },
@@ -722,6 +758,51 @@
           "type": "boolean",
           "default": true,
           "description": "Show a large clock and date on the lockscreen."
+        },
+        "showDate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the date independently of the clock."
+        },
+        "showUsername": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the current username above the password field."
+        },
+        "showWeather": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show fresh weather below the date."
+        },
+        "showBattery": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show battery percentage and charging state when a battery is present."
+        },
+        "showNetwork": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a read-only network status icon."
+        },
+        "showPower": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the power menu with sleep and confirmed restart/shutdown."
+        },
+        "showMedia": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show track metadata and playback controls when a player is available."
+        },
+        "mediaShowPaused": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the media block visible while playback is paused."
+        },
+        "mediaShowArt": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show album art in the media block."
         }
       }
     },
@@ -762,7 +843,7 @@
     },
     "gamingMode": {
       "type": "object",
-      "description": "Gaming mode disables visual effects for performance. State persists across restarts — Hyprland settings are saved before and restored after.",
+      "description": "Gaming mode disables visual effects for performance. State persists across restarts \u2014 Hyprland settings are saved before and restored after.",
       "additionalProperties": false,
       "properties": {
         "disableAnimations": {
@@ -919,7 +1000,7 @@
                   "1y"
                 ],
                 "default": "1M",
-                "description": "For type=wallhaven: time window — only used when sorting='toplist'."
+                "description": "For type=wallhaven: time window \u2014 only used when sorting='toplist'."
               },
               "atleast": {
                 "type": "string",
@@ -1161,6 +1242,124 @@
           }
         }
       }
+    },
+    "connections": {
+      "type": "object",
+      "description": "Compact connections panel. System connection profiles are edited with external tools.",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "type": "integer",
+          "default": 420,
+          "minimum": 240,
+          "description": "Preferred panel width in logical pixels, clamped to the active screen."
+        },
+        "maxHeight": {
+          "type": "integer",
+          "default": 640,
+          "minimum": 200,
+          "description": "Maximum panel height in logical pixels. Lists scroll when necessary."
+        }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "description": "Compact audio panel with output, microphone, device selection and an expandable application mixer.",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "type": "integer",
+          "default": 420,
+          "minimum": 240,
+          "description": "Preferred audio panel width in logical pixels, clamped to the active output."
+        },
+        "maxHeight": {
+          "type": "integer",
+          "default": 640,
+          "minimum": 200,
+          "description": "Maximum audio panel height; long device/application lists scroll."
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "description": "Mounted local storage, low-space indicators and display order. Repeated mounts of one filesystem share a row.",
+      "additionalProperties": false,
+      "properties": {
+        "warningFreePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Show a low-space indicator at or below this percentage available to the current user. No popup notification."
+        },
+        "criticalFreePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 5,
+          "description": "Show a critical-space indicator at or below this free percentage. Clamped to warningFreePercent if larger."
+        },
+        "excludedMounts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "uniqueItems": true,
+          "default": [
+            "/boot",
+            "/boot/efi",
+            "/efi"
+          ],
+          "description": "Exact mount paths excluded from the visible volume list and low-space indicators. Pseudo, network and loop mounts are always omitted."
+        },
+        "order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "uniqueItems": true,
+          "default": [
+            "/",
+            "/home"
+          ],
+          "description": "Preferred mount paths, in order. Selects the primary path when one filesystem has several mounts; other volumes follow by path."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Optional display names keyed by the primary mount path, for example {\"/mnt/games\":\"Games\"}."
+        }
+      }
+    },
+    "temporaryModes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Duration presets for temporary DND and Caffeine actions. Actions change runtime state, not configuration.",
+      "properties": {
+        "durationsMinutes": {
+          "type": "array",
+          "default": [
+            15,
+            30,
+            60,
+            120
+          ],
+          "uniqueItems": true,
+          "maxItems": 12,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "description": "Preset durations in minutes for launcher actions. Order is preserved; an empty list hides the presets. IPC accepts any whole duration from 1 to 1440 minutes."
+        }
+      }
     }
   },
   "definitions": {
@@ -1190,7 +1389,11 @@
         "dashboard-audio",
         "dashboard-network",
         "notification-center",
-        "launcher"
+        "launcher",
+        "connections",
+        "connections-wifi",
+        "connections-bluetooth",
+        "audio"
       ],
       "description": "Panel to open when the widget is left-clicked."
     },
@@ -1242,6 +1445,20 @@
         "settings": {
           "type": "object",
           "description": "Widget-specific settings (validated per widget type)."
+        },
+        "priority": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Priority when bar widgets must move to More. Higher stays visible longer. null uses type defaults; labels compact before widgets move."
         }
       },
       "allOf": [
@@ -1551,7 +1768,7 @@
         "showDate": {
           "type": "boolean",
           "default": true,
-          "description": "Show abbreviated date below the time."
+          "description": "Show abbreviated date beside the time at a stable width, without hover expansion."
         }
       }
     },
@@ -1563,7 +1780,7 @@
         "compact": {
           "type": "boolean",
           "default": false,
-          "description": "Compact mode — icon and truncated title only."
+          "description": "Use a fixed icon and play/pause control. When false, also show bounded track text and previous/next controls. Hover only shows a tooltip."
         },
         "showIcon": {
           "type": "boolean",
@@ -1616,6 +1833,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show network status icon."
+        },
+        "showLabel": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show connection name beside the icon. Hidden by default to keep the bar compact."
         }
       }
     },
@@ -1654,6 +1876,23 @@
           "minimum": 0,
           "maximum": 32,
           "description": "Spacing between tray icons in pixels."
+        },
+        "maxVisible": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "default": 4,
+          "description": "Maximum tray icons shown directly on the bar. Remaining icons are available in overflow. 0 shows only the overflow button. When popouts are disabled, all icons remain on the bar."
+        },
+        "pinnedIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": [],
+          "description": "StatusNotifierItem IDs to place first, in this order. Pinning does not exceed maxVisible and never stops or disables applications."
         }
       }
     },

@@ -51,10 +51,10 @@ Shortcuts (aliases over the same IPC surface):
                                      toggle the panel
   lock                               lock the session
   close                              close every panel
-  caffeine  [on|off|status]          idle inhibitor
+  caffeine  [on|off|status|for <minutes>|until]          idle inhibitor
   night     [on|off|status|<K>]      night light, or set its temperature
   gaming    [on|off]                 gaming mode
-  dnd       [on|off|status]          do not disturb
+  dnd       [on|off|status|for <minutes>|until]          do not disturb
   record    [start|pick|stop|toggle|pause|resume|status]  screen recording
   media     [status|toggle|next|prev|players|cycle|switch <name>]  media player
   volume    [up|down|mute|<0..1>]    master volume
@@ -116,6 +116,14 @@ panel() {  # panel <name> <toggle-fn> <open-fn> <close-fn> [action]
     esac
 }
 
+# Duration is an action argument, never a command or persistent preference.
+mode_for() {
+    local handler="$1" method="$2" minutes="$3"
+    case "$minutes" in ''|*[!0-9]*) die "duration: expected whole minutes (1–1440)" ;; esac
+    [ "${#minutes}" -le 4 ] && [ "$minutes" -ge 1 ] && [ "$minutes" -le 1440 ] || die "duration: expected 1–1440 minutes"
+    ipc "$handler" "$method" "$minutes"
+}
+
 main() {
     local cmd="${1:-help}"; shift || true
     case "$cmd" in
@@ -137,8 +145,10 @@ main() {
                 on)     ipc globalstates setIdleInhibitor true ;;
                 off)    ipc globalstates setIdleInhibitor false ;;
                 status) ipc globalstates idleInhibitor ;;
+                until)  ipc globalstates idleInhibitorUntil ;;
+                for)    mode_for globalstates setIdleInhibitorFor "${2:-}" ;;
                 toggle) ipc globalstates toggleIdleInhibitor ;;
-                *) die "caffeine: expected on|off|toggle|status" ;;
+                *) die "caffeine: expected on|off|toggle|status|for <minutes>|until" ;;
             esac ;;
         night)
             case "${1:-toggle}" in
@@ -160,8 +170,10 @@ main() {
                 on)     ipc notifications setDnd true ;;
                 off)    ipc notifications setDnd false ;;
                 status) ipc notifications isDnd ;;
+                until)  ipc notifications dndUntil ;;
+                for)    mode_for notifications setDndFor "${2:-}" ;;
                 toggle) ipc notifications toggleDnd ;;
-                *) die "dnd: expected on|off|toggle|status" ;;
+                *) die "dnd: expected on|off|toggle|status|for <minutes>|until" ;;
             esac ;;
         record)
             case "${1:-status}" in
@@ -235,7 +247,7 @@ _shell_ctl() {
   elif (( CURRENT == 3 )); then
     case "$words[2]" in
       launcher|notifications|cheatsheet|powermenu) _values 'action' toggle open close ;;
-      caffeine|dnd) _values 'action' on off toggle status ;;
+      caffeine|dnd) _values 'action' on off toggle status for until ;;
       record) _values 'action' start pick stop toggle pause resume pause-toggle status elapsed ;;
       media) _values 'action' status toggle next prev players cycle switch ;;
       gaming) _values 'action' on off toggle ;;

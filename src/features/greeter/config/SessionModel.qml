@@ -1,98 +1,34 @@
 pragma Singleton
-
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import GreeterData 1.0
 
 Singleton {
     id: root
-
-    property var sessions: []
+    readonly property var sessions: GreeterDataBackend.sessions
+    readonly property list<string> names: GreeterDataBackend.sessionNames
+    readonly property bool ready: GreeterDataBackend.ready
+    readonly property string errorString: ready && sessions.length === 0 ? GreeterDataBackend.errorString : ""
     property int selectedIndex: 0
+    property string _selectedId: ""
+    property bool _defaultApplied: false
+    readonly property var currentSession: sessions[selectedIndex] ?? null
 
-    readonly property var currentSession: sessions.length > 0 ? sessions[selectedIndex] : null
-
-    function selectNext() {
-        if (sessions.length > 0)
-            selectedIndex = (selectedIndex + 1) % sessions.length
+    onSelectedIndexChanged: _selectedId = sessions[selectedIndex]?.id ?? ""
+    onSessionsChanged: {
+        const previous = GreeterDataBackend.sessionIndex(_selectedId)
+        selectedIndex = previous >= 0 ? previous : 0
+        _selectedId = sessions[selectedIndex]?.id ?? ""
+        applyDefault()
     }
-
-    function selectPrevious() {
-        if (sessions.length > 0)
-            selectedIndex = (selectedIndex - 1 + sessions.length) % sessions.length
+    function applyDefault() {
+        if (_defaultApplied || !ready || !GreeterConfig.ready || sessions.length === 0) return
+        _defaultApplied = true
+        const preferred = GreeterDataBackend.sessionIndex(GreeterConfig.defaultSession)
+        if (preferred >= 0) selectedIndex = preferred
+        _selectedId = sessions[selectedIndex]?.id ?? ""
     }
-
-    Process {
-        id: scanner
-        // Wholly literal script. Written as a template literal rather than `+`
-        // concatenation so it stays one unbroken string: tools/check.sh cannot
-        // tell a concatenated literal from a variable spliced into a shell
-        // command, and rightly refuses to try. `$f` is a SHELL variable — JS
-        // only interpolates `${...}`, which is precisely what the check bans.
-        command: ["bash", "-c", `
-            for f in /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop; do
-                [ -f "$f" ] && echo "---FILE---" && cat "$f"
-            done
-        `]
-        running: true
-
-        stdout: SplitParser {
-            onRead: data => {
-                root._rawOutput += data + "\n"
-            }
-        }
-
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0) {
-                console.warn("SessionModel: session scan failed with code", exitCode)
-            }
-            root._parseOutput()
-        }
-    }
-
-    property string _rawOutput: ""
-
-    function _parseOutput() {
-        let result = []
-        let blocks = _rawOutput.split("---FILE---")
-
-        for (let i = 0; i < blocks.length; i++) {
-            let block = blocks[i].trim()
-            if (!block) continue
-
-            let name = ""
-            let exec = ""
-            let comment = ""
-
-            let lines = block.split("\n")
-            for (let j = 0; j < lines.length; j++) {
-                let line = lines[j].trim()
-                // Only match exact keys (not localized variants like Name[ru])
-                if (line.match(/^Name=/) && !name)
-                    name = line.substring(5)
-                else if (line.match(/^Exec=/) && !exec)
-                    exec = line.substring(5)
-                else if (line.match(/^Comment=/) && !comment)
-                    comment = line.substring(8)
-            }
-
-            if (name && exec) {
-                result.push({ name: name, exec: exec, comment: comment })
-            }
-        }
-
-        root.sessions = result
-
-        // Auto-select default session from config
-        if (GreeterConfig.defaultSession && result.length > 0) {
-            let defaultLower = GreeterConfig.defaultSession.toLowerCase()
-            for (let k = 0; k < result.length; k++) {
-                if (result[k].name.toLowerCase() === defaultLower ||
-                    result[k].exec.toLowerCase().indexOf(defaultLower) !== -1) {
-                    root.selectedIndex = k
-                    break
-                }
-            }
-        }
-    }
+    Connections { target: GreeterConfig; function onReadyChanged() { root.applyDefault() } }
+    onReadyChanged: applyDefault()
+    Component.onCompleted: applyDefault()
 }

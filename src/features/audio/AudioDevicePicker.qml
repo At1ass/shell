@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import QtQuick.Layouts
 import qs.src.ui.containers
 import qs.src.ui.base
@@ -14,7 +15,7 @@ import qs.src.core.services
 // moment a device (un)plugged, and retained dead PwNode refs after close.
 Dialog {
     id: root
-    dialogWidth: Math.min(500, parent.width - Tokens.spacing.large * 2)
+    dialogWidth: Tokens.size.fieldWidth * 2
 
     property string dialogTitle: "Select Device"
     property string deviceType: "output"  // "output" or "input"
@@ -63,8 +64,10 @@ Dialog {
             }
 
             MaterialText {
+                Layout.fillWidth: true
+                elide: Text.ElideRight
                 text: root.dialogTitle
-                textStyle: "headlineSmall"
+                textStyle: "titleMedium"
                 colorRole: "onSurface"
                 font.weight: Font.Bold
             }
@@ -77,11 +80,27 @@ Dialog {
             spacing: Tokens.spacing.small
 
             Repeater {
-                model: root.devices
+                id: devicesRepeater
+                model: ScriptModel {
+                    values: root.devices
+                    objectProp: "id"
+                }
 
                 delegate: ListItem {
                     id: deviceRow
                     required property var modelData
+                    required property int index
+                    Keys.onPressed: event => {
+                        let next = deviceRow.index
+                        if (event.key === Qt.Key_Down) next++
+                        else if (event.key === Qt.Key_Up) next--
+                        else if (event.key === Qt.Key_Home) next = 0
+                        else if (event.key === Qt.Key_End) next = devicesRepeater.count - 1
+                        else return
+                        const row = devicesRepeater.itemAt(Math.max(0, Math.min(devicesRepeater.count - 1, next)))
+                        if (row) row.forceActiveFocus(Qt.TabFocusReason)
+                        event.accepted = true
+                    }
                     // PwNode refs can die under the dialog (device unplug);
                     // every access below is null-tolerant.
                     readonly property var device: deviceRow.modelData
@@ -97,6 +116,7 @@ Dialog {
 
                     leadingContent: [
                         MaterialRadioButton {
+                            activeFocusOnTab: false
                             checked: deviceRow.isSelected
                             onClicked: deviceRow._choose()
                         }
@@ -117,12 +137,12 @@ Dialog {
             EmptyState {
                 visible: root.devices.length === 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: 120
+                Layout.preferredHeight: implicitHeight + Tokens.spacing.medium * 2
 
                 iconName: root.deviceType === "output" ? "speaker_notes_off" : "mic_off"
                 title: "No devices available"
-                iconContainerSize: 64
-                iconSize: 40
+                iconContainerSize: Tokens.iconSize.extraLarge * 2
+                iconSize: Tokens.iconSize.large
             }
         }
 

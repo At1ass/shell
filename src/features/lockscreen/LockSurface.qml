@@ -1,364 +1,149 @@
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Pam
+import Quickshell.Services.UPower
 import qs.src.core.config
 import qs.src.core.services
-import qs.src.ui.base
+import qs.src.ui.containers
 
 Item {
     id: root
-
     required property ShellScreen screen
+    property bool formActive: !!screen && screen.name === (Quickshell.screens.find(s => s?.name === GlobalStates.lockscreenScreenName)?.name ?? Quickshell.screens[0]?.name ?? "")
     signal unlocked()
-
-    property bool _authFailed: false
-    property string _errorMessage: ""
+    property bool _ready: false
+    property string _powerDetails: ""
+    property bool _powerPending: false
     property string _pendingPassword: ""
-    property bool _showPassword: false
+    property string _errorMessage: ""
 
-    // PAM authentication
+    function startAuthentication() {
+        if (_ready && formActive && !_powerPending && !pam.active && !pam.start()) pamRetryTimer.start()
+    }
+    function submit(password) {
+        if (!_ready || !formActive || !password) return
+        _errorMessage = ""
+        content.clearPassword()
+        if (pam.responseRequired) pam.respond(password)
+        else { _pendingPassword = password; startAuthentication() }
+    }
+    TapHandler {
+        enabled: !root.formActive && root.screen !== null
+        onTapped: GlobalStates.lockscreenScreenName = root.screen.name
+    }
     PamContext {
         id: pam
         config: "login"
-
         onCompleted: result => {
-            if (result === PamResult.Success) {
-                root.unlocked()
-                return
-            }
-            root._authFailed = true
-            root._errorMessage = result === PamResult.MaxTries
-                ? "Too many attempts" : "Authentication failed"
-            passwordField.text = ""
-            // The field is cleared, so clear the copy too: if PAM failed before
-            // ever asking, the password is still sitting in this string.
             root._pendingPassword = ""
-            shakeAnim.start()
-            if (result === PamResult.Error) {
-                // A broken PAM stack completes with Error immediately —
-                // an unconditional restart here spins start->error->start.
-                // Retry on a delay so the session stays recoverable
-                // without burning a core.
-                pamRetryTimer.start()
-            } else {
-                if (!pam.start())
-                    pamRetryTimer.start()
-            }
+            content.clearPassword()
+            if (!root._ready || !root.formActive || root._powerPending) return
+            if (result === PamResult.Success) { root.unlocked(); return }
+            root._errorMessage = result === PamResult.MaxTries ? "Too many attempts" : "Authentication failed"
+            if (result === PamResult.Error) pamRetryTimer.start()
+            else root.startAuthentication()
+            content.focusPassword()
         }
-
         onResponseRequiredChanged: {
             if (responseRequired && root._pendingPassword) {
-                pam.respond(root._pendingPassword)
+                const password = root._pendingPassword
                 root._pendingPassword = ""
+                pam.respond(password)
             }
         }
     }
-
-    // --- Background: wallpaper + blur ---
     Image {
         id: wallpaperSource
         anchors.fill: parent
         source: root.screen ? WallpaperManager.getWallpaper(root.screen.name) : ""
         fillMode: root.screen ? WallpaperManager.getFillMode(root.screen.name) : Image.PreserveAspectCrop
         visible: false
-        cache: true
-
-        onStatusChanged: {
-            if (status === Image.Error)
-                console.warn("LockSurface: wallpaper load failed:", source)
-        }
+        asynchronous: true
     }
-
-    // The effect draws the wallpaper either way — with blurEnabled false it is a
-    // plain textured pass, so `lockscreen.blurWallpaper: false` yields a sharp
-    // wallpaper rather than no wallpaper. The desaturation is not part of that
-    // config key and stays on, keeping the lock UI legible over busy images.
+    Surface { anchors.fill: parent; radius: Tokens.shape.none; color: Theme.surfaceDim; outlined: false }
     MultiEffect {
         anchors.fill: parent
         source: wallpaperSource
         blurEnabled: AppConfig.lockscreenBlurWallpaper
         blur: 1.0
-        blurMax: 80
+        blurMax: Tokens.size.control * 2
         saturation: -0.2
         autoPaddingEnabled: false
     }
-
-    // Fallback if wallpaper not loaded
-    Rectangle {
+    Surface { anchors.fill: parent; radius: Tokens.shape.none; color: Qt.alpha(Theme.scrim, 0.35); outlined: false }
+    LockContent {
+        id: content
         anchors.fill: parent
-        color: Theme.surfaceDim
-        visible: wallpaperSource.status !== Image.Ready
-    }
-
-    // Scrim overlay
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.alpha(Theme.scrim, 0.35)
-    }
-
-    // --- Center content ---
-    ColumnLayout {
-        id: contentColumn
-        anchors.centerIn: parent
-        spacing: 0
-        width: 360
-
-        // Clock. Raw Text: no typography token goes near 96px, and the lock
-        // clock is one huge glyph run where native hinting beats subpixel
-        // positioning. MaterialText binds pixelSize to its token.
-        Text {
-            id: clockText
-            Layout.alignment: Qt.AlignHCenter
-            text: Qt.formatTime(DateTime.clock.date, "HH:mm")
-            font.family: Tokens.typography.fontFamily
-            font.pixelSize: 96
-            font.weight: Font.Light
-            font.letterSpacing: -1.5
-            color: Theme.scrimForeground
-            renderType: Text.NativeRendering
-            visible: AppConfig.lockscreenShowClock
-        }
-
-        // Date
-        MaterialText {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.extraSmall
-            text: Qt.formatDate(DateTime.clock.date, "dddd, d MMMM")
-            textStyle: "titleLarge"
-            color: Qt.alpha(Theme.scrimForeground, 0.8)
-            visible: AppConfig.lockscreenShowClock
-        }
-
-        // Weather row
-        RowLayout {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.medium
-            spacing: Tokens.spacing.small
-            visible: Weather.isFresh
-
-            MaterialIcon {
-                iconName: Weather.icon
-                fontSize: Tokens.iconSize.medium
-                iconColor: Qt.alpha(Theme.scrimForeground, 0.7)
-                backgroundColor: "transparent"
-            }
-
-            MaterialText {
-                text: Math.round(Weather.tempC) + "°"
-                textStyle: "titleMedium"
-                color: Qt.alpha(Theme.scrimForeground, 0.8)
-            }
-
-            Rectangle {
-                Layout.preferredWidth: 1
-                Layout.preferredHeight: 16
-                color: Qt.alpha(Theme.scrimForeground, 0.3)
-            }
-
-            MaterialText {
-                text: Weather.weatherDesc
-                textStyle: "bodyMedium"
-                color: Qt.alpha(Theme.scrimForeground, 0.6)
-            }
-        }
-
-        // Spacer
-        Item { Layout.preferredHeight: Tokens.spacing.extraLarge + Tokens.spacing.medium }
-
-        // Avatar
-        CircleAvatar {
-            Layout.alignment: Qt.AlignHCenter
-            customSize: 96
-            imageSource: "file://" + Quickshell.env("HOME") + "/.face"
-            fallbackIcon: "person"
-        }
-
-        // Username
-        MaterialText {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.medium
-            text: Quickshell.env("USER") || ""
-            textStyle: "titleMedium"
-            color: Qt.alpha(Theme.scrimForeground, 0.8)
-        }
-
-        // Spacer
-        Item { Layout.preferredHeight: Tokens.spacing.large }
-
-        // Password input container
-        Rectangle {
-            id: passwordContainer
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 300
-            Layout.preferredHeight: 52
-            radius: Tokens.shape.extraLarge
-            color: Qt.alpha(Theme.surfaceContainerHigh, 0.5)
-            border.color: {
-                if (root._authFailed) return Theme.error
-                if (passwordField.activeFocus) return Theme.primary
-                return Qt.alpha(Theme.scrimForeground, 0.2)
-            }
-            border.width: passwordField.activeFocus || root._authFailed ? 2 : 1
-
-            Behavior on border.color {
-                ColorAnimation { duration: Tokens.motion.duration.short4 }
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Tokens.spacing.medium + 4
-                anchors.rightMargin: Tokens.spacing.small
-                spacing: Tokens.spacing.small
-
-                // Lock icon
-                MaterialIcon {
-                    iconName: "lock"
-                    fontSize: Tokens.iconSize.medium
-                    iconColor: Qt.alpha(Theme.scrimForeground, 0.4)
-                    backgroundColor: "transparent"
-                }
-
-                // Text input with placeholder
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    MaterialText {
-                        visible: !passwordField.text
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Password"
-                        textStyle: "bodyLarge"
-                        color: Qt.alpha(Theme.scrimForeground, 0.35)
-                    }
-
-                    TextInput {
-                        id: passwordField
-                        anchors.fill: parent
-                        echoMode: root._showPassword ? TextInput.Normal : TextInput.Password
-                        color: Theme.scrimForeground
-                        selectedTextColor: Theme.onPrimary
-                        selectionColor: Theme.primary
-                        verticalAlignment: TextInput.AlignVCenter
-                        font.family: Tokens.typography.fontFamily
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-                        focus: true
-                        clip: true
-
-                        onAccepted: {
-                            if (text.length > 0) {
-                                root._authFailed = false
-                                root._errorMessage = ""
-                                if (pam.responseRequired) {
-                                    pam.respond(text)
-                                } else {
-                                    root._pendingPassword = text
-                                    // Same guard as every other start() in this
-                                    // file: a start that fails leaves no auth in
-                                    // flight, so without the retry Enter would
-                                    // silently do nothing on a locked screen.
-                                    if (!pam.active && !pam.start())
-                                        pamRetryTimer.start()
-                                }
-                            }
-                        }
-
-                        onTextChanged: {
-                            if (root._authFailed) {
-                                root._authFailed = false
-                                root._errorMessage = ""
-                            }
-                        }
-                    }
-                }
-
-                // Layout indicator badge
-                Rectangle {
-                    Layout.preferredWidth: layoutLabel.implicitWidth + Tokens.spacing.medium
-                    Layout.preferredHeight: 24
-                    radius: Tokens.shape.small
-                    color: Qt.alpha(Theme.scrimForeground, 0.1)
-                    visible: KeyboardLayoutService.layoutCodes.length > 1
-
-                    MaterialText {
-                        id: layoutLabel
-                        anchors.centerIn: parent
-                        text: KeyboardLayoutService.currentLayoutCode.toUpperCase() || "EN"
-                        textStyle: "labelSmall"
-                        color: Qt.alpha(Theme.scrimForeground, 0.6)
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: KeyboardLayoutService.switchLayout()
-                    }
-                }
-
-                // Toggle password visibility
-                IconButton {
-                    variant: "standard"
-                    iconName: root._showPassword ? "visibility_off" : "visibility"
-                    iconSize: 18
-                    containerSize: 32
-                    touchTargetSize: 36
-                    iconColor: Qt.alpha(Theme.scrimForeground, 0.5)
-
-                    onClicked: {
-                        root._showPassword = !root._showPassword
-                        passwordField.forceActiveFocus()
-                    }
-                }
-            }
-        }
-
-        // Error message
-        MaterialText {
-            id: errorText
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Tokens.spacing.medium
-            text: root._errorMessage
-            textStyle: "labelMedium"
-            color: Theme.error
-            opacity: root._errorMessage ? 1 : 0
-
-            Behavior on opacity {
-                NumberAnimation { duration: Tokens.motion.duration.short4 }
-            }
+        formActive: root.formActive
+        username: Quickshell.env("USER") || ""
+        now: DateTime.clock.date
+        layoutCode: KeyboardLayoutService.currentLayoutCode
+        multipleLayouts: KeyboardLayoutService.layoutCodes.length > 1
+        capsLock: KeyboardLayoutService.capsLockEnabled
+        errorMessage: root._errorMessage
+        powerBusy: powerProcess.running
+        mediaAvailable: MprisController.activePlayer !== null
+        playing: MprisController.isPlaying
+        trackTitle: MprisController.activeTrack?.title ?? ""
+        trackArtist: MprisController.activeTrack?.artist ?? ""
+        trackArt: MprisController.activeTrack?.artUrl ?? ""
+        canPrevious: MprisController.canGoPrevious
+        canNext: MprisController.canGoNext
+        canToggle: MprisController.canTogglePlaying
+        batteryAvailable: UPower.displayDevice?.ready === true && UPower.displayDevice.isLaptopBattery
+        batteryPercent: Math.round((UPower.displayDevice?.percentage ?? 0) * 100)
+        charging: UPower.displayDevice?.state === UPowerDeviceState.Charging || UPower.displayDevice?.state === UPowerDeviceState.PendingCharge
+        networkIcon: NetworkService.connectionIcon
+        networkStatus: NetworkService.wiredConnected ? "Ethernet connected" : NetworkService.currentNetwork !== "" ? "Wi-Fi connected" : "Disconnected"
+        weatherAvailable: Weather.isFresh
+        weatherText: Math.round(Weather.tempC) + "° · " + Weather.weatherDesc
+        onSubmitted: password => root.submit(password)
+        onEdited: root._errorMessage = ""
+        onSwitchLayout: KeyboardLayoutService.switchLayout()
+        onPrevious: MprisController.previous()
+        onNext: MprisController.next()
+        onTogglePlaying: MprisController.togglePlaying()
+        onPowerRequested: action => {
+            if (!root.formActive || powerProcess.running || !["suspend", "reboot", "shutdown"].includes(action)) return
+            root._powerPending = true
+            root._pendingPassword = ""
+            pamRetryTimer.stop()
+            if (pam.active) pam.abort()
+            root._powerDetails = ""
+            content.powerError = ""
+            powerProcess.command = ["systemctl", action === "shutdown" ? "poweroff" : action]
+            powerProcess.running = true
         }
     }
-
-    // Shake animation on auth failure
-    SequentialAnimation {
-        id: shakeAnim
-        property int _offset: 12
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: shakeAnim._offset; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: -shakeAnim._offset; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: shakeAnim._offset / 2; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: -shakeAnim._offset / 2; duration: 50 }
-        NumberAnimation { target: contentColumn; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50 }
-    }
-
-
-
-    Timer {
-        id: pamRetryTimer
-        interval: 2000
-        onTriggered: {
-            if (!pam.active && !pam.start())
-                pamRetryTimer.start()
+    Process {
+        id: powerProcess
+        stderr: SplitParser { onRead: line => root._powerDetails = (root._powerDetails + "\n" + line).slice(-2048) }
+        onExited: exitCode => {
+            root._powerPending = false
+            if (exitCode !== 0) {
+                content.powerOpen = root.formActive
+                content.powerError = root._powerDetails.trim() || "Power action unavailable or blocked (exit " + exitCode + ")."
+            }
+            else content.closePower()
+            root.startAuthentication()
         }
     }
-
-    // Start PAM on surface appear
-    Component.onCompleted: {
-        if (!pam.start())
-            pamRetryTimer.start()
-        passwordField.forceActiveFocus()
+    Timer { id: pamRetryTimer; interval: 2000; onTriggered: root.startAuthentication() }
+    property bool _watchingKeyboard: false
+    function updateKeyboardWatcher() {
+        if (formActive === _watchingKeyboard) return
+        _watchingKeyboard = formActive
+        if (_watchingKeyboard) KeyboardLayoutService.addLockStateWatcher()
+        else KeyboardLayoutService.removeLockStateWatcher()
     }
-
+    onFormActiveChanged: { if (!_ready) return; updateKeyboardWatcher(); if (formActive) { startAuthentication(); Qt.callLater(content.focusPassword) } else { pamRetryTimer.stop(); _pendingPassword = ""; if (pam.active) pam.abort() } }
+    Component.onCompleted: { _ready = true; updateKeyboardWatcher(); startAuthentication(); Qt.callLater(content.focusPassword) }
     Component.onDestruction: {
+        _ready = false
+        _pendingPassword = ""
+        if (_watchingKeyboard) KeyboardLayoutService.removeLockStateWatcher()
         if (pam.active) pam.abort()
     }
 }

@@ -39,11 +39,15 @@ BarElement {
     property string timeFormat: widgetSettings.format ?? "HH:mm"
     property bool showDate: widgetSettings.showDate ?? true
 
+    preferredWidth: timeLabel.implicitWidth + Tokens.spacing.medium
+        + (showDate ? dateLabel.implicitWidth + separator.implicitWidth + Tokens.spacing.extraSmall * 2 : 0)
+    minimumWidth: preferredWidth
+    compactWidth: timeLabel.implicitWidth + Tokens.spacing.medium
+
     // BarElement configuration
-    expandOnHover: true
-    expandedWidth: 160
+    expandOnHover: false
     clickable: true
-    minWidth: 70
+    minWidth: Tokens.size.control + Tokens.spacing.medium
 
     nonVisualChildren: [
         Connections {
@@ -53,7 +57,7 @@ BarElement {
 
         Timer {
             interval: 1000
-            running: clockWidget._needsSeconds || clockWidget.hovered
+            running: clockWidget._needsSeconds || (clockWidget.hovered && clockWidget.tooltipManager && !clockWidget.tooltipManager.suspended)
             repeat: true
             triggeredOnStart: true
             onTriggered: clockWidget._now = new Date()
@@ -64,27 +68,15 @@ BarElement {
             id: clockTooltip
             tooltip: clockWidget.tooltipManager
             owner: clockWidget
-            show: clockWidget.hovered
+            show: clockWidget.hovered && clockWidget.barRevealed
 
-            Column {
-                anchors.centerIn: parent
-                spacing: Tokens.spacing.extraSmall
-
-                MaterialText {
-                    text: clockWidget.currentDateTime
-                    textStyle: "bodyLarge"
-                    colorRole: "onSurface"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    wrapMode: Text.Wrap
-                }
-            }
+            text: clockWidget.currentDateTime
         }
     ]
 
     clickHandler: function(mouse) {
-        if (mouse.button === Qt.RightButton && widgetConfig?.clickAction) {
-            GlobalStates.handleClickAction(widgetConfig.clickAction)
+        if (mouse.button === Qt.LeftButton || mouse.button === Qt.RightButton) {
+            GlobalStates.handleClickAction(clockWidget.widgetConfig?.clickAction ?? "dashboard-calendar")
             mouse.accepted = true
             return
         }
@@ -97,23 +89,26 @@ BarElement {
         spacing: Tokens.spacing.extraSmall
 
         MaterialText {
+            id: timeLabel
             text: clockWidget.currentTime
             textStyle: "titleMedium"
-            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurface"
+            colorRole: "onSurface"
         }
 
         MaterialText {
+            id: separator
             text: "•"
             textStyle: "bodyMedium"
-            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            visible: clockWidget.expanded && clockWidget.showDate
+            colorRole: "onSurfaceVariant"
+            visible: clockWidget.showDate && !clockWidget.compactPresentation
         }
 
         MaterialText {
+            id: dateLabel
             text: clockWidget.currentDate
             textStyle: "bodyMedium"
-            colorRole: clockWidget.expanded ? "onPrimaryContainer" : "onSurfaceVariant"
-            visible: clockWidget.expanded && clockWidget.showDate
+            colorRole: "onSurfaceVariant"
+            visible: clockWidget.showDate && !clockWidget.compactPresentation
         }
     }
 }

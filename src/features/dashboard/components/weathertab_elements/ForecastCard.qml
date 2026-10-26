@@ -23,7 +23,7 @@ MaterialCard {
     required property int weatherCode
     required property int precipProbMax
 
-    color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+    color: Theme.surfaceContainerLow
     radius: Tokens.shape.medium
 
     // Stated, because a Pane does not learn it from an anchored child. The
@@ -31,6 +31,7 @@ MaterialCard {
     // of its own -- invisible while the tab was sized by a constant with slack
     // in it, and immediately visible once the tab was sized to its content: the
     // bottom row of every forecast card sat flush against its own edge.
+    implicitWidth: Math.ceil(forecastColumn.implicitWidth + Tokens.spacing.small * 2)
     implicitHeight: forecastColumn.implicitHeight + Tokens.spacing.small * 2
 
     ColumnLayout {
@@ -58,8 +59,7 @@ MaterialCard {
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 if (d.getTime() === tomorrow.getTime()) return "Tmrw";
 
-                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                return days[d.getDay()];
+                return Qt.formatDate(d, "ddd");
             }
             textStyle: "titleMedium"
             colorRole: "primary"
@@ -83,48 +83,38 @@ MaterialCard {
         // Weather icon (secondary color like caelestia)
         MaterialIcon {
             iconName: WeatherIcons.codeToName[card.weatherCode] || "cloud"
-            fontSize: 48
-            iconColor: Theme.secondary
+            fontSize: Tokens.typography.titleLarge.size
+            iconColor: Theme.onSurfaceVariant
             backgroundColor: "transparent"
             Layout.alignment: Qt.AlignHCenter
         }
 
-        // Temperature range (tertiary color for emphasis)
-        RowLayout {
+        // High and low share one narrow column so seven readable days fit.
+        MaterialText {
+            text: Math.round(card.tempMax) + "°"
+            textStyle: "titleMedium"
+            colorRole: "onSurface"
+            font.weight: Font.Bold
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
-
-            MaterialText {
-                text: Math.round(card.tempMax) + "°"
-                textStyle: "titleMedium"
-                colorRole: "tertiary"
-                font.weight: Font.Bold
-            }
-
-            MaterialText {
-                text: "/"
-                textStyle: "titleMedium"
-                colorRole: "onSurfaceVariant"
-                opacity: 0.5
-            }
-
-            MaterialText {
-                text: Math.round(card.tempMin) + "°"
-                textStyle: "titleMedium"
-                colorRole: "tertiary"
-                font.weight: Font.Bold
-            }
+        }
+        MaterialText {
+            text: Math.round(card.tempMin) + "°"
+            textStyle: "bodyMedium"
+            colorRole: "onSurfaceVariant"
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: -Tokens.spacing.extraSmall
         }
 
-        // Precipitation
+        // Keep the precipitation slot aligned on dry and rainy days alike.
         RowLayout {
+            Layout.preferredHeight: Math.max(Tokens.iconSize.small, Tokens.typography.labelSmall.lineHeight)
             Layout.alignment: Qt.AlignHCenter
-            spacing: 2
+            spacing: Tokens.spacing.extraSmall
 
             MaterialIcon {
                 iconName: "water_drop"
                 visible: card.precipProbMax > 0
-                fontSize: 12
+                fontSize: Tokens.iconSize.small
                 iconColor: Theme.primary
                 backgroundColor: "transparent"
             }

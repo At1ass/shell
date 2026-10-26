@@ -1,5 +1,6 @@
 import QtQuick
 import qs.src.core.config
+import qs.src.ui.feedback
 import qs.src.ui.base
 
 // Material Design 3 Switch (controlled: parent owns `checked`, reacts to `toggled`).
@@ -67,6 +68,15 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onClicked: root.toggled(!root.checked)
     }
+
+    StateLayer {
+        target: track
+        focused: root.activeFocus
+        layerColor: Theme.onSurface
+    }
+    Accessible.role: Accessible.CheckBox
+    Accessible.checked: root.checked
+    Accessible.onToggleAction: if (root.enabled) root.toggled(!root.checked)
 
     // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
     // and a StateLayer that could draw them, but nothing that could ever take

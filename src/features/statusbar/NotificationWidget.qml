@@ -10,7 +10,8 @@ BarElement {
     id: root
     clickable: true
     hoverable: true
-    minWidth: 48
+    minWidth: Tokens.size.control
+    readonly property bool needsAttention: !NotificationService.doNotDisturb && NotificationService.unreadCount > 0
 
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})

@@ -1,7 +1,7 @@
 module qs.src.features.osd
 
-VolumeOSD 1.0 VolumeOSD.qml
-BrightnessOSD 1.0 BrightnessOSD.qml
+SystemOSD 1.0 SystemOSD.qml
+OsdMeterContent 1.0 OsdMeterContent.qml
 ToastOverlay 1.0 ToastOverlay.qml
 OsdSurface 1.0 OsdSurface.qml
 OsdMeter 1.0 OsdMeter.qml

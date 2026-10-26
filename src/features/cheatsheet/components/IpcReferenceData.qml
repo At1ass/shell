@@ -1,156 +1,212 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
+import Quickshell.Io
 
-// The single authoritative description of the shell's IPC surface, rendered
-// by the cheatsheet and referenced from README.md. Keep it in lockstep with
-// the actual IpcHandler declarations — verify against a live shell with:
-//   qs -p ~/.config/quickshell/shell ipc show
+// Signatures come from the running shell. Descriptions enrich that surface;
+// they never create commands or override parameters reported by the engine.
 QtObject {
-    readonly property var handlers: [
-        {
-            name: "globalstates",
-            functions: [
-                { name: "toggleDashboard", params: "", description: "Toggle dashboard visibility" },
-                { name: "openDashboardTab", params: "tabIndex: int", description: "Open dashboard tab (0=Quick 1=Weather 2=Calendar 3=Audio 4=Network)" },
-                { name: "toggleLauncher", params: "", description: "Toggle app launcher" },
-                { name: "openLauncher", params: "", description: "Open app launcher" },
-                { name: "closeLauncher", params: "", description: "Close app launcher" },
-                { name: "closeAll", params: "", description: "Close all open panels" },
-                { name: "toggleNotificationCenter", params: "", description: "Toggle notification center" },
-                { name: "openNotificationCenter", params: "", description: "Open notification center" },
-                { name: "closeNotificationCenter", params: "", description: "Close notification center" },
-                { name: "screenshot", params: "", description: "Take area screenshot" },
-                { name: "screenshotSwappy", params: "", description: "Take annotated screenshot (swappy)" },
-                { name: "toggleGamingMode", params: "", description: "Toggle gaming mode" },
-                { name: "enableGamingMode", params: "", description: "Enable gaming mode" },
-                { name: "disableGamingMode", params: "", description: "Disable gaming mode" },
-                { name: "toggleNightLight", params: "", description: "Toggle night light (hyprsunset)" },
-                { name: "setNightLightTemperature", params: "temp: int", description: "Set night light temperature (K)" },
-                { name: "nightLight", params: "", description: "Whether night light is on (persisted)" },
-                { name: "toggleIdleInhibitor", params: "", description: "Toggle caffeine mode, returns the new state" },
-                { name: "setIdleInhibitor", params: "enabled: bool", description: "Set caffeine mode (persisted)" },
-                { name: "idleInhibitor", params: "", description: "Whether caffeine mode is on" },
-                { name: "togglePowerMenu", params: "", description: "Toggle power menu" },
-                { name: "openPowerMenu", params: "", description: "Open power menu" },
-                { name: "closePowerMenu", params: "", description: "Close power menu" },
-                { name: "lockScreen", params: "", description: "Lock the session" },
-                { name: "toggleCheatsheet", params: "", description: "Toggle cheatsheet overlay" },
-                { name: "openCheatsheet", params: "", description: "Open cheatsheet overlay" },
-                { name: "closeCheatsheet", params: "", description: "Close cheatsheet overlay" }
-            ]
-        },
-        {
-            name: "audio",
-            functions: [
-                { name: "volumeUp", params: "", description: "Increase master volume" },
-                { name: "volumeDown", params: "", description: "Decrease master volume" },
-                { name: "toggleMute", params: "", description: "Toggle master mute" },
-                { name: "setVolume", params: "value: real", description: "Set master volume (0.0-1.0)" },
-                { name: "getMasterVolume", params: "", description: "Get current master volume" },
-                { name: "isMuted", params: "", description: "Check if master is muted" }
-            ]
-        },
-        {
-            name: "mpris",
-            functions: [
-                { name: "play", params: "", description: "Start playback" },
-                { name: "pause", params: "", description: "Pause playback" },
-                { name: "stop", params: "", description: "Stop playback" },
-                { name: "togglePlaying", params: "", description: "Toggle play/pause" },
-                { name: "next", params: "", description: "Skip to next track" },
-                { name: "previous", params: "", description: "Go to previous track" },
-                { name: "seek", params: "offset: real", description: "Seek by offset in seconds" },
-                { name: "listPlayers", params: "", description: "Every available player, the active one marked" },
-                { name: "switchPlayer", params: "name", description: "Make the named player active (prefix match)" },
-                { name: "cyclePlayer", params: "", description: "Switch to the next player" },
-                { name: "setPosition", params: "position: real", description: "Set playback position" },
-                { name: "setVolume", params: "volume: real", description: "Set player volume" },
-                { name: "volumeUp", params: "", description: "Increase player volume" },
-                { name: "volumeDown", params: "", description: "Decrease player volume" },
-                { name: "toggleShuffle", params: "", description: "Toggle shuffle mode" },
-                { name: "toggleLoop", params: "", description: "Cycle loop mode" },
-                { name: "raise", params: "", description: "Raise player window" },
-                { name: "quit", params: "", description: "Quit the player" },
-                { name: "getPosition", params: "", description: "Get current position" },
-                { name: "getLength", params: "", description: "Get track length" },
-                { name: "getVolume", params: "", description: "Get player volume" },
-                { name: "isPlaying", params: "", description: "Check if playing" },
-                { name: "getCurrentTrack", params: "", description: "Get current track info" }
-            ]
-        },
-        {
-            name: "wallpaper",
-            functions: [
-                { name: "set", params: "monitor, path", description: "Set wallpaper for monitor" },
-                { name: "setAll", params: "path", description: "Set wallpaper for all monitors" },
-                { name: "setSource", params: "monitor, sourceId", description: "Bind monitor to a wallpaper source" },
-                { name: "next", params: "monitor", description: "Next wallpaper" },
-                { name: "previous", params: "monitor", description: "Previous wallpaper" },
-                { name: "setAutoChange", params: "monitor, enabled, intervalMs", description: "Configure auto-change for monitor" },
-                { name: "setFillMode", params: "monitor, fillMode", description: "Set fill mode for monitor" },
-                { name: "setFillModeAll", params: "fillMode", description: "Set fill mode for all monitors" },
-                { name: "refreshSource", params: "sourceId", description: "Re-scan / re-query a wallpaper source" },
-                { name: "loadMore", params: "sourceId", description: "Fetch the next page of a remote source" },
-                { name: "status", params: "", description: "Get wallpaper status" }
-            ]
-        },
-        {
-            name: "wallpaper-cache",
-            functions: [
-                { name: "status", params: "", description: "Cache statistics" },
-                { name: "evict", params: "", description: "Trigger cache eviction" }
-            ]
-        },
-        {
-            name: "recorder",
-            functions: [
-                { name: "start", params: "", description: "Start a recording using the recorder config block" },
-                { name: "toggle", params: "", description: "Start a recording, or stop the running one" },
-                { name: "pick", params: "", description: "Start a recording, choosing screen/window/region in the portal picker" },
-                { name: "status", params: "", description: "idle / recording MM:SS / paused MM:SS" },
-                { name: "elapsed", params: "", description: "Seconds since the recording started" },
-                { name: "pause", params: "", description: "Pause the running recording" },
-                { name: "resume", params: "", description: "Resume the paused recording" },
-                { name: "togglePause", params: "", description: "Pause or resume the running recording" },
-                { name: "stop", params: "", description: "Stop and save the running recording" }
-            ]
-        },
-        {
-            name: "polkit",
-            functions: [
-                { name: "registered", params: "", description: "Whether the shell's polkit agent is registered" },
-                { name: "active", params: "", description: "Whether an authentication request is open" },
-                { name: "actionId", params: "", description: "Action id of the open request" },
-                { name: "prompt", params: "", description: "Prompt text of the open request" },
-                { name: "error", params: "", description: "Last failure message, empty when none" },
-                { name: "state", params: "", description: "One-line summary of the agent state" },
-                { name: "cancel", params: "", description: "Cancel the open request" }
-            ]
-        },
-        {
-            name: "config",
-            functions: [
-                { name: "validate", params: "", description: "Check config.json against the schema" },
-                { name: "path", params: "", description: "Path of the active config.json" },
-                { name: "schemaPath", params: "", description: "Path of config.schema.json" },
-                { name: "statePath", params: "", description: "Path of state.json" }
-            ]
-        },
-        {
-            name: "notifications",
-            functions: [
-                { name: "count", params: "", description: "Total notifications in history" },
-                { name: "unread", params: "", description: "Unread notification count" },
-                { name: "activeCount", params: "", description: "Currently shown popup count" },
-                { name: "markAllRead", params: "", description: "Mark every notification read" },
-                { name: "dismissAll", params: "", description: "Dismiss the visible popups" },
-                { name: "clear", params: "", description: "Clear notification history" },
-                { name: "isDnd", params: "", description: "Whether do-not-disturb is on" },
-                { name: "dndActive", params: "", description: "Whether do-not-disturb is currently suppressing" },
-                { name: "setDnd", params: "enabled: bool", description: "Set do-not-disturb" },
-                { name: "toggleDnd", params: "", description: "Toggle do-not-disturb" }
-            ]
+    id: root
+    property var handlers: []
+    property bool busy: false
+    property string errorMessage: ""
+    property string _output: ""
+    property bool _stdoutDone: false
+    property bool _exited: false
+    property int _exitCode: 0
+    property bool _timedOut: false
+    property int _generation: 0
+    readonly property var descriptions: ({
+        "globalstates.openAudio": "Open output, microphone and application volume controls",
+        "globalstates.toggleAudio": "Toggle the audio panel",
+        "globalstates.closeAudio": "Close the audio panel",
+        "globalstates.toggleDashboard": "Toggle dashboard visibility",
+        "globalstates.openDashboardTab": "Open dashboard (0=Quick, 1=Weather, 2=Calendar; legacy 3 opens Audio, 4 opens Connections / Wi-Fi)",
+        "globalstates.toggleLauncher": "Toggle app launcher",
+        "globalstates.openLauncher": "Open app launcher",
+        "globalstates.closeLauncher": "Close app launcher",
+        "globalstates.closeAll": "Close all open panels",
+        "globalstates.toggleNotificationCenter": "Toggle notification center",
+        "globalstates.openNotificationCenter": "Open notification center",
+        "globalstates.closeNotificationCenter": "Close notification center",
+        "globalstates.screenshot": "Take area screenshot",
+        "globalstates.screenshotSwappy": "Take annotated screenshot (swappy)",
+        "globalstates.toggleGamingMode": "Toggle gaming mode",
+        "globalstates.enableGamingMode": "Enable gaming mode",
+        "globalstates.disableGamingMode": "Disable gaming mode",
+        "globalstates.toggleNightLight": "Toggle night light (hyprsunset)",
+        "globalstates.setNightLightTemperature": "Set night light temperature (K)",
+        "globalstates.nightLight": "Whether night light is on (persisted)",
+        "globalstates.toggleIdleInhibitor": "Toggle caffeine mode, returns the new state",
+        "globalstates.setIdleInhibitor": "Set caffeine mode (persisted)",
+        "globalstates.idleInhibitor": "Whether caffeine mode is on",
+        "globalstates.togglePowerMenu": "Toggle power menu",
+        "globalstates.openPowerMenu": "Open power menu",
+        "globalstates.closePowerMenu": "Close power menu",
+        "globalstates.lockScreen": "Lock the session",
+        "globalstates.toggleCheatsheet": "Toggle cheatsheet overlay",
+        "globalstates.openCheatsheet": "Open cheatsheet overlay",
+        "globalstates.closeCheatsheet": "Close cheatsheet overlay",
+        "audio.volumeUp": "Increase master volume",
+        "audio.volumeDown": "Decrease master volume",
+        "audio.toggleMute": "Toggle master mute",
+        "audio.setVolume": "Set master volume (0.0-1.0)",
+        "audio.getMasterVolume": "Get current master volume",
+        "audio.isMuted": "Check if master is muted",
+        "mpris.play": "Start playback",
+        "mpris.pause": "Pause playback",
+        "mpris.stop": "Stop playback",
+        "mpris.togglePlaying": "Toggle play/pause",
+        "mpris.next": "Skip to next track",
+        "mpris.previous": "Go to previous track",
+        "mpris.seek": "Seek by offset in seconds",
+        "mpris.listPlayers": "Every available player, the active one marked",
+        "mpris.switchPlayer": "Make the named player active (prefix match)",
+        "mpris.cyclePlayer": "Switch to the next player",
+        "mpris.setPosition": "Set playback position",
+        "mpris.setVolume": "Set player volume",
+        "mpris.volumeUp": "Increase player volume",
+        "mpris.volumeDown": "Decrease player volume",
+        "mpris.toggleShuffle": "Toggle shuffle mode",
+        "mpris.toggleLoop": "Cycle loop mode",
+        "mpris.raise": "Raise player window",
+        "mpris.quit": "Quit the player",
+        "mpris.getPosition": "Get current position",
+        "mpris.getLength": "Get track length",
+        "mpris.getVolume": "Get player volume",
+        "mpris.isPlaying": "Check if playing",
+        "mpris.getCurrentTrack": "Get current track info",
+        "wallpaper.set": "Set wallpaper for monitor",
+        "wallpaper.setAll": "Set wallpaper for all monitors",
+        "wallpaper.setSource": "Bind monitor to a wallpaper source",
+        "wallpaper.next": "Next wallpaper",
+        "wallpaper.previous": "Previous wallpaper",
+        "wallpaper.setAutoChange": "Configure auto-change for monitor",
+        "wallpaper.setFillMode": "Set fill mode for monitor",
+        "wallpaper.setFillModeAll": "Set fill mode for all monitors",
+        "wallpaper.refreshSource": "Re-scan / re-query a wallpaper source",
+        "wallpaper.loadMore": "Fetch the next page of a remote source",
+        "wallpaper.status": "Get wallpaper status",
+        "wallpaper-cache.status": "Cache statistics",
+        "wallpaper-cache.evict": "Trigger cache eviction",
+        "recorder.start": "Start a recording using the recorder config block",
+        "recorder.toggle": "Start a recording, or stop the running one",
+        "recorder.pick": "Start a recording, choosing screen/window/region in the portal picker",
+        "recorder.status": "idle / recording MM:SS / paused MM:SS",
+        "recorder.elapsed": "Seconds since the recording started",
+        "recorder.pause": "Pause the running recording",
+        "recorder.resume": "Resume the paused recording",
+        "recorder.togglePause": "Pause or resume the running recording",
+        "recorder.stop": "Stop and save the running recording",
+        "polkit.registered": "Whether the shell's polkit agent is registered",
+        "polkit.active": "Whether an authentication request is open",
+        "polkit.actionId": "Action id of the open request",
+        "polkit.prompt": "Prompt text of the open request",
+        "polkit.error": "Last failure message, empty when none",
+        "polkit.state": "One-line summary of the agent state",
+        "polkit.cancel": "Cancel the open request",
+        "config.validate": "Validate the current configuration file",
+        "config.path": "Path of the configuration file",
+        "config.schemaPath": "Path of config.schema.json",
+        "config.statePath": "Path of state.json",
+        "notifications.count": "Total notifications in history",
+        "notifications.unread": "Unread notification count",
+        "notifications.activeCount": "Currently shown popup count",
+        "notifications.markAllRead": "Mark every notification read",
+        "notifications.dismissAll": "Dismiss the visible popups",
+        "notifications.clear": "Clear notification history",
+        "notifications.isDnd": "Whether do-not-disturb is on",
+        "notifications.dndActive": "Whether do-not-disturb is currently suppressing",
+        "notifications.setDnd": "Set do-not-disturb",
+        "notifications.toggleDnd": "Toggle do-not-disturb",
+        "globalstates.openConnections": "Open connections with section wifi, bluetooth, vpn, or an empty string",
+        "globalstates.toggleConnections": "Toggle the connections panel",
+        "globalstates.closeConnections": "Close connections",
+        "globalstates.locked": "Whether the shell currently holds the session lock"
+    })
+
+    function parseSurface(output) {
+        if (output.length > 262144) return []
+        const result = []
+        let handler = null
+        for (const line of output.split("\n")) {
+            const target = /^target ([^\s]+)\s*$/.exec(line)
+            if (target) {
+                handler = {name: target[1], functions: []}
+                result.push(handler)
+                continue
+            }
+            const fn = /^\s+function (\w+)\(([^)]*)\)(?::\s*(.+))?\s*$/.exec(line)
+            if (!fn || !handler) continue
+            const key = handler.name + "." + fn[1]
+            const words = fn[1].replace(/([a-z])([A-Z])/g, "$1 $2")
+            handler.functions.push({name: fn[1], params: fn[2], returns: fn[3] || "void",
+                description: root.descriptions[key] || words[0].toUpperCase() + words.slice(1)})
         }
-    ]
+        result.sort((a, b) => a.name.localeCompare(b.name))
+        for (const entry of result) entry.functions.sort((a, b) => a.name.localeCompare(b.name))
+        return result
+    }
+    function refresh() {
+        if (root.busy || query.running) return
+        root._generation++
+        root._output = ""
+        root._stdoutDone = false
+        root._exited = false
+        root._timedOut = false
+        root.errorMessage = ""
+        root.busy = true
+        query.running = true
+        deadline.restart()
+    }
+    function _finish() {
+        if (!root._stdoutDone || !root._exited) return
+        deadline.stop()
+        const generation = root._generation
+        const output = root._output
+        const succeeded = !root._timedOut && root._exitCode === 0
+        // Publish outside the Process callback, just like other service models.
+        Qt.callLater(() => {
+            if (generation !== root._generation) return
+            root.busy = false
+            if (!succeeded) {
+                root.errorMessage = "Could not read IPC commands from the running shell. Try again."
+                return
+            }
+            const parsed = root.parseSurface(output)
+            if (parsed.length === 0) {
+                root.errorMessage = "The shell reported no IPC commands. Try again."
+                return
+            }
+            root.handlers = parsed
+        })
+    }
+    property Process _query: Process {
+        id: query
+        command: ["qs", "-p", Quickshell.shellDir, "ipc", "show"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root._output = text
+                root._stdoutDone = true
+                root._finish()
+            }
+        }
+        onExited: exitCode => {
+            root._exitCode = exitCode
+            root._exited = true
+            root._finish()
+        }
+    }
+    property Timer _deadline: Timer {
+        id: deadline
+        interval: 3000
+        onTriggered: {
+            root._timedOut = true
+            query.running = false
+            // Keep refresh disabled until stdout/exit from this process settle.
+            root.errorMessage = "Reading IPC commands timed out. Try again."
+        }
+    }
 }

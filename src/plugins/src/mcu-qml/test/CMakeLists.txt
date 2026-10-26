@@ -1,0 +1,5 @@
+find_package(Qt6 6.5 COMPONENTS Test REQUIRED)
+qt_add_executable(mcu_test McuThemeTests.cpp ../McuTheme.cpp ../McuTheme.h)
+set_target_properties(mcu_test PROPERTIES AUTOMOC ON)
+target_link_libraries(mcu_test PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Concurrent Qt6::Test mcu-cpp)
+add_test(NAME mcu_test COMMAND mcu_test)

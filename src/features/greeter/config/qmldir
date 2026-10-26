@@ -4,3 +4,6 @@ singleton GreeterConfig 1.0 GreeterConfig.qml
 singleton GreeterTheme 1.0 GreeterTheme.qml
 singleton SessionModel 1.0 SessionModel.qml
 singleton UserModel 1.0 UserModel.qml
+singleton KeyboardLayoutService 1.0 KeyboardLayoutService.qml
+GreeterAuth 1.0 GreeterAuth.qml
+singleton ConfigValidator 1.0 ConfigValidator.qml

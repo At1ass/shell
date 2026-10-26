@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.config
+import qs.src.features.statusbar
 import qs.src.ui.base
 import qs.src.core.services
 import qs.src.ui.containers
@@ -15,6 +16,8 @@ import qs.src.ui.containers
 // PopoutsState, so unloading this module degrades requests to no-ops.
 PanelWindow {
     id: root
+
+    readonly property ShellScreen _screen: root.screen as ShellScreen
 
     readonly property string currentName: PopoutsState.name
     readonly property string currentMode: modeFor(currentName)
@@ -50,9 +53,17 @@ PanelWindow {
 
     Timer {
         id: grabReadyTimer
-        interval: 50
+        interval: Tokens.interaction.popupGrabDelay
         repeat: false
-        onTriggered: root.grabReady = true
+        onTriggered: {
+            root.grabReady = true
+            root.focusContent()
+        }
+    }
+
+    function focusContent() {
+        const item = popoutContent.item
+        if (item && typeof item.focusInitial === "function") item.focusInitial()
     }
 
     // React to every open/close/re-open: pick the screen while the request
@@ -63,6 +74,7 @@ PanelWindow {
             root.grabReady = false;
             grabReadyTimer.stop();
             if (PopoutsState.open) {
+                GlobalStates.closeAllPanels()
                 root.screen = root.getSourceScreen() || root.getFocusedScreen() || Quickshell.screens[0] || root.screen;
                 grabReadyTimer.start();
             } else {
@@ -105,8 +117,8 @@ PanelWindow {
 
         readonly property real contentWidth: (popoutContent.item as Item)?.implicitWidth ?? 0
         readonly property real contentHeight: (popoutContent.item as Item)?.implicitHeight ?? 0
-        readonly property real cardWidth: Math.max(contentWidth + Tokens.spacing.small * 2, 200)
-        readonly property real cardHeight: contentHeight + Tokens.spacing.small * 2
+        readonly property real cardWidth: Math.min(root.width - Tokens.spacing.small * 2, Math.max(contentWidth + Tokens.spacing.small * 2, Tokens.size.fieldWidth))
+        readonly property real cardHeight: Math.min(root.height - Tokens.spacing.small * 2, contentHeight + Tokens.spacing.small * 2)
 
         MaterialCard {
             id: popoutCard
@@ -116,6 +128,7 @@ PanelWindow {
             scale: visible ? 1 : 0.95
     
             color: Theme.surfaceContainerHigh
+            elevation: 2
             radius: Tokens.shape.medium
 
             width: cardLayer.cardWidth
@@ -124,9 +137,9 @@ PanelWindow {
             y: root.computeY(height, Tokens.spacing.small)
 
             function updateRect() {
-                if (root.currentMode !== "card" || !root.screen || !root.visible)
+                if (root.currentMode !== "card" || !root._screen || !root.visible)
                     return;
-                PopoutsState.setPopoutRect(x, y, width, height, root.screen?.name || "");
+                PopoutsState.setPopoutRect(x, y, width, height, root._screen?.name || "");
             }
 
             onXChanged: updateRect()
@@ -134,13 +147,6 @@ PanelWindow {
             onWidthChanged: updateRect()
             onHeightChanged: updateRect()
             onVisibleChanged: updateRect()
-
-            // Elevation tint from the token scale — this was a hand-rolled
-            // Rectangle painted with the hover state-layer opacity.
-            SurfaceTint {
-                level: 2
-                radius: popoutCard.radius
-            }
 
             Behavior on opacity {
                 MotionAnimation {
@@ -164,7 +170,8 @@ PanelWindow {
                 active: root.visible && root.hasPopout && root.currentMode === "card"
                 asynchronous: true
                 sourceComponent: root.popoutComponentFor(root.currentName)
-                    }
+                onLoaded: if (root.grabReady) root.focusContent()
+            }
         }
     }
 
@@ -172,14 +179,36 @@ PanelWindow {
         id: trayMenuComponent
         TrayMenu {
             trayItem: root.currentData as QsMenuHandle
-            onMenuClosed: {
-                PopoutsState.closePopout();
-            }
+            maximumHeight: Math.max(Tokens.size.listItem, root.height - Tokens.spacing.small * 4)
+            property int requestEpoch: -1
+            Component.onCompleted: requestEpoch = PopoutsState.epoch
+            onMenuClosed: if (requestEpoch === PopoutsState.epoch) PopoutsState.closePopout()
+            onTrayItemChanged: if (!trayItem) Qt.callLater(() => {
+                if (requestEpoch === PopoutsState.epoch && !trayItem) PopoutsState.closePopout()
+            })
+        }
+    }
+
+    Component {
+        id: trayOverflowComponent
+        TrayOverflow { trayModel: root.currentData as TrayModel }
+    }
+
+    Component {
+        id: barOverflowComponent
+        BarOverflow {
+            barModel: root.currentData
+            maximumHeight: Math.max(Tokens.size.listItem,root.height-Tokens.spacing.small*4)
+            property int epoch: -1
+            Component.onCompleted: epoch = PopoutsState.epoch
+            onMenuClosed: if(epoch===PopoutsState.epoch) PopoutsState.closePopout()
         }
     }
 
     function popoutComponentFor(name) {
         switch (name) {
+        case "baroverflow": return barOverflowComponent;
+        case "trayoverflow": return trayOverflowComponent;
         case "traymenu":
             return trayMenuComponent;
         default:
@@ -229,41 +258,41 @@ PanelWindow {
     }
 
     function computeX(cardWidth, margin) {
-        if (!root.sourceItem || !root.screen)
+        if (!root.sourceItem || !root._screen)
             return margin;
 
         const globalPos = sourceGlobalPos();
-        const localX = globalPos.x - root.screen.x;
+        const localX = globalPos.x - root._screen.x;
         let menuX = localX + root.sourceItem.width / 2 - cardWidth / 2;
 
         if (menuX < margin)
             menuX = margin;
-        if (menuX + cardWidth > root.screen.width - margin)
-            menuX = root.screen.width - cardWidth - margin;
+        if (menuX + cardWidth > root._screen.width - margin)
+            menuX = root._screen.width - cardWidth - margin;
 
         return menuX;
     }
 
     function computeY(cardHeight, margin) {
-        if (!root.sourceItem || !root.screen)
+        if (!root.sourceItem || !root._screen)
             return margin;
 
         const globalPos = sourceGlobalPos();
-        const localY = globalPos.y - root.screen.y;
+        const localY = globalPos.y - root._screen.y;
         const barPosition = AppConfig.barPosition;
 
         let menuY = barPosition === "bottom" ? localY - cardHeight - margin : localY + root.sourceItem.height + margin;
 
         if (menuY < margin) {
             menuY = localY + root.sourceItem.height + margin;
-            if (menuY + cardHeight > root.screen.height - margin)
-                menuY = Math.max(margin, root.screen.height - cardHeight - margin);
+            if (menuY + cardHeight > root._screen.height - margin)
+                menuY = Math.max(margin, root._screen.height - cardHeight - margin);
         }
 
-        if (menuY + cardHeight > root.screen.height - margin) {
+        if (menuY + cardHeight > root._screen.height - margin) {
             menuY = localY - cardHeight - margin;
             if (menuY < margin)
-                menuY = Math.max(margin, root.screen.height - cardHeight - margin);
+                menuY = Math.max(margin, root._screen.height - cardHeight - margin);
         }
 
         return menuY;

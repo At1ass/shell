@@ -1,3 +1,4 @@
 module qs.components
 
 LoginForm 1.0 LoginForm.qml
+PowerActions 1.0 PowerActions.qml

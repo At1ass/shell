@@ -21,15 +21,15 @@ ShellRoot {
 
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.namespace: "greeter"
-            WlrLayershell.layer: WlrLayershell.Overlay
-            WlrLayershell.keyboardFocus: modelData === Quickshell.screens[0]
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: modelData.name === Quickshell.screens[0]?.name
                 ? WlrKeyboardFocus.Exclusive
                 : WlrKeyboardFocus.None
 
             GreeterSurface {
                 anchors.fill: parent
                 screen: greeterWindow.modelData
-                isPrimary: greeterWindow.modelData === Quickshell.screens[0]
+                isPrimary: greeterWindow.modelData.name === Quickshell.screens[0]?.name
             }
         }
     }

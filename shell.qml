@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.src.features.background
+import qs.src.features.audio
+import qs.src.features.connections
 import qs.src.features.dashboard
 import qs.src.features.launcher
 import qs.src.features.osd
@@ -25,6 +27,7 @@ ShellRoot {
     // Instantiate side-effect singletons (they exist only for their
     // Connections/Process children, so nothing else references them).
     Component.onCompleted: {
+        ServiceBootstrap.init()
         HyprlandWindowService.init()
         NetworkEventMonitor.init()
     }
@@ -70,7 +73,7 @@ ShellRoot {
                     }
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.namespace: "shell:wallpaper"
-                    WlrLayershell.layer: WlrLayershell.Background
+                    WlrLayershell.layer: WlrLayer.Background
 
                     Wallpaper {
                         anchors.fill: parent
@@ -89,22 +92,26 @@ ShellRoot {
     // retained is the QML tree inside it. See GlobalStates.panelRetained.
     // Lockscreen is deliberately NOT in this list: see the note on its loader.
 
+    LazyLoader {
+        active: AppConfig.moduleEnabled("connections") && (GlobalStates.connectionsOpen || GlobalStates.panelRetained("connections"))
+        ConnectionsPanel {}
+    }
+
+    LazyLoader {
+        active: AppConfig.moduleEnabled("audio") && (GlobalStates.audioOpen || GlobalStates.panelRetained("audio"))
+        AudioPanel {}
+    }
+
     // Dashboard
     LazyLoader {
         active: AppConfig.moduleEnabled("dashboard") && (GlobalStates.dashboardOpen || GlobalStates.panelRetained("dashboard"))
         Dashboard {}
     }
 
-    // Volume OSD
+    // One passive meter for volume and brightness.
     LazyLoader {
         active: AppConfig.moduleEnabled("osd")
-        VolumeOSD {}
-    }
-
-    // Brightness OSD
-    LazyLoader {
-        active: AppConfig.moduleEnabled("osd")
-        BrightnessOSD {}
+        SystemOSD {}
     }
 
     // Toast notifications

@@ -1,4 +1,5 @@
 #include "CalendarStore.h"
+#include <QThread>
 #include "Atomic.h"
 
 #include <QtCore/QDir>
@@ -37,6 +38,7 @@ QString expandTilde(QString p) {
 // Recursively scan for *.ics files. Tracks visited canonical paths to
 // guard against symlink loops.
 void scanIcsRecursive(const QString& dir, QStringList& out, QSet<QString>& seen) {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
     const QFileInfo here(dir);
     if (!here.exists()) return;
     const QString canonical = here.canonicalFilePath();
@@ -126,6 +128,7 @@ CalendarStore::~CalendarStore() = default;
 // ── Slots ─────────────────────────────────────────────────────────────
 
 void CalendarStore::rescanAll() {
+    if (QThread::currentThread()->isInterruptionRequested()) return;
     m_calendars = discoverCalendars();
     m_calendarPaths.clear();
     for (const auto& c : m_calendars)
@@ -133,12 +136,14 @@ void CalendarStore::rescanAll() {
 
     m_events.clear();
     for (const auto& cal : m_calendars) {
+        if (QThread::currentThread()->isInterruptionRequested()) return;
         // seenDirs is PER CALENDAR: a shared set attributed every event of
         // nested/duplicated khal paths to whichever calendar scanned first.
         QSet<QString> seenDirs;
         QStringList icsFiles;
         scanIcsRecursive(cal.path, icsFiles, seenDirs);
         for (const QString& path : icsFiles) {
+            if (QThread::currentThread()->isInterruptionRequested()) return;
             auto parsed = IcalParser::parseFile(path, cal.name);
             for (auto& ev : parsed) m_events.push_back(std::move(ev));
         }
@@ -963,6 +968,7 @@ void CalendarStore::rebuildWatchPaths() {
     // deep, so a one-level watch missed external edits further down.
     QStringList dirs;
     for (const auto& cal : m_calendars) {
+        if (QThread::currentThread()->isInterruptionRequested()) return;
         QSet<QString> seen;
         std::function<void(const QString&)> walk = [&](const QString& dirPath) {
             const QFileInfo here(dirPath);

@@ -59,8 +59,11 @@ BaseWallpaperSource {
     onRatiosChanged:      _onConfigChanged()
     onColorsChanged:      _onConfigChanged()
     onSeedChanged:        _onConfigChanged()
+    onApiKeyEnvVarChanged: _onConfigChanged()
 
     function _onConfigChanged() {
+        if (source._request) source._request.cancel()
+        loading = false
         _page = 1
         _appendOnNextRefresh = false
         _scheduleRefresh()
@@ -107,37 +110,27 @@ BaseWallpaperSource {
         if (apiKey.length > 0)      params.push("apikey=" + apiKey)
         const url = "https://wallhaven.cc/api/v1/search?" + params.join("&")
 
-        const xhr = new XMLHttpRequest()
-        xhr.open("GET", url, true)
-        xhr.timeout = 30000
-        // A failed page fetch must roll back the paging state, or the next
-        // refresh silently APPENDS (and the failed page is skipped forever).
-        const fail = function(msg) {
-            if (source._appendOnNextRefresh) {
-                source._appendOnNextRefresh = false
-                if (source._page > 1) source._page = source._page - 1
-            }
-            source._setError(msg)
-        }
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return
-            if (xhr.status === 0) {
-                fail("Wallhaven: network error")
-                return
-            }
-            if (xhr.status !== 200) {
-                fail("Wallhaven HTTP " + xhr.status)
-                return
-            }
+        source._request.get(url)
+    }
+
+    readonly property HttpRequest _request: HttpRequest {
+        timeoutMs: 30000
+        onSucceeded: body => {
             try {
-                source._populate(JSON.parse(xhr.responseText))
+                source._populate(JSON.parse(body))
             } catch (e) {
-                fail("Wallhaven parse: " + e.message)
+                source._fetchFailed("Wallhaven parse: " + e.message)
             }
         }
-        // Timeout also surfaces as readyState DONE with status 0 — the
-        // handler above covers it; a separate ontimeout double-fired.
-        xhr.send()
+        onFailed: message => source._fetchFailed("Wallhaven: " + message)
+    }
+
+    function _fetchFailed(message) {
+        if (_appendOnNextRefresh) {
+            _appendOnNextRefresh = false
+            if (_page > 1) _page--
+        }
+        source._setError(message)
     }
 
     function _populate(json) {

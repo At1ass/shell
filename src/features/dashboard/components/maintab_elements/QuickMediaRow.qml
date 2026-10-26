@@ -98,7 +98,7 @@ Item {
     // gutter itself -- and the SAME one, or the art starts on a different
     // vertical line from every toggle above it. It was `small` against a
     // `large` panel, which is why the player looked pasted on.
-    readonly property int gutter: Tokens.spacing.large
+    readonly property int gutter: Tokens.panelPadding
     readonly property int padding: Tokens.spacing.medium
 
     readonly property int rowHeight: Math.max(root.artSmall, labels.implicitHeight,

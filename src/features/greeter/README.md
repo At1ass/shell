@@ -1,165 +1,125 @@
-# Quickshell Greeter
+# Quickshell greeter
 
-A greetd greeter — login screen with a Material Design 3 UI. A standalone Quickshell configuration that runs independently of the main shell.
+Standalone greetd login UI, installed into `/usr/share/at1ass-shell/greeter` by
+`at1ass-shell-greeter`. It runs as the greeter user and reads configuration and
+wallpaper from `/etc/greetd`, independently of the logged-in shell and its home.
 
-## How it works
+The default minimal composition is clock/date, selected user and a single password
+row containing visibility, layout and login controls. There is no form backplate,
+avatar, notification content or media. Change user opens a local-user list with an
+Other user option; a preferred or single user starts with password focus. Multiple
+sessions use a dropdown; a single session needs no selector. Caps Lock is shown
+only when active. Small outputs scroll to keyboard-focused form controls.
 
-greetd starts Hyprland as the `greeter` user, Hyprland launches `qs -p .../greeter`, the greeter shows the login form and talks to greetd through `Quickshell.Services.Greetd` IPC. On successful authentication it launches the selected session and exits.
+A single power button opens Sleep/Restart/Shut down. Restart and shutdown need
+confirmation with Cancel focused first. System policy and inhibitors apply;
+failures appear in the menu. Opening/cancelling the menu preserves unsubmitted
+input; executing an action clears it and cancels pending authentication.
 
-At the bottom of the screen there are power buttons (shutdown, reboot, suspend) wired to `systemctl`, available without authentication.
+## Configuration
 
-## File layout
-
-```
-greeter/
-├── shell.qml                  — Entry point: fullscreen PanelWindow per monitor
-├── GreeterSurface.qml         — Wallpaper + blur + scrim + clock + form + Greetd IPC
-├── config/
-│   ├── GreeterConfig.qml      — Config and background from /etc/greetd/ (nothing from $HOME)
-│   ├── GreeterTheme.qml       — Material Design 3 theme (McuTheme)
-│   ├── SessionModel.qml       — Parses wayland-sessions/*.desktop and xsessions/*.desktop
-│   └── UserModel.qml          — Users from getent passwd (UID 1000–65533)
-├── components/
-│   └── LoginForm.qml          — Username + password + session selector + submit
-└── ui/                        — UI kit, GENERATED from src/ui via sync-ui.sh
-    ├── Tokens.qml             — from src/core/config/Tokens.qml (fontScale=1.3, no AppConfig)
-    ├── MaterialText.qml       — \
-    ├── MaterialIcon.qml       —  |
-    ├── MaterialButton.qml     —  } from src/ui/base/* and src/ui/feedback/StateLayer.qml
-    ├── IconButton.qml         —  |  (Theme→GreeterTheme, qs.src.core.config→qs.config)
-    ├── CircleAvatar.qml       — /
-    └── StateLayer.qml
-```
-
-### Regenerating the UI kit (`sync-ui.sh`)
-
-`ui/` contains **generated files; do not edit by hand**. The single source of truth is the main UI kit in `src/ui`. After changes to `src/ui`, sync the greeter:
-
-```bash
-src/features/greeter/sync-ui.sh
-```
-
-The script copies components from `src/ui/base` + `src/ui/feedback/StateLayer.qml` and `src/core/config/Tokens.qml`, applying mechanical rewrites (`Theme`→`GreeterTheme`, imports, `AppConfig.fontScale`→literal). This keeps the greeter from drifting from the main shell. The greeter is a separate process (greetd, before login), so its theme (`GreeterTheme`) and `Tokens` must differ from the main shell in their data source — but the component bodies are identical.
-
-## Installation
-
-### 1. greetd
-
-`/etc/greetd/config.toml`:
-
-```toml
-[terminal]
-vt = 1
-
-[default_session]
-command = "start-hyprland -- -c /etc/greetd/hyprland-greeter.conf"
-user = "greeter"
-```
-
-### 2. Hyprland config for the greeter
-
-`/etc/greetd/hyprland-greeter.conf`:
-
-```conf
-# Adapt monitors to your hardware
-monitor = DP-1, preferred, auto, 1
-
-# Installed as a package (packaging/arch, at1ass-shell-greeter): root-owned code,
-# no access to the user's home needed. This file itself ships in that package.
-exec-once = qs -p /usr/share/at1ass-shell/greeter || regreet; hyprctl dispatch exit
-
-# Running straight from a checkout instead (development):
-# exec-once = qs -p /home/<USER>/.config/quickshell/shell/src/features/greeter || regreet; hyprctl dispatch exit
-
-misc {
-    disable_hyprland_logo = true
-    disable_splash_rendering = true
-    disable_hyprland_guiutils_check = true
-}
-```
-
-### 3. Greeter configuration
-
-`/etc/greetd/greeter.json`:
+`/etc/greetd/greeter.json` is root-owned. Supported fields and complete defaults
+are in `config/greeter.schema.json` and `config/default.json`. Add this reference
+for editor validation:
 
 ```json
 {
+  "$schema": "/usr/share/at1ass-shell/greeter/config/greeter.schema.json",
   "wallpaperPath": "/etc/greetd/wallpaper.jpg",
+  "designSystem": "minimal",
+  "fontScale": 1.3,
+  "reduceMotion": false,
   "darkMode": true,
   "themeVariant": "vibrant",
   "themeColor": "#6200EE",
   "themeContrast": 0.0,
+  "blurWallpaper": true,
   "showClock": true,
+  "showDate": true,
+  "showBattery": true,
+  "showPower": true,
   "defaultUser": "",
-  "defaultSession": "Hyprland"
+  "defaultSession": "Hyprland (uwsm-managed)"
 }
 ```
 
-| Field            | Default     | Description                                                      |
-|------------------|-------------|------------------------------------------------------------------|
-| `darkMode`       | `true`      | Dark theme                                                       |
-| `themeVariant`   | `"vibrant"` | Material You variant (vibrant, tonalspot, etc.)                  |
-| `themeColor`     | `"#6200EE"` | Fallback seed color for theme generation (when there's no image) |
-| `themeContrast`  | `0.0`       | MCU contrast. `0.0` is standard M3; `1.0` is the accessibility high-contrast level, which flips `*Container` roles light in a dark scheme |
-| `showClock`      | `true`      | Show clock and date                                              |
-| `defaultUser`    | `""`        | Pre-fill the username                                            |
-| `defaultSession` | `""`        | Pre-select a session by name (e.g. `"Hyprland"`)                 |
-| `wallpaperPath`  | `""`        | Background image, e.g. `/etc/greetd/wallpaper.jpg`; also seeds the palette. Empty → solid `surfaceDim` |
+`designSystem` accepts minimal or md3; `fontScale` accepts 0.75–2. Clock/date are
+independent. Battery is shown only when present. An empty defaultUser selects the
+first local user; Other user allows an unlisted account. Invalid config falls
+back to defaults and reports validation errors in the form. The greeter never
+writes the configuration and does not need access to any user's home.
 
-### 4. Background image
+Copy the wallpaper into `/etc/greetd` and set wallpaperPath to that file. Its
+palette is generated by Mcu; with no image, themeColor supplies the palette seed.
 
-The greeter reads nothing from the user's home. Copy the image into `/etc/greetd/` by hand and point `wallpaperPath` in `greeter.json` at it; to change the background, copy a new one over it:
+## Packaging and installation
 
-```bash
-sudo install -Dm644 ~/wallpapers/3440x1440/some.jpg /etc/greetd/wallpaper.jpg
+The machine uses `packaging/arch/PKGBUILD`. The package builds from committed
+source, so local changes must be committed before building. Build/install as
+shown in the root README. This UI change requires an updated greeter package;
+installing it does not require restarting greetd during an active session.
+
+`/etc/greetd/greeter.json` and `hyprland-greeter.conf` are pacman backup files;
+local edits survive upgrades and new package defaults may arrive as `.pacnew`.
+The package's Hyprland config launches the root-owned installed greeter and keeps
+regreet as its fallback. Do not restore home-directory ACLs or wallpaper symlinks
+from older setups: the greeter needs neither.
+
+## Architecture
+
+- shell.qml: one fullscreen window per output; keyboard focus belongs to the first output.
+- GreeterSurface: background, responsive composition and power process.
+- config/GreeterAuth: greetd state, credential clearing and additional PAM prompts.
+- components/LoginForm: local/other user, single-row password and session dropdown.
+- components/PowerActions: keyboard-contained inline power confirmation.
+- config/UserModel and SessionModel: reactive facades over the native GreeterData
+  catalog. Filesystem reads, desktop decoding, Exec parsing and local account
+  enumeration run in an independent worker. The selected session ID survives
+  catalog reorder. Other user supports accounts absent from local /etc/passwd.
+- ui: generated shared primitives; config also receives generated ConfigValidator
+  and KeyboardLayoutService implementations from the main shell.
+
+Authentication sends the initial password once to the first hidden response
+request. Additional requests have their own prompt and respect echoResponse;
+they respond within the existing greetd session. Recoverable auth messages stay
+in the active conversation. Failure clears credentials and permits retry; Cancel
+terminates the owned conversation. The session argv is copied when login starts and is passed unchanged to greetd
+only after readyToLaunch. Quoted/empty arguments remain separate; shell variables
+and command substitutions remain literal. Desktop field codes expand once in C++.
+
+## Development and verification
+
+Edit shared primitives under src/ui, then run:
+
+```sh
+src/features/greeter/sync-ui.sh
+python3 tools/test-greeter.py
 ```
 
-The same image seeds the Material You palette (`Mcu`). Without one, `themeColor` seeds it and the background is a solid `surfaceDim`.
+The generator also copies the keyboard tracker and config validator and checks
+all generated files with `--check`. Tokens bind to GreeterConfig for profile,
+font scaling and reduced motion; they never read the user's AppConfig.
 
-Earlier versions followed the shell's current wallpaper through a `/etc/greetd/shell-state.json` symlink into `~/.config/quickshell/state.json`, plus ACLs on the wallpaper directory. That needed traverse (`x`) on the home directory for the `greeter` user — and traverse on `~` also opens every world-readable file below it, not just the ones the ACLs name. Remove the leftovers if present:
+Tests substitute greetd, keyboard and account/session data. They cover password
+failure/retry, additional and visible prompts, cancellation, user/session choice,
+Tab navigation and power confirmation without authenticating or powering off the
+host. Native previews render both profiles and a small output offscreen. The
+production config loader is checked against valid/invalid temporary files.
+Real greetd/PAM login and system power policy require manual acceptance at the
+normal login screen after installing the package.
 
-```bash
-sudo rm -f /etc/greetd/shell-state.json
-setfacl -R -x u:greeter ~/wallpapers
-```
+The native catalog searches /usr/local/share before /usr/share, separately for
+wayland-sessions and xsessions. A high-priority Hidden entry masks its lower-priority
+copy. Entries marked NoDisplay, unavailable TryExec/Exec binaries, terminal-only
+entries and malformed/unknown field codes are excluded. The backend reads only the
+Desktop Entry group, supports localized names/comments and bounds file size,
+argument count, session count and local user count. It does not read home directories
+or face files. Parsing never starts a process. Actual session startup still belongs
+to greetd; X11 entries need the appropriate X-server wrapper in their desktop Exec.
 
-> The greeter **code** is still loaded from `~/.config/quickshell/shell/src/features/greeter` (step 2), so `u:greeter:x` on `~`, `~/.config` and `~/.config/quickshell` stays necessary until the greeter is installed outside the home directory.
-
-### 5. Verifying
-
-```bash
-sudo -u greeter cat /etc/greetd/greeter.json
-sudo -u greeter test -r /etc/greetd/wallpaper.jpg && echo OK
-```
-
-## Greetd IPC flow
-
-```
-User enters credentials
-  → Greetd.createSession(username)
-  → onAuthMessage(msg, error, responseRequired, echoResponse)
-    → responseRequired=true → Greetd.respond(password)
-  → onReadyToLaunch()
-    → Greetd.launch(session.exec.split(" "), [], true)
-    → quit=true → quickshell exits → Hyprland exits → greetd launches the session
-  or onAuthFailure(message)
-    → shake animation + error message + retry
-```
-
-## Testing
-
-### UI without greetd (in a normal session)
-
-```bash
-qs -p ~/.config/quickshell/shell/src/features/greeter
-```
-
-Greetd IPC is unavailable — the UI renders but authentication will not work. Handy for visual checks, session and user parsing.
-
-### Full test through greetd
-
-Switch to a TTY (Ctrl+Alt+F1), log in, restart greetd:
-
-```bash
-sudo systemctl restart greetd
-```
+The native module ships with at1ass-shell-plugins and is required by this version
+of the greeter. The package requires a matching-or-newer plugins version. Install both updated
+packages together; a new greeter with an old
+plugin package cannot import GreeterData. Test the C++ parser with greeter_data_test,
+and the installed module's QML interface with tools/test-greeter-data.py. Both are
+read-only and never log in, suspend or acquire a session lock.

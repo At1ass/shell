@@ -47,14 +47,45 @@ Item {
         && selectedDate.getDate() === today.getDate()
 
     // Day-header labels rotated to start from AppConfig.calendarFirstDayOfWeek.
-    property var _dayNames: {
-        const all = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        const start = AppConfig.calendarFirstDayOfWeek
-        return all.slice(start).concat(all.slice(0, start))
+    readonly property var _dayNames: {
+        const result = []
+        for (let i = 0; i < 7; i++) {
+            const day = (AppConfig.calendarFirstDayOfWeek + i) % 7
+            result.push(Qt.locale().standaloneDayName(day === 0 ? 7 : day, Locale.ShortFormat))
+        }
+        return result
+    }
+    readonly property FontMetrics _dayMetrics: FontMetrics {
+        font.family: Tokens.typography.fontFamily
+        font.pixelSize: Tokens.typography.bodyMedium.size
+    }
+    readonly property real dayNumberWidth: {
+        const font = _dayMetrics.font
+        return _dayMetrics.advanceWidth("30")
+    }
+    readonly property real monthMinimum: 7 * Math.max(Tokens.size.control,
+        dayNumberWidth + Tokens.spacing.small * 2)
+        + Tokens.spacing.extraSmall * 6 + Tokens.spacing.small * 2
+    readonly property bool stacked: width - Tokens.panelPadding * 2
+        < monthMinimum + Tokens.size.fieldWidth + Tokens.spacing.medium
+
+    function goToToday() {
+        currentYear = today.getFullYear()
+        currentMonth = today.getMonth()
+        updateCalendar()
     }
 
     // Keyboard navigation
     property int focusedCellIndex: -1
+    onFocusedCellIndexChanged: {
+        // A grid is one stop in the Tab chain. Move actual focus only if the
+        // user is already in it; async event loads must never steal focus.
+        const focus = root.Window.window?.activeFocusItem
+        if (focus?.parent === monthGrid) {
+            const cell = dayRepeater.itemAt(root.focusedCellIndex)
+            if (cell) cell.forceActiveFocus(Qt.OtherFocusReason)
+        }
+    }
 
     function moveFocusBy(delta) {
         if (focusedCellIndex < 0) _initFocusedCell()
@@ -159,8 +190,6 @@ Item {
     }
 
     function updateCalendar() {
-        const date = new Date(currentYear, currentMonth, 1)
-        monthText.text = Qt.formatDate(date, "MMMM yyyy")
         generateCalendar()
         _initFocusedCell()
 
@@ -189,525 +218,600 @@ Item {
 
     // What this tab needs, so the window can be sized to it instead of to a
     // constant kept in a table indexed by tab number. See Dashboard.qml.
-    readonly property int contentHeight: panels.implicitHeight + Tokens.panelPadding * 2
+    readonly property int contentHeight: panels.implicitHeight + calendarScroll.contentPadding * 2
 
-    RowLayout {
-        id: panels
+    ScrollableList {
+        id: calendarScroll
         anchors.fill: parent
-        anchors.margins: Tokens.panelPadding
-        spacing: Tokens.spacing.large
-
-        // Left panel — month grid
-        MaterialCard {
+        contentPadding: root.stacked ? Tokens.spacing.extraSmall : Tokens.panelPadding
+        GridLayout {
+            id: panels
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
-            radius: Tokens.shape.large
+            columns: root.stacked ? 1 : 2
+            columnSpacing: Tokens.spacing.medium
+            rowSpacing: Tokens.spacing.medium
 
-            // Stated, because a Pane does not learn it. The column below fills
-            // this card by ANCHORS, and an anchored child contributes nothing to
-            // its parent's implicit size -- so the card reported almost nothing,
-            // the tab's measured height came out short, and the grid was
-            // squeezed until the last row of days lost its hover ring.
-            implicitHeight: monthColumn.implicitHeight + Tokens.spacing.large * 2
+            // Left panel — month grid
+            MaterialCard {
+                id: monthCard
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: root.monthMinimum
+                color: Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
-            ColumnLayout {
-                id: monthColumn
-                anchors.fill: parent
-                anchors.margins: Tokens.spacing.large
-                spacing: Tokens.spacing.medium
+                // Stated, because a Pane does not learn it. The column below fills
+                // this card by ANCHORS, and an anchored child contributes nothing to
+                // its parent's implicit size -- so the card reported almost nothing,
+                // the tab's measured height came out short, and the grid was
+                // squeezed until the last row of days lost its hover ring.
+                implicitHeight: monthColumn.implicitHeight + Tokens.spacing.small * 2
 
-                // Month navigation
-                RowLayout {
-                    Layout.fillWidth: true
+                ColumnLayout {
+                    id: monthColumn
+                    anchors.fill: parent
+                    anchors.margins: Tokens.spacing.small
+                    spacing: Tokens.spacing.medium
 
-                    IconButton {
-                        variant: "standard"
-                        iconName: "chevron_left"
-                        iconSize: Tokens.iconSize.large
-                        onClicked: root.goToPrevMonth()
-                    }
+                    // Month navigation
+                    RowLayout {
+                        Layout.fillWidth: true
 
-                    Item { Layout.fillWidth: true }
+                        IconButton {
+                            variant: "standard"
+                            Accessible.name: "Previous month"
+                            iconName: "chevron_left"
+                            iconSize: Tokens.iconSize.large
+                            onClicked: root.goToPrevMonth()
+                        }
 
-                    MaterialText {
-                        id: monthText
-                        text: "June 2025"
-                        textStyle: "titleLarge"
-                        colorRole: "onSurface"
-                        font.weight: Font.Medium
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    IconButton {
-                        variant: "standard"
-                        iconName: "chevron_right"
-                        iconSize: Tokens.iconSize.large
-                        onClicked: root.goToNextMonth()
-                    }
-                }
-
-                // Day headers
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: 7
-                    columnSpacing: 8
-                    rowSpacing: 4
-                    uniformCellWidths: true
-                    uniformCellHeights: true
-
-                    Repeater {
-                        model: root._dayNames
                         MaterialText {
-                            id: dayNameLabel
-                            required property string modelData
-
-                            text: dayNameLabel.modelData
-                            textStyle: "labelSmall"
-                            colorRole: "onSurfaceVariant"
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: Qt.formatDate(new Date(root.currentYear, root.currentMonth, 1), "MMMM yyyy")
+                            textStyle: "titleLarge"
+                            colorRole: "onSurface"
                             font.weight: Font.Medium
+                        }
+
+                        IconButton {
+                            variant: "standard"
+                            Accessible.name: "Next month"
+                            iconName: "chevron_right"
+                            iconSize: Tokens.iconSize.large
+                            onClicked: root.goToNextMonth()
                         }
                     }
 
-                    // Calendar cells
-                    Repeater {
-                        model: calendarDays
+                    MaterialButton {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "Today"
+                        variant: "text"
+                        enabled: !root.todayIsSelected || root.currentMonth !== root.today.getMonth()
+                            || root.currentYear !== root.today.getFullYear()
+                        onClicked: root.goToToday()
+                    }
 
-                        delegate: Rectangle {
-                            id: dayCell
+                    // Day headers
+                    GridLayout {
+                        id: monthGrid
+                        Layout.fillWidth: true
+                        columns: 7
+                        columnSpacing: root.stacked ? Tokens.spacing.none : Tokens.spacing.extraSmall
+                        rowSpacing: Tokens.spacing.extraSmall
+                        uniformCellWidths: true
+                        uniformCellHeights: true
 
-                            // Under `pragma ComponentBehavior: Bound` a delegate
-                            // must declare what it takes from the model rather
-                            // than inheriting it from the enclosing context.
-                            required property var model
-                            required property int index
+                        Repeater {
+                            model: root._dayNames
+                            MaterialText {
+                                id: dayNameLabel
+                                required property string modelData
 
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 44
-                            radius: Tokens.shape.pill
-
-                            property bool isToday: root.isSameDate(dayCell.model.date, root.today)
-                            property bool isSelected: root.isSameDate(dayCell.model.date, root.selectedDate)
-                            property bool isFocused: dayCell.index === root.focusedCellIndex
-                            // The dot Repeater's model is an INT — inside it,
-                            // `model.<role>` is shadowed and reads undefined.
-                            readonly property bool inCurrentMonth: dayCell.model.isCurrentMonth
-                            // Reading eventsByDate makes this binding reactive
-                            property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(dayCell.model.date, "yyyy-MM-dd")] || []
-                            property int eventCount: dayCell.dayList.length
-
-                            // Today wins fill; selection layers an outline on top of today;
-                            // focus always shows as a tertiary outline (overrides selection outline).
-                            color: {
-                                if (dayCell.isToday) return Theme.primary
-                                if (dayCell.isSelected) return Theme.secondaryContainer
-                                if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
-                                return "transparent"
+                                elide: Text.ElideRight
+                                text: dayNameLabel.modelData
+                                textStyle: "labelSmall"
+                                colorRole: "onSurfaceVariant"
+                                Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                                font.weight: Font.Medium
                             }
+                        }
 
-                            border.width: dayCell.isFocused ? 2 : (dayCell.isSelected && dayCell.isToday ? 2 : 0)
-                            border.color: dayCell.isFocused ? Theme.tertiary : Theme.onPrimary
+                        // Calendar cells
+                        Repeater {
+                            id: dayRepeater
+                            model: calendarDays
 
-                            Behavior on color {
-                                MotionColorAnimation {
-                                    duration: Tokens.motion.duration.short4
-                                    curve: "standard"
+                            delegate: Surface {
+                                id: dayCell
+
+                                // Under `pragma ComponentBehavior: Bound` a delegate
+                                // must declare what it takes from the model rather
+                                // than inheriting it from the enclosing context.
+                                required property var model
+                                required property int index
+
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Math.max(Tokens.size.control, Tokens.typography.bodyMedium.lineHeight + Tokens.spacing.medium)
+                                radius: Tokens.shape.pill
+
+                                property bool isToday: root.isSameDate(dayCell.model.date, root.today)
+                                property bool isSelected: root.isSameDate(dayCell.model.date, root.selectedDate)
+                                property bool isFocused: dayCell.index === root.focusedCellIndex
+                                // The dot Repeater's model is an INT — inside it,
+                                // `model.<role>` is shadowed and reads undefined.
+                                readonly property bool inCurrentMonth: dayCell.model.isCurrentMonth
+                                // Reading eventsByDate makes this binding reactive
+                                property var dayList: CalendarBackend.eventsByDate[Qt.formatDate(dayCell.model.date, "yyyy-MM-dd")] || []
+                                property int eventCount: dayCell.dayList.length
+
+                                // Today wins fill; selection layers an outline on top of today;
+                                // focus always shows as a tertiary outline (overrides selection outline).
+                                color: {
+                                    if (dayCell.isToday) return Theme.primary
+                                    if (dayCell.isSelected) return Theme.secondaryContainer
+                                    if (dayMouseArea.containsMouse) return Theme.surfaceContainerHighest
+                                    return "transparent"
                                 }
-                            }
 
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 2
-
-                                MaterialText {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: dayCell.model.day
-                                    textStyle: "bodyMedium"
-                                    colorRole: {
-                                        if (dayCell.isToday) return "onPrimary"
-                                        if (dayCell.isSelected) return "onSecondaryContainer"
-                                        if (!dayCell.inCurrentMonth) return "onSurfaceVariant"
-                                        return "onSurface"
+                                outlined: dayCell.isFocused || (dayCell.isSelected && dayCell.isToday)
+                                outlineColor: dayCell.isFocused ? Theme.tertiary : Theme.onPrimary
+                                activeFocusOnTab: dayCell.isFocused || dayCell.activeFocus
+                                onActiveFocusChanged: if (activeFocus) root.focusedCellIndex = dayCell.index
+                                Accessible.role: Accessible.Button
+                                Accessible.name: Qt.formatDate(dayCell.model.date, "dddd, MMMM d, yyyy")
+                                Accessible.onPressAction: dayCell._select()
+                                function _select() {
+                                    root.focusedCellIndex = dayCell.index
+                                    root.selectFocused()
+                                }
+                                Keys.onPressed: event => {
+                                    switch (event.key) {
+                                    case Qt.Key_Left: root.moveFocusBy(-1); break
+                                    case Qt.Key_Right: root.moveFocusBy(1); break
+                                    case Qt.Key_Up: root.moveFocusBy(-7); break
+                                    case Qt.Key_Down: root.moveFocusBy(7); break
+                                    case Qt.Key_Return:
+                                    case Qt.Key_Enter:
+                                    case Qt.Key_Space: dayCell._select(); break
+                                    default: return
                                     }
-                                    font.weight: dayCell.isToday || dayCell.isSelected ? Font.Bold : Font.Normal
-                                    opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
+                                    event.accepted = true
+                                }
+                                StateLayer { target: dayCell; anchors.fill: parent; focused: dayCell.activeFocus; layerColor: Theme.onSurface }
+
+                                Behavior on color {
+                                    MotionColorAnimation {
+                                        duration: Tokens.motion.duration.short4
+                                        curve: "standard"
+                                    }
                                 }
 
-                                // Event indicator dots
-                                Row {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    spacing: 3
-                                    visible: dayCell.eventCount > 0
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
 
-                                    Repeater {
-                                        model: Math.min(dayCell.eventCount, 3)
+                                    MaterialText {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: dayCell.model.day
+                                        textStyle: "bodyMedium"
+                                        colorRole: {
+                                            if (dayCell.isToday) return "onPrimary"
+                                            if (dayCell.isSelected) return "onSecondaryContainer"
+                                            if (!dayCell.inCurrentMonth) return "onSurfaceVariant"
+                                            return "onSurface"
+                                        }
+                                        font.weight: dayCell.isToday || dayCell.isSelected ? Font.Bold : Font.Normal
+                                        opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
+                                    }
 
-                                        Rectangle {
-                                            width: 4
-                                            height: 4
-                                            radius: Tokens.shape.full
-                                            color: dayCell.isToday ? Theme.onPrimary
-                                                : dayCell.isSelected ? Theme.onSecondaryContainer
-                                                : Theme.primary
-                                            opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
+                                    // Event indicator dots
+                                    Row {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 3
+                                        visible: dayCell.eventCount > 0
+
+                                        Repeater {
+                                            model: Math.min(dayCell.eventCount, 3)
+
+                                            MaterialIndicator {
+                                                size: "extraSmall"
+                                                animated: false
+                                                color: dayCell.isToday ? Theme.onPrimary
+                                                    : dayCell.isSelected ? Theme.onSecondaryContainer
+                                                    : Theme.primary
+                                                opacity: dayCell.inCurrentMonth ? 1.0 : 0.5
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            MouseArea {
-                                id: dayMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                MouseArea {
+                                    id: dayMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
 
-                                onClicked: {
-                                    root.selectedDate = dayCell.model.date
-                                    root.focusedCellIndex = dayCell.index
-                                    CalendarBackend.loadEventsForDate(dayCell.model.date)
+                                    onClicked: {
+                                        dayCell.forceActiveFocus(Qt.MouseFocusReason)
+                                        dayCell._select()
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        // Right panel — day view timeline
-        MaterialCard {
-            Layout.preferredWidth: 320
-            Layout.fillHeight: true
-            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
-            radius: Tokens.shape.large
+            // Right panel — day view timeline
+            MaterialCard {
+                id: dayCard
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: Tokens.size.fieldWidth
+                implicitHeight: dayColumn.implicitHeight + Tokens.spacing.medium * 2
+                color: Theme.surfaceContainerHigh
+                radius: Tokens.shape.large
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: Tokens.spacing.medium
-                spacing: Tokens.spacing.small
+                ColumnLayout {
+                    id: dayColumn
+                    anchors.fill: parent
+                    anchors.margins: Tokens.spacing.medium
+                    spacing: Tokens.spacing.small
 
-                // Date header
-                MaterialText {
-                    text: Qt.formatDate(root.selectedDate, "dddd, MMMM d")
-                    textStyle: "titleMedium"
-                    colorRole: "onSurface"
-                    font.weight: Font.Medium
-                    Layout.fillWidth: true
-                }
+                    // Date header
+                    MaterialText {
+                        text: Qt.formatDate(root.selectedDate, "dddd, MMMM d")
+                        wrapMode: Text.Wrap
+                        textStyle: "titleMedium"
+                        colorRole: "onSurface"
+                        font.weight: Font.Medium
+                        Layout.fillWidth: true
+                    }
 
-                // All-day events section
-                Flow {
-                    id: flow
-                    Layout.fillWidth: true
-                    spacing: Tokens.spacing.extraSmall
-                    visible: _allDayEvents.length > 0
+                    // All-day events section
+                    Flow {
+                        id: flow
+                        Layout.fillWidth: true
+                        spacing: Tokens.spacing.extraSmall
+                        visible: _allDayEvents.length > 0
 
-                    property var _allDayEvents: root.selectedDayEvents.filter(ev => ev.allDay)
+                        property var _allDayEvents: root.selectedDayEvents.filter(ev => ev.allDay)
 
-                    Repeater {
-                        model: parent._allDayEvents
+                        Repeater {
+                            model: parent._allDayEvents
 
-                        Rectangle {
-                            id: allDayChip
-                            required property var modelData
+                            Surface {
+                                id: allDayChip
+                                required property var modelData
 
-                            property int maxWidth: flow.width
+                                property int maxWidth: flow.width
+                                activeFocusOnTab: true
+                                Accessible.role: Accessible.Button
+                                Accessible.name: allDayChip.modelData.title
+                                Accessible.onPressAction: allDayChip._edit()
+                                function _edit() { eventDialog.openDialog(true, allDayChip.modelData, root.selectedDate) }
+                                Keys.onPressed: event => {
+                                    if (event.key !== Qt.Key_Return && event.key !== Qt.Key_Enter && event.key !== Qt.Key_Space) return
+                                    if (!event.isAutoRepeat) allDayChip._edit()
+                                    event.accepted = true
+                                }
+                                StateLayer { target: allDayChip; anchors.fill: parent; focused: allDayChip.activeFocus; layerColor: Theme.onTertiaryContainer }
 
-                            width: Math.min(
-                                allDayLabel.implicitWidth + Tokens.spacing.medium * 2,
-                                allDayChip.maxWidth
-                            )
-                            height: allDayLabel.implicitHeight + Tokens.spacing.extraSmall * 2
-                            radius: Tokens.shape.small
-                            color: Theme.tertiaryContainer
+                                width: Math.min(
+                                    allDayLabel.implicitWidth + Tokens.spacing.medium * 2,
+                                    allDayChip.maxWidth
+                                )
+                                height: allDayLabel.implicitHeight + Tokens.spacing.extraSmall * 2
+                                radius: Tokens.shape.small
+                                color: Theme.tertiaryContainer
 
-                            MaterialText {
-                                id: allDayLabel
-                                anchors.centerIn: parent
-                                text: allDayChip.modelData.title
-                                textStyle: "labelMedium"
-                                colorRole: "onTertiaryContainer"
-                                wrapMode: Text.WordWrap
-                                width: parent.width - Tokens.spacing.medium * 2
-                            }
+                                MaterialText {
+                                    id: allDayLabel
+                                    anchors.centerIn: parent
+                                    text: allDayChip.modelData.title
+                                    textStyle: "labelMedium"
+                                    colorRole: "onTertiaryContainer"
+                                    wrapMode: Text.WordWrap
+                                    width: parent.width - Tokens.spacing.medium * 2
+                                }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: eventDialog.openDialog(true, allDayChip.modelData, root.selectedDate)
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { allDayChip.forceActiveFocus(Qt.MouseFocusReason); allDayChip._edit() }
+                                }
                             }
                         }
                     }
-                }
 
-                Divider {
-                    Layout.fillWidth: true
-                    visible: root.selectedDayEvents.length > 0
-                }
+                    Divider {
+                        Layout.fillWidth: true
+                        visible: root.selectedDayEvents.length > 0
+                    }
 
-                // Timeline scroll view
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    ListItem {
+                        Layout.fillWidth: true
+                        visible: root.selectedDayEvents.length === 0
+                        clickable: false
+                        margin: 0
+                        headline: "No events"
+                        supportingText: CalendarBackend.calendars.length > 0 ? "Your day is free" : "No calendar connected"
+                        leadingIcon: "event_available"
+                    }
 
-                    Flickable {
-                        id: timelineFlickable
-                        anchors.fill: parent
-                        contentHeight: timelineColumn.height
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
+                    // Keep the 24-hour ruler out of empty days and all-day-only views.
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredHeight: Tokens.size.fieldWidth
+                        visible: root.selectedDayEvents.some(ev => !ev.allDay)
 
-                        ScrollBar.vertical: ScrollBar {
-                            active: timelineFlickable.moving || hovered
-                            policy: ScrollBar.AsNeeded
-                        }
+                        Flickable {
+                            id: timelineFlickable
+                            anchors.fill: parent
+                            contentHeight: timelineColumn.height
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
 
-                        // Auto-scroll to current hour once height is known.
-                        // Component.onCompleted runs while height is still 0 in
-                        // a lazy-loaded StackLayout/Loader chain.
-                        property bool _didAutoScroll: false
-                        onHeightChanged: {
-                            if (_didAutoScroll || height <= 0) return
-                            if (!root.isSameDate(root.selectedDate, root.today)) {
-                                _didAutoScroll = true
-                                return
+                            ScrollBar.vertical: ScrollBar {
+                                active: timelineFlickable.moving || hovered
+                                policy: ScrollBar.AsNeeded
                             }
-                            const hour = new Date().getHours()
-                            const targetY = Math.max(0, (hour - 1) * AppConfig.calendarDayViewHourHeight)
-                            contentY = Math.min(targetY, Math.max(0, contentHeight - height))
-                            _didAutoScroll = true
-                        }
 
-                        Item {
-                            id: timelineColumn
-                            width: timelineFlickable.width
-                            height: 24 * AppConfig.calendarDayViewHourHeight
+                            // Auto-scroll to current hour once height is known.
+                            // Component.onCompleted runs while height is still 0 in
+                            // a lazy-loaded StackLayout/Loader chain.
+                            property bool _didAutoScroll: false
+                            onHeightChanged: {
+                                if (_didAutoScroll || height <= 0) return
+                                if (!root.isSameDate(root.selectedDate, root.today)) {
+                                    _didAutoScroll = true
+                                    return
+                                }
+                                const hour = new Date().getHours()
+                                const targetY = Math.max(0, (hour - 1) * AppConfig.calendarDayViewHourHeight)
+                                contentY = Math.min(targetY, Math.max(0, contentHeight - height))
+                                _didAutoScroll = true
+                            }
 
-                            // Hour lines and labels
-                            Repeater {
-                                model: 24
+                            Item {
+                                id: timelineColumn
+                                width: timelineFlickable.width
+                                height: 24 * AppConfig.calendarDayViewHourHeight
 
-                                Item {
-                                    id: hourRow
-                                    required property int index
+                                // Hour lines and labels
+                                Repeater {
+                                    model: 24
 
-                                    x: 0
-                                    y: hourRow.index * AppConfig.calendarDayViewHourHeight
-                                    width: timelineColumn.width
-                                    height: AppConfig.calendarDayViewHourHeight
+                                    Item {
+                                        id: hourRow
+                                        required property int index
 
-                                    MaterialText {
-                                        anchors.left: parent.left
-                                        anchors.top: parent.top
-                                        anchors.topMargin: -6
-                                        text: (hourRow.index < 10 ? "0" : "") + hourRow.index + ":00"
-                                        textStyle: "labelSmall"
-                                        colorRole: "onSurfaceVariant"
-                                        width: 36
-                                    }
+                                        x: 0
+                                        y: hourRow.index * AppConfig.calendarDayViewHourHeight
+                                        width: timelineColumn.width
+                                        height: AppConfig.calendarDayViewHourHeight
 
-                                    Rectangle {
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 40
-                                        anchors.right: parent.right
-                                        anchors.top: parent.top
-                                        height: 1
-                                        color: Theme.outlineVariant
-                                        opacity: 0.5
+                                        MaterialText {
+                                            anchors.left: parent.left
+                                            anchors.top: parent.top
+                                            anchors.topMargin: -6
+                                            text: (hourRow.index < 10 ? "0" : "") + hourRow.index + ":00"
+                                            textStyle: "labelSmall"
+                                            colorRole: "onSurfaceVariant"
+                                            width: 36
+                                        }
+
+                                        Surface {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 40
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            height: 1
+                                            color: Theme.outlineVariant
+                                            opacity: 0.5
+                                        }
                                     }
                                 }
-                            }
 
-                            // Current time indicator. DateTime.clock ticks
-                            // per minute, so `y` is a plain reactive binding —
-                            // no timer needed (the old one also ran while the
-                            // line was hidden: Timer has no `visible`, so
-                            // `running: visible` bound to the TAB's).
-                            Rectangle {
-                                visible: root.todayIsSelected
-                                x: 38
-                                width: timelineColumn.width - 38
-                                height: 2
-                                radius: Tokens.shape.full
-                                color: Theme.error
-                                y: (DateTime.clock.date.getHours()
-                                    + DateTime.clock.date.getMinutes() / 60)
-                                   * AppConfig.calendarDayViewHourHeight
-
+                                // Current time indicator. DateTime.clock ticks
+                                // per minute, so `y` is a plain reactive binding —
+                                // no timer needed (the old one also ran while the
+                                // line was hidden: Timer has no `visible`, so
+                                // `running: visible` bound to the TAB's).
                                 Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: -4
-                                    width: 8
-                                    height: 8
+                                    visible: root.todayIsSelected
+                                    x: 38
+                                    width: timelineColumn.width - 38
+                                    height: 2
                                     radius: Tokens.shape.full
                                     color: Theme.error
-                                }
-                            }
-
-                            // Event cards. Hours are clamped to the VIEWED
-                            // day (multi-day events drew at their start-day
-                            // clock position on continuation days), and
-                            // overlapping events are laid out into columns —
-                            // parallel meetings used to fully occlude each
-                            // other, making the covered one unclickable.
-                            Repeater {
-                                model: {
-                                    const dayStart = new Date(root.selectedDate)
-                                    dayStart.setHours(0, 0, 0, 0)
-                                    const dayEnd = new Date(dayStart)
-                                    dayEnd.setDate(dayEnd.getDate() + 1)
-
-                                    const items = root.selectedDayEvents
-                                        .filter(ev => !ev.allDay && ev.start)
-                                        .map(ev => {
-                                            const s = ev.start < dayStart ? 0
-                                                : ev.start.getHours() + ev.start.getMinutes() / 60
-                                            let e
-                                            if (!ev.end) e = s + 1
-                                            else if (ev.end >= dayEnd) e = 24
-                                            else e = ev.end.getHours() + ev.end.getMinutes() / 60
-                                            if (e <= s) e = s + 0.5
-                                            return { ev: ev, s: s, e: e, col: 0, cols: 1 }
-                                        })
-                                        .sort((a, b) => (a.s - b.s) || (b.e - a.e))
-
-                                    // Greedy column assignment inside overlap clusters.
-                                    let cluster = []
-                                    let clusterEnd = -1
-                                    const flush = () => {
-                                        const n = Math.max(...cluster.map(i => i.col)) + 1
-                                        for (const i of cluster) i.cols = n
-                                        cluster = []
-                                        clusterEnd = -1
-                                    }
-                                    for (const it of items) {
-                                        if (cluster.length > 0 && it.s >= clusterEnd) flush()
-                                        const used = cluster.filter(c => c.e > it.s).map(c => c.col)
-                                        let col = 0
-                                        while (used.indexOf(col) !== -1) col++
-                                        it.col = col
-                                        cluster.push(it)
-                                        clusterEnd = Math.max(clusterEnd, it.e)
-                                    }
-                                    if (cluster.length > 0) flush()
-                                    return items
-                                }
-
-                                Rectangle {
-                                    readonly property var ev: modelData.ev
-                                    readonly property real startHour: modelData.s
-                                    readonly property real endHour: modelData.e
-                                    readonly property real durationHours: Math.max(0.5, endHour - startHour)
-                                    readonly property real _colWidth: (timelineColumn.width - 48) / modelData.cols
-
-                                    x: 44 + modelData.col * _colWidth
-                                    y: startHour * AppConfig.calendarDayViewHourHeight
-                                    width: _colWidth - (modelData.cols > 1 ? 2 : 0)
-                                    height: Math.max(30, durationHours * AppConfig.calendarDayViewHourHeight - 2)
-                                    radius: Tokens.shape.small
-                                    color: Theme.primaryContainer
+                                    y: (DateTime.clock.date.getHours()
+                                        + DateTime.clock.date.getMinutes() / 60)
+                                       * AppConfig.calendarDayViewHourHeight
 
                                     Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
-                                        anchors.top: parent.top
-                                        anchors.bottom: parent.bottom
-                                        width: 4
+                                        anchors.leftMargin: -4
+                                        width: 8
+                                        height: 8
                                         radius: Tokens.shape.full
-                                        color: Theme.primary
+                                        color: Theme.error
+                                    }
+                                }
+
+                                // Event cards. Hours are clamped to the VIEWED
+                                // day (multi-day events drew at their start-day
+                                // clock position on continuation days), and
+                                // overlapping events are laid out into columns —
+                                // parallel meetings used to fully occlude each
+                                // other, making the covered one unclickable.
+                                Repeater {
+                                    model: {
+                                        const dayStart = new Date(root.selectedDate)
+                                        dayStart.setHours(0, 0, 0, 0)
+                                        const dayEnd = new Date(dayStart)
+                                        dayEnd.setDate(dayEnd.getDate() + 1)
+
+                                        const items = root.selectedDayEvents
+                                            .filter(ev => !ev.allDay && ev.start)
+                                            .map(ev => {
+                                                const s = ev.start < dayStart ? 0
+                                                    : ev.start.getHours() + ev.start.getMinutes() / 60
+                                                let e
+                                                if (!ev.end) e = s + 1
+                                                else if (ev.end >= dayEnd) e = 24
+                                                else e = ev.end.getHours() + ev.end.getMinutes() / 60
+                                                if (e <= s) e = s + 0.5
+                                                return { ev: ev, s: s, e: e, col: 0, cols: 1 }
+                                            })
+                                            .sort((a, b) => (a.s - b.s) || (b.e - a.e))
+
+                                        // Greedy column assignment inside overlap clusters.
+                                        let cluster = []
+                                        let clusterEnd = -1
+                                        const flush = () => {
+                                            const n = Math.max(...cluster.map(i => i.col)) + 1
+                                            for (const i of cluster) i.cols = n
+                                            cluster = []
+                                            clusterEnd = -1
+                                        }
+                                        for (const it of items) {
+                                            if (cluster.length > 0 && it.s >= clusterEnd) flush()
+                                            const used = cluster.filter(c => c.e > it.s).map(c => c.col)
+                                            let col = 0
+                                            while (used.indexOf(col) !== -1) col++
+                                            it.col = col
+                                            cluster.push(it)
+                                            clusterEnd = Math.max(clusterEnd, it.e)
+                                        }
+                                        if (cluster.length > 0) flush()
+                                        return items
                                     }
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: parent.radius
-                                        color: Theme.onSurface
-                                        opacity: eventCardMouse.containsMouse ? Tokens.stateLayer.hoverOpacity : 0
-                                    }
+                                    Surface {
+                                        id: eventCard
+                                        required property var modelData
+                                        readonly property var ev: modelData.ev
+                                        readonly property real startHour: modelData.s
+                                        readonly property real endHour: modelData.e
+                                        readonly property real durationHours: Math.max(0.5, endHour - startHour)
+                                        readonly property real _colWidth: (timelineColumn.width - 48) / modelData.cols
 
-                                    Column {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: Tokens.spacing.small + 4
-                                        anchors.rightMargin: Tokens.spacing.small
-                                        anchors.topMargin: Tokens.spacing.extraSmall
-                                        anchors.bottomMargin: Tokens.spacing.extraSmall
-                                        spacing: 1
-                                        clip: true
+                                        activeFocusOnTab: true
+                                        Accessible.role: Accessible.Button
+                                        Accessible.name: eventCard.ev.title
+                                        Accessible.onPressAction: eventCard._edit()
+                                        function _edit() { eventDialog.openDialog(true, eventCard.ev, root.selectedDate) }
+                                        onActiveFocusChanged: {
+                                            if (!activeFocus) return
+                                            const top = y
+                                            const bottom = y + height
+                                            if (top < timelineFlickable.contentY) timelineFlickable.contentY = top
+                                            else if (bottom > timelineFlickable.contentY + timelineFlickable.height)
+                                                timelineFlickable.contentY = Math.max(0, Math.min(top, bottom - timelineFlickable.height))
+                                        }
+                                        Keys.onPressed: event => {
+                                            if (event.key !== Qt.Key_Return && event.key !== Qt.Key_Enter && event.key !== Qt.Key_Space) return
+                                            if (!event.isAutoRepeat) eventCard._edit()
+                                            event.accepted = true
+                                        }
+                                        x: 44 + modelData.col * _colWidth
+                                        y: startHour * AppConfig.calendarDayViewHourHeight
+                                        width: _colWidth - (modelData.cols > 1 ? 2 : 0)
+                                        height: Math.max(30, durationHours * AppConfig.calendarDayViewHourHeight - 2)
+                                        radius: Tokens.shape.small
+                                        color: Theme.primaryContainer
 
-                                        MaterialText {
-                                            text: ev.title
-                                            textStyle: "labelMedium"
-                                            colorRole: "onPrimaryContainer"
-                                            elide: Text.ElideRight
-                                            width: parent.width
-                                            font.weight: Font.Medium
+                                        Surface {
+                                            anchors.left: parent.left
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            width: 4
+                                            radius: Tokens.shape.full
+                                            color: Theme.primary
                                         }
 
-                                        MaterialText {
-                                            text: Qt.formatTime(ev.start, "HH:mm")
-                                                + (ev.end ? " – " + Qt.formatTime(ev.end, "HH:mm") : "")
-                                            textStyle: "labelSmall"
-                                            colorRole: "onPrimaryContainer"
-                                            opacity: 0.8
-                                            visible: parent.height > 28
+                                        StateLayer {
+                                            target: eventCard
+                                            anchors.fill: parent
+                                            layerColor: Theme.onPrimaryContainer
+                                            hovered: eventCardMouse.containsMouse
+                                            pressed: eventCardMouse.pressed
+                                            focused: eventCard.activeFocus
                                         }
 
-                                        MaterialText {
-                                            text: ev.location || ""
-                                            textStyle: "labelSmall"
-                                            colorRole: "onPrimaryContainer"
-                                            opacity: 0.6
-                                            visible: text.length > 0 && parent.height > 44
-                                            elide: Text.ElideRight
-                                            width: parent.width
-                                        }
-                                    }
+                                        Column {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: Tokens.spacing.small + 4
+                                            anchors.rightMargin: Tokens.spacing.small
+                                            anchors.topMargin: Tokens.spacing.extraSmall
+                                            anchors.bottomMargin: Tokens.spacing.extraSmall
+                                            spacing: 1
+                                            clip: true
 
-                                    MouseArea {
-                                        id: eventCardMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: eventDialog.openDialog(true, ev, root.selectedDate)
+                                            MaterialText {
+                                                text: ev.title
+                                                textStyle: "labelMedium"
+                                                colorRole: "onPrimaryContainer"
+                                                elide: Text.ElideRight
+                                                width: parent.width
+                                                font.weight: Font.Medium
+                                            }
+
+                                            MaterialText {
+                                                text: Qt.formatTime(ev.start, "HH:mm")
+                                                    + (ev.end ? " – " + Qt.formatTime(ev.end, "HH:mm") : "")
+                                                textStyle: "labelSmall"
+                                                colorRole: "onPrimaryContainer"
+                                                opacity: 0.8
+                                                visible: parent.height > 28
+                                            }
+
+                                            MaterialText {
+                                                text: ev.location || ""
+                                                textStyle: "labelSmall"
+                                                colorRole: "onPrimaryContainer"
+                                                opacity: 0.6
+                                                visible: text.length > 0 && parent.height > 44
+                                                elide: Text.ElideRight
+                                                width: parent.width
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: eventCardMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: { eventCard.forceActiveFocus(Qt.MouseFocusReason); eventCard._edit() }
+                                        }
                                     }
                                 }
                             }
                         }
+
                     }
 
-                    // Backed, because this sits ON the hour ruler rather than
-                    // beside it: centred bare text collided with the hour labels
-                    // behind it as soon as the pack widened the face.
-                    Surface {
-                        anchors.centerIn: parent
-                        visible: root.selectedDayEvents.length === 0
-                        implicitWidth: dayEmpty.implicitWidth + Tokens.spacing.extraLarge * 2
-                        implicitHeight: dayEmpty.implicitHeight + Tokens.spacing.large * 2
-                        color: Theme.surfaceContainerHigh
-                        radius: Tokens.shape.medium
-                        outlined: true
-
-                        EmptyState {
-                            id: dayEmpty
-                            anchors.centerIn: parent
-                            iconName: "event_busy"
-                            title: "No events"
-                            subtitle: "Press N to add an event"
-                        }
+                    MaterialButton {
+                        Layout.fillWidth: true
+                        text: "Add Event"
+                        variant: "tonal"
+                        enabled: CalendarBackend.calendars.length > 0
+                        onClicked: eventDialog.openDialog(false, null, root.selectedDate)
                     }
-                }
-
-                MaterialButton {
-                    Layout.fillWidth: true
-                    text: "Add Event"
-                    variant: "tonal"
-                    enabled: CalendarBackend.calendars.length > 0
-                    // QtQuick.Controls ToolTip: tabs have no tooltipManager
-                    // plumbing (convention-sanctioned fallback).
-                    ToolTip.visible: hovered && !enabled
-                    ToolTip.text: "No calendars configured. Add one in ~/.config/khal/config or ensure ~/.local/share/khal/calendars/<name>/ exists."
-                    onClicked: eventDialog.openDialog(false, null, root.selectedDate)
+                    MaterialText {
+                        Layout.fillWidth: true
+                        visible: CalendarBackend.calendars.length === 0
+                        text: "Add a calendar in ~/.config/khal/config to create events."
+                        textStyle: "bodySmall"
+                        colorRole: "onSurfaceVariant"
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
         }

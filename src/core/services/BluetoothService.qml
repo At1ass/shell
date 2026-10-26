@@ -18,6 +18,15 @@ import qs.src.core.services
 Singleton {
     id: root
 
+    // Retained panels stay alive when hidden; discovery must stop on close.
+    Connections {
+        target: GlobalStates
+        function onConnectionsOpenChanged() {
+            if (!GlobalStates.connectionsOpen) root.stopScan()
+        }
+    }
+
+
     readonly property var adapter: Bluetooth.defaultAdapter
 
     // Pure bindings — the native model notifies; no manual sync handlers.
@@ -30,6 +39,15 @@ Singleton {
     // Filtered device lists for UI (rebuilt by _recompute on real changes).
     property var pairedDevices: []
     property var discoveredDevices: []
+
+    property string errorMessage: ""
+    readonly property bool pairingPending: root._pendingConnectDevice !== null
+    function cancelPairing() {
+        const device = root._pendingConnectDevice
+        root._pendingConnectDevice = null
+        root.busyDeviceAddress = ""
+        if (device) device.cancelPair()
+    }
 
     // Device pending auto-connect after pairing.
     property var _pendingConnectDevice: null
@@ -62,7 +80,8 @@ Singleton {
 
     // Connect a paired/bonded device (direct property assignment).
     function connectDevice(device) {
-        if (!device) return
+        if (!device || busyDeviceAddress !== "") return
+        root.errorMessage = ""
         busyDeviceAddress = device.address || ""
         _busyTargetConnected = true
         device.trusted = true
@@ -70,7 +89,8 @@ Singleton {
     }
 
     function disconnectDevice(device) {
-        if (!device) return
+        if (!device || busyDeviceAddress !== "") return
+        root.errorMessage = ""
         busyDeviceAddress = device.address || ""
         _busyTargetConnected = false
         device.connected = false
@@ -79,7 +99,8 @@ Singleton {
     // Pair a new device — completion is observed via the device's
     // pairedChanged (watched below), then auto-connect fires.
     function pairDevice(device) {
-        if (!device) return
+        if (!device || busyDeviceAddress !== "") return
+        root.errorMessage = ""
         busyDeviceAddress = device.address || ""
         _busyTargetConnected = true
         root._pendingConnectDevice = device
@@ -87,7 +108,7 @@ Singleton {
     }
 
     function forgetDevice(device) {
-        device.forget()
+        if (device && busyDeviceAddress === "") device.forget()
     }
 
     function openSettings() {
@@ -102,8 +123,9 @@ Singleton {
 
         onTriggered: {
             if (root._pendingConnectDevice) {
-                console.warn("BluetoothService: pairing timed out for", root._pendingConnectDevice.address)
-                ToastService.warning("Pairing timed out")
+                root.errorMessage = "Pairing timed out. Check the device or use the Bluetooth manager for confirmation."
+                if (!GlobalStates.connectionsOpen) ToastService.warning(root.errorMessage)
+                root._pendingConnectDevice.cancelPair()
                 root._pendingConnectDevice = null
                 root.busyDeviceAddress = ""
             }
@@ -155,6 +177,7 @@ Singleton {
 
     function _recompute() {
         if (!adapter || !adapter.devices || !enabled) {
+            root.cancelPairing()
             connected = false
             connectedDeviceCount = 0
             pairedDevices = []
@@ -200,8 +223,9 @@ Singleton {
 
         connected = count > 0
         connectedDeviceCount = count
-        pairedDevices = paired
-        discoveredDevices = discovered
+        pairedDevices = paired.sort((a, b) => Number(b.connected) - Number(a.connected)
+            || (a.name || a.address).localeCompare(b.name || b.address))
+        discoveredDevices = discovered.sort((a, b) => (a.name || a.address).localeCompare(b.name || b.address))
 
         // Auto-connect once pairing completed (was a 1 s polling timer).
         const pending = _pendingConnectDevice
@@ -209,7 +233,6 @@ Singleton {
             pending.trusted = true
             pending.connected = true
             _pendingConnectDevice = null
-            busyDeviceAddress = ""
         }
 
         // Clear busy state only when the busy DEVICE reached the target
@@ -228,6 +251,10 @@ Singleton {
     Timer {
         interval: 20000
         running: root.busyDeviceAddress !== ""
-        onTriggered: root.busyDeviceAddress = ""
+        onTriggered: {
+            if (root._pendingConnectDevice) return
+            root.errorMessage = "The Bluetooth operation did not finish. Check the device and try again."
+            root.busyDeviceAddress = ""
+        }
     }
 }

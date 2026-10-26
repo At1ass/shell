@@ -17,6 +17,7 @@ Item {
     property string groupAppIcon: ""
     property int groupCount: 0
     property bool expanded: true
+    property bool selected: false
 
     signal toggleExpanded()
 
@@ -26,7 +27,8 @@ Item {
         layerColor: Theme.onSurface
         hovered: headerMouseArea.containsMouse
         pressed: headerMouseArea.pressed
-        showFocusRing: false
+        focused: root.selected
+        showFocusRing: root.selected
     }
 
     MouseArea {

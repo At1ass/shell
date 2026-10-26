@@ -19,19 +19,19 @@ Item {
     property string leadingIcon: ""
     property string trailingIcon: ""
     property bool password: false
+    property alias trailingContent: accessories.data
 
     signal accepted()
     signal textEdited()
     signal trailingClicked()
 
-    implicitHeight: 56
-    implicitWidth: 240
+    implicitHeight: Math.max(Tokens.size.field, input.implicitHeight + Tokens.spacing.small * 2, accessories.implicitHeight)
+    implicitWidth: Tokens.size.fieldWidth
 
-    // Reachable by Tab. The root Item accepts tab focus and hands it straight
-    // to the TextInput; without this the field could only be focused by
-    // clicking it, and the focus-coloured border below — which already reads
-    // `input.activeFocus` — could never light up from the keyboard.
-    activeFocusOnTab: enabled
+    // Only the actual editor is in the focus chain. Making its wrapper a
+    // second tab stop traps Shift+Tab by redirecting focus back into the editor.
+    // Keep programmatic focus on the public wrapper compatible.
+    activeFocusOnTab: false
     onActiveFocusChanged: if (activeFocus) input.forceActiveFocus()
 
     readonly property bool _filled: variant === "filled"
@@ -75,27 +75,14 @@ Item {
         backgroundColor: "transparent"
     }
 
-    IconButton {
-        id: trailing
-        visible: root.trailingIcon !== ""
-        anchors.right: parent.right
-        anchors.rightMargin: Tokens.spacing.small
-        anchors.verticalCenter: parent.verticalCenter
-        variant: "standard"
-        iconName: root.trailingIcon
-        iconSize: Tokens.iconSize.large
-        containerSize: 36
-        touchTargetSize: 40
-        onClicked: root.trailingClicked()
-    }
-
     TextInput {
         id: input
         anchors.fill: parent
         anchors.leftMargin: root.leadingIcon !== "" ? leading.x + leading.width + Tokens.spacing.small : Tokens.spacing.medium
-        anchors.rightMargin: root.trailingIcon !== "" ? trailing.width + Tokens.spacing.small : Tokens.spacing.medium
+        anchors.rightMargin: accessories.width + (root.trailingIcon !== "" ? trailing.width + Tokens.spacing.small : Tokens.spacing.medium)
         verticalAlignment: TextInput.AlignVCenter
         enabled: root.enabled
+        activeFocusOnTab: root.enabled
         clip: true
         color: Theme.onSurface
         selectionColor: Theme.primary
@@ -115,5 +102,27 @@ Item {
             color: Theme.onSurfaceVariant
             anchors.verticalCenter: parent.verticalCenter
         }
+    }
+
+    IconButton {
+        id: trailing
+        visible: root.trailingIcon !== ""
+        anchors.right: parent.right
+        anchors.rightMargin: Tokens.spacing.small + accessories.width
+        anchors.verticalCenter: parent.verticalCenter
+        variant: "standard"
+        iconName: root.trailingIcon
+        iconSize: Tokens.iconSize.large
+        containerSize: Tokens.size.iconButton
+        touchTargetSize: Tokens.touchTarget.minimum
+        onClicked: root.trailingClicked()
+    }
+
+    Row {
+        id: accessories
+        anchors.right: parent.right
+        anchors.rightMargin: Tokens.spacing.small
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Tokens.spacing.extraSmall
     }
 }

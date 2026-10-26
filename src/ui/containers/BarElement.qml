@@ -22,6 +22,13 @@ Rectangle {
     property bool expanded: false
 
     // Configuration
+    property bool compactPresentation: false
+    property real preferredWidth: Math.max(minWidth, contentContainer.implicitWidth + Tokens.spacing.medium)
+    property real minimumWidth: preferredWidth
+    property real compactWidth: minimumWidth
+    property real compactMinimumWidth: compactWidth
+    property string accessibleName: ""
+    property Item actionAnchor: root
     property bool animated: true
 
     // Whether the bar this element lives in is actually on screen. Set by
@@ -62,16 +69,25 @@ Rectangle {
     radius: customRadius
     // height: customHeight
 
-    implicitHeight: customHeight
-    // Dynamic width calculation
-    implicitWidth: {
-        if (expandedWidth > 0 && expanded) return expandedWidth
-        return Math.max(minWidth, contentContainer.implicitWidth + Tokens.spacing.medium)
+    implicitHeight: Math.max(customHeight, contentContainer.implicitHeight)
+    implicitWidth: expandedWidth > 0 && expanded ? expandedWidth
+        : (compactPresentation ? compactWidth : preferredWidth)
+    activeFocusOnTab: root.clickable && root.clickHandler !== null
+    Accessible.role: Accessible.Button
+    Accessible.name: accessibleName
+    function activate(button) {
+        if (root.enabled && root.clickHandler) root.clickHandler({button: button, accepted: false})
     }
-    width: implicitWidth
-    // height: implicitHeight
-    // implicitWidth: width
-    // implicitHeight: height
+    Accessible.onPressAction: root.activate(Qt.LeftButton)
+    Keys.onPressed: event => {
+        if (event.isAutoRepeat) return
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)
+            root.activate(Qt.LeftButton)
+        else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier)))
+            root.activate(Qt.RightButton)
+        else return
+        event.accepted = true
+    }
 
     // Primary surface tint for consistency
     SurfaceTint {
@@ -84,12 +100,14 @@ Rectangle {
         layerColor: Theme.onSurface
         hovered: root.hovered && (root.clickable || root.hoverable)
         pressed: root.pressed && root.clickable
-        showFocusRing: false
+        focused: root.activeFocus
+        showFocusRing: root.activeFocus
     }
 
     // Content container
     Item {
         id: contentContainer
+        z: 1
         anchors.centerIn: parent
         anchors.margins: Tokens.spacing.small
         implicitWidth: childrenRect.width
@@ -99,6 +117,7 @@ Rectangle {
     // Fallback loader for component-based content
     Loader {
         id: contentLoader
+        z: 1
         anchors.centerIn: parent
         active: root.content !== undefined
         visible: active

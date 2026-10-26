@@ -13,18 +13,20 @@ MaterialCard {
     property string value
     property color iconColor: Theme.primary
 
-    Layout.preferredHeight: 70
-    color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
+    implicitHeight: detailRow.implicitHeight + Tokens.spacing.medium * 2
+    color: Theme.surfaceContainerHigh
     radius: Tokens.shape.medium
 
     RowLayout {
-        anchors.centerIn: parent
+        id: detailRow
+        anchors.fill: parent
+        anchors.margins: Tokens.spacing.medium
         spacing: Tokens.spacing.medium
 
         // Icon
         MaterialIcon {
             iconName: root.iconName
-            fontSize: Tokens.typography.headlineMedium.size
+            fontSize: Tokens.iconSize.large
             iconColor: root.iconColor
             backgroundColor: "transparent"
             Layout.alignment: Qt.AlignVCenter
@@ -32,16 +34,22 @@ MaterialCard {
 
         // Label + Value
         ColumnLayout {
+            Layout.fillWidth: true
             spacing: 0
             Layout.alignment: Qt.AlignVCenter
 
             MaterialText {
+                Layout.fillWidth: true
+                elide: Text.ElideRight
                 text: root.label
                 textStyle: "bodySmall"
                 colorRole: "onSurfaceVariant"
             }
 
             MaterialText {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
                 text: root.value
                 textStyle: "titleMedium"
                 colorRole: "onSurface"

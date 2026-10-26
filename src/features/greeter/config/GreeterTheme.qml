@@ -102,6 +102,8 @@ Singleton {
     property color onTertiaryFixed
     property color onTertiaryFixedVariant
 
+    function outlineOn(bg, minRatio) { return root.outline }
+
     function apply(map) {
         for (var k in map) {
             if (root.hasOwnProperty(k)) {

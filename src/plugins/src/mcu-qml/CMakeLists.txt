@@ -20,3 +20,7 @@ target_link_libraries(mcuqml
 
 include(../PluginInstall.cmake)
 plugin_install(mcuqml)
+
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()

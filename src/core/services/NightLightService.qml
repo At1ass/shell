@@ -9,6 +9,8 @@ import qs.src.core.config
 Singleton {
     id: root
 
+    function init() {}
+
     // USER state, so it lives in state.json: a plain in-memory bool reset to
     // false on every restart and every QML hot-reload, silently dropping the
     // filter while the toggle still read as off. Derive-from-state /
@@ -66,6 +68,13 @@ Singleton {
         }
     }
 
+    Connections {
+        target: AppConfig
+        function onReadyChanged() {
+            if (AppConfig.ready && root.enabled) root._startSunset()
+        }
+    }
+
     // Small delay when changing temperature to avoid rapid restarts
     Timer {
         id: _restartTimer
@@ -94,7 +103,7 @@ Singleton {
     }
 
     function _startSunset() {
-        if (!_detected || sunsetProc.running) return
+        if (!AppConfig.ready || !_detected || sunsetProc.running) return
         sunsetProc.command = ["hyprsunset", "-t", root.temperature.toString()]
         sunsetProc.running = true
     }

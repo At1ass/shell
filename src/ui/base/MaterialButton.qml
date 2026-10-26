@@ -20,8 +20,8 @@ Button {
     topPadding: Tokens.spacing.small
     bottomPadding: Tokens.spacing.small
 
-    implicitHeight: Math.max(contentItem.implicitHeight + topPadding + bottomPadding, 40)
-    implicitWidth: Math.max(contentItem.implicitWidth + leftPadding + rightPadding, 88)
+    implicitHeight: Math.max(contentItem.implicitHeight + topPadding + bottomPadding, Tokens.size.control)
+    implicitWidth: Math.max(contentItem.implicitWidth + leftPadding + rightPadding, Tokens.size.buttonMinimumWidth)
 
     readonly property bool _elevated: variant === "elevated"
 
@@ -53,7 +53,7 @@ Button {
 
     background: Item {
         // Elevated variant casts a level-1 shadow.
-        ElevationShadow {
+        Base.ElevationShadow {
             target: bg
             level: 1
             visible: control._elevated && control.enabled
@@ -64,19 +64,19 @@ Button {
             anchors.fill: parent
             radius: Tokens.shape.pill
             color: control._containerColor()
-            border.width: control.variant === "outlined" ? 1 : 0
+            border.width: control.variant === "outlined" ? Tokens.size.outline : 0
             border.color: control.variant === "outlined"
                     ? (control.enabled ? Theme.outline : Qt.alpha(Theme.onSurface, Tokens.state.disabledContainerOpacity))
                     : "transparent"
 
             Behavior on color {
-                MotionColorAnimation {
+                Base.MotionColorAnimation {
                     duration: Tokens.motion.duration.short4
                     curve: "standard"
                 }
             }
             Behavior on border.color {
-                MotionColorAnimation {
+                Base.MotionColorAnimation {
                     duration: Tokens.motion.duration.short4
                     curve: "standard"
                 }
@@ -93,7 +93,7 @@ Button {
                        : control.hovered ? Tokens.stateLayer.hoverOpacity : 0.0
 
                 Behavior on opacity {
-                    MotionAnimation {
+                    Base.MotionAnimation {
                         duration: Tokens.motion.duration.short4
                         curve: "standard"
                     }

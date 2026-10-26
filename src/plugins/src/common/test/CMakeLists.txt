@@ -1,0 +1,5 @@
+find_package(Qt6 6.5 COMPONENTS Test REQUIRED)
+qt_add_executable(worker_lifetime_test WorkerLifetimeTests.cpp)
+set_target_properties(worker_lifetime_test PROPERTIES AUTOMOC ON)
+target_link_libraries(worker_lifetime_test PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME worker_lifetime_test COMMAND worker_lifetime_test)

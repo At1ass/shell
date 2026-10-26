@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.containers
@@ -6,291 +8,215 @@ import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.dashboard.components.weathertab_elements
 
-Item {
+ScrollableList {
     id: root
-
-    // What this tab needs, so the window can be sized to it instead of to a
-    // constant kept in a table indexed by tab number. See Dashboard.qml.
+    contentPadding: Tokens.panelPadding
+    property bool detailsExpanded: false
+    readonly property bool hasConditions: Weather.data?.current !== undefined && Weather.data?.current !== null
     readonly property int contentHeight: column.implicitHeight + Tokens.panelPadding * 2
+    readonly property bool forecastOverflow: forecastViewport.contentWidth > forecastViewport.width + 1
+    function scrollForecast(direction) {
+        const card = forecastDays.itemAt(0)
+        const step = (card?.width ?? Tokens.size.fieldWidth) + forecastRow.spacing
+        forecastViewport.contentX = Math.max(0, Math.min(forecastViewport.contentWidth - forecastViewport.width,
+            forecastViewport.contentX + direction * step))
+    }
+    function sunTime(values) {
+        if (!values.length) return "—"
+        const date = new Date(values[0])
+        return isNaN(date.getTime()) ? "—" : Qt.formatTime(date, "HH:mm")
+    }
 
     ColumnLayout {
         id: column
-        anchors.fill: parent
-        anchors.margins: Tokens.panelPadding
+        Layout.fillWidth: true
         spacing: Tokens.spacing.small
 
-        // === Header: Location + Date + Sunrise/Sunset ===
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.medium
-
-            // Left: Location + Date
-            ColumnLayout {
-                spacing: 2
-
-                MaterialText {
-                    text: Weather.location || "Unknown location"
-                    textStyle: "headlineSmall"
-                    colorRole: "onSurface"
-                    font.weight: Font.Bold
-                }
-
-                MaterialText {
-                    text: DateTime.clock.date.toLocaleDateString(Qt.locale(), "dddd, MMMM d")
-                    textStyle: "bodyMedium"
-                    colorRole: "onSurfaceVariant"
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            // Right: Sunrise/Sunset
-            RowLayout {
-                spacing: Tokens.spacing.large
-
-                // Sunrise
-                RowLayout {
-                    spacing: Tokens.spacing.extraSmall
-
-                    MaterialIcon {
-                        iconName: "wb_twilight"
-                        fontSize: Tokens.typography.titleLarge.size
-                        iconColor: Theme.tertiary
-                        backgroundColor: "transparent"
-                    }
-
-                    ColumnLayout {
-                        spacing: 0
-
-                        MaterialText {
-                            text: "Sunrise"
-                            textStyle: "bodySmall"
-                            colorRole: "onSurfaceVariant"
-                        }
-
-                        MaterialText {
-                            text: {
-                                if (Weather.dailySunrise.length > 0) {
-                                    var dt = new Date(Weather.dailySunrise[0]);
-                                    return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
-                                }
-                                return "--:--";
-                            }
-                            textStyle: "bodyMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Bold
-                        }
-                    }
-                }
-
-                // Sunset
-                RowLayout {
-                    spacing: Tokens.spacing.extraSmall
-
-                    MaterialIcon {
-                        iconName: "bedtime"
-                        fontSize: Tokens.typography.titleLarge.size
-                        iconColor: Theme.tertiary
-                        backgroundColor: "transparent"
-                    }
-
-                    ColumnLayout {
-                        spacing: 0
-
-                        MaterialText {
-                            text: "Sunset"
-                            textStyle: "bodySmall"
-                            colorRole: "onSurfaceVariant"
-                        }
-
-                        MaterialText {
-                            text: {
-                                if (Weather.dailySunset.length > 0) {
-                                    var dt = new Date(Weather.dailySunset[0]);
-                                    return dt.toLocaleTimeString(Qt.locale(), "hh:mm");
-                                }
-                                return "--:--";
-                            }
-                            textStyle: "bodyMedium"
-                            colorRole: "onSurface"
-                            font.weight: Font.Bold
-                        }
-                    }
-                }
-            }
-        }
-
-        // === Hero Card: Current Weather (Big) ===
-        MaterialCard {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 140
-            color: Qt.alpha(Theme.surfaceContainerHigh, 0.80)
-            radius: Tokens.shape.large
-
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: Tokens.spacing.large
-
-                // Weather icon (big)
-                MaterialIcon {
-                    iconName: Weather.icon
-                    fontSize: 100
-                    iconColor: Theme.secondary
-                    backgroundColor: "transparent"
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                // Temperature + description
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: -4
-
-                    // Temperature
-                    RowLayout {
-                        spacing: 0
-
-                        MaterialText {
-                            text: Math.round(Weather.tempC)
-                            textStyle: "displayLarge"
-                            colorRole: "primary"
-                            font.weight: Font.Medium
-                        }
-
-                        MaterialText {
-                            text: Weather.tempUnit
-                            textStyle: "displaySmall"
-                            colorRole: "onSurfaceVariant"
-                            Layout.alignment: Qt.AlignTop
-                            Layout.topMargin: 8
-                        }
-                    }
-
-                    // Description
-                    MaterialText {
-                        text: Weather.weatherDesc
-                        textStyle: "titleLarge"
-                        colorRole: "onSurfaceVariant"
-                        Layout.leftMargin: Tokens.spacing.extraSmall
-                    }
-                }
-            }
-        }
-
-        // === Details Cards Row ===
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.small
-
-            // Humidity
-            DetailCard {
-                Layout.fillWidth: true
-                iconName: "water_drop"
-                label: "Humidity"
-                value: Weather.humidity + "%"
-                iconColor: Theme.secondary
-            }
-
-            // Feels Like
-            DetailCard {
-                Layout.fillWidth: true
-                iconName: "thermostat"
-                label: "Feels Like"
-                value: Math.round(Weather.feelsLikeC) + Weather.tempUnit
-                iconColor: Theme.primary
-            }
-
-            // Wind
-            DetailCard {
-                Layout.fillWidth: true
-                iconName: "air"
-                label: "Wind"
-                value: Math.round(Weather.windSpeed) + " " + Weather.windUnit
-                iconColor: Theme.tertiary
-            }
-
-            // Pressure
-            DetailCard {
-                Layout.fillWidth: true
-                iconName: "compress"
-                label: "Pressure"
-                value: Math.round(Weather.pressure) + " hPa"
-                iconColor: Theme.secondary
-            }
-        }
-
-        // === 7-Day Forecast Section ===
-        // Header
         MaterialText {
-            text: "7-Day Forecast"
-            textStyle: "titleMedium"
-            colorRole: "onSurface"
-            font.weight: Font.Bold
-            Layout.topMargin: Tokens.spacing.small
-            Layout.leftMargin: Tokens.spacing.extraSmall
-            visible: Weather.dailyTime.length > 0
-        }
-
-        // Forecast cards
-        RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: Tokens.spacing.small
-
-            Repeater {
-                model: Math.min(Weather.dailyTime.length, 7)
-
-                delegate: ForecastCard {
-                    required property int index
-
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumWidth: 90
-
-                    date: Weather.dailyTime[index] || ""
-                    tempMax: Weather.dailyTempMax[index] || 0
-                    tempMin: Weather.dailyTempMin[index] || 0
-                    weatherCode: Weather.dailyWeatherCode[index] || 0
-                    precipProbMax: Weather.dailyPrecipProbMax[index] || 0
-                }
-            }
+            text: Weather.location || "Weather"
+            textFormat: Text.PlainText
+            textStyle: "titleLarge"
+            colorRole: "onSurface"
+            elide: Text.ElideRight
         }
-
-        // Error state (overlay)
+        MaterialText {
+            Layout.fillWidth: true
+            visible: root.hasConditions
+            text: Weather.errorString !== "" || !Weather.isFresh
+                ? "Last update · " + Qt.formatDateTime(Weather.lastSuccessAt, "ddd HH:mm")
+                : "Updated " + Qt.formatTime(Weather.lastSuccessAt, "HH:mm")
+            textStyle: "bodySmall"
+            colorRole: "onSurfaceVariant"
+            wrapMode: Text.Wrap
+        }
+        ListItem {
+            Layout.fillWidth: true
+            visible: !root.hasConditions || Weather.errorString !== ""
+            clickable: false
+            leadingIcon: Weather.errorString !== "" ? "cloud_off" : "cloud_sync"
+            headline: !AppConfig.weatherEnabled ? "Weather disabled" : Weather.errorString !== ""
+                ? (root.hasConditions ? "Showing last available weather" : "Weather unavailable")
+                : "Waiting for weather data"
+            supportingText: !AppConfig.weatherEnabled ? "Enable weather in config.json." : Weather.errorString
+            supportingTextFormat: Text.PlainText
+        }
         MaterialCard {
             Layout.fillWidth: true
-            Layout.preferredHeight: 100
-            color: Theme.errorContainer
+            visible: root.hasConditions
+            implicitHeight: conditionsRow.implicitHeight + Tokens.spacing.medium * 2
+            color: Theme.surfaceContainerHigh
             radius: Tokens.shape.large
-            visible: Weather.errorString !== ""
-
             RowLayout {
+                id: conditionsRow
                 anchors.fill: parent
                 anchors.margins: Tokens.spacing.medium
                 spacing: Tokens.spacing.medium
-
                 MaterialIcon {
-                    iconName: "error"
-                    fontSize: Tokens.typography.headlineMedium.size
-                    iconColor: Theme.onErrorContainer
-                    backgroundColor: "transparent"
+                    iconName: Weather.icon
+                    fontSize: Tokens.typography.displaySmall.size
+                    iconColor: Theme.onSurfaceVariant
                 }
-
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 2
-
+                    spacing: Tokens.spacing.extraSmall
                     MaterialText {
-                        text: "Weather data unavailable"
-                        textStyle: "titleMedium"
-                        colorRole: "onErrorContainer"
-                        font.weight: Font.Bold
+                        Layout.fillWidth: true
+                        text: Math.round(Weather.tempC) + Weather.tempUnit
+                        textStyle: "headlineLarge"
+                        colorRole: "onSurface"
+                        elide: Text.ElideRight
                     }
-
                     MaterialText {
-                        text: Weather.errorString
+                        Layout.fillWidth: true
+                        text: Weather.weatherDesc
+                        textStyle: "bodyLarge"
+                        colorRole: "onSurfaceVariant"
+                        wrapMode: Text.Wrap
+                    }
+                    MaterialText {
+                        Layout.fillWidth: true
+                        text: "Feels like " + Math.round(Weather.feelsLikeC) + Weather.tempUnit
                         textStyle: "bodySmall"
-                        colorRole: "onErrorContainer"
+                        colorRole: "onSurfaceVariant"
+                        wrapMode: Text.Wrap
                     }
+                }
+            }
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            visible: Weather.dailyTime.length > 0
+            spacing: Tokens.spacing.extraSmall
+            MaterialText {
+                Layout.fillWidth: true
+                text: "7-day forecast"
+                textStyle: "titleMedium"
+                wrapMode: Text.Wrap
+            }
+            IconButton {
+                visible: root.forecastOverflow
+                enabled: forecastViewport.contentX > 1
+                iconName: "chevron_left"
+                Accessible.name: "Earlier forecast days"
+                onClicked: root.scrollForecast(-1)
+            }
+            IconButton {
+                visible: root.forecastOverflow
+                enabled: forecastViewport.contentX < forecastViewport.contentWidth - forecastViewport.width - 1
+                iconName: "chevron_right"
+                Accessible.name: "Later forecast days"
+                onClicked: root.scrollForecast(1)
+            }
+        }
+        Flickable {
+            id: forecastViewport
+            Layout.fillWidth: true
+            visible: forecastDays.count > 0
+            implicitHeight: forecastRow.implicitHeight
+            contentWidth: Math.max(width, forecastRow.implicitWidth)
+            contentHeight: height
+            clip: true
+            interactive: root.forecastOverflow
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            function clampPosition() {
+                contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+            }
+            onWidthChanged: clampPosition()
+            onContentWidthChanged: clampPosition()
+            RowLayout {
+                id: forecastRow
+                width: forecastViewport.contentWidth
+                height: implicitHeight
+                spacing: Tokens.spacing.small
+                uniformCellSizes: true
+                Repeater {
+                    id: forecastDays
+                    model: Math.min(Weather.dailyTime.length, 7)
+                    ForecastCard {
+                        required property int index
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.minimumWidth: implicitWidth
+                        date: Weather.dailyTime[index] ?? ""
+                        tempMax: Weather.dailyTempMax[index] ?? 0
+                        tempMin: Weather.dailyTempMin[index] ?? 0
+                        weatherCode: Weather.dailyWeatherCode[index] ?? 0
+                        precipProbMax: Weather.dailyPrecipProbMax[index] ?? 0
+                    }
+                }
+            }
+        }
+        ListItem {
+            Layout.fillWidth: true
+            visible: root.hasConditions
+            headline: "Weather details"
+            supportingText: "Wind, humidity, pressure and daylight"
+            trailingIcon: root.detailsExpanded ? "expand_less" : "expand_more"
+            Accessible.expanded: root.detailsExpanded
+            onClicked: root.detailsExpanded = !root.detailsExpanded
+        }
+        Loader {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            active: root.hasConditions && root.detailsExpanded
+            visible: active
+            sourceComponent: GridLayout {
+                columns: width < Tokens.size.fieldWidth * 2 ? 1 : 2
+                columnSpacing: Tokens.spacing.small
+                rowSpacing: Tokens.spacing.small
+                DetailCard {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    iconName: "air"
+                    label: "Wind"
+                    value: Math.round(Weather.windSpeed) + " " + Weather.windUnit
+                    iconColor: Theme.onSurfaceVariant
+                }
+                DetailCard {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    iconName: "water_drop"
+                    label: "Humidity"
+                    value: Weather.humidity + "%"
+                    iconColor: Theme.onSurfaceVariant
+                }
+                DetailCard {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    iconName: "compress"
+                    label: "Pressure"
+                    value: Math.round(Weather.pressure) + " hPa"
+                    iconColor: Theme.onSurfaceVariant
+                }
+                DetailCard {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    iconName: "wb_twilight"
+                    label: "Sunrise / sunset"
+                    value: root.sunTime(Weather.dailySunrise) + " / " + root.sunTime(Weather.dailySunset)
+                    iconColor: Theme.onSurfaceVariant
                 }
             }
         }

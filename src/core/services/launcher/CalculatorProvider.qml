@@ -14,6 +14,9 @@ BaseProvider {
     priority: 100   // high priority
     prefixes: ["="]
 
+    readonly property bool busy: _inflightExpr !== ""
+    function cancel() { _evalDebounce.stop(); _inflightExpr = "" }
+
     // Single-slot cache: expression -> built result rows (errors included).
     property string _cachedExpr: ""
     property var _cachedRows: null
@@ -50,12 +53,14 @@ BaseProvider {
         if (!normalized) {
             _cachedExpr = ""
             _cachedRows = null
-            _inflightExpr = ""
+            cancel()
             return []
         }
 
-        if (normalized === _cachedExpr && _cachedRows !== null)
+        if (normalized === _cachedExpr && _cachedRows !== null) {
+            cancel()
             return _cachedRows
+        }
 
         if (_inflightExpr !== expr) {
             _inflightExpr = expr
@@ -66,8 +71,8 @@ BaseProvider {
             _evalDebounce.restart()
         }
 
-        // Stale-but-instant: previous rows until `evaluated` lands.
-        return _cachedRows ?? []
+        // A different expression must not expose the previous copy action.
+        return []
     }
 
     function _buildRows(expr, result, hadPrefix) {
@@ -83,7 +88,7 @@ BaseProvider {
                     icon: "dialog-error",
                     type: "calculator",
                     score: 0,
-                    action: function() {}
+                    action: null
                 }]
             }
             return []

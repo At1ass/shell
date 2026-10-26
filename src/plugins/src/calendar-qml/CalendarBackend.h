@@ -100,7 +100,7 @@ private:
     void setLoading(bool v);
     void setLastError(const QString& s);
 
-    QThread         m_workerThread;
+    QThread*        m_workerThread = nullptr;
     CalendarStore*  m_store    = nullptr;     // owned by worker thread (deleted via deleteLater on thread finish)
     ReminderEngine* m_reminders = nullptr;    // main thread
 

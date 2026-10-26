@@ -1,4 +1,5 @@
 import QtQuick
+import qs.src.core.config
 import qs.src.core.services
 
 // Provider for searching clipboard history
@@ -9,12 +10,19 @@ BaseProvider {
     priority: 60  // High priority, above Applications
     prefixes: [">"]  // ">" prefix for clipboard search
 
+    readonly property Connections _historyWatch: Connections {
+        target: ClipboardService
+        function onEntriesChanged() {
+            if (GlobalStates.launcherOpen) root.resultsInvalidated()
+        }
+    }
+
     function search(query) {
         let searchQuery = removePrefix(query).trim()
         // No result cache: preparedEntries is the source of truth and gets
         // updated reactively on every clipboard change. A stale cache here
         // would mask the just-copied entry behind an old list.
-        const searchResults = ClipboardService.fuzzySearch(searchQuery)
+        const searchResults = ClipboardService.fuzzySearch(searchQuery, Math.max(AppConfig.launcherMaxResults, 50))
         if (ClipboardService.debug) {
             console.info("[ClipboardProvider.search] query:", JSON.stringify(query),
                         "searchQuery:", JSON.stringify(searchQuery),
@@ -43,8 +51,6 @@ BaseProvider {
             let icon = "edit-paste"
             if (isImage) {
                 icon = "image-x-generic"
-                // Request thumbnail generation
-                ClipboardService.requestThumbnail(entry)
             } else if (content.startsWith("http://") || content.startsWith("https://")) {
                 icon = "internet-web-browser"
             } else if (content.match(/^[\d\s\+\-\*\/\(\)\.]+$/)) {

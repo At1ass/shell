@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Quickshell greeter configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "wallpaperPath": {
+      "type": "string",
+      "default": "",
+      "description": "Root-owned wallpaper under /etc/greetd; no user home access is required."
+    },
+    "darkMode": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use the dark palette."
+    },
+    "themeVariant": {
+      "type": "string",
+      "default": "vibrant",
+      "description": "Material Color Utilities palette variant."
+    },
+    "themeColor": {
+      "type": "string",
+      "default": "#6200EE",
+      "description": "Fallback palette seed."
+    },
+    "themeContrast": {
+      "type": "number",
+      "default": 0.0,
+      "description": "Material palette contrast from -1 to 1.",
+      "minimum": -1,
+      "maximum": 1
+    },
+    "designSystem": {
+      "type": "string",
+      "default": "minimal",
+      "description": "Visual profile, independent of the logged-in shell.",
+      "enum": [
+        "minimal",
+        "md3"
+      ]
+    },
+    "fontScale": {
+      "type": "number",
+      "default": 1.3,
+      "description": "Greeter typography scale.",
+      "minimum": 0.75,
+      "maximum": 2
+    },
+    "reduceMotion": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable decorative animation."
+    },
+    "showClock": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the clock."
+    },
+    "showDate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the date independently of the clock."
+    },
+    "showBattery": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show battery and charging status when a battery is present."
+    },
+    "showPower": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the menu for sleep and confirmed restart/shutdown."
+    },
+    "blurWallpaper": {
+      "type": "boolean",
+      "default": true,
+      "description": "Blur the configured background image."
+    },
+    "defaultUser": {
+      "type": "string",
+      "default": "",
+      "description": "Preselected username; empty chooses the first available local user."
+    },
+    "defaultSession": {
+      "type": "string",
+      "default": "",
+      "description": "Preferred session name, stable session ID or executable match."
+    },
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor validation."
+    }
+  }
+}
