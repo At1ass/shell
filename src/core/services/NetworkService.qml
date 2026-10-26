@@ -174,7 +174,7 @@ Singleton {
     }
     Timer {
         interval: 120000
-        running: root.newConnectionBusy
+        running: root.newConnectionBusy && !NetworkAuthService.busy
         onTriggered: {
             // Native settings-write failures are only logged by QS 0.3.2.
             // Bound the UI wait even if activation never starts.

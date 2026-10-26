@@ -23,11 +23,11 @@ MaterialCard {
     property string menuTitle: ""
     property var menuActions: []
     property var detailLines: []
-    readonly property bool modalOpen: actionDialog.visible || passwordDialog.visible || detailsDialog.visible || forgetDialog.visible || pairingDialog.visible
+    readonly property bool modalOpen: actionDialog.visible || passwordDialog.visible || detailsDialog.visible || forgetDialog.visible || pairingDialog.visible || authenticationDialog.visible
     readonly property bool active: GlobalStates.connectionsOpen && root.visible
 
     implicitWidth: AppConfig.connectionsWidth
-    implicitHeight: Math.max(column.implicitHeight + Tokens.panelPadding * 2, pairingDialog.visible ? pairingDialog.desiredHeight : 0)
+    implicitHeight: Math.max(column.implicitHeight + Tokens.panelPadding * 2, pairingDialog.visible ? pairingDialog.desiredHeight : 0, authenticationDialog.visible ? authenticationDialog.desiredHeight : 0)
     color: Theme.surfaceContainer
     radius: Tokens.shape.large
     focus: true
@@ -175,10 +175,16 @@ MaterialCard {
             const network = root.targetNetwork
             if (!network) return
             if (action.action === "details") {
-                root.detailLines = ["Network: " + network.name,
-                    "Status: " + (network.connected ? "Connected" : "Not connected"),
-                    "Security: " + NetworkService.securityText(network.security),
-                    "Signal: " + Math.round(network.signalStrength * 100) + "%"]
+                root.detailLines = Qt.binding(() => {
+                    const target = root.targetNetwork
+                    if (!target) return ["Network is no longer available"]
+                    const lines = ["Network: " + target.name,
+                        "Status: " + (target.connected ? "Connected" : "Not connected"),
+                        "Security: " + NetworkService.securityText(target.security),
+                        "Signal: " + Math.round(target.signalStrength * 100) + "%"]
+                    if (target.connected) return lines.concat(root.ipDetails(wifiInfo))
+                    return lines
+                })
                 detailsDialog.open()
                 detailsDialog._previousFocus = origin
             } else if (network.connected) NetworkService.disconnectNetwork(network)
@@ -194,9 +200,7 @@ MaterialCard {
             } else if (device.connected) BluetoothService.disconnectDevice(device)
             else BluetoothService.connectDevice(device)
         } else if (kind === "ethernet") {
-            root.detailLines = ["Interface: " + EthernetService.interfaceName,
-                "IP address: " + (EthernetService.ipAddress || "Unavailable"),
-                "Gateway: " + (EthernetService.gateway || "Unavailable")]
+            root.detailLines = Qt.binding(() => ["Interface: " + (EthernetService.interfaceName || "Unavailable"), "Status: " + (EthernetService.connected ? "Connected" : "Not connected")].concat(root.ipDetails(EthernetService)))
             detailsDialog.open()
             detailsDialog._previousFocus = origin
         } else if (kind === "vpn") {
@@ -205,6 +209,18 @@ MaterialCard {
                 else VPNService.connect(root.targetVpn)
             }
         }
+    }
+
+    NetworkInfo {
+        id: wifiInfo
+        interfaceName: detailsDialog.visible && root.menuKind === "wifi" && root.targetNetwork?.connected
+            ? root.targetNetwork.device?.name ?? "" : ""
+    }
+    function ipDetails(info) {
+        return ["IPv4: " + (info.ipv4Addresses.join(", ") || "Not assigned"),
+            "IPv4 gateway: " + (info.ipv4Gateway || "None"),
+            "IPv6: " + (info.ipv6Addresses.join(", ") || "Not assigned"),
+            "IPv6 gateway: " + (info.ipv6Gateway || "None")]
     }
 
     ScrollableList {
@@ -427,6 +443,28 @@ MaterialCard {
         }
     }
 
+    Connections {
+        target: NetworkAuthService
+        function onRequestTokenChanged() {
+            if (!NetworkAuthService.requestToken) return
+            passwordField.text = ""
+            if (passwordDialog.visible) passwordDialog.close()
+            if (actionDialog.visible) actionDialog.close()
+            if (detailsDialog.visible) detailsDialog.close()
+            if (forgetDialog.visible) forgetDialog.close()
+        }
+    }
+    NetworkAuthenticationDialog {
+        id: authenticationDialog
+        requestToken: NetworkAuthService.requestToken
+        connectionName: NetworkAuthService.connectionName
+        message: NetworkAuthService.message
+        fields: NetworkAuthService.fields
+        requestNew: NetworkAuthService.requestNew
+        validationError: NetworkAuthService.validationError
+        onAnswered: (token, answers) => NetworkAuthService.submit(token, answers)
+        onRejected: token => NetworkAuthService.reject(token)
+    }
     BluetoothPairingDialog {
         id: pairingDialog
         requestToken: BluetoothService.pairingToken
@@ -515,7 +553,7 @@ MaterialCard {
                 Layout.fillWidth: true
                 Repeater {
                     model: root.detailLines
-                    MaterialText { required property string modelData; Layout.fillWidth: true; text: modelData; textStyle: "bodyMedium"; wrapMode: Text.WrapAnywhere }
+                    MaterialText { required property string modelData; Layout.fillWidth: true; text: modelData; textFormat: Text.PlainText; textStyle: "bodyMedium"; wrapMode: Text.WrapAnywhere }
                 }
                 MaterialButton { Layout.fillWidth: true; text: "Back"; variant: "text"; onClicked: detailsDialog.close() }
             }

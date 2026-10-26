@@ -1248,6 +1248,18 @@
       "description": "Compact connections panel. System connection profiles are edited with external tools.",
       "additionalProperties": false,
       "properties": {
+        "networkAgent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Handle NetworkManager credentials in Connections, using the session Secret Service for agent-owned secrets. Replaces nm-applet credential prompts; profile editing remains external."
+        },
+        "authenticationTimeout": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 300,
+          "default": 120,
+          "description": "Network authentication deadline in seconds, including credential entry and storage operations."
+        },
         "bluetoothAgent": {
           "type": "boolean",
           "default": true,

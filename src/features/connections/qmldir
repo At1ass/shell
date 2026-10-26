@@ -4,3 +4,4 @@ ConnectionsContent 1.0 ConnectionsContent.qml
 ConnectionHeader 1.0 ConnectionHeader.qml
 ConnectionRow 1.0 ConnectionRow.qml
 BluetoothPairingDialog 1.0 BluetoothPairingDialog.qml
+NetworkAuthenticationDialog 1.0 NetworkAuthenticationDialog.qml

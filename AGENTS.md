@@ -53,7 +53,7 @@ MD3-библиотека компонентов). Это **не форк** — �
 | Цвет | C++ плагин `Mcu` (Material Color Utilities, сабмодуль) |
 
 **Внешние CLI** (только там, где нет нативного API): `ddcutil`, `grim`, `wl-copy`, `swappy`,
-`cliphist`, `nmcli` (eth/vpn), `hyprsunset`, `hyprctl`, `gdbus`, `systemctl`.
+`cliphist`, `nmcli` (vpn), `hyprsunset`, `hyprctl`, `gdbus`, `systemctl`.
 
 ---
 
@@ -293,7 +293,7 @@ if (Keycodes.letter(event) === action.key) activate()
 
 ### Источник данных: нативное > подпроцесс
 - **Нативный Quickshell API — всегда, когда он есть:** аудио → `Pipewire`; медиа → `Mpris`; Wi-Fi → `Networking`; Bluetooth → `Bluetooth`; уведомления → `Services.Notifications`.
-- **`Process` + CLI — только когда нативного API нет:** яркость (`ddcutil`), скриншоты (`grim`/`wl-copy`/`swappy`), буфер (`cliphist`), night light (`hyprsunset`), Ethernet/VPN (`nmcli`), питание/лок (`systemctl`/`hyprctl`/`gdbus`).
+- **`Process` + CLI — только когда нативного API нет:** яркость (`ddcutil`), скриншоты (`grim`/`wl-copy`/`swappy`), буфер (`cliphist`), night light (`hyprsunset`), VPN (`nmcli`), питание/лок (`systemctl`/`hyprctl`/`gdbus`).
 - Цель (ROADMAP): мигрировать подпроцессы на нативный D-Bus (`Quickshell.Io.DBus`), эталон — `MprisController`.
 
 ### Конвенции
@@ -364,15 +364,29 @@ org.bluez для явно выбранного устройства. PIN/под�
 Конфиг: connections.bluetoothAgent и connections.pairingTimeout. Optional Loader
 изолирует отсутствие модуля до установки; fallback — внешний default agent.
 Проверки: bluetooth_agent_test на приватной D-Bus шине, tools/test-bluetooth.py,
-tools/test-ui.py. nm-applet/blueman-applet пока не отключать: нужны аппаратная
-приёмка сопряжения и аудит NetworkManager secret agent.
+tools/test-ui.py. blueman-applet пока не отключать: нужна оставшаяся аппаратная
+приёмка сопряжения. Миграция nm-applet описана ниже.
 
 Wi-Fi Personal (WpaPsk/Wpa2Psk/Sae) передаёт пароль через нативный
 WifiNetwork.connectWithPsk(), без nmcli/stdin. Сервис удерживает только типизированный
 объект сети, не пароль; busy снимается по состоянию/ошибке/удалению объекта и имеет
 ограниченный fallback deadline для немых ошибок записи профиля в QS 0.3.2.
-WEP/802.1X/неизвестная защита — внешний редактор. Это не SecretAgent: профили с
-недостающими agent-owned/not-saved секретами и VPN требуют внешнего агента.
+Создание WEP/802.1X/неизвестных профилей — внешний nm-connection-editor.
+NetworkAuthService запускается через ServiceBootstrap независимо от панели;
+Connectivity.NetworkSecretAgent обрабатывает Get/Cancel/Save/DeleteSecrets.
+Доверяет только текущему unique owner NetworkManager, очередь ограничена 8 запросами,
+один cancellable worker, deadline включает очередь/ввод/keyring. При disable нужно
+дождаться позднего ответа регистрации и снять её; уничтожение фасада не ждёт worker.
+QML получает только описание полей и токен, ответы не сохраняет. Locked запрещает
+интерактивные запросы; noninteractive lookup не разблокирует keyring. libsecret
+работает в worker, схема/атрибуты совместимы с nm-applet; NOT_SAVED и VPN challenge
+не сохраняются. OpenVPN helper запускается только в external-ui-mode для описания
+полей, без настоящих секретов; другие VPN plugins/WireGuard пока не реализованы.
+NetworkAuthenticationDialog делит grab панели; отложенные переходы проверяют токен.
+Редактор профилей не заменяется. nm-applet отключать только после установки плагина,
+проверки networkauth registered и аппаратной приёмки; blueman этим не затрагивается.
+Проверки: network_agent_test на private bus, tools/test-network-auth.py,
+tools/test-network-keyring.py с изолированным keyring, tools/test-network.py и test-ui.py.
 Поиск — явный lease сервиса: желание искать отделено от scannerEnabled и готовности
 адаптера. Unknown -> Disconnected и замена устройства применяют lease заново;
 остановка/закрытие/idle deadline освобождают его. Deadline поиска приостановлен на
@@ -382,6 +396,16 @@ WEP/802.1X/неизвестная защита — внешний редакто
 удаление проверяет поколение; UI читает реактивную нативную модель. Типизированный
 list перед передачей в ScriptModel.values преобразуется через Array.from().
 При изменении этого пути запускать tools/test-network.py и tools/test-ui.py.
+
+EthernetService читает connected из Quickshell.Networking, без требования IPv4.
+NetworkInfo/Connectivity.NetworkInterfaceInfo читают AddressData и Gateway обеих
+семейств через асинхронный D-Bus, без polling/CLI/файлового I/O. Запросы single-flight,
+refresh коалесцируется; snapshot публикуется целиком, устаревший epoch отбрасывается.
+PropertiesChanged учитывает текущие device/IP-config пути; смена интерфейса/владельца
+сбрасывает адреса. Один читатель для Ethernet, отдельный ленивый для Wi-Fi details.
+Наличие адреса/link-local/шлюза не является проверкой доступа в интернет. Диалог
+держит реактивную привязку к деталям, а не снимок при открытии. Проверки:
+network_info_test, tools/test-network-info.py (--native — read-only QS/DBus), test-ui.py.
 
 ### Аудио и трей
 
@@ -424,7 +448,7 @@ diskseq, пропадании устройства и больших интер�
 | `Qalculate 1.0` | калькулятор лаунчера (`QalculateWrapper.eval`). |
 | `SystemMonitor 1.0` | CPU/RAM/swap/GPU/disk/net из `/proc` (`SystemMonitor`, singleton). |
 | `FuzzySearch 1.0` | нечёткий поиск (`score/match/matchWeighted`). |
-| `Connectivity 1.0` | BlueZ: агент PIN/passkey, явные подтверждения и асинхронный Pair с отменой и deadline. |
+| `Connectivity 1.0` | BlueZ Pair/agent и NetworkManager SecretAgent; отмена/deadline, libsecret worker и OpenVPN external UI. |
 | `GreeterData 1.0` | Каталоги сессий и локальных пользователей гритера: worker, desktop/Exec parser, готовый argv. |
 
 **Что обязано быть в C++, а не в QML:** парсинг строк/`.ics`, сканирование/чтение ФС, анализ
@@ -541,7 +565,7 @@ QtConcurrent-результаты доставляются через прина
 - **Источники правды:** этот `AGENTS.md` + `CLAUDE.md` (конвенции), `README.md` (фичи/установка/IPC), `ROADMAP.md` (открытая работа), `config/config.schema.json` (конфиг). Других «документов-планов» в репо нет — архив `docs/` удалён, не воссоздавай.
 - **Устарело / не существует — не использовать** (следы старых планов могут встретиться в комментариях или git-истории): `ColorService.layer()` (нет в коде → `Theme.<role>`), `DesignTokens.qml` (→ `Tokens.qml`), путь `~/.config/shell/` (→ `~/.config/quickshell/config.json`). Верь коду.
 - C++ плагины должны быть **собраны и установлены**, иначе `import Mcu 1.0` падает и копит ошибки → segfault.
-- Технический долг (не плодить дальше): дубль сети (Wi-Fi нативно, eth/vpn через `nmcli`), механический baseline предупреждений qmllint и сырых Rectangle в features.
+- Технический долг (не плодить дальше): остаток CLI сети (VPN через `nmcli`, Wi-Fi/Ethernet нативно), механический baseline предупреждений qmllint и сырых Rectangle в features.
 - Изменил поведение или фичу — обнови `README.md`/`ROADMAP.md`, а конвенцию — здесь. Не создавай новый отчётный `.md`.
 
 ### Нативные каталоги гритера

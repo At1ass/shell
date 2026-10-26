@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // One long-lived `nmcli monitor` drives every NetworkManager-backed
-// service that has no native Quickshell API (ethernet, VPN). Replaces
+// service that still uses nmcli (VPN). Replaces
 // their periodic polling (~34k spawned processes/day when idle) with
 // event-driven refreshes. shell.qml calls init() once at startup.
 Singleton {
@@ -46,13 +46,11 @@ Singleton {
         id: refreshDebounce
         interval: 300
         onTriggered: {
-            EthernetService.refresh()
             VPNService.refresh()
         }
     }
 
     Component.onCompleted: {
-        EthernetService.refresh()
         VPNService.refresh()
     }
 }

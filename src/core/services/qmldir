@@ -44,3 +44,5 @@ singleton SessionMonitor 1.0 SessionMonitor.qml
 singleton ServiceBootstrap 1.0 ServiceBootstrap.qml
 HttpRequest 1.0 HttpRequest.qml
 TimedMode 1.0 TimedMode.qml
+singleton NetworkAuthService 1.0 NetworkAuthService.qml
+NetworkInfo 1.0 NetworkInfo.qml

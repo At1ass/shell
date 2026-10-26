@@ -54,12 +54,14 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `hyprsunset` | Night Light temperature shift |
 | `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
 | `bluez` | Bluetooth support for the Connections panel |
+| `libsecret` + a Secret Service provider | NetworkManager agent-owned credentials (compatible with nm-applet keyring entries) |
+| `networkmanager-openvpn` | OpenVPN authentication helper, when OpenVPN profiles are used |
 
 > Bluetooth pairing from Connections uses the shell's application-scoped BlueZ
 > agent: PIN/passkey input, keyboard code display and explicit confirmation.
-> It never becomes the default agent and rejects unsolicited requests. Keep
-> existing applets enabled until hardware acceptance and the NetworkManager
-> secret-agent audit are complete.
+> It never becomes the default agent and rejects unsolicited requests.
+> NetworkManager authentication uses a separate native agent; its package must be
+> rebuilt before migrating away from nm-applet (see Connections below).
 
 ### Build dependencies (C++ plugins)
 
@@ -69,6 +71,7 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `qt6-tools` | `moc`, `rcc` |
 | `libqalculate` | Calculator plugin headers |
 | `libical` | Calendar plugin (requires libical ≥ 4.0 — refcounted recurrence API) |
+| `libsecret` | Connectivity password-store backend |
 | `lm_sensors` | Optional: hwmon temperatures in SystemMonitor (built without them if absent) |
 
 ---
@@ -89,7 +92,7 @@ cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 ```
 
-Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv), Connectivity (BlueZ pairing agent and asynchronous pairing transport).
+Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv), Connectivity (BlueZ pairing transport and NetworkManager credential agent).
 
 #### Arch Linux: as a package
 
@@ -1027,11 +1030,20 @@ group and Delete/X removes that group from history.
 
 ```bash
 tools/test-foundation.py
+tools/test-network.py
+python3 tools/test-network-auth.py
+python3 tools/test-network-info.py
 tools/check.sh
 cmake -B /tmp/shell-plugins-test -S src/plugins -G Ninja -DBUILD_TESTING=ON
 cmake --build /tmp/shell-plugins-test
 QT_QPA_PLATFORM=offscreen ctest --test-dir /tmp/shell-plugins-test --output-on-failure
 ```
+
+Network agent tests use a private D-Bus manager. To exercise libsecret writes,
+run `python3 tools/test-network-keyring.py /path/to/network_agent_test`: it starts
+an isolated GNOME Keyring and verifies its temporary data directory before any
+write. It never writes to the session's real keyring. `QML_IMPORT_PATH` can point
+to the built plugin directory for lint/compile checks before installation.
 
 The foundation checks use temporary configuration/state directories, a local HTTP
 server and a fake logind transport. They cover rejected config edits and recovery,
@@ -1093,6 +1105,23 @@ The standalone panel replaces Dashboard's Network tab. One section is expanded
 at a time: Wi-Fi, Bluetooth or VPN. Ethernet appears as a compact connected row.
 Quick's Wi-Fi/Bluetooth actions open the corresponding section; VPN is available inside Connections.
 
+Ethernet status comes from Quickshell's native activation state, independently
+of IPv4/IPv6 address assignment. Connection details for Ethernet and connected
+Wi-Fi list IPv4 and IPv6 addresses with prefixes and their separate gateways,
+including IPv6 link-local addresses. They update while the details dialog is open.
+An absent gateway is shown as None; connection status does not claim internet
+reachability. IP configuration is read asynchronously from NetworkManager D-Bus
+by Connectivity.NetworkInterfaceInfo, with no nmcli queries or sysfs reads for
+Ethernet. Adapter/daemon changes clear old details and late replies are ignored.
+Rebuild/install Connectivity to enable the new IP details; link status remains
+usable with the previously installed plugin.
+
+The read-only `python3 tools/test-network-info.py --native` probe also loads the
+actual Quickshell device model and IP reader. Native `network_info_test` runs
+against a private fake NetworkManager, covering IPv6-only/dual-stack, configuration
+replacement, address removal, daemon changes and delayed replies. Neither test
+changes connections, radio state or system IP configuration.
+
 ```bash
 qs ipc call globalstates toggleConnections
 qs ipc call globalstates openConnections wifi
@@ -1122,11 +1151,44 @@ identifies the target; SSIDs are never interpreted as CLI arguments. Legacy WEP,
 enterprise and unknown security use the external connection editor. OWE networks
 connect without a password.
 
-This is not a general NetworkManager secret agent. Saved profiles can still need
-agent-owned or unsaved credentials; VPN and 802.1X authentication may require an
-external prompt even when the profile was configured in the connection editor.
-Keep nm-applet enabled for these requests. The implementation plan and comparison
-with the other local shells are recorded in ROADMAP.md.
+NetworkManager credential requests are handled by the native Connectivity agent.
+The panel opens on demand, including after a rejected Wi-Fi password, and shares
+its existing modal focus grab. Supported fields cover Personal/WEP, passwords and
+private-key passwords in saved 802.1X profiles, PPPoE/mobile credentials, and the
+installed OpenVPN helper's multiple fields and challenge responses. Other VPN
+plugins and WireGuard-specific credentials are not implemented. Profile creation,
+certificates and advanced editing stay in **nm-connection-editor**.
+
+`connections.networkAgent` defaults to true. The request deadline is
+`connections.authenticationTimeout` (120 seconds, including input and storage).
+The agent honors interactive/new-secret requests and secret ownership flags.
+Agent-owned passwords use the session Secret Service with nm-applet-compatible
+attributes; system-owned passwords remain managed by NetworkManager. Unsaved
+secrets and OpenVPN challenge answers are never persisted. Config, runtime state,
+logs and process arguments never contain the submitted passwords. Storage and
+VPN field discovery run outside the UI thread.
+
+Closing the panel, leaving the requested section, locking, resuming or losing
+NetworkManager cancels an interactive request. Noninteractive stored-credential
+lookups can run while locked without opening the panel or unlocking the keyring.
+Stale tokens cannot submit a replacement request. Errors never include provider
+messages or credential values.
+
+```bash
+qs ipc call networkauth registered
+qs ipc call networkauth busy
+qs ipc call networkauth cancel
+```
+
+Rebuild/install the plugin package and restart the unlocked shell before migrating
+away from nm-applet. The optional native loader keeps an older installation usable
+with the existing external agent; a build directory alone does not update it.
+Confirm registration and test wrong -> correct Wi-Fi password with Connections
+left open, then OpenVPN/keyring behavior. Only after this acceptance disable
+nm-applet's XDG autostart with a user `nm-applet.desktop` override containing
+`Hidden=true`, and stop its running process. This migration does not remove
+nm-connection-editor or change blueman-applet. To roll back, restore nm-applet
+and set `connections.networkAgent` to false.
 
 Wi-Fi discovery runs only in the visible expanded Wi-Fi section and stops after
 20 seconds of idle discovery. The deadline pauses during a connection attempt.
@@ -1152,6 +1214,8 @@ background. The bounded deadline defaults to 120 seconds:
 "connections": {
   "width": 420,
   "maxHeight": 640,
+  "networkAgent": true,
+  "authenticationTimeout": 120,
   "bluetoothAgent": true,
   "pairingTimeout": 120
 }
@@ -1161,8 +1225,8 @@ background. The bounded deadline defaults to 120 seconds:
 `Connectivity 1.0` module must be rebuilt and installed for the integrated prompts;
 a missing module is isolated by a loader and leaves the shell running with external
 agent fallback. Registration is [application-scoped](https://bluez.readthedocs.io/en/latest/agent-api/):
-it never requests default-agent ownership. Keep nm-applet and blueman-applet enabled
-until hardware acceptance and the NetworkManager secret-agent audit are complete.
+it never requests default-agent ownership. Retain blueman-applet until the remaining
+Bluetooth hardware scenarios pass; nm-applet migration is independent (see above).
 **Edit connections** opens nm-connection-editor; **Bluetooth manager** opens
 blueman-manager through AppLaunchService. There are no shell settings in the panel.
 
@@ -1230,4 +1294,4 @@ rows activate with Enter/Space; arrows/Home/End navigate, Menu/Shift+F10 or the
 trailing button opens the application menu. Switching from overflow into a menu
 keeps a surviving bar anchor. If popouts are disabled, all icons stay on the bar
 so they remain reachable. Hidden icons keep their applications and authentication
-agents running; nm-applet and blueman-applet are not stopped.
+agents running; hiding an icon does not disable its applet.

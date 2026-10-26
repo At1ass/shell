@@ -47,6 +47,17 @@ else
     for f in "$@"; do collect "$f"; done
 fi
 
+# Respect the same build-tree override as the engine. qmllint otherwise
+# searches its default installed modules before -I and sees stale plugin types.
+extra_imports=()
+if [[ -n "${QML_IMPORT_PATH:-}" ]]; then
+    extra_imports+=(--bare)
+    IFS=: read -ra native_paths <<< "$QML_IMPORT_PATH"
+    for native_path in "${native_paths[@]}"; do
+        [[ -n "$native_path" ]] && extra_imports+=(-I "$native_path")
+    done
+    extra_imports+=(-I "$(/usr/lib/qt6/bin/qtpaths --query QT_INSTALL_QML)")
+fi
 status=0
 lint_groups() {
     local imports="$1"; shift
@@ -61,13 +72,13 @@ lint_groups() {
         for file in "${files[@]}"; do
             [[ "${file%/*}/qmldir" == "$descriptor" ]] && group+=("$file")
         done
-        /usr/lib/qt6/bin/qmllint -I "$imports" -i "$descriptor" "${group[@]}" || status=$?
+        /usr/lib/qt6/bin/qmllint "${extra_imports[@]}" -I "$imports" -i "$descriptor" "${group[@]}" || status=$?
     done
     for file in "${files[@]}"; do
         [[ ! -f "${file%/*}/qmldir" ]] && remaining+=("$file")
     done
     if [ "${#remaining[@]}" -gt 0 ]; then
-        /usr/lib/qt6/bin/qmllint -I "$imports" "${remaining[@]}" || status=$?
+        /usr/lib/qt6/bin/qmllint "${extra_imports[@]}" -I "$imports" "${remaining[@]}" || status=$?
     fi
 }
 if [ "${#main[@]}" -gt 0 ]; then

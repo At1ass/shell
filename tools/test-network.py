@@ -76,9 +76,10 @@ QtObject {
     service.mkdir(parents=True)
     shutil.copy2(ROOT / 'src/core/services/NetworkService.qml', service)
     write('qs/src/core/services/qmldir', 'module qs.src.core.services\n' + ''.join(
-        f'singleton {name} 1.0 {name}.qml\n' for name in ['NetworkService','GlobalStates','ToastService','AppLaunchService']))
+        f'singleton {name} 1.0 {name}.qml\n' for name in ['NetworkService','GlobalStates','ToastService','AppLaunchService','NetworkAuthService']))
     write('qs/src/core/services/GlobalStates.qml', 'pragma Singleton\nimport QtQml\nQtObject {property bool connectionsOpen:true;property string connectionsSection:"wifi"}\n')
     write('qs/src/core/services/ToastService.qml', 'pragma Singleton\nimport QtQml\nQtObject {property int errors:0;function error(message){errors++}}\n')
+    write('qs/src/core/services/NetworkAuthService.qml', 'pragma Singleton\nimport QtQml\nQtObject {property bool busy:false}\n')
     write('qs/src/core/services/AppLaunchService.qml', 'pragma Singleton\nimport QtQml\nQtObject {function launchCommand(argv){}}\n')
     (work / 'tst_network.qml').write_text('''import QtQuick
 import QtQml.Models

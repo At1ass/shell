@@ -74,11 +74,13 @@ Open before removing applets:
   manual acceptance: code shown by the shell and accepted on both devices (user
   report, 2026-10-26). PIN entry, keyboard progress and cancellation transitions
   still need hardware acceptance.
-- NetworkManager secret-agent audit completed (see the coverage matrix below).
-  General secret-agent implementation, storage semantics and real VPN/802.1X
-  acceptance remain open. Complex profiles continue to use external tools.
-- Applet removal is a separate migration after both authentication paths pass;
-  nm-applet and blueman-applet remain enabled for now.
+- Native NetworkManager agent implemented in Connectivity (see the latest entry).
+  Rebuilt plugin installed; registration and connection check passed (user report).
+  nm-applet XDG autostart disabled and its service stopped. Separate acceptance of
+  existing agent-owned keyring credentials and OpenVPN remains to be recorded.
+  Other VPN plugins and WireGuard secret fields are outside current coverage.
+- nm-applet migration is independent of the remaining BlueZ hardware acceptance;
+  blueman-applet stays enabled. nm-connection-editor remains the profile editor.
 
 Tray-menu density and a first dashboard motion correction are implemented. Manual
 motion acceptance passed: the user reports a much smoother, pleasant animation,
@@ -3367,3 +3369,79 @@ the external agent recovery path. Integrated GetSecrets/CancelGetSecrets handlin
 is still missing: connectWithPsk supplies an activation password but does not answer
 subsequent credential requests. Preserve nm-applet while implementing that native
 request lifecycle and its separate cancellation/storage/fallback contracts.
+
+
+## Integrated NetworkManager credential agent — 2026-10-26
+
+Implemented GetSecrets/CancelGetSecrets/SaveSecrets/DeleteSecrets in Connectivity.
+The unique NM sender is checked before any metadata is accepted. Requests use a
+bounded queue, per-request monotonic deadlines, stale-token guards and one
+cancellable storage/helper worker. Registration survives daemon replacement;
+late registration replies after disable are explicitly unregistered. Destruction
+cancels work without waiting in the UI thread or emitting teardown signals.
+
+NetworkAuthService starts independently of panel creation. Prompts route to
+Connections after bindings settle, avoiding a Wi-Fi/VPN metadata ordering race.
+Section-close cancellation checks the captured token before acting. Existing
+panels stay open after authentication; panels opened solely for a prompt close
+when the agent is no longer busy, including storage completion. Lock/resume clears
+pending interactive prompts; noninteractive keyring reads never unlock storage.
+
+libsecret uses the same schema attributes as nm-applet. Agent-owned fields support
+lookup/save/delete; NOT_SAVED and OpenVPN challenge replies are not written.
+Personal/WEP, saved-profile 802.1X password/key password, PPP/mobile fields and the
+installed OpenVPN plugin are covered. VPN metadata comes from the trusted fixed
+helper in external-ui-mode; placeholder secrets prevent that helper from querying
+the user's keyring. Its Value fields are ignored. Its challenge keys/echo policy
+are preserved. Other VPN plugins and WireGuard credentials remain unsupported.
+All profile editing stays in nm-connection-editor.
+
+Native private-bus tests cover retry, stale answers, flags, ownership, storage
+failure, queue cancellation, lock, daemon changes, late registration, timeout,
+destruction and VPN challenge/no-secret replies. An isolated GNOME Keyring harness
+checks actual libsecret save/read/delete/cancellation, verifying the provider PID
+and temporary data directory before writing. QML tests exercise panel routing,
+lock/resume, panel/section changes and delayed storage. Shared UI tests cover
+multi-field entry, replacement clearing, keyboard traversal and both packs.
+
+Deployment follow-up: the user rebuilt and installed the plugin, confirmed
+`qs ipc call networkauth registered` returns true and reported the connection check
+passed. Disabled nm-applet with a user XDG autostart override (Hidden=true) and
+stopped its generated autostart service. nm-connection-editor remains installed;
+blueman-applet is unchanged. Specific acceptance of radio off/on without panel
+reopening, existing agent-owned keyring credentials and OpenVPN is not yet recorded.
+No live profiles, radio state or user keyring entries are changed by automated checks.
+
+
+## Address-family-independent network status and IP details — 2026-10-26
+
+Removed EthernetService's IPv4-address gate. Its connected interface now comes
+from Quickshell.Networking, consistent with the bar's existing native link state.
+There are no Ethernet nmcli subprocesses or sysfs speed reads. NetworkEventMonitor
+now refreshes only its remaining CLI consumer, VPNService.
+
+Connectivity.NetworkInterfaceInfo reads NetworkManager's Device/Ip4Config/Ip6Config
+properties asynchronously. AddressData preserves multiple IPv4/IPv6 addresses and
+prefixes, including link-local IPv6; each family has its own gateway. Requests are
+single-flight and refreshes coalesce. Selected device/config paths are observed for
+PropertiesChanged; interface/daemon changes invalidate the generation and clear
+old values. Late replies, invalid address/prefix data and removed configurations
+do not restore stale addresses. There is no worker wait, filesystem I/O or polling.
+
+Ethernet and connected Wi-Fi details show both families and update while open.
+Missing addresses/gateways remain distinct from connection state and internet
+reachability. SystemMonitor's byte counters already include both IP versions and
+require no family-specific change. This does not enable IPv6 in system profiles
+or change routes/DNS; address assignment remains NetworkManager's responsibility.
+
+Verification: private-bus network_info_test covers IPv6-only, dual-stack, address
+removal, config replacement, stale replies, daemon restart, errors, request bounds
+and destruction. QML service tests cover native link state without IPv4, address
+changes and device removal/replacement. UI tests exercise live IPv4/IPv6 detail
+updates in Minimal and MD3. A read-only native probe loaded the actual active
+interface and decoded one IPv4 and one IPv6 address. IPv6-only switching is tested
+on private fixtures; the live system's profiles and radio were not modified.
+
+Deployment: rebuild/install Connectivity, restart the unlocked shell. Until then
+the optional detail loader leaves the existing shell running and native Ethernet
+status works; the new address/gateway reader is not available in the older plugin.

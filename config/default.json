@@ -331,6 +331,8 @@
     }
   },
   "connections": {
+    "networkAgent": true,
+    "authenticationTimeout": 120,
     "bluetoothAgent": true,
     "pairingTimeout": 120,
     "width": 420,

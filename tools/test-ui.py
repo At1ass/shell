@@ -159,9 +159,9 @@ BaseProvider {
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/WeatherTab.qml', dashboard / 'tabs/WeatherTab.qml')
     connections = tree / 'src/features/connections'
     connections.mkdir(parents=True)
-    for name in ['ConnectionsContent', 'ConnectionHeader', 'ConnectionRow', 'BluetoothPairingDialog']:
+    for name in ['ConnectionsContent', 'ConnectionHeader', 'ConnectionRow', 'BluetoothPairingDialog', 'NetworkAuthenticationDialog']:
         shutil.copy2(ROOT / f'src/features/connections/{name}.qml', connections / f'{name}.qml')
-    (connections / 'qmldir').write_text('module qs.src.features.connections\nConnectionsContent 1.0 ConnectionsContent.qml\nConnectionHeader 1.0 ConnectionHeader.qml\nConnectionRow 1.0 ConnectionRow.qml\nBluetoothPairingDialog 1.0 BluetoothPairingDialog.qml\n')
+    (connections / 'qmldir').write_text('module qs.src.features.connections\nConnectionsContent 1.0 ConnectionsContent.qml\nConnectionHeader 1.0 ConnectionHeader.qml\nConnectionRow 1.0 ConnectionRow.qml\nBluetoothPairingDialog 1.0 BluetoothPairingDialog.qml\nNetworkAuthenticationDialog 1.0 NetworkAuthenticationDialog.qml\n')
     (dashboard / 'components/qmldir').write_text('module qs.src.features.dashboard.components\n')
     networking = temp / 'imports/Quickshell/Networking'
     networking.mkdir()
@@ -273,7 +273,8 @@ QtObject {
     mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++;return true}'
     mocks['BluetoothService'] += '; property int connectedDeviceCount:0; property var pairedDevices:[]; property var discoveredDevices:[]; property string busyDeviceAddress:""; property int connections:0; property int pairs:0; function connectDevice(device) {connections++} function disconnectDevice(device) {connections++} function pairDevice(device) {pairs++} function stopScan() {scanning=false} function startScan() {scanning=true} property bool scanning:false'
     mocks['VPNService'] += '; property var availableVPNs:[]; property bool busy:false; property string busyVPN:""; property string activeVPN:""; property int connections:0; function connect(name) {connections++} function disconnect() {connections++}'
-    mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property string ipAddress:""; property string gateway:""; property string speed:""'
+    mocks['NetworkAuthService'] = 'property bool busy:false;property string requestToken:"";property string connectionName:"";property string message:"";property var fields:[];property bool requestNew:false;property string validationError:"";function submit(token,answers) {requestToken="";return true} function reject(token) {requestToken="";return true}'
+    mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property var ipv4Addresses:[];property var ipv6Addresses:[];property string ipv4Gateway:"";property string ipv6Gateway:""'
     mocks['SystemMonitorService'] += '; property bool hasNet:false; property string netRxFormatted:""; property string netTxFormatted:""; property var netRxHistory:[]; property var netTxHistory:[]'
     mocks['ActiveWindowService'] = 'property string windowTitle:"A very long editor window title";property string windowClass:"editor"'
     mocks['IconCategoryResolver'] = 'function getAppCategoryIcon(value,fallback) {return "window"} function appIconSource(value) {return ""}'
@@ -292,9 +293,12 @@ QtObject {
     mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false}')
     mocks['GlobalStates'] += '; signal panelOpened(string name);property bool lockscreenActive:false;property QtObject testScreen:null;function focusedScreen() {return testScreen} function openPanel(name) {lastAction=name;actionCount++} function openDashboardTab(index) {dashboardOpenIndex=index;lastAction="dashboard";actionCount++} function lockSession() {lastAction="lock";actionCount++}'
     (services / 'qmldir').write_text('module qs.src.core.services\n' +
-        ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks))
+        ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\n')
     for name, body in mocks.items():
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject {'+body.replace('};', '}')+'}\n')
+    shutil.copy2(ROOT / 'src/core/services/NetworkInfo.qml', services / 'NetworkInfo.qml')
+    (services / 'connectivity').mkdir()
+    (services / 'connectivity/NativeNetworkInfo.qml').write_text('import QtQml\nQtObject {property string interfaceName:"";property bool ready:true;property var ipv4Addresses:[];property var ipv6Addresses:[];property string ipv4Gateway:"";property string ipv6Gateway:"";function refresh() {}}\n')
     upower = qs / 'Services/UPower'
     upower.mkdir()
     (upower / 'qmldir').write_text('module Quickshell.Services.UPower\nsingleton UPower 1.0 UPower.qml\nUPowerDeviceState 1.0 UPowerDeviceState.qml\n')
@@ -484,6 +488,18 @@ Item {
    property int rejections:0
    property string value:""
    onAnswered:(token,input)=>{answers++;value=input;requestToken=""}
+   onRejected:token=>{rejections++;requestToken=""}
+  }
+ }
+ Component {
+  id:networkAuthFixture
+  NetworkAuthenticationDialog {
+   width:420;height:500
+   property int answers:0
+   property int rejections:0
+   property string submittedToken:""
+   property string submittedValue:""
+   onAnswered:(token,values)=>{answers++;submittedToken=token;submittedValue=values.psk ?? values.password ?? "";requestToken=""}
    onRejected:token=>{rejections++;requestToken=""}
   }
  }
@@ -1196,6 +1212,31 @@ Item {
    verify(panel.modalOpen,"details replaced menu")
    keyClick(Qt.Key_Escape);wait(30);verify(!panel.modalOpen);verify(row.activeFocus,"details restores initiating row")
   }
+  function test_connections_ipv6_details_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_connections_ipv6_details(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack
+   EthernetService.connected=true;EthernetService.interfaceName="eth0"
+   EthernetService.ipv4Addresses=[];EthernetService.ipv6Addresses=["2001:db8::10/64","fe80::10/64"]
+   EthernetService.ipv4Gateway="";EthernetService.ipv6Gateway="fe80::1"
+   const panel=createTemporaryObject(connectionsPanel,scene)
+   wait(20)
+   const row=byProperty(panel,"headline","Ethernet")
+   verify(row!==null && row.visible)
+   row.forceActiveFocus();keyClick(Qt.Key_Return);wait(20)
+   const action=byProperty(panel,"text","Connection details")
+   verify(action!==null)
+   keyClick(Qt.Key_Return);wait(20)
+   verify(panel.detailLines.includes("IPv4: Not assigned"))
+   verify(panel.detailLines.includes("IPv6: 2001:db8::10/64, fe80::10/64"))
+   verify(panel.detailLines.includes("IPv6 gateway: fe80::1"))
+   EthernetService.ipv4Addresses=["192.0.2.10/24"];EthernetService.ipv6Addresses=[];EthernetService.ipv6Gateway=""
+   wait(10)
+   verify(panel.detailLines.includes("IPv4: 192.0.2.10/24"))
+   verify(panel.detailLines.includes("IPv6: Not assigned"))
+   verify(panel.detailLines.includes("IPv6 gateway: None"))
+   keyClick(Qt.Key_Escape);wait(20)
+   EthernetService.connected=false;EthernetService.interfaceName="";EthernetService.ipv4Addresses=[]
+  }
   function test_connections_legacy_wep_uses_editor() {
    controls.visible=false
    const node=createTemporaryObject(wifiNode,scene,{security:WifiSecurityType.StaticWep})
@@ -1218,6 +1259,46 @@ Item {
    compare(panel.targetNetwork,null)
    keyClick(Qt.Key_Escape);wait(20);verify(!panel.modalOpen)
    keyClick(Qt.Key_Escape);wait(20);compare(panel.section,"")
+  }
+  function test_network_auth_input_replacement_and_cancel() {
+   controls.visible=false
+   const fields=[{key:"psk",label:"Wi-Fi password",secret:true}]
+   const view=createTemporaryObject(networkAuthFixture,scene,{connectionName:"Network <b>plain</b>",fields:fields,requestToken:"first"})
+   verify(view)
+   tryVerify(()=>findChild(view,"networkCredential_psk")!==null)
+   const editor=findChild(view,"networkCredential_psk")
+   tryVerify(()=>editor.inputItem.activeFocus)
+   editor.text="wrong-password"
+   view.requestToken="second"
+   compare(editor.text,"")
+   tryCompare(view,"_shownToken","second")
+   const replacement=findChild(view,"networkCredential_psk")
+   replacement.text="new-password";replacement.forceActiveFocus()
+   keyClick(Qt.Key_Return)
+   compare(view.answers,1);compare(view.submittedToken,"second");compare(view.submittedValue,"new-password")
+   compare(replacement.text,"")
+   view.requestToken="third"
+   tryCompare(view,"_shownToken","third")
+   tryVerify(()=>findChild(view,"networkCredential_psk").inputItem.activeFocus)
+   keyClick(Qt.Key_Escape);compare(view.rejections,1)
+   tryVerify(()=>!view.visible)
+  }
+  function test_network_auth_multiple_fields_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_network_auth_multiple_fields(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack
+   const view=createTemporaryObject(networkAuthFixture,scene,{connectionName:"VPN",fields:[{key:"password",label:"Password",secret:true},{key:"otp",label:"One-time code",secret:false}],requestToken:"vpn"})
+   tryVerify(()=>view.visible)
+   const password=findChild(view,"networkCredential_password")
+   const otp=findChild(view,"networkCredential_otp")
+   tryVerify(()=>password.inputItem.activeFocus)
+   password.text="vpn-password";keyClick(Qt.Key_Return);compare(view.answers,0)
+   password.forceActiveFocus();keyClick(Qt.Key_Tab)
+   if (!otp.inputItem.activeFocus) keyClick(Qt.Key_Tab)
+   tryVerify(()=>otp.inputItem.activeFocus)
+   verify(!otp.password)
+   otp.text="012345";keyClick(Qt.Key_Return)
+   compare(view.answers,1);compare(view.submittedValue,"vpn-password")
+   compare(password.text,"");compare(otp.text,"")
   }
   function test_pairing_confirmation_requires_choice() {
    controls.visible=false
