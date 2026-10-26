@@ -1129,7 +1129,14 @@ Keep nm-applet enabled for these requests. The implementation plan and compariso
 with the other local shells are recorded in ROADMAP.md.
 
 Wi-Fi discovery runs only in the visible expanded Wi-Fi section and stops after
-20 seconds. Bluetooth discovery starts from **Pair new device**, stops after
+20 seconds of idle discovery. The deadline pauses during a connection attempt.
+Discovery waits until the adapter is ready and resumes after a radio/device restart
+without reopening the panel; explicit retries refresh discovery after its deadline.
+Disabling Wi-Fi clears the previous attempt/error, and late failures cannot restore
+that message. PSK retries wait for network and adapter teardown to finish. An
+ambiguous association timeout asks the user to check both password and signal,
+rather than declaring that the SSID does not exist.
+Bluetooth discovery starts from **Pair new device**, stops after
 30 seconds, and ends when leaving the section or closing the panel. Connection
 operations belong to services and can finish after the panel closes.
 

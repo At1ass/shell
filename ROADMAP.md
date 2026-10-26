@@ -80,8 +80,9 @@ Open before removing applets:
 - Applet removal is a separate migration after both authentication paths pass;
   nm-applet and blueman-applet remain enabled for now.
 
-Tray-menu density and a first dashboard motion correction are implemented; manual
-motion acceptance remains open. The user reports jerking/jumping and successive
+Tray-menu density and a first dashboard motion correction are implemented. Manual
+motion acceptance passed: the user reports a much smoother, pleasant animation,
+with a small initial bounce considered acceptable. The user reports jerking/jumping and successive
 layout adjustments in Dashboard; Connections motion is abrupt but otherwise
 acceptable. Native window resizing no longer has a separate QML animation, lazy
 handover retains its measured target, and the media morph applies hidden/initial
@@ -3307,6 +3308,62 @@ or user Hyprland animation configuration is changed.
 
 Tests cover measurement handover, native Wayland final-height application with
 reduced motion disabled, top/bottom placement and screen bounds. Wayland fixtures
-are transparent, with no input region or focus grabs. Manual visual acceptance of
-cold/repeated opening, tab switching, media and statistics expansion is still
-needed; this correction is not a claim that every source of UI jank is eliminated.
+are transparent, with no input region or focus grabs. The user subsequently confirmed that the animation is substantially smoother and
+pleasant, accepting a small initial bounce. This does not establish that every
+possible source of UI jank is eliminated.
+
+
+## Wi-Fi retry and radio recovery — 2026-10-26
+
+Reported: wrong password is shown as network not found; entering a replacement
+password appears ineffective until Wi-Fi is cycled. Cycling the radio leaves the
+old error and an empty list until Connections is reopened.
+
+Host read-only logs confirm association timeouts with NM reason ssid-not-found.
+The profile audit also confirms successful PSK updates before subsequent failed
+activations; the password transport itself was not silently omitting the update.
+The diagnostic does not prove a wrong password or a missing SSID by itself. No
+real radio/connection/profile mutation was performed during the automated work.
+
+Client corrections:
+- Discovery has a service-owned lease and an explicit ready state. It waits through
+  Unknown -> Disconnected and follows adapter replacement. Section close, manual
+  Stop searching and the idle deadline still release the lease; connection time
+  does not consume the discovery budget. Radio/hardware loss clears pending UI
+  state and the old error. Starting…/Waiting for Wi-Fi adapter… explain the restart.
+- PSK retries wait for both the network and device to leave teardown. Explicit
+  retries refresh discovery, resolve a current entry by interface/SSID, and retain
+  access to a still-valid selected native object when QS hides it at the discovery
+  deadline. No password queue or service-held password is introduced.
+- Failure delivery snapshots stable keys and an attempt epoch. Old-radio and other
+  network errors do not overwrite the active request or successful connection;
+  selected hidden targets still report their own failure exactly once. Association
+  loss/timeouts on secured networks suggest checking credentials and signal without
+  claiming a definite wrong-password diagnosis.
+- Command lookup uses a lifetime-bound index of watcher delegates; generation checks
+  protect replacement entries during old delegate destruction. Native typed lists
+  are converted with Array.from before ScriptModel use (a real-engine probe catches
+  QQmlListReference/QList<QJSValue> conversion issues missed by mock controls).
+
+Validation: tools/test-network.py exercises failure-before-terminal-state, native
+adapter teardown, password retry, stale failure suppression, radio/hardware cycles,
+model replacement, discovery deadlines and watcher cleanup. --native-model adds a
+read-only actual QS model load with no scan/activation commands. UI tests cover
+late adapter readiness without reopening Connections, both design packs and native
+Wayland geometry; lint/invariants/compile probes remain required.
+
+Manual acceptance remaining: repeat wrong -> correct password and radio off/on
+while leaving Connections open. The observed NM association stall still needs that
+hardware check; this patch does not establish a driver/firmware root cause or apply
+an automatic radio reset as a workaround.
+
+
+Hardware follow-up: NetworkManager now explicitly reports `psk mismatch reported
+by supplicant, asking for new key` and enters `need-auth`. nm-applet displays the
+repeat-password prompt; the user confirms that supplying the correct password
+there connects successfully. The inspected Personal profile has psk-flags=0, so
+this request is required even with system-managed secret storage. This verifies
+the external agent recovery path. Integrated GetSecrets/CancelGetSecrets handling
+is still missing: connectWithPsk supplies an activation password but does not answer
+subsequent credential requests. Preserve nm-applet while implementing that native
+request lifecycle and its separate cancellation/storage/fallback contracts.

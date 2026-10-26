@@ -265,12 +265,12 @@ QtObject {
     mocks['MprisController'] += '; property int toggles:0'
     mocks['GlobalStates'] += '; property string lastAction:""; property int actionCount:0; function handleClickAction(action) {actionCount++;lastAction=action}'
     mocks['GlobalStates'] += '; property bool connectionsOpen:true; property string connectionsSection:"bluetooth"; function openConnections(section,source) {connectionsSection=section}'
-    mocks['NetworkService'] += '; property bool wifiAvailable:true; property bool wifiHardwareEnabled:true; property bool newConnectionBusy:false; property string errorMessage:""; function clearError() {errorMessage=""} function openSettings() {} function forgetNetwork(network) {}'
+    mocks['NetworkService'] += '; property bool wifiAvailable:true; property bool wifiHardwareEnabled:true; property bool deviceReady:true; readonly property bool wifiReady:wifiAvailable && wifiHardwareEnabled && wifiEnabled && deviceReady; property bool connectionPending:false; property bool newConnectionBusy:false; property string errorMessage:""; function clearError() {errorMessage=""} function openSettings() {} function forgetNetwork(network) {}'
     mocks['BluetoothService'] += '; property bool pairingPending:false; function cancelPairing() {} property QtObject adapter:QtObject {}; property string errorMessage:""; function openSettings() {} function forgetDevice(device) {}'
     mocks['BluetoothService'] += '; property string pairingToken:""; property string pairingKind:""; property string pairingName:""; property string pairingAddress:""; property string pairingCode:""; property string pairingUuid:""; property string pairingError:""; property int pairingEntered:0; function answerPairing(token,value) {pairingToken=""} function rejectPairing(token) {pairingToken=""}'
     mocks['VPNService'] += '; property bool enabled:true'
     mocks['AudioService'] += '; property var sinkNodes:[]; property var sourceNodes:[]; property var defaultSource:null; property var streamNodes:[]; function getAppIcon(node) {return \"\"} function formatVolume(value) {return \"0\"} function setDefaultSink(node) {defaultSink=node} function setDefaultSource(node) {defaultSource=node}'
-    mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++}'
+    mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++;return true}'
     mocks['BluetoothService'] += '; property int connectedDeviceCount:0; property var pairedDevices:[]; property var discoveredDevices:[]; property string busyDeviceAddress:""; property int connections:0; property int pairs:0; function connectDevice(device) {connections++} function disconnectDevice(device) {connections++} function pairDevice(device) {pairs++} function stopScan() {scanning=false} function startScan() {scanning=true} property bool scanning:false'
     mocks['VPNService'] += '; property var availableVPNs:[]; property bool busy:false; property string busyVPN:""; property string activeVPN:""; property int connections:0; function connect(name) {connections++} function disconnect() {connections++}'
     mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property string ipAddress:""; property string gateway:""; property string speed:""'
@@ -630,7 +630,7 @@ Item {
    GlobalStates.audioOpen=true;PopoutsState.closePopout();SystemTray.items=({values:[]})
    AudioService.streamNodes=[];AudioService.defaultSource=null;AudioService.masterVolume=0.45;AudioService.masterMuted=false;AudioService.micVolume=0.5;AudioService.micMuted=false
    GlobalStates.connectionsOpen=true;GlobalStates.connectionsSection=""
-   NetworkService.wifiEnabled=true;BluetoothService.enabled=true
+   NetworkService.wifiEnabled=true;NetworkService.deviceReady=true;NetworkService.errorMessage="";NetworkService.connectionPending=false;BluetoothService.enabled=true
    NetworkService.networks=[];NetworkService.scanning=false;NetworkService.connections=0;NetworkService.disconnections=0
    BluetoothService.pairedDevices=[];BluetoothService.discoveredDevices=[];BluetoothService.scanning=false;BluetoothService.connections=0;BluetoothService.pairs=0
    scene.width=760;scene.height=520
@@ -1162,6 +1162,20 @@ Item {
    compare(panel.implicitHeight,disabled,"opening a disabled radio leaves no empty list")
    toggle.forceActiveFocus();keyClick(Qt.Key_Space);wait(30)
    compare(panel.implicitHeight,expanded,"enabling the radio restores list height")
+  }
+  function test_connections_radio_recovery_without_reopen() {
+   controls.visible=false
+   GlobalStates.connectionsSection="wifi"
+   const panel=createTemporaryObject(connectionsPanel,scene)
+   verify(panel!==null);wait(20);verify(NetworkService.scanning)
+   NetworkService.wifiEnabled=false;NetworkService.deviceReady=false;wait(10)
+   verify(!NetworkService.scanning)
+   NetworkService.wifiEnabled=true;wait(10);verify(!NetworkService.scanning)
+   NetworkService.deviceReady=true;wait(20)
+   verify(NetworkService.scanning,"discovery restarts when the native adapter becomes ready")
+   NetworkService.deviceReady=false;wait(10)
+   NetworkService.deviceReady=true;wait(20)
+   verify(NetworkService.scanning,"adapter recovery does not require reopening Connections")
   }
   function test_connections_password_and_menu() {
    controls.visible=false

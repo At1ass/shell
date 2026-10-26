@@ -77,7 +77,7 @@ MaterialCard {
 
     // Discovery is owned by the visible expanded section, never by Dashboard.
     readonly property bool wifiDiscovery: root.active && root.section === "wifi"
-        && NetworkService.wifiAvailable && NetworkService.wifiHardwareEnabled && NetworkService.wifiEnabled
+        && NetworkService.wifiReady
     readonly property bool bluetoothDiscovery: root.active && root.section === "bluetooth" && root.findingBluetooth && BluetoothService.enabled
     onWifiDiscoveryChanged: {
         if (wifiDiscovery) NetworkService.startScan()
@@ -90,7 +90,7 @@ MaterialCard {
     Component.onDestruction: { NetworkService.stopScan(); BluetoothService.stopScan() }
     Timer {
         interval: 20000
-        running: root.wifiDiscovery && NetworkService.scanning
+        running: root.wifiDiscovery && NetworkService.scanning && !NetworkService.connectionPending
         onTriggered: NetworkService.stopScan()
     }
     Timer {
@@ -105,6 +105,7 @@ MaterialCard {
     }
     function askPassword(network) {
         root.targetNetwork = network
+        NetworkService.clearError()
         passwordField.text = ""
         passwordDialog.open()
     }
@@ -236,7 +237,7 @@ MaterialCard {
                 headline: "Wi-Fi"
                 supportingText: !NetworkService.wifiAvailable ? "No adapter"
                     : !NetworkService.wifiHardwareEnabled ? "Blocked by hardware"
-                    : !NetworkService.wifiEnabled ? "Off" : root.section === "wifi" ? "" : NetworkService.currentNetwork || "Not connected"
+                    : !NetworkService.wifiEnabled ? "Off" : !NetworkService.wifiReady ? "Starting…" : root.section === "wifi" ? "" : NetworkService.currentNetwork || "Not connected"
                 leadingIcon: NetworkService.icon
                 expanded: root.section === "wifi"
                 toggleVisible: true
@@ -285,7 +286,8 @@ MaterialCard {
                 MaterialText {
                     Layout.fillWidth: true
                     visible: NetworkService.wifiEnabled && NetworkService.networks.length === 0
-                    text: NetworkService.scanning ? "Searching for networks…" : "No networks found"
+                    text: !NetworkService.wifiReady ? "Waiting for Wi-Fi adapter…"
+                        : NetworkService.scanning ? "Searching for networks…" : "No networks found"
                     textStyle: "bodySmall"
                     colorRole: "onSurfaceVariant"
                 }
@@ -466,7 +468,7 @@ MaterialCard {
         dialogHeight: passwordColumn.implicitHeight + Tokens.spacing.medium * 2
         function submit() {
             if (!root.targetNetwork || passwordField.text.length === 0 || NetworkService.newConnectionBusy) return
-            NetworkService.connectToNewNetwork(root.targetNetwork, passwordField.text)
+            if (!NetworkService.connectToNewNetwork(root.targetNetwork, passwordField.text)) return
             passwordField.text = ""
             passwordDialog.close()
         }
@@ -478,6 +480,15 @@ MaterialCard {
                 id: passwordColumn
                 Layout.fillWidth: true
                 MaterialText { Layout.fillWidth: true; text: root.targetNetwork ? "Connect to " + root.targetNetwork.name : "Network is no longer available"; textStyle: "titleSmall"; wrapMode: Text.WordWrap }
+                MaterialText {
+                    Layout.fillWidth: true
+                    visible: NetworkService.errorMessage !== ""
+                    text: NetworkService.errorMessage
+                    textFormat: Text.PlainText
+                    textStyle: "bodySmall"
+                    colorRole: "error"
+                    wrapMode: Text.WordWrap
+                }
                 MaterialTextField {
                     id: passwordField
                     Layout.fillWidth: true
@@ -487,7 +498,7 @@ MaterialCard {
                     onTrailingClicked: password = !password
                     onAccepted: passwordDialog.submit()
                 }
-                MaterialButton { Layout.fillWidth: true; text: "Connect"; enabled: root.targetNetwork !== null && !root.targetNetwork.connected && !root.targetNetwork.stateChanging && passwordField.text.length > 0 && !NetworkService.newConnectionBusy; onClicked: passwordDialog.submit() }
+                MaterialButton { Layout.fillWidth: true; text: "Connect"; enabled: NetworkService.wifiReady && root.targetNetwork !== null && !root.targetNetwork.connected && !root.targetNetwork.stateChanging && passwordField.text.length > 0 && !NetworkService.newConnectionBusy; onClicked: passwordDialog.submit() }
                 MaterialButton { Layout.fillWidth: true; text: "Cancel"; variant: "text"; onClicked: passwordDialog.close() }
             }
         }
