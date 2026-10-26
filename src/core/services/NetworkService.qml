@@ -2,7 +2,6 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Networking
 
 Singleton {
@@ -36,7 +35,9 @@ Singleton {
     readonly property string connectionIcon: root.wiredConnected ? "lan" : root.icon
     readonly property string connectionLabel: root.wiredConnected ? "Wired connection"
         : root.currentNetwork || (root.wifiEnabled ? "Not connected" : "Wi-Fi off")
-    readonly property bool newConnectionBusy: newConnectProc.running
+    readonly property bool newConnectionBusy: root._pendingPskNetwork !== null
+    property WifiNetwork _pendingPskNetwork: null
+    property bool _pskActivationStarted: false
     property string errorMessage: ""
     function clearError() { root.errorMessage = "" }
 
@@ -62,25 +63,48 @@ Singleton {
         Networking.wifiEnabled = !Networking.wifiEnabled
     }
 
-    // Connect to a known network (NM already has credentials)
+    // Activate a saved profile; missing credentials may require an external agent.
     function connectToNetwork(network) {
         if (!network || network.stateChanging || root.newConnectionBusy) return
         root.clearError()
         network.connect()
     }
 
-    // Connect to a new network with password (only place nmcli is needed).
-    // The passphrase goes through STDIN (`--ask`), never through argv —
-    // /proc/<pid>/cmdline is world-readable (CWE-214).
-    function connectToNewNetwork(ssid, password) {
-        if (newConnectProc.running || !ssid || !password) return
+    // QS 0.3.2 passes the PSK directly to NetworkManager over D-Bus. Retain
+    // only the target, never the password; serialize writes until activation
+    // reaches a terminal state or the bounded fallback deadline expires.
+    function connectToNewNetwork(network, password) {
+        if (!network || network.connected || network.stateChanging || root.newConnectionBusy || !password) return
+        if (![WifiSecurityType.WpaPsk, WifiSecurityType.Wpa2Psk, WifiSecurityType.Sae].includes(network.security)) return
         root.clearError()
-        newConnectProc._password = password
-        // Re-assert stdin each launch: onStarted closes it to give nmcli
-        // EOF, and that imperative write severs any declarative binding.
-        newConnectProc.stdinEnabled = true
-        newConnectProc.command = ["nmcli", "--ask", "device", "wifi", "connect", ssid]
-        newConnectProc.running = true
+        root._pskActivationStarted = false
+        root._pendingPskNetwork = network
+        network.connectWithPsk(password)
+    }
+
+    Connections {
+        target: root._pendingPskNetwork
+        function onConnectedChanged() {
+            if (root._pendingPskNetwork?.connected) root._pendingPskNetwork = null
+        }
+        function onStateChangingChanged() {
+            const network = root._pendingPskNetwork
+            if (!network) return
+            if (network.stateChanging) root._pskActivationStarted = true
+            else if (root._pskActivationStarted) root._pendingPskNetwork = null
+        }
+        function onConnectionFailed() { root._pendingPskNetwork = null }
+    }
+    Timer {
+        interval: 120000
+        running: root.newConnectionBusy
+        onTriggered: {
+            // Native settings-write failures are only logged by QS 0.3.2.
+            // Bound the UI wait even if activation never starts.
+            root._pendingPskNetwork = null
+            root.errorMessage = "The connection did not finish. Check the network or open the connection editor."
+            if (!GlobalStates.connectionsOpen) ToastService.error(root.errorMessage)
+        }
     }
 
     // Disconnect from a network
@@ -121,38 +145,6 @@ Singleton {
     // Get security display text
     function securityText(securityType) {
         return WifiSecurityType.toString(securityType)
-    }
-
-    // Process for connecting to new networks with password
-    Process {
-        id: newConnectProc
-
-        property string _password: ""
-
-        onStarted: {
-            // nmcli --ask reads the passphrase from stdin when not on a TTY.
-            write(_password + "\n")
-            _password = ""
-            stdinEnabled = false
-        }
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // Connection attempt finished; native API updates state automatically
-            }
-        }
-
-        stderr: StdioCollector {}
-
-        onExited: exitCode => {
-            newConnectProc._password = ""
-            if (exitCode === 0) root.clearError()
-            else root.errorMessage = "Could not connect. Check the password or open the connection editor."
-            if (!GlobalStates.connectionsOpen) {
-                if (exitCode === 0) ToastService.success("Connected to network")
-                else ToastService.error(root.errorMessage)
-            }
-        }
     }
 
     Instantiator {

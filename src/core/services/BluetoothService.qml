@@ -4,17 +4,15 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
+import qs.src.core.config
 import qs.src.core.services
 
 // Bluetooth via Quickshell's native BlueZ model, fully event-driven:
 // device lists rebuild only when a device appears/disappears or one of its
 // relevant properties changes (no polling).
 //
-// SECURITY: no background pairing agent. The old always-on bluetoothctl
-// agent auto-answered "yes" to EVERY passkey/confirmation prompt — including
-// pairing attempts the user never initiated. Pairing now relies on
-// device.pair() (works for simple devices) or an interactive agent
-// (blueman) for confirmation-requiring peers.
+// Native agent callbacks are isolated in an optional loader so installing a new
+// plugin version cannot make the complete shell configuration unloadable.
 Singleton {
     id: root
 
@@ -22,12 +20,17 @@ Singleton {
     Connections {
         target: GlobalStates
         function onConnectionsOpenChanged() {
-            if (!GlobalStates.connectionsOpen) root.stopScan()
+            if (!GlobalStates.connectionsOpen) { root.stopScan(); root.cancelPairing() }
         }
+        function onLockscreenActiveChanged() { if (GlobalStates.lockscreenActive) root.cancelPairing() }
+        function onConnectionsSectionChanged() { if (GlobalStates.connectionsSection !== "bluetooth") root.cancelPairing() }
     }
 
+    readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter
 
-    readonly property var adapter: Bluetooth.defaultAdapter
+    // ObjectModel values are reactive but absent from the generated Qt typeinfo.
+    readonly property QtObject _deviceModel: adapter?.devices ?? null
+    readonly property list<BluetoothDevice> _devices: _deviceModel ? (_deviceModel["values"] ?? []) : []
 
     // Pure bindings — the native model notifies; no manual sync handlers.
     readonly property bool enabled: adapter?.enabled ?? false
@@ -41,16 +44,77 @@ Singleton {
     property var discoveredDevices: []
 
     property string errorMessage: ""
-    readonly property bool pairingPending: root._pendingConnectDevice !== null
-    function cancelPairing() {
-        const device = root._pendingConnectDevice
-        root._pendingConnectDevice = null
-        root.busyDeviceAddress = ""
-        if (device) device.cancelPair()
+    Loader {
+        id: agentLoader
+        active: AppConfig.moduleEnabled("connections") && AppConfig.bluetoothAgentEnabled
+        source: "connectivity/NativeBluetoothAgent.qml"
     }
+    readonly property QtObject pairingAgent: agentLoader.item
+    onPairingAgentChanged: {
+        if (!pairingAgent && root._nativePair) root._finishPair(root._pairingPath, false, "Pairing cancelled")
+    }
+    function agentValue(name, fallback) { return pairingAgent ? (pairingAgent[name] ?? fallback) : fallback }
+    function agentCall(name, args) {
+        const agent = pairingAgent
+        return agent && typeof agent[name] === "function" ? agent[name](...args) : false
+    }
+    readonly property bool agentRegistered: agentValue("registered", false)
+    readonly property bool agentBusy: agentValue("busy", false)
+    readonly property string pairingToken: agentValue("requestToken", "")
+    readonly property string pairingKind: agentValue("requestKind", "")
+    readonly property string pairingName: agentValue("deviceName", "")
+    readonly property string pairingAddress: agentValue("deviceAddress", "")
+    readonly property string pairingCode: agentValue("code", "")
+    readonly property string pairingUuid: agentValue("serviceUuid", "")
+    readonly property int pairingEntered: agentValue("entered", 0)
+    readonly property string pairingError: agentValue("validationError", "")
+    readonly property bool pairingPending: root._pendingConnectDevice !== null
+    property BluetoothDevice _pendingConnectDevice: null
+    property string _pairingPath: ""
+    property bool _nativePair: false
+    property bool _fallbackPairStarted: false
 
-    // Device pending auto-connect after pairing.
-    property var _pendingConnectDevice: null
+    function answerPairing(token, value) { return agentCall("submit", [token, value]) }
+    function rejectPairing(token) { return agentCall("reject", [token]) }
+    function cancelPairing() {
+        if (!root.pairingPending) return
+        if (root._nativePair) { root.agentCall("abort", []); return }
+        const device = root._pendingConnectDevice
+        root._pairingPath = ""
+        root._pendingConnectDevice = null
+        if (device?.pairing) device.cancelPair()
+        root.busyDeviceAddress = ""
+    }
+    function _finishPair(path, success, message) {
+        const device = root._pendingConnectDevice
+        if (!path || root._pairingPath !== path) return
+        root._pairingPath = ""
+        root._nativePair = false
+        root._pendingConnectDevice = null
+        if (success && device && root.enabled) {
+            device.trusted = true
+            device.connected = true
+        } else {
+            root.busyDeviceAddress = ""
+            root.errorMessage = message || "Pairing failed. Check the device and try again."
+        }
+        root._scheduleRecompute()
+    }
+    Connections {
+        target: agentLoader.item
+        ignoreUnknownSignals: true
+        function onOperationFinished(path: string, success: bool, error: string) { root._finishPair(path, success, error) }
+        function onOperationCancelled(path: string, reason: string) {
+            root._finishPair(path, false, reason)
+        }
+    }
+    onAgentBusyChanged: {
+        if (!root.agentBusy && !root.pairingPending) root._scheduleRecompute()
+    }
+    Connections {
+        target: SessionMonitor
+        function onResumed() { root.cancelPairing() }
+    }
 
     // Address of device currently being connected/disconnected/paired.
     property string busyDeviceAddress: ""
@@ -80,7 +144,7 @@ Singleton {
 
     // Connect a paired/bonded device (direct property assignment).
     function connectDevice(device) {
-        if (!device || busyDeviceAddress !== "") return
+        if (!device || busyDeviceAddress !== "" || root.agentBusy) return
         root.errorMessage = ""
         busyDeviceAddress = device.address || ""
         _busyTargetConnected = true
@@ -89,46 +153,59 @@ Singleton {
     }
 
     function disconnectDevice(device) {
-        if (!device || busyDeviceAddress !== "") return
+        if (!device || busyDeviceAddress !== "" || root.agentBusy) return
         root.errorMessage = ""
         busyDeviceAddress = device.address || ""
         _busyTargetConnected = false
         device.connected = false
     }
 
-    // Pair a new device — completion is observed via the device's
-    // pairedChanged (watched below), then auto-connect fires.
+    // Only user-initiated operations arm the application-scoped agent.
     function pairDevice(device) {
-        if (!device || busyDeviceAddress !== "") return
+        if (!device || device.paired || busyDeviceAddress !== "" || root.agentBusy) return
         root.errorMessage = ""
-        busyDeviceAddress = device.address || ""
-        _busyTargetConnected = true
+        root._nativePair = false
+        root._fallbackPairStarted = false
+        if (root.pairingAgent) {
+            if (!root.agentCall("arm", [device.dbusPath, device.name || device.address, device.address])) {
+                root.errorMessage = "Pairing is unavailable. Reopen Bluetooth or use the Bluetooth manager."
+                return
+            }
+            root._nativePair = true
+        }
+        root.busyDeviceAddress = device.address || ""
+        root._busyTargetConnected = true
+        root._pairingPath = device.dbusPath
         root._pendingConnectDevice = device
-        device.pair()
+        if (root._nativePair) {
+            if (!root.agentCall("startPair", [])) {
+                root.agentCall("abort", [])
+                root._finishPair(device.dbusPath, false, "Could not start pairing")
+            }
+        } else {
+            // Until the optional module is installed (or when disabled), the
+            // existing default agent continues to handle native QS pairing.
+            device.pair()
+            root._fallbackPairStarted = device.pairing
+        }
     }
 
     function forgetDevice(device) {
-        if (device && busyDeviceAddress === "") device.forget()
+        if (device && busyDeviceAddress === "" && !root.agentBusy) device.forget()
     }
 
     function openSettings() {
         AppLaunchService.launchCommand(["blueman-manager"])
     }
 
-    // Give up waiting for pairing after 30s.
+    // The native agent owns its absolute deadline. This timer only bounds
+    // compatibility pairing through the external default agent.
     Timer {
-        id: pairTimeoutTimer
         interval: 30000
-        running: root._pendingConnectDevice !== null
-
+        running: root.pairingPending && !root._nativePair
         onTriggered: {
-            if (root._pendingConnectDevice) {
-                root.errorMessage = "Pairing timed out. Check the device or use the Bluetooth manager for confirmation."
-                if (!GlobalStates.connectionsOpen) ToastService.warning(root.errorMessage)
-                root._pendingConnectDevice.cancelPair()
-                root._pendingConnectDevice = null
-                root.busyDeviceAddress = ""
-            }
+            root.cancelPairing()
+            root.errorMessage = "Pairing timed out. Check the device or use the Bluetooth manager."
         }
     }
 
@@ -163,6 +240,10 @@ Singleton {
             target: modelData
             function onConnectedChanged() { root._scheduleRecompute() }
             function onPairedChanged()    { root._scheduleRecompute() }
+            function onPairingChanged() {
+                if (!root._nativePair && modelData.dbusPath === root._pendingConnectDevice?.dbusPath && modelData.pairing) root._fallbackPairStarted = true
+                root._scheduleRecompute()
+            }
             function onTrustedChanged()   { root._scheduleRecompute() }
             function onBlockedChanged()   { root._scheduleRecompute() }
             function onNameChanged()      { root._scheduleRecompute() }
@@ -173,6 +254,7 @@ Singleton {
     }
 
     onEnabledChanged: _scheduleRecompute()
+    on_PendingConnectDeviceChanged: if (!root._pendingConnectDevice && root._nativePair) root.agentCall("abort", [])
     Component.onCompleted: _scheduleRecompute()
 
     function _recompute() {
@@ -189,7 +271,7 @@ Singleton {
         const paired = []
         const discovered = []
 
-        for (const d of adapter.devices.values) {
+        for (const d of root._devices) {
             if (!d) continue
 
             if (d.connected) count++
@@ -227,19 +309,18 @@ Singleton {
             || (a.name || a.address).localeCompare(b.name || b.address))
         discoveredDevices = discovered.sort((a, b) => (a.name || a.address).localeCompare(b.name || b.address))
 
-        // Auto-connect once pairing completed (was a 1 s polling timer).
-        const pending = _pendingConnectDevice
-        if (pending && pending.paired) {
-            pending.trusted = true
-            pending.connected = true
-            _pendingConnectDevice = null
-        }
+        const pending = root._pendingConnectDevice
+        const path = root.agentValue("operationPath", "")
+        if (path && !root._devices.some(device => device.dbusPath === path))
+            root.agentCall("deviceRemoved", [path])
+        if (pending && !root._nativePair && root._fallbackPairStarted && !pending.pairing)
+            root._finishPair(pending.dbusPath, pending.paired, "Pairing failed. Check the device or use the Bluetooth manager.")
 
         // Clear busy state only when the busy DEVICE reached the target
         // state (or vanished) — not on unrelated recomputes.
-        if (busyDeviceAddress && !_pendingConnectDevice) {
+        if (busyDeviceAddress && !_pendingConnectDevice && !root.agentBusy) {
             let busyDev = null
-            for (const d of adapter.devices.values) {
+            for (const d of root._devices) {
                 if (d && d.address === busyDeviceAddress) { busyDev = d; break }
             }
             if (!busyDev || busyDev.connected === _busyTargetConnected)
@@ -250,9 +331,8 @@ Singleton {
     // Never leave a stuck busy indicator if the operation silently dies.
     Timer {
         interval: 20000
-        running: root.busyDeviceAddress !== ""
+        running: root.busyDeviceAddress !== "" && !root.pairingPending && !root.agentBusy
         onTriggered: {
-            if (root._pendingConnectDevice) return
             root.errorMessage = "The Bluetooth operation did not finish. Check the device and try again."
             root.busyDeviceAddress = ""
         }

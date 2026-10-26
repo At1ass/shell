@@ -23,11 +23,11 @@ MaterialCard {
     property string menuTitle: ""
     property var menuActions: []
     property var detailLines: []
-    readonly property bool modalOpen: actionDialog.visible || passwordDialog.visible || detailsDialog.visible || forgetDialog.visible
+    readonly property bool modalOpen: actionDialog.visible || passwordDialog.visible || detailsDialog.visible || forgetDialog.visible || pairingDialog.visible
     readonly property bool active: GlobalStates.connectionsOpen && root.visible
 
     implicitWidth: AppConfig.connectionsWidth
-    implicitHeight: column.implicitHeight + Tokens.panelPadding * 2
+    implicitHeight: Math.max(column.implicitHeight + Tokens.panelPadding * 2, pairingDialog.visible ? pairingDialog.desiredHeight : 0)
     color: Theme.surfaceContainer
     radius: Tokens.shape.large
     focus: true
@@ -101,7 +101,7 @@ MaterialCard {
 
     function personalSecurity(network) {
         return network && [WifiSecurityType.Sae, WifiSecurityType.Wpa2Psk,
-            WifiSecurityType.WpaPsk, WifiSecurityType.StaticWep].includes(network.security)
+            WifiSecurityType.WpaPsk].includes(network.security)
     }
     function askPassword(network) {
         root.targetNetwork = network
@@ -134,7 +134,7 @@ MaterialCard {
         root.targetNetwork = network
         root.showActions("wifi", network.name || "Hidden network", [
             {label: network.connected ? "Disconnect" : "Connect", icon: network.connected ? "link_off" : "link", action: "connect", enabled: !network.stateChanging && !NetworkService.newConnectionBusy},
-            {label: "Enter password…", icon: "password", action: "password", enabled: root.personalSecurity(network) && !network.stateChanging && !NetworkService.newConnectionBusy},
+            {label: "Enter password…", icon: "password", action: "password", enabled: root.personalSecurity(network) && !network.connected && !network.stateChanging && !NetworkService.newConnectionBusy},
             {label: "Connection details", icon: "info", action: "details"},
             {label: "Forget network", icon: "delete", action: "forget", enabled: network.known && !network.stateChanging},
             {label: "Edit connections…", icon: "open_in_new", action: "editor"}
@@ -332,6 +332,7 @@ MaterialCard {
                     Layout.fillWidth: true
                     visible: BluetoothService.errorMessage !== ""
                     text: BluetoothService.errorMessage
+                    textFormat: Text.PlainText
                     textStyle: "bodySmall"
                     colorRole: "error"
                     wrapMode: Text.WordWrap
@@ -424,6 +425,19 @@ MaterialCard {
         }
     }
 
+    BluetoothPairingDialog {
+        id: pairingDialog
+        requestToken: BluetoothService.pairingToken
+        requestKind: BluetoothService.pairingKind
+        deviceName: BluetoothService.pairingName
+        deviceAddress: BluetoothService.pairingAddress
+        code: BluetoothService.pairingCode
+        serviceUuid: BluetoothService.pairingUuid
+        entered: BluetoothService.pairingEntered
+        validationError: BluetoothService.pairingError
+        onAnswered: (token, value) => BluetoothService.answerPairing(token, value)
+        onRejected: token => BluetoothService.rejectPairing(token)
+    }
     Dialog {
         id: actionDialog
         dialogWidth: root.width - Tokens.spacing.small * 2
@@ -452,7 +466,7 @@ MaterialCard {
         dialogHeight: passwordColumn.implicitHeight + Tokens.spacing.medium * 2
         function submit() {
             if (!root.targetNetwork || passwordField.text.length === 0 || NetworkService.newConnectionBusy) return
-            NetworkService.connectToNewNetwork(root.targetNetwork.name, passwordField.text)
+            NetworkService.connectToNewNetwork(root.targetNetwork, passwordField.text)
             passwordField.text = ""
             passwordDialog.close()
         }
@@ -473,7 +487,7 @@ MaterialCard {
                     onTrailingClicked: password = !password
                     onAccepted: passwordDialog.submit()
                 }
-                MaterialButton { Layout.fillWidth: true; text: "Connect"; enabled: root.targetNetwork !== null && passwordField.text.length > 0 && !NetworkService.newConnectionBusy; onClicked: passwordDialog.submit() }
+                MaterialButton { Layout.fillWidth: true; text: "Connect"; enabled: root.targetNetwork !== null && !root.targetNetwork.connected && !root.targetNetwork.stateChanging && passwordField.text.length > 0 && !NetworkService.newConnectionBusy; onClicked: passwordDialog.submit() }
                 MaterialButton { Layout.fillWidth: true; text: "Cancel"; variant: "text"; onClicked: passwordDialog.close() }
             }
         }

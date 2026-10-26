@@ -19,6 +19,7 @@ add_subdirectory(src/system-monitor-qml)
 add_subdirectory(src/fuzzy-search-qml)
 add_subdirectory(src/calendar-qml)
 add_subdirectory(src/greeter-data-qml)
+add_subdirectory(src/connectivity-qml)
 
 if (BUILD_TESTING)
     add_subdirectory(src/common/test)

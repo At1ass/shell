@@ -13,7 +13,12 @@ Item {
     // Reveal a keyboard-focused descendant without polling or animating a
     // hidden subtree. Focus can move below the viewport after panel clamping.
     readonly property Item _focusedItem: root.Window.window?.activeFocusItem ?? null
-    on_FocusedItemChanged: root._revealFocus()
+    on_FocusedItemChanged: Qt.callLater(root._revealFocus)
+    // Font scaling and panel clamping can move the same focused control
+    // outside the viewport without producing another focus event.
+    onHeightChanged: Qt.callLater(root._revealFocus)
+    onWidthChanged: Qt.callLater(root._revealFocus)
+    onVisibleChanged: if (visible) Qt.callLater(root._revealFocus)
 
     function _revealFocus() {
         if (!root.visible || !root._focusedItem) return
@@ -52,6 +57,7 @@ Item {
 
             ColumnLayout {
                 id: contentLayout
+                onImplicitHeightChanged: Qt.callLater(root._revealFocus)
                 anchors.fill: parent
                 anchors.margins: root.contentPadding
                 spacing: root.spacing

@@ -55,10 +55,11 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
 | `bluez` | Bluetooth support for the Connections panel |
 
-> Bluetooth pairing note: the shell intentionally runs **no** background pairing
-> agent (an always-on auto-confirm agent would accept any nearby pairing
-> request). Simple devices pair directly; devices that require passkey
-> confirmation need an interactive agent such as `blueman`.
+> Bluetooth pairing from Connections uses the shell's application-scoped BlueZ
+> agent: PIN/passkey input, keyboard code display and explicit confirmation.
+> It never becomes the default agent and rejects unsolicited requests. Keep
+> existing applets enabled until hardware acceptance and the NetworkManager
+> secret-agent audit are complete.
 
 ### Build dependencies (C++ plugins)
 
@@ -88,7 +89,7 @@ cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 ```
 
-Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv).
+Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv), Connectivity (BlueZ pairing agent and asynchronous pairing transport).
 
 #### Arch Linux: as a package
 
@@ -1114,19 +1115,49 @@ are respected. Openings from the widget stay on its monitor and hold that bar op
 Enter/Space activates rows. Connected rows open actions instead of disconnecting
 immediately. Menus support arrows/Home/End, and Escape returns focus to the initiating
 control. Forgetting a network/device requires confirmation. A personal Wi-Fi
-password can be entered or retried inside the panel; enterprise/unknown security
-uses the external connection editor. OWE networks connect without a password.
+password can be entered or retried inside the panel. WPA/WPA2 Personal and SAE
+use the native [Quickshell 0.3.2 connectWithPsk API](https://quickshell.org/docs/v0.3.2/types/Quickshell.Networking/WifiNetwork/),
+with no `nmcli` process or password retained by the service. The network object
+identifies the target; SSIDs are never interpreted as CLI arguments. Legacy WEP,
+enterprise and unknown security use the external connection editor. OWE networks
+connect without a password.
+
+This is not a general NetworkManager secret agent. Saved profiles can still need
+agent-owned or unsaved credentials; VPN and 802.1X authentication may require an
+external prompt even when the profile was configured in the connection editor.
+Keep nm-applet enabled for these requests. The implementation plan and comparison
+with the other local shells are recorded in ROADMAP.md.
 
 Wi-Fi discovery runs only in the visible expanded Wi-Fi section and stops after
 20 seconds. Bluetooth discovery starts from **Pair new device**, stops after
 30 seconds, and ends when leaving the section or closing the panel. Connection
 operations belong to services and can finish after the panel closes.
 
-This panel does not replace authentication agents yet. Keep nm-applet and
-blueman-applet enabled while using it: Bluetooth PIN/passkey confirmation still
-relies on the external agent. **Edit connections** opens nm-connection-editor;
-**Bluetooth manager** opens blueman-manager through AppLaunchService. There are
-no shell settings in the panel.
+Bluetooth pairing prompts stay inside Connections and share its focus grab. PINs,
+passkeys, matching-code confirmations and service authorization require an explicit
+answer; keyboard codes show entered-digit progress. The agent handles only a device
+selected in this panel, verifies the BlueZ sender and rejects stale answers. Closing
+the panel, leaving Bluetooth, locking, resuming, disabling the adapter or losing the
+device cancels pairing. Ordinary connect/disconnect operations can finish in the
+background. The bounded deadline defaults to 120 seconds:
+
+```json
+"connections": {
+  "width": 420,
+  "maxHeight": 640,
+  "bluetoothAgent": true,
+  "pairingTimeout": 120
+}
+```
+
+`bluetoothAgent: false` keeps pairing on the external default agent. The native
+`Connectivity 1.0` module must be rebuilt and installed for the integrated prompts;
+a missing module is isolated by a loader and leaves the shell running with external
+agent fallback. Registration is [application-scoped](https://bluez.readthedocs.io/en/latest/agent-api/):
+it never requests default-agent ownership. Keep nm-applet and blueman-applet enabled
+until hardware acceptance and the NetworkManager secret-agent audit are complete.
+**Edit connections** opens nm-connection-editor; **Bluetooth manager** opens
+blueman-manager through AppLaunchService. There are no shell settings in the panel.
 
 
 The cheatsheet discovers IPC handlers and signatures with `qs ipc show` on every

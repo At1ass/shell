@@ -5,7 +5,7 @@
 > Code и ссылается сюда.
 
 **Проект:** `shell` — desktop shell для Hyprland на Quickshell
-**Фреймворк:** Quickshell (QML/Qt 6) + 6 собственных C++ плагинов
+**Фреймворк:** Quickshell (QML/Qt 6) + 7 собственных C++ плагинов
 **Языки:** QML, C++17, немного shell-скриптов
 **Композитор:** Hyprland (жёстко; используется `Quickshell.Hyprland`, `hyprctl`, ext-global-shortcuts)
 
@@ -34,7 +34,7 @@
 
 `shell` — конфигурация Quickshell, реализующая бар, док, дашборд, лаунчер, уведомления,
 OSD, скриншоты, локскрин, powermenu, cheatsheet и динамическую тему из обоев. Управляется
-JSON-конфигом с hot-reload и JSON Schema. Тяжёлая логика вынесена в 6 C++ плагинов.
+JSON-конфигом с hot-reload и JSON Schema. Тяжёлая логика вынесена в 7 C++ плагинов.
 
 Проект вдохновлён Caelestia, но реализован самостоятельно (своя слоёная архитектура и своя
 MD3-библиотека компонентов). Это **не форк** — заимствования точечные и атрибутированы в коде.
@@ -49,7 +49,7 @@ MD3-библиотека компонентов). Это **не форк** — �
 | Нативные сервисы | `Quickshell.Services.Pipewire`, `.Mpris`, `Quickshell.Networking`, `Quickshell.Bluetooth`, `Quickshell.Services.Notifications` |
 | Композитор | `Quickshell.Hyprland`, `hyprctl`, ext-global-shortcuts |
 | Конфиг | `Quickshell.Io.FileView` (JSON) + `config/config.schema.json` |
-| Нативная логика | 6 C++ плагинов (Qt 6.5+, C++17, CMake + Ninja) |
+| Нативная логика | 7 C++ плагинов (Qt 6.5+, C++17, CMake + Ninja) |
 | Цвет | C++ плагин `Mcu` (Material Color Utilities, сабмодуль) |
 
 **Внешние CLI** (только там, где нет нативного API): `ddcutil`, `grim`, `wl-copy`, `swappy`,
@@ -352,7 +352,28 @@ if (Keycodes.letter(event) === action.key) activate()
 Старые `dashboard-network` и `openDashboardTab(4)` перенаправляются в Connections.
 Поиск ограничен видимостью раздела и таймаутом; подключение живёт в сервисе.
 Внешние редакторы профилей разрешены по явному действию; GUI-настроек шелла здесь нет.
-Пока собственного агента сопряжения нет, nm-applet/blueman-applet не отключать.
+BluetoothPairingAgent (`Connectivity 1.0`) регистрируется только для процесса шелла,
+не вызывает RequestDefaultAgent и принимает запросы только от текущего владельца
+org.bluez для явно выбранного устройства. PIN/подтверждения — модальный Dialog
+внутри существующего окна Connections; новый grab не создаётся. Каждый ответ
+проверяет request token. Закрытие панели, смена раздела, блокировка, resume,
+выключение адаптера и исчезновение устройства отменяют запрос. Нативный мост
+вызывает Pair асинхронно: QS 0.3.2 не публикует ошибку и использует короткий
+стандартный D-Bus timeout. Остальные операции/модель — Quickshell.Bluetooth.
+Новый Pair ждёт завершения отменённого транспорта; таймаут абсолютный, монотонный.
+Конфиг: connections.bluetoothAgent и connections.pairingTimeout. Optional Loader
+изолирует отсутствие модуля до установки; fallback — внешний default agent.
+Проверки: bluetooth_agent_test на приватной D-Bus шине, tools/test-bluetooth.py,
+tools/test-ui.py. nm-applet/blueman-applet пока не отключать: нужны аппаратная
+приёмка сопряжения и аудит NetworkManager secret agent.
+
+Wi-Fi Personal (WpaPsk/Wpa2Psk/Sae) передаёт пароль через нативный
+WifiNetwork.connectWithPsk(), без nmcli/stdin. Сервис удерживает только типизированный
+объект сети, не пароль; busy снимается по состоянию/ошибке/удалению объекта и имеет
+ограниченный fallback deadline для немых ошибок записи профиля в QS 0.3.2.
+WEP/802.1X/неизвестная защита — внешний редактор. Это не SecretAgent: профили с
+недостающими agent-owned/not-saved секретами и VPN требуют внешнего агента.
+При изменении этого пути запускать tools/test-network.py и tools/test-ui.py.
 
 ### Аудио и трей
 
@@ -395,6 +416,7 @@ diskseq, пропадании устройства и больших интер�
 | `Qalculate 1.0` | калькулятор лаунчера (`QalculateWrapper.eval`). |
 | `SystemMonitor 1.0` | CPU/RAM/swap/GPU/disk/net из `/proc` (`SystemMonitor`, singleton). |
 | `FuzzySearch 1.0` | нечёткий поиск (`score/match/matchWeighted`). |
+| `Connectivity 1.0` | BlueZ: агент PIN/passkey, явные подтверждения и асинхронный Pair с отменой и deadline. |
 | `GreeterData 1.0` | Каталоги сессий и локальных пользователей гритера: worker, desktop/Exec parser, готовый argv. |
 
 **Что обязано быть в C++, а не в QML:** парсинг строк/`.ics`, сканирование/чтение ФС, анализ

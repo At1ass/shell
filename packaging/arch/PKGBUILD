@@ -59,7 +59,7 @@ build() {
 }
 
 package_at1ass-shell-plugins() {
-  pkgdesc="C++ QML plugins of the at1ass Quickshell shell (Mcu, Qalculate, SystemMonitor, FuzzySearch, Calendar, GreeterData)"
+  pkgdesc="C++ QML plugins of the at1ass Quickshell shell (Mcu, Qalculate, SystemMonitor, FuzzySearch, Calendar, GreeterData, Connectivity)"
   depends=(gcc-libs glibc qt6-base qt6-declarative libical libqalculate lm_sensors glib2)
 
   # INSTALL_QMLDIR defaults to the absolute /usr/lib/qt6/qml (PluginInstall.cmake).

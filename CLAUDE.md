@@ -4,7 +4,7 @@
 > Этот файл — короткая операционная выжимка для Claude Code; при расхождении главенствует `AGENTS.md`.
 
 ## Что это
-Desktop shell для **Hyprland** на **Quickshell** (QML/Qt 6) + 5 собственных **C++ плагинов**.
+Desktop shell для **Hyprland** на **Quickshell** (QML/Qt 6) + 7 собственных **C++ плагинов**.
 Слои: `core/config` → `core/services` → `features`; `ui` (MD3-библиотека) зависит только от `config`; `plugins` — нативная логика.
 
 ## Векторы (приоритет именно в этом порядке)

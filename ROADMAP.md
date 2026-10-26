@@ -67,15 +67,24 @@ unavailable, so an empty ColumnLayout cannot retain the former device-list heigh
 UI tests cover disabling and re-enabling Wi-Fi/Bluetooth in Minimal and MD3.
 
 Open before removing applets:
-- Implement and test a BlueZ agent (PIN, passkey display/input, confirmation,
-  cancellation, disappearing devices and lock/session transitions).
-- Audit NetworkManager secret-agent coverage for saved profiles, VPN secrets and
-  enterprise Wi-Fi. The current panel delegates complex profiles to external tools.
+- Hardware acceptance of the integrated BlueZ agent: PIN/passkey peers, keyboard
+  entry progress, code match/rejection, device disappearance, adapter changes,
+  lock/resume and panel closing. Implementation and isolated tests are complete;
+  the rebuilt Connectivity plugin is installed. Phone numeric comparison passed
+  manual acceptance: code shown by the shell and accepted on both devices (user
+  report, 2026-10-26). PIN entry, keyboard progress and cancellation transitions
+  still need hardware acceptance.
+- NetworkManager secret-agent audit completed (see the coverage matrix below).
+  General secret-agent implementation, storage semantics and real VPN/802.1X
+  acceptance remain open. Complex profiles continue to use external tools.
 - Applet removal is a separate migration after both authentication paths pass;
   nm-applet and blueman-applet remain enabled for now.
 
-Next UI work: calendar composition on narrow screens and remaining feature-specific
-controls, then bar/dock/popout consistency without adding GUI settings.
+Next UI work: compact oversized tray-menu rows, then dashboard motion. The user
+reports jerking/jumping and successive layout adjustments in Dashboard; Connections
+motion is abrupt but otherwise acceptable. Review opening/tab switching/lazy content
+and implicit-size transitions together; do not just increase animation durations.
+Then continue remaining feature-specific controls and bar/dock/popout consistency.
 
 ## Interaction contract — 2026-10
 
@@ -96,7 +105,7 @@ Remaining approved UX work, in order:
    after the updated greeter package is installed. Greeter UI/config and isolated
    authentication tests and native session/user catalogs are implemented. The updated
    greeter requires the new GreeterData module; install both packages together.
-2. Bluetooth pairing agent and NetworkManager secret-agent coverage before applet removal.
+2. Bluetooth hardware acceptance (new Connectivity plugin) and NetworkManager secret-agent coverage before applet removal.
 3. Remaining typography/defaults and nonblocking service debt.
 
 Bar priorities, Dashboard cleanup, calendar/weather hierarchy and OSD/launcher
@@ -3179,3 +3188,88 @@ across catalog reorder. A staged CMake install is imported by real Quickshell to
 verify the module/DTO bridge against the machine's read-only catalogs. Both updated
 packages must be rebuilt together before the new greeter is used. Hyprland, driver,
 greetd policy and the installed libraries are unchanged by source development.
+
+
+## Bluetooth pairing inside Connections — 2026-10-26
+
+Implemented an application-scoped BlueZ agent in Connectivity 1.0. It never claims
+system default-agent ownership. Requests are restricted to the current BlueZ unique
+sender and an explicitly armed device path; deferred answers carry request tokens.
+PIN/passkey entry, code comparison, Just Works/service authorization and keyboard
+code display use one modal Dialog within Connections, with Cancel initially focused
+for confirmations. Keyboard progress does not replace the active request token.
+
+The asynchronous native Pair transport publishes success/errors and has an absolute
+monotonic deadline (connections.pairingTimeout, default 120 seconds). Quickshell
+0.3.2's Pair only logs errors and uses the standard D-Bus timeout; the native model
+and all non-pairing operations remain on Quickshell.Bluetooth. Cancellation retains
+the in-flight transport until completion to prevent overlap with a new operation.
+Owner changes, reload, lock, resume, section/panel close, adapter loss and device
+removal are covered by isolated C++/QML tests. No real pairing or lock was triggered.
+
+The optional loader permits updating QML before installing the new plugin; until
+installation, pairing uses the existing default agent. nm-applet/blueman-applet stay
+in place. Remaining: hardware pairing acceptance and NetworkManager secret-agent
+coverage for saved profiles, enterprise Wi-Fi and VPNs.
+
+
+## NetworkManager credential coverage — 2026-10-26
+
+The phone numeric-comparison Bluetooth flow passed hardware acceptance according to
+the user: code displayed in the shell, accepted on both sides, pairing completed.
+This does not validate legacy PIN, keyboard code entry or cancellation hardware paths.
+
+Audit against Quickshell 0.3.2 and the NetworkManager SecretAgent/AgentManager APIs:
+
+| Scenario | Current shell path | Remaining dependency |
+|---|---|---|
+| Open / OWE | Native network.connect() | No password prompt |
+| WPA/WPA2 Personal / SAE | Native network.connectWithPsk(); typed target and bounded busy state | Real connection acceptance after migration |
+| Saved profile with usable system-held secrets | Native network.connect() | NM supplies existing credentials |
+| Saved profile with missing/changed/agent-owned/not-saved secrets | No general GetSecrets handler | nm-applet/other secret agent; explicit PSK retry covers only Personal |
+| Enterprise Wi-Fi / wired 802.1X | External profile editor; native activation for saved Wi-Fi | A profile editor does not replace an activation-time credential agent |
+| VPN | nmcli connection up without --ask | External secret agent for passwords, OTP/challenges and plugin-specific auth |
+| Save/delete agent-owned secrets | Not implemented | External agent and its keyring |
+
+Removed the unnecessary Wi-Fi nmcli --ask process: 0.3.2 already exports
+connectWithPsk for WpaPsk/Wpa2Psk/Sae. The native API also updates a saved profile's
+PSK before activation. WEP must not use that method and now follows the advanced
+editor path. Connection completion stays in the native model; the service retains
+no password, serializes pending writes and bounds otherwise silent settings-write
+failures. Isolated service tests and Connections keyboard tests cover this path;
+no real Wi-Fi connection, scan, profile update or secret lookup was performed.
+
+Local reference review:
+- noctalia-shell/src/dbus/network/network_secret_agent.*: a single pending PSK
+  prompt with ALLOW_INTERACTION gating. It is PSK-only, ignores hints and leaves
+  SaveSecrets/DeleteSecrets empty; this is not full replacement coverage.
+- DankMaterialShell/core/internal/server/network/secret_service.go: Secret Service
+  integration covers wireless, 802.1X, VPN and WireGuard field shapes. Reuse the
+  separation between requests and storage, not blocking calls in our Qt UI thread.
+- ii/services/Network.qml uses nmcli and a shell command for changing passwords;
+  our native API path avoids that transport and quoting/lifetime complexity.
+
+Implementation order for a future full agent:
+1. Native asynchronous transport in Connectivity with verified NM unique sender,
+   request tokens, cancellation by connection path + setting, bounded concurrency,
+   daemon restart and lock/session teardown. NM registration is session agent
+   registration, not BlueZ's application-scoped default-agent mechanism; coexistence
+   and request routing require separate tests before enabling a replacement.
+2. Simple Personal prompts first, then saved-profile 802.1X identity/password and
+   private-key password fields. Honor ALLOW_INTERACTION, REQUEST_NEW and secret flags;
+   never present an unattended autoconnect prompt while locked.
+3. Agent-owned secrets require a real asynchronous Secret Service backend and
+   SaveSecrets/DeleteSecrets handling. NOT_SAVED is never persisted; no passwords
+   in config.json, state.json, logs or argv. Persistence policy belongs in config,
+   not an extra GUI preference.
+4. VPN hints, multiple fields and plugin-specific challenge/MFA workflows are a
+   separate acceptance tier; a generic password box is not sufficient.
+5. Test private D-Bus/keyring fixtures for ownership, cancellation, retry and reload,
+   then real profile/keyring/VPN behavior. Keep existing applets until coverage is
+   demonstrated. Do not register a partial agent as if it were a full replacement.
+
+Sources: [QS 0.3.2 WifiNetwork](https://quickshell.org/docs/v0.3.2/types/Quickshell.Networking/WifiNetwork/),
+[QS PSK backend](https://github.com/quickshell-mirror/quickshell/blob/v0.3.2/src/network/nm/network.cpp),
+[NM SecretAgent](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.SecretAgent.html),
+[NM AgentManager](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.AgentManager.html),
+[nmcli activation](https://networkmanager.dev/docs/api/latest/nmcli.html).

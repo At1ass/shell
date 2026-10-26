@@ -1248,6 +1248,18 @@
       "description": "Compact connections panel. System connection profiles are edited with external tools.",
       "additionalProperties": false,
       "properties": {
+        "bluetoothAgent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Handle PIN/passkey prompts for pairing initiated from Connections; never takes over the default BlueZ agent."
+        },
+        "pairingTimeout": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 300,
+          "default": 120,
+          "description": "Bluetooth pairing deadline in seconds, including PIN entry and confirmation."
+        },
         "width": {
           "type": "integer",
           "default": 420,

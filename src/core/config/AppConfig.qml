@@ -187,6 +187,8 @@ Singleton {
     readonly property int audioWidth: data.audio?.width ?? 420
     readonly property int audioMaxHeight: data.audio?.maxHeight ?? 640
 
+    readonly property bool bluetoothAgentEnabled: data.connections?.bluetoothAgent ?? true
+    readonly property int bluetoothPairingTimeout: data.connections?.pairingTimeout ?? 120
     readonly property int connectionsWidth: data.connections?.width ?? 420
     readonly property int connectionsMaxHeight: data.connections?.maxHeight ?? 640
 

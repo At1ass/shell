@@ -331,6 +331,8 @@
     }
   },
   "connections": {
+    "bluetoothAgent": true,
+    "pairingTimeout": 120,
     "width": 420,
     "maxHeight": 640
   },

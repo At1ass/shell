@@ -159,9 +159,9 @@ BaseProvider {
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/WeatherTab.qml', dashboard / 'tabs/WeatherTab.qml')
     connections = tree / 'src/features/connections'
     connections.mkdir(parents=True)
-    for name in ['ConnectionsContent', 'ConnectionHeader', 'ConnectionRow']:
+    for name in ['ConnectionsContent', 'ConnectionHeader', 'ConnectionRow', 'BluetoothPairingDialog']:
         shutil.copy2(ROOT / f'src/features/connections/{name}.qml', connections / f'{name}.qml')
-    (connections / 'qmldir').write_text('module qs.src.features.connections\nConnectionsContent 1.0 ConnectionsContent.qml\nConnectionHeader 1.0 ConnectionHeader.qml\nConnectionRow 1.0 ConnectionRow.qml\n')
+    (connections / 'qmldir').write_text('module qs.src.features.connections\nConnectionsContent 1.0 ConnectionsContent.qml\nConnectionHeader 1.0 ConnectionHeader.qml\nConnectionRow 1.0 ConnectionRow.qml\nBluetoothPairingDialog 1.0 BluetoothPairingDialog.qml\n')
     (dashboard / 'components/qmldir').write_text('module qs.src.features.dashboard.components\n')
     networking = temp / 'imports/Quickshell/Networking'
     networking.mkdir()
@@ -267,9 +267,10 @@ QtObject {
     mocks['GlobalStates'] += '; property bool connectionsOpen:true; property string connectionsSection:"bluetooth"; function openConnections(section,source) {connectionsSection=section}'
     mocks['NetworkService'] += '; property bool wifiAvailable:true; property bool wifiHardwareEnabled:true; property bool newConnectionBusy:false; property string errorMessage:""; function clearError() {errorMessage=""} function openSettings() {} function forgetNetwork(network) {}'
     mocks['BluetoothService'] += '; property bool pairingPending:false; function cancelPairing() {} property QtObject adapter:QtObject {}; property string errorMessage:""; function openSettings() {} function forgetDevice(device) {}'
+    mocks['BluetoothService'] += '; property string pairingToken:""; property string pairingKind:""; property string pairingName:""; property string pairingAddress:""; property string pairingCode:""; property string pairingUuid:""; property string pairingError:""; property int pairingEntered:0; function answerPairing(token,value) {pairingToken=""} function rejectPairing(token) {pairingToken=""}'
     mocks['VPNService'] += '; property bool enabled:true'
     mocks['AudioService'] += '; property var sinkNodes:[]; property var sourceNodes:[]; property var defaultSource:null; property var streamNodes:[]; function getAppIcon(node) {return \"\"} function formatVolume(value) {return \"0\"} function setDefaultSink(node) {defaultSink=node} function setDefaultSource(node) {defaultSource=node}'
-    mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; function connectToNewNetwork(name,password) {connections++}'
+    mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++}'
     mocks['BluetoothService'] += '; property int connectedDeviceCount:0; property var pairedDevices:[]; property var discoveredDevices:[]; property string busyDeviceAddress:""; property int connections:0; property int pairs:0; function connectDevice(device) {connections++} function disconnectDevice(device) {connections++} function pairDevice(device) {pairs++} function stopScan() {scanning=false} function startScan() {scanning=true} property bool scanning:false'
     mocks['VPNService'] += '; property var availableVPNs:[]; property bool busy:false; property string busyVPN:""; property string activeVPN:""; property int connections:0; function connect(name) {connections++} function disconnect() {connections++}'
     mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property string ipAddress:""; property string gateway:""; property string speed:""'
@@ -474,6 +475,17 @@ Item {
  Component {id:overflowFixture;TestTrayOverflow {width:320;height:400}}
  Component {id:panelState;TestPanelState {}}
  Component {id:connectionsPanel;ConnectionsContent {width:420;height:Math.min(implicitHeight,500)}}
+ Component {
+  id:pairingFixture
+  BluetoothPairingDialog {
+   width:420;height:500
+   property int answers:0
+   property int rejections:0
+   property string value:""
+   onAnswered:(token,input)=>{answers++;value=input;requestToken=""}
+   onRejected:token=>{rejections++;requestToken=""}
+  }
+ }
  Component {id:wifiNode;WifiNetwork {}}
  Component {id:btNode;QtObject {property string name:"Headphones";property string address:"AA";property bool connected:true}}
  Component {id:testCalendar;TestCalendar {width:900;height:600}}
@@ -1135,12 +1147,22 @@ Item {
    const input=byProperty(panel,"placeholderText","Password")
    verify(input!==null);verify(input.inputItem.activeFocus)
    input.text="test-secret";keyClick(Qt.Key_Return);wait(30)
-   compare(NetworkService.connections,1);compare(input.text,"");verify(!panel.modalOpen);verify(row.activeFocus)
+   compare(NetworkService.connections,1);compare(NetworkService.passwordTarget.name,"Test Wi-Fi");compare(input.text,"");verify(!panel.modalOpen);verify(row.activeFocus)
    node.connected=true;row.forceActiveFocus();keyClick(Qt.Key_Return);wait(30)
    compare(NetworkService.disconnections,0);verify(panel.modalOpen)
-   keyClick(Qt.Key_Down);keyClick(Qt.Key_Down);keyClick(Qt.Key_Return);wait(30)
+   keyClick(Qt.Key_Down);keyClick(Qt.Key_Return);wait(30)
    verify(panel.modalOpen,"details replaced menu")
    keyClick(Qt.Key_Escape);wait(30);verify(!panel.modalOpen);verify(row.activeFocus,"details restores initiating row")
+  }
+  function test_connections_legacy_wep_uses_editor() {
+   controls.visible=false
+   const node=createTemporaryObject(wifiNode,scene,{security:WifiSecurityType.StaticWep})
+   NetworkService.networks=[node];GlobalStates.connectionsSection="wifi"
+   const panel=createTemporaryObject(connectionsPanel,scene);wait(20)
+   const row=byProperty(panel,"headline","Test Wi-Fi")
+   row.forceActiveFocus();keyClick(Qt.Key_Return);wait(20)
+   verify(panel.modalOpen);compare(NetworkService.connections,0)
+   verify(byProperty(panel,"text","This network needs advanced authentication")!==null)
   }
   function test_connections_disappearing_network() {
    controls.visible=false
@@ -1154,6 +1176,50 @@ Item {
    compare(panel.targetNetwork,null)
    keyClick(Qt.Key_Escape);wait(20);verify(!panel.modalOpen)
    keyClick(Qt.Key_Escape);wait(20);compare(panel.section,"")
+  }
+  function test_pairing_confirmation_requires_choice() {
+   controls.visible=false
+   const view=createTemporaryObject(pairingFixture,scene,{requestKind:"confirm",deviceName:"Keyboard <b>plain</b>",deviceAddress:"AA:BB:CC:DD:EE:FF",code:"012345",requestToken:"one"})
+   verify(view);tryVerify(()=>view.visible)
+   const cancel=findChild(view,"pairingCancel")
+   tryVerify(()=>cancel.activeFocus)
+   keyClick(Qt.Key_Return);compare(view.answers,0);compare(view.rejections,1)
+   tryVerify(()=>!view.visible)
+  }
+  function test_pairing_input_and_replacement() {
+   controls.visible=false
+   const view=createTemporaryObject(pairingFixture,scene,{requestKind:"passkey",deviceName:"Keyboard",requestToken:"one"})
+   const field=findChild(view,"pairingInput")
+   tryVerify(()=>field.inputItem.activeFocus)
+   verify(!findChild(view,"pairingConfirm").enabled)
+   keyClick(Qt.Key_0);keyClick(Qt.Key_0);keyClick(Qt.Key_1);keyClick(Qt.Key_2)
+   compare(field.text,"0012")
+   keyClick(Qt.Key_Return);compare(view.answers,1);compare(view.value,"0012")
+   wait(1);compare(field.text,"")
+   view.requestKind="confirm";view.code="111111";view.requestToken="two"
+   tryVerify(()=>findChild(view,"pairingCancel").activeFocus)
+   keyClick(Qt.Key_Tab);tryVerify(()=>findChild(view,"pairingConfirm").activeFocus)
+   keyClick(Qt.Key_Return);compare(view.answers,2)
+   wait(30);verify(!view.visible)
+  }
+  function test_pairing_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_pairing_layout(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack
+   scene.width=360;scene.height=400
+   const view=createTemporaryObject(pairingFixture,scene,{requestKind:"display-passkey",deviceName:"A device with a long Bluetooth name that wraps across several lines",code:"000123",requestToken:"one"})
+   tryVerify(()=>view.visible)
+   for(const scale of [1,1.3,1.8]) {
+    AppConfig.fontScale=scale;wait(20)
+    compare(view._code,"000123")
+    verify(!findChild(view,"pairingConfirm").visible)
+    view.entered=4;wait(1);compare(view._shownToken,"one")
+    const cancel=findChild(view,"pairingCancel")
+    cancel.forceActiveFocus();wait(20)
+    const point=cancel.mapToItem(view,0,0)
+    verify(point.y>=0 && point.y+cancel.height<=view.height)
+   }
+   grabImage(view).save("RENDERS/bluetooth-pairing-"+data.pack+".png")
+   keyClick(Qt.Key_Escape);compare(view.rejections,1)
   }
   function test_connections_bluetooth_actions() {
    controls.visible=false
