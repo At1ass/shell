@@ -3816,3 +3816,17 @@ read deadline, copy independence and lazy/failing thumbnail init. The native
 Process probe uses an absolute fake cliphist executable, interrupts a streamed
 snapshot and confirms only the complete replacement publishes. Tests never copy,
 delete or list the user's real history and never initialize the real thumbnail dir.
+
+
+## Audio availability and bar command ownership — 2026-10-27
+
+The volume widget reads and commands AudioService rather than tracking and writing
+PipeWire independently. A missing output shows --% and an unavailable icon, instead
+of coercing null to zero; the panel remains reachable for device selection. Mute
+and wheel events require a ready audio interface. The percentage uses bodyMedium
+like adjacent status labels and supplies an accessible output status.
+
+Audio panel availability requires the node's audio interface, not just a node
+object. Initial focus skips a pending output in favor of the available microphone
+or the close button. UI fixtures reproduce absent and pending devices, replacement
+with a ready node, service-owned volume/mute commands and keyboard activation.

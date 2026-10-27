@@ -23,8 +23,8 @@ MaterialCard {
         if (inputPicker.visible) inputPicker.close()
     }
     function focusInitial() {
-        if (AudioService.defaultSink) output.focusInitial()
-        else if (AudioService.defaultSource) microphone.focusInitial()
+        if (output.available) output.focusInitial()
+        else if (microphone.available) microphone.focusInitial()
         else closeButton.forceActiveFocus(Qt.TabFocusReason)
     }
     onActiveChanged: if (!active) root.reset()
@@ -52,7 +52,7 @@ MaterialCard {
                 Layout.fillWidth: true
                 title: "Output"
                 deviceName: AudioService.defaultSink?.description || AudioService.defaultSink?.name || "No output device"
-                available: AudioService.defaultSink !== null
+                available: !!AudioService.defaultSink?.audio
                 volume: AudioService.masterVolume
                 muted: AudioService.masterMuted
                 onVolumeRequested: value => AudioService.setMasterVolume(value)
@@ -66,7 +66,7 @@ MaterialCard {
                 icon: "mic"
                 mutedIcon: "mic_off"
                 deviceName: AudioService.defaultSource?.description || AudioService.defaultSource?.name || "No input device"
-                available: AudioService.defaultSource !== null
+                available: !!AudioService.defaultSource?.audio
                 volume: AudioService.micVolume
                 muted: AudioService.micMuted
                 onVolumeRequested: value => AudioService.setMicVolume(value)

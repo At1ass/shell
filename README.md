@@ -1300,6 +1300,8 @@ surface. Filters update after discovery, including new Connections commands.
 Audio is a standalone panel; Dashboard contains Quick, Weather and Calendar.
 Left-clicking the volume widget opens Audio (including legacy `dashboard-audio`
 click actions), right-click toggles mute, and the wheel adjusts output volume.
+Without a ready output device the bar shows `--%`; mute and wheel commands wait
+for its audio interface, while opening the device panel remains available.
 Quick offers a direct Audio action; system diagnostics are collapsed by default.
 
 ```bash

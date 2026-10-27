@@ -826,7 +826,7 @@ Item {
    GlobalStates.actionCount=0;GlobalStates.lastAction="";MprisController.toggles=0;NightLightService.available=true;VPNService.enabled=true
    dashboard.visible=false;controls.visible=true;GlobalStates.dashboardOpenIndex=0
    GlobalStates.audioOpen=true;PopoutsState.closePopout();SystemTray.items=({values:[]})
-   AudioService.streamNodes=[];AudioService.defaultSource=null;AudioService.masterVolume=0.45;AudioService.masterMuted=false;AudioService.micVolume=0.5;AudioService.micMuted=false
+   AudioService.streamNodes=[];AudioService.defaultSink=Pipewire.defaultAudioSink;AudioService.defaultSource=null;AudioService.masterVolume=0.45;AudioService.masterMuted=false;AudioService.micVolume=0.5;AudioService.micMuted=false
    GlobalStates.connectionsOpen=true;GlobalStates.connectionsSection=""
    NetworkService.wifiEnabled=true;NetworkService.deviceReady=true;NetworkService.errorMessage="";NetworkService.connectionPending=false;BluetoothService.enabled=true
    VPNService.profiles=[];VPNService.errorMessage="";VPNService.lastUuid="";VPNService.connections=0
@@ -1150,11 +1150,42 @@ Item {
    const volume=createTemporaryObject(volumeFixture,scene,{y:80})
    verify(volume!==null);wait(20)
    mouseClick(volume,1,1);compare(GlobalStates.lastAction,"audio")
-   const muted=volume.sink.audio.muted
-   mouseClick(volume,1,1,Qt.RightButton);compare(volume.sink.audio.muted,!muted)
+   const muted=AudioService.masterMuted
+   mouseClick(volume,1,1,Qt.RightButton);compare(AudioService.masterMuted,!muted)
    const weather=createTemporaryObject(weatherFixture,scene,{y:160})
    verify(weather!==null);wait(20);mouseClick(weather,1,1)
    compare(GlobalStates.lastAction,"dashboard-weather")
+  }
+  function test_volume_unavailable_and_service_commands() {
+   controls.visible=false
+   AudioService.defaultSink=null
+   const volume=createTemporaryObject(volumeFixture,scene)
+   verify(volume!==null);wait(20)
+   verify(byProperty(volume,"text","--%")!==null,"missing output is not zero volume")
+   const event={angleDelta:{y:120},accepted:true}
+   volume.wheelHandler(event);verify(!event.accepted)
+   mouseClick(volume,1,1,Qt.RightButton);verify(!AudioService.masterMuted)
+   mouseClick(volume,1,1);compare(GlobalStates.lastAction,"audio","device selection remains reachable")
+   const sink=createTemporaryObject(audioNode,scene)
+   AudioService.defaultSink=sink;AudioService.masterVolume=0.45;wait(20)
+   volume.wheelHandler(event);verify(event.accepted);fuzzyCompare(AudioService.masterVolume,0.49,0.0001)
+   mouseClick(volume,1,1,Qt.RightButton);verify(AudioService.masterMuted)
+   AudioService.masterVolume=0.73;wait(20);verify(byProperty(volume,"text","73%")!==null)
+   volume.scrollable=false;event.accepted=true;volume.wheelHandler(event);verify(!event.accepted)
+  }
+  function test_audio_initial_focus_waits_for_audio_interface() {
+   controls.visible=false
+   const pending=createTemporaryObject(audioNode,scene)
+   pending.audio=null;AudioService.defaultSink=pending;AudioService.defaultSource=null
+   const panel=createTemporaryObject(audioFixture,scene)
+   verify(panel!==null);wait(20)
+   const output=byProperty(panel,"title","Output")
+   verify(!output.available)
+   panel.focusInitial();verify(byProperty(panel,"iconName","close").activeFocus)
+   const microphone=createTemporaryObject(audioNode,scene)
+   AudioService.defaultSource=microphone;wait(20);panel.focusInitial()
+   const input=byProperty(panel,"title","Microphone")
+   verify(input.available);keyClick(Qt.Key_Space);verify(AudioService.micMuted,"initial focus activates microphone mute")
   }
   function test_media_button_owns_click() {
    controls.visible=false

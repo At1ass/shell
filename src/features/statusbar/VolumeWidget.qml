@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Services.Pipewire
 import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
@@ -22,9 +21,12 @@ BarElement {
 
     property var tooltipManager: null
 
-    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var sink: AudioService.defaultSink
+    readonly property bool audioAvailable: !!sink?.audio
+    accessibleName: audioAvailable ? (AudioService.masterMuted ? "Output muted" : "Output " + formatVolume(AudioService.masterVolume)) : "No output device"
 
     function formatVolume(value) {
+        if (value === null || value === undefined) return "--%";
         const numeric = Number(value);
         if (!isFinite(numeric) || numeric < 0)
             return "--%";
@@ -32,27 +34,20 @@ BarElement {
         return Math.round(safe * 100) + "%";
     }
 
-    nonVisualChildren: [
-        PwObjectTracker {
-            objects: root.sink ? [root.sink] : []
-        }
-    ]
-
     wheelHandler: function (event) {
         if (!root.scrollable) {
             event.accepted = false;
             return;
         }
 
-        if (!root.sink || !root.sink.audio) {
+        if (!root.audioAvailable) {
             event.accepted = false;
             return;
         }
 
         event.accepted = true;
         const step = (event.angleDelta.y / 120) * 0.04;
-        const current = (root.sink.audio.volume !== undefined) ? root.sink.audio.volume : 0;
-        root.sink.audio.volume = Math.max(0, Math.min(1, current + step));
+        AudioService.setMasterVolume(AudioService.masterVolume + step);
     }
 
     clickHandler: function(mouse) {
@@ -61,8 +56,8 @@ BarElement {
             if (action === "audio" || action === "dashboard-audio") GlobalStates.toggleAudio(root.actionAnchor)
             else GlobalStates.handleClickAction(action)
             mouse.accepted = true
-        } else if (mouse.button === Qt.RightButton && root.sink?.audio) {
-            root.sink.audio.muted = !root.sink.audio.muted
+        } else if (mouse.button === Qt.RightButton && root.audioAvailable) {
+            AudioService.toggleMasterMute()
             mouse.accepted = true
         } else mouse.accepted = false
     }
@@ -73,11 +68,11 @@ BarElement {
         MaterialIcon {
             id: volumeIcon
             iconName: {
-                if (!root.sink || !root.sink.audio)
-                    return "volume_up";
-                if (root.sink.audio.muted || root.sink.audio.volume <= 0.001)
+                if (!root.audioAvailable)
+                    return "volume_off";
+                if (AudioService.masterMuted || AudioService.masterVolume <= 0.001)
                     return "no_sound";
-                const v = root.sink.audio.volume;
+                const v = AudioService.masterVolume;
                 return (v < 0.34 ? "volume_mute" : v < 0.67 ? "volume_down" : "volume_up");
             }
             fontSize: Tokens.typography.titleLarge.size
@@ -87,8 +82,8 @@ BarElement {
         MaterialText {
             id: volumeLabel
             anchors.verticalCenter: parent.verticalCenter
-            text: root.formatVolume(root.sink && root.sink.audio ? root.sink.audio.volume : null)
-            textStyle: "titleMedium"
+            text: root.formatVolume(root.audioAvailable ? AudioService.masterVolume : null)
+            textStyle: "bodyMedium"
             colorRole: "onSurface"
             visible: root.showPercentage && !root.compactPresentation
         }
