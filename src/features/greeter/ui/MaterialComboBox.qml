@@ -64,7 +64,7 @@ Item {
             if (!root.open) return
             root.open = false
         } else if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            root.open = !root.open
+            if (!event.isAutoRepeat) root.open = !root.open
         } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
             const step = event.key === Qt.Key_Down ? 1 : -1
             root._select(root.currentIndex + step)

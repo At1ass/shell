@@ -67,6 +67,8 @@ QtObject {
  property int launcherTopMargin:56
  property int launcherMaxResults:10
  property int launcherListMaxHeight:400
+ property var powerMenuActions:["lock","suspend","reboot","shutdown","logout"]
+ property bool powerMenuConfirmActions:true
  property int audioWidth:420
  property int audioMaxHeight:640
  property string barPosition:"top"
@@ -177,6 +179,10 @@ BaseProvider {
     shutil.copytree(ROOT / 'src/features/dashboard/components/weathertab_elements', dashboard / 'components/weathertab_elements')
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/CalendarTab.qml', dashboard / 'tabs/CalendarTab.qml')
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/WeatherTab.qml', dashboard / 'tabs/WeatherTab.qml')
+    power = tree / 'src/features/powermenu'
+    power.mkdir(parents=True)
+    shutil.copy2(ROOT / 'src/features/powermenu/PowerMenuContent.qml',power / 'PowerMenuContent.qml')
+    (power / 'qmldir').write_text('module qs.src.features.powermenu\nPowerMenuContent 1.0 PowerMenuContent.qml\n')
     connections = tree / 'src/features/connections'
     connections.mkdir(parents=True)
     for name in ['ConnectionsContent', 'ConnectionHeader', 'ConnectionRow', 'BluetoothPairingDialog', 'NetworkAuthenticationDialog']:
@@ -279,7 +285,7 @@ QtObject {
     mocks['DockService'] = 'signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
     mocks['SessionMonitor'] = 'signal lockRequested(); signal unlockRequested()'
     mocks['HyprlandDispatch'] = 'function exitCompositor() {}'
-    mocks['GlobalStates'] += '; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
+    mocks['GlobalStates'] += '; property bool powerMenuOpen:false; function executePowerAction(action) {lastAction=action;actionCount++}; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
     mocks['PopoutsState'] = 'property bool open:false; property string name:""; property QtObject data:null;property Item sourceItem:null;property int epoch:0; function openPopout(name,data,source) {this.name=name;this.data=data;sourceItem=source;open=true;epoch++} function closePopout() {open=false;name="";data=null;epoch++}'
     mocks['AudioService'] += '; property real micVolume:0.5;property bool micMuted:false;function setMicVolume(value) {micVolume=value} function toggleMicMute() {micMuted=!micMuted} function setStreamVolume(node,value) {node.audio.volume=value} function toggleStreamMute(node) {node.audio.muted=!node.audio.muted}'
     mocks['Weather'] += '; property var data:({current:{temperature_2m:8}});property bool isFresh:true;property date lastSuccessAt:new Date(2026,9,25,12)'
@@ -419,6 +425,7 @@ import qs.src.ui.containers
 import qs.src.ui.feedback
 import qs.src.features.dashboard
 import qs.src.features.statusbar
+import qs.src.features.powermenu
 import qs.src.features.dashboard.components
 import qs.src.features.connections
 import qs.src.features.audio
@@ -487,6 +494,12 @@ Item {
  Component {id:clockFixture;ClockWidget {height:40}}
  Component {id:mediaFixture;MPRISWidget {height:40}}
  Component {id:weatherFixture;WeatherWidget {height:40}}
+ Component {id:iconRepeatFixture;IconButton {property int activations:0;onClicked:activations++}}
+ Component {id:chipRepeatFixture;Chip {label:"Action";property int activations:0;onClicked:activations++}}
+ Component {id:switchRepeatFixture;MaterialSwitch {property int activations:0;onToggled:value=>{activations++;checked=value}}}
+ Component {id:checkboxRepeatFixture;MaterialCheckbox {property int activations:0;onToggled:value=>{activations++;checked=value}}}
+ Component {id:barWidgetFixture;BarWidgetLoader {width:100;height:40;widgetConfig:({type:"volume"});tooltipManager:null;barRevealed:true;screenName:"test"}}
+ Component {id:powerFixture;PowerMenuContent {width:Math.min(implicitWidth,600);height:Math.min(implicitHeight,400);actions:[{label:"Lock",action:"lock",key:"L",icon:"lock"},{label:"Suspend",action:"suspend",key:"S",icon:"dark_mode"},{label:"Reboot",action:"reboot",key:"R",icon:"restart_alt"},{label:"Shutdown",action:"shutdown",key:"D",icon:"power_settings_new"},{label:"Logout",action:"logout",key:"O",icon:"logout"}];property string requested:"";property int requests:0;property int closes:0;onActionRequested:action=>{requested=action;requests++};onCloseRequested:closes++}}
  Component {id:volumeFixture;VolumeWidget {height:40}}
  Component {id:launcherLoaderFixture;Loader {active:GlobalStates.launcherOpen;sourceComponent:LauncherContent {width:600;height:400}}}
  Component {id:launcherFixture;LauncherContent {width:600;height:Math.min(implicitHeight,500)}}
@@ -1155,6 +1168,77 @@ Item {
    const weather=createTemporaryObject(weatherFixture,scene,{y:160})
    verify(weather!==null);wait(20);mouseClick(weather,1,1)
    compare(GlobalStates.lastAction,"dashboard-weather")
+  }
+  function test_power_keyboard_and_confirmation() {
+   controls.visible=false
+   const menu=createTemporaryObject(powerFixture,scene)
+   verify(menu!==null);wait(20);menu.reset();wait(10)
+   grabImage(menu).save("RENDERS/power-normal.png")
+   keyClick(Qt.Key_Backtab);compare(menu.focusedIndex,4)
+   keyClick(Qt.Key_Tab);compare(menu.focusedIndex,0)
+   keyClick(Qt.Key_Right);compare(menu.focusedIndex,1,"right moves selection")
+   keyClick(Qt.Key_Right);keyClick(Qt.Key_Return);compare(menu.confirmingAction,"reboot");compare(menu.requests,0)
+   const first=byProperty(menu,"index",0)
+   mouseMove(first,first.width/2,first.height/2);compare(menu.focusedIndex,2,"hover does not steal keyboard selection")
+   compare(menu.confirmingAction,"reboot")
+   const repeat={key:Qt.Key_Return,modifiers:0,isAutoRepeat:true,accepted:false,nativeScanCode:0}
+   menu.handleKey(repeat);verify(repeat.accepted);compare(menu.requests,0,"holding Enter does not confirm")
+   keyClick(Qt.Key_Return);compare(menu.requested,"reboot");compare(menu.requests,1,"second Enter executes once")
+   keyClick(Qt.Key_Return);compare(menu.confirmingAction,"reboot")
+   keyClick(Qt.Key_Right);compare(menu.confirmingAction,"")
+   keyClick(Qt.Key_Return);compare(menu.confirmingAction,"shutdown")
+   keyClick(Qt.Key_Escape);compare(menu.confirmingAction,"");compare(menu.closes,0)
+   keyClick(Qt.Key_Escape);compare(menu.closes,1,"second Escape dismisses")
+   menu.reset();wait(10);keyClick(Qt.Key_Space);compare(menu.requested,"lock")
+   menu.confirmActions=false;menu.select(4);keyClick(Qt.Key_Return);compare(menu.requested,"logout")
+   menu.confirmActions=true
+   const hotkey={key:Qt.Key_S,modifiers:0,isAutoRepeat:false,accepted:false,nativeScanCode:27}
+   menu.handleKey(hotkey);compare(menu.confirmingAction,"reboot","physical R works in another layout")
+   hotkey.isAutoRepeat=true;const count=menu.requests;menu.handleKey(hotkey);compare(menu.requests,count)
+   menu.reset();compare(menu.confirmingAction,"");compare(menu.focusedIndex,0)
+  }
+  function test_power_layout_data() {
+   return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]
+  }
+  function test_power_layout(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=2
+   const menu=createTemporaryObject(powerFixture,scene,{width:240,height:180})
+   verify(menu!==null);wait(30);menu.reset();wait(10)
+   const grid=byProperty(menu,"rowSpacing",Tokens.spacing.large)
+   verify(grid!==null);compare(grid.columns,1)
+   for(const child of grid.children)if(child.modelData!==undefined)verify(child.width<=menu.width)
+   menu.select(4);wait(30)
+   const viewport=byProperty(menu,"flickableDirection",Flickable.AutoFlickDirection)
+   const last=Array.from(grid.children).find(child=>child.modelData!==undefined && child.activeFocus)
+   verify(last!==undefined)
+   compare(last.modelData.action,"logout")
+   const mapped=last.mapToItem(menu,0,0)
+   verify(mapped.y>=-1 && mapped.y+last.height<=menu.height+1,"focused action is revealed")
+   grabImage(menu).save("RENDERS/power-"+data.tag+".png")
+   AppConfig.fontScale=1;wait(10);menu.width=menu.implicitWidth;menu.height=400;wait(30);compare(grid.columns,menu.actions.length)
+  }
+  function test_common_action_keys() {
+   controls.visible=false
+   for(const fixture of [iconRepeatFixture,chipRepeatFixture,switchRepeatFixture,checkboxRepeatFixture]) {
+    const control=createTemporaryObject(fixture,scene)
+    verify(control!==null);control.forceActiveFocus()
+    keyClick(Qt.Key_Return);compare(control.activations,1)
+    keyClick(Qt.Key_Enter);compare(control.activations,2)
+    keyClick(Qt.Key_Space);compare(control.activations,3)
+    control.enabled=false;keyClick(Qt.Key_Return);compare(control.activations,3)
+   }
+  }
+  function test_bar_accessibility_preserves_widget_status() {
+   controls.visible=false;AudioService.defaultSink=null
+   const loader=createTemporaryObject(barWidgetFixture,scene)
+   verify(loader!==null);wait(20)
+   compare(loader.item.Accessible.name,"No output device")
+   const model=createTemporaryObject(fakeBarModel,scene)
+   const overflow=createTemporaryObject(barOverflowFixture,scene,{barModel:model})
+   verify(overflow!==null);compare(overflow.summary({widgetType:"volume"}),"No output device")
+   AudioService.defaultSink=Pipewire.defaultAudioSink;AudioService.masterMuted=true;wait(10)
+   compare(loader.item.Accessible.name,"Output muted")
+   loader.widgetConfig={type:"network"};wait(20);compare(loader.item.Accessible.name,"Connections")
   }
   function test_volume_unavailable_and_service_commands() {
    controls.visible=false
@@ -2303,6 +2387,7 @@ import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import qs.src.features.statusbar
+import qs.src.features.powermenu
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.connections
@@ -2561,6 +2646,11 @@ ShellRoot {
     source=source.replace('        color: "transparent"','        mask: Region {}\n        contentItem.opacity: 0\n        color: "transparent"',1)
     source=source.replace('focusable: true','focusable: false').replace('quickshell:launcher','shell:bar-test:launcher')
     (tree / 'NativeLauncher.qml').write_text(source)
+    source=no_grab((ROOT / 'src/features/powermenu/PowerMenu.qml').read_text())
+    source=source.replace('import QtQuick\n','import QtQuick\nimport qs.src.features.powermenu\n',1)
+    source=source.replace('Scope {','Scope {\n    readonly property PanelWindow testWindow: menuWindow\n    readonly property Item testContent: menuContent',1)
+    source=source.replace('        color: "transparent"','        mask: Region {}\n        contentItem.opacity: 0\n        color: "transparent"',1).replace('focusable: true','focusable: false').replace('quickshell:powermenu','shell:bar-test:power')
+    (tree / 'NativePowerMenu.qml').write_text(source)
     wayland=tree / 'wayland.qml'
     wayland.write_text('''import QtQuick
 import Quickshell
@@ -2569,10 +2659,32 @@ import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.statusbar
+import qs.src.features.powermenu
 import qs.src.ui.feedback
 ShellRoot {
  id:root
  property int step:-2
+ property int powerStep:0
+ property QtObject power:NativePowerMenu {id:power}
+ property Timer powerProbe:Timer {
+  interval:30;running:true;repeat:true
+  onTriggered:{
+   if(root.powerStep===0){GlobalStates.powerMenuOpen=true;root.powerStep=1}
+   else if(root.powerStep===1){
+    root.check(power.testContent.focusedIndex===0,"power opens at first action")
+    power.testContent.activate(2)
+    root.check(power.testContent.confirmingAction==="reboot","power confirmation armed without system action")
+    GlobalStates.powerMenuOpen=false;root.powerStep=2
+   } else if(root.powerStep===2){
+    root.check(power.testContent.confirmingAction==="","power hide clears confirmation")
+    GlobalStates.powerMenuOpen=true;root.powerStep=3
+   } else if(root.powerStep===3){
+    root.check(power.testContent.focusedIndex===0,"power reopen resets focus")
+    root.check(power.testContent.width<=power.testWindow.width && power.testContent.height<=power.testWindow.height,"power content fits surface")
+    GlobalStates.powerMenuOpen=false;root.powerStep=4;stop()
+   }
+  }
+ }
  property int osdStep:0
  property int ticks:0
  property int settle:0
@@ -2779,6 +2891,7 @@ ShellRoot {
     if(++root.settle<2)return
     root.check(Math.abs(dashboard.panel.height-(dashboard.window.targetPanelHeight-Tokens.spacing.small*2))<=1,"reduced motion applies geometry immediately")
     GlobalStates.dashboardOpen=false
+    root.check(root.powerStep===4,"power lifecycle probe completed")
     console.warn("BAR WAYLAND PASS");Qt.quit()
    }
   }

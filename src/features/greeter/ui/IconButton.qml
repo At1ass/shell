@@ -88,7 +88,7 @@ Item {
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
             || event.key === Qt.Key_Enter) {
-            root.clicked()
+            if (root.enabled && !event.isAutoRepeat) root.clicked()
             event.accepted = true
         }
     }

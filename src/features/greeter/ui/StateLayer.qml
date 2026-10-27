@@ -21,7 +21,10 @@ Item {
     property bool showFocusRing: true
     property color ringColor: GreeterTheme.primary
 
-    readonly property real _radius: (target && target.radius !== undefined) ? target.radius : 0
+    // Item has no radius; concrete targets may supply it. Keep reflection at
+    // this dynamic boundary instead of claiming every QQuickItem has a radius.
+    function targetRadius(item) { return item?.radius ?? 0 }
+    readonly property real _radius: root.targetRadius(root.target)
 
     anchors.fill: target
 

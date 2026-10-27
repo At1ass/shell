@@ -1,2 +1,3 @@
 module qs.src.features.powermenu
 PowerMenu 1.0 PowerMenu.qml
+PowerMenuContent 1.0 PowerMenuContent.qml

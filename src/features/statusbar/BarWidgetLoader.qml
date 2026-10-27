@@ -45,7 +45,7 @@ Item {
     Layout.maximumWidth: Layout.preferredWidth
     Layout.alignment: Qt.AlignVCenter
     Binding { target: loader.item as BarElement; property: "compactPresentation"; value: root.adaptiveCompact }
-    Binding { target: loader.item as BarElement; property: "accessibleName"; value: root.displayName }
+    Binding { target: loader.item as BarElement; property: "defaultAccessibleName"; value: root.displayName }
     Binding { target: loader.item as BarElement; property: "actionAnchor"; value: root.adaptiveHidden ? root.overflowAnchor : loader.item }
     property string screenName
 

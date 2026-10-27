@@ -16,11 +16,17 @@ Next acceptance step: install the queued greeter UI-kit/keyboard changes and
 check login, wrong-password recovery and retry in the actual greetd session.
 Those flows cannot be accepted from the running desktop's mock authentication.
 
-Remaining code work, in practical order:
-1. Final consistency pass for bar/dock/popouts, typography and default behavior,
-   concentrating on concrete remaining inconsistencies rather than another redesign.
-2. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
-   existing QML/UI-kit debt. Full subprocess migration is not a prerequisite.
+The final consistency and targeted service passes are complete for the approved
+scope. Bar/dock/popout bounds, keyboard ownership, typography and unavailable
+states were checked against the shared kit; confirmed defects were fixed and
+covered by isolated fixtures. Brightness, Night Light, dock caches and passive
+clipboard reads received focused lifecycle fixes. Power menu reflows on narrow
+outputs and guards confirmation against held keys. No new redesign is queued.
+
+Existing mechanical debt is explicitly deferred: 10 Quickshell model/import
+metadata lint warnings, 52 raw Rectangle uses and two StackLayouts. The ratchet
+prevents increases; replacing every existing instance or migrating all processes
+is separate work, not a prerequisite for this UI/UX pass.
 
 Lockscreen manual acceptance passed (user report). Greeter acceptance remains
 pending and can accompany the next convenient login; it does not block independent
@@ -3830,3 +3836,37 @@ Audio panel availability requires the node's audio interface, not just a node
 object. Initial focus skips a pending output in favor of the available microphone
 or the close button. UI fixtures reproduce absent and pending devices, replacement
 with a ready node, service-owned volume/mute commands and keyboard activation.
+
+
+## Final bar/popout consistency and review closure — 2026-10-27
+
+PowerMenuContent separates presentation/input from the window and system commands.
+The familiar icon/label/hotkey actions reflow by available width and measured text;
+ScrollableList reveals the focused action on short displays. Tab/Backtab, directional
+navigation, Home/End, Enter/Space and physical letter shortcuts share one handler
+before the scroll viewport. Confirmation stays config-owned, ignores auto-repeat,
+expires on the interaction deadline and clears on selection change/hide/reset.
+Pointer hover supplies feedback without stealing keyboard selection during scroll.
+Escape first cancels an armed confirmation, then closes the menu. Tests use signals
+only: no lock, suspend, logout or power command is run. A pass-through, transparent
+Wayland fixture also checks real window close/reopen, confirmation reset and bounds.
+
+BarWidgetLoader now supplies a fallback accessible name instead of replacing a
+widget's own state binding. The overflow shares the unavailable-output behavior;
+tray overflow labels are plain text. Common icon/chip/switch/checkbox activation,
+combo opening and tray activation ignore held-key repeat, without restricting
+repeated arrow navigation. Greeter copies remain generated from the same kit.
+
+StateLayer reflects optional target radius at an explicit dynamic boundary;
+recorder margin bindings use the same group-property bridge as OSD/notifications.
+The recorder pulse is gated by actual indicator visibility and stops immediately
+when paused/hidden/reduced-motion, restoring full dot opacity. Static checks reduce
+the warning baseline from 19 to 10 and raw feature rectangles from 53 to 52;
+no lint category is disabled. Remaining warnings describe Quickshell's imported
+PostReloadHook/GlobalShortcut and UntypedObjectModel metadata.
+
+The approved implementation/review pass is complete. Real greeter authentication,
+remaining BlueZ hardware cases and OpenVPN challenge/keyring flows still require
+manual acceptance at a convenient time; they are not reported as tested. Full applet
+parity, protocol expansion, a wallpaper picker and broad mechanical migration remain
+deferred. Minimal remains primary, MD3 compatible; configuration stays file-only.

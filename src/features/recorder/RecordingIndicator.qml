@@ -57,26 +57,16 @@ Scope {
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-            // PanelWindow's `margins` group is not described in Quickshell's
-            // qmltypes, so qmllint reports it unknown; OsdSurface and the
-            // notification popups carry the same pair of warnings unsuppressed.
-            // qmllint disable unqualified
-            // qmllint disable unresolved-type
             anchors {
                 top: root.atTop
                 bottom: !root.atTop
                 left: root.atLeft
                 right: !root.atLeft
             }
-            margins {
-                top: root.atTop ? AppConfig.recorderIndicatorMargin : 0
-                bottom: root.atTop ? 0 : AppConfig.recorderIndicatorMargin
-                left: root.atLeft ? AppConfig.recorderIndicatorMargin : 0
-                right: root.atLeft ? 0 : AppConfig.recorderIndicatorMargin
-            }
-
-            // qmllint enable unresolved-type
-            // qmllint enable unqualified
+            Binding { target: indicatorWindow; property: "margins.top"; value: root.atTop ? AppConfig.recorderIndicatorMargin : 0 }
+            Binding { target: indicatorWindow; property: "margins.bottom"; value: root.atTop ? 0 : AppConfig.recorderIndicatorMargin }
+            Binding { target: indicatorWindow; property: "margins.left"; value: root.atLeft ? AppConfig.recorderIndicatorMargin : 0 }
+            Binding { target: indicatorWindow; property: "margins.right"; value: root.atLeft ? 0 : AppConfig.recorderIndicatorMargin }
 
             implicitWidth: card.implicitWidth
             implicitHeight: card.implicitHeight
@@ -145,10 +135,10 @@ Scope {
                             // mode scale it to zero, and a zero-length loop is a
                             // busy spin, not a still dot.
                             SequentialAnimation on opacity {
-                                running: RecorderService.active && !RecorderService.paused
+                                running: root.shown && !RecorderService.paused
                                          && Tokens.motion.duration.extraLong2 > 0
                                 loops: Animation.Infinite
-                                alwaysRunToEnd: true
+                                onRunningChanged: if (!running) dot.opacity = 1
 
                                 MotionAnimation {
                                     from: 1.0
@@ -163,10 +153,6 @@ Scope {
                                     curve: "standard"
                                 }
                             }
-
-                            // The animation above leaves opacity wherever it
-                            // stopped; a paused recording must not be dimmed.
-                            onOpacityChanged: if (RecorderService.paused && opacity !== 1.0) opacity = 1.0
                         }
 
                         // Monospace: proportional digits make the seconds column

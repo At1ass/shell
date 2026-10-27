@@ -1089,6 +1089,10 @@ rows follow those tokens and the configured font scale.
   section strip, Left/Right and Home/End select a tab; Up/Down do not move calendar
   days behind it. Tab enters the content. Bare number/media/vi panel shortcuts
   apply only when the panel background itself has focus.
+- Power menu: actions wrap by screen width and scroll to keyboard focus on short
+  screens. Tab/Shift+Tab, arrows and Home/End navigate; Enter/Space or physical
+  letter shortcuts activate. Holding a key cannot confirm a destructive action.
+  Moving to another action cancels confirmation; Escape cancels it before closing.
 - Audio/Connections: Enter or Space activates device rows; radio/switch actions remain
   controlled by the native services. Bluetooth list updates preserve focus by
   device address. Busy operations cannot be activated again from their row.

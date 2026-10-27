@@ -28,6 +28,7 @@ Rectangle {
     property real compactWidth: minimumWidth
     property real compactMinimumWidth: compactWidth
     property string accessibleName: ""
+    property string defaultAccessibleName: ""
     property Item actionAnchor: root
     property bool animated: true
 
@@ -74,7 +75,7 @@ Rectangle {
         : (compactPresentation ? compactWidth : preferredWidth)
     activeFocusOnTab: root.clickable && root.clickHandler !== null
     Accessible.role: Accessible.Button
-    Accessible.name: accessibleName
+    Accessible.name: accessibleName || defaultAccessibleName
     function activate(button) {
         if (root.enabled && root.clickHandler) root.clickHandler({button: button, accepted: false})
     }

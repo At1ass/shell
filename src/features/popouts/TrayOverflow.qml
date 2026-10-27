@@ -66,6 +66,7 @@ Item {
                     onActiveFocusChanged: if (activeFocus) root.currentIndex = row.index
                     onIndexChanged: if (activeFocus) root.currentIndex = row.index
                     Layout.fillWidth: true
+                    headlineTextFormat: Text.PlainText
                     headline: modelData.tooltipTitle || modelData.title || modelData.id
                     leadingImageSource: modelData.icon
                     supportingText: modelData.status === Status.NeedsAttention ? "Needs attention" : ""

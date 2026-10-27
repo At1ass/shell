@@ -31,6 +31,10 @@ Item {
     }
     Accessible.onPressAction: root.activate(Qt.LeftButton)
     Keys.onPressed: event => {
+        if (event.isAutoRepeat && [Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space, Qt.Key_Menu, Qt.Key_F10].includes(event.key)) {
+            event.accepted = true
+            return
+        }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) root.activate(Qt.LeftButton)
         else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) root.activate(Qt.RightButton)
         else return

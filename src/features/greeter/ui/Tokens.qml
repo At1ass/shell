@@ -18,6 +18,7 @@ Singleton {
         readonly property int tooltipDismissDelay: 100
         readonly property int menuRefreshTimeout: 3000
         readonly property int popupGrabDelay: 50
+        readonly property int powerConfirmationTimeout: 3000
     }
     readonly property InteractionTokens interaction: InteractionTokens {}
 

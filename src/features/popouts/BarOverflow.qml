@@ -42,7 +42,8 @@ Item {
         case "activewindow": return ActiveWindowService.windowTitle
         case "media": return `${MprisController.activeTrack?.title ?? "Nothing playing"} · ${MprisController.activeTrack?.artist ?? ""}`
         case "weather": return `${Weather.location} · ${Math.round(Weather.tempC)}${Weather.tempUnit}`
-        case "volume": return AudioService.masterMuted ? "Muted" : `${Math.round(AudioService.masterVolume*100)}%`
+        case "volume": return !AudioService.defaultSink?.audio ? "No output device"
+            : AudioService.masterMuted ? "Muted" : `${Math.round(AudioService.masterVolume*100)}%`
         case "network": return NetworkService.connectionLabel
         case "battery": return item?.deviceReady ? `${item.percentage}%${item.charging ? " · Charging" : ""}` : "Unavailable"
         case "layout": return KeyboardLayoutService.currentLayoutCode.toUpperCase()
