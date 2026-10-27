@@ -64,6 +64,7 @@ ShellRoot {
                 PanelWindow {
                     id: wallpaperPanel
                     screen: screenScope.modelData
+                    color: Theme.surface
 
                     anchors {
                         left: true

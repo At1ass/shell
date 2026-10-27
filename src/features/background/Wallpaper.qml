@@ -23,6 +23,9 @@ Item {
         // source otherwise freezes the shell for the full decode on every
         // wallpaper change (and caches at native size per screen).
         asynchronous: true
+        // Keep the current texture until its asynchronously decoded replacement
+        // is ready, instead of exposing the window's clear color between them.
+        retainWhileLoading: true
         sourceSize.width: Math.max(1, root.screen?.width ?? 1)
         sourceSize.height: Math.max(1, root.screen?.height ?? 1)
 

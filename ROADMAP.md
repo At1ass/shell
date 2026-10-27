@@ -3528,3 +3528,17 @@ regions and no focus grabs; no native plugin rebuild is required.
 
 Dashboard fold acceptance: the user confirmed the trailing background is gone and
 the behavior is correct (2026-10-27). The current motion correction is complete.
+
+
+## Wallpaper replacement white flash — 2026-10-27
+
+The single asynchronous Image discarded its old texture immediately on source
+change, exposing the wallpaper window's default white clear color until decode
+completed. Enable Qt's retainWhileLoading and set the wallpaper window clear color
+to Theme.surface. The current texture remains painted until replacement readiness;
+source bindings, asynchronous decode and per-screen sourceSize limits are retained.
+
+An isolated real-render probe replaced a red image with a deliberately delayed
+blue image and checked pixels repeatedly during loading: all intermediate samples
+retained red, then switched to blue. The probe changed no live wallpaper/config.
+Qt 6.8+ is required for retainWhileLoading; the installed Qt 6.12 supports it.

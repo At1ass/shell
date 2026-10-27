@@ -34,7 +34,7 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 |---------|---------|
 | `quickshell-git` | Shell framework (Wayland, QML) |
 | `hyprland` | Compositor (uses ext-global-shortcuts, WlrLayershell, HyprlandFocusGrab) |
-| `qt6-base`, `qt6-declarative` | Qt6 runtime |
+| `qt6-base`, `qt6-declarative` | Qt 6.8+ runtime |
 | `pipewire` + `wireplumber` | Audio — volume widget and OSD |
 | `app2unit` | Launches apps (launcher, dock, settings buttons) into their own systemd scopes; Terminal=true entries via `xdg-terminal-exec` |
 
@@ -1297,3 +1297,10 @@ trailing button opens the application menu. Switching from overflow into a menu
 keeps a surviving bar anchor. If popouts are disabled, all icons stay on the bar
 so they remain reachable. Hidden icons keep their applications and authentication
 agents running; hiding an icon does not disable its applet.
+
+
+Wallpaper replacement keeps the previous image visible until the next asynchronous
+decode finishes (`Image.retainWhileLoading`, Qt 6.8+). The background window clears
+to Theme.surface on initial load and in letterboxed areas, rather than the default
+white. Decode size remains capped to each screen; changing wallpaper does not
+block the UI thread. See [Qt Image retention](https://doc.qt.io/qt-6/qml-qtquick-image.html#retainWhileLoading-prop).
