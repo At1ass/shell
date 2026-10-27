@@ -8,20 +8,19 @@ history; older plans and acceptance notes can be superseded by later entries.
 The foundation and main UI/UX implementation passes are complete. NetworkManager
 agent migration, IPv6 status/details and the dashboard resize/collapse corrections
 have user acceptance. The user explicitly confirmed the dashboard trailing
-background is fixed, including section collapse and tab changes.
+background is fixed, including section collapse and tab changes. Wallpaper changes
+without the white flash and VPN profile discovery/connect/disconnect also passed
+user acceptance after the rebuilt Connectivity package was installed.
 
 Remaining code work, in practical order:
-1. Deploy the completed VPNService cleanup: rebuild/install Connectivity for native
-   UUID profile snapshots, then verify profile selection and reconnect in normal use.
-   The legacy primary-name dependency and CLI list/state parsing are removed.
-2. Final consistency pass for bar/dock/popouts, typography and default behavior,
+1. Final consistency pass for bar/dock/popouts, typography and default behavior,
    concentrating on concrete remaining inconsistencies rather than another redesign.
-3. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
+2. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
    existing QML/UI-kit debt. Full subprocess migration is not a prerequisite.
 
 Manual acceptance not yet specifically recorded: updated greeter/PAM failure and
 retry flows; remaining Bluetooth PIN/passkey/cancellation and lock/resume cases;
-OpenVPN and existing agent-owned keyring credentials. Phone numeric comparison,
+OpenVPN challenge/MFA and existing agent-owned keyring credentials. Phone numeric comparison,
 network connection, IPv6 and dashboard motion have already passed and need not be
 repeated just to close old entries. Hardware checks can accompany normal use.
 
@@ -3569,3 +3568,78 @@ Deployment requires rebuilding/installing Connectivity and restarting the unlock
 shell; the old plugin cannot supply the new VpnProfiles type. Hardware reconnect
 acceptance follows installation. Wallpaper white-flash fix is separate and already
 works without a plugin rebuild.
+
+
+## Dock motion while hidden — 2026-10-27
+
+Dock icon urgency and launch loops now follow dock reveal, effective visibility
+and Tokens.durationScale. Hidden/reduced-motion/gaming-mode presentation does not
+schedule infinite loops; urgency keeps a static tonal indication. Launch lifetime
+and window-count tracking continue while hidden, so finished launches do not restart
+when the dock reappears. Hover, drag-return and running-indicator transitions use
+the same gate. Reveal/fade of the dock itself remains available. Loop legs keep a
+positive internal duration to survive nested token updates during mode changes;
+the presentation gate still stops them entirely when motion is disabled.
+
+Isolated shared UI checks exercise both design packs: reveal/hide, visibility,
+reduced motion, gaming freeze and window arrival while motion is suspended.
+No native plugin rebuild is needed. This is a focused part of the remaining
+bar/dock/popout consistency pass; it does not complete that entire review.
+
+
+## Dock hint closing snapshot — 2026-10-27
+
+DockTooltip now separates producer hintText/showing from the retained text,
+bounds and position used to paint its opacity transition. Clearing hover or
+opening a menu no longer empties/reflows/reanchors the still-painted hint.
+A replacement hint can take over an unfinished close; reduced motion remains
+immediate. It stays a passive in-window MaterialTooltip, without a new grab,
+surface or timer.
+
+Shared UI checks cover all four dock sides in both packs, parent/anchor geometry
+changes after dismissal, replacement during closing, empty-text dismissal and
+reduced motion. Lint and real-engine/Wayland probes remain required. No plugin
+rebuild is needed.
+
+
+## Dock hover and preview identities — 2026-10-27
+
+DockIcon/DockBar report app keys for hover and preview lifecycle. DockPanel resolves
+hover, pending and shown targets through DockService.entryForKey; insertion or
+reordering cannot change the selected app. The stable pool now publishes a reactive
+key-index snapshot before retiring removed entries. Lookups are O(1), and unchanged
+entries/delegates retain identity across model updates.
+
+Removing the selected app clears its hover/preview state and cancels pending
+reveal. An old exit cannot cancel another app's new enter; unknown stale requests
+are ignored. Dismiss releases both preview timers, and the delayed callback checks
+its current owner before publishing. Indices remain only where positional meaning
+is intended: pinned reordering and group-separator layout.
+
+Validation includes actual pointer events from DockIcon and a native, invisible
+DockPanel using the real DockService pool with deterministic compositor/desktop
+metadata. It covers insert/reorder during the reveal delay, shown-target changes,
+removal/recreation before the deadline, old-exit/new-enter ordering, leave/cancel,
+unknown keys and explicit dismissal. The fixture never maps a window, takes a grab,
+launches/closes an app or writes real state. No plugin rebuild is required.
+
+
+## Dock popup viewport bounds — 2026-10-27
+
+Preview limits now use the actual inner-side space beside the bar, including its
+position, gap and screen margin. The thumbnail shrinks to leave room for the
+plain-text title. Capture constraints follow the independent container geometry,
+avoiding an implicit-capture-width feedback loop; hidden previews do not stream.
+Animate the along-axis center, then clamp the final coordinates, so a shrinking
+viewport cannot leave an in-flight position animation outside its bounds.
+
+Context menus cap width and height from screen-derived available space; vertical
+docks keep the full screen height. The panel's fixed preview reserve also respects
+the available screen extent. Menu constraints never read the panel thickness that
+itself depends on menu size, preventing a geometry dependency cycle.
+
+Shared UI fixtures cover both packs, all four sides, font scales 1/2, narrow/wide
+viewports, multiple windows, literal titles, menu limits and every sampled frame
+while the viewport shrinks during motion. Screencopy rendering is mocked for these
+geometry checks; native coordinator, engine compilation and Wayland checks remain
+separate. No plugin rebuild or compositor configuration change is needed.

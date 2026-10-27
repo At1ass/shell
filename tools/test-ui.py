@@ -36,6 +36,12 @@ QtObject {
  property real motionScale: 1
  property var disabledModules:[]
  property bool ready:true
+ property bool stateReady:false
+ property bool dockAutoHide:false
+ property bool dockExclusive:false
+ property string dockPosition:"bottom"
+ property int dockIconSize:48
+ property var dockPinnedApps:[]
  function shouldShowOnMonitor(widget,screen) {return !widget.monitors || widget.monitors.length===0 || widget.monitors.includes(screen)}
  function barWidgetPriority(widget) {return widget?.priority ?? ({clock:100,workspaces:90,battery:85,volume:80,network:75,notifications:70,layout:60,tray:50,media:40,weather:30,activewindow:20})[widget?.type] ?? 50}
  function moduleEnabled(name) {return !disabledModules.includes(name)}
@@ -116,6 +122,21 @@ QtObject {
     shutil.copy2(ROOT / 'src/features/statusbar/BarLayoutPolicy.js', bar / 'BarLayoutPolicy.js')
     (temp / 'TestBarOverflow.qml').write_text((ROOT / 'src/features/popouts/BarOverflow.qml').read_text())
     (temp / 'TestIpcData.qml').write_text((ROOT / 'src/features/cheatsheet/components/IpcReferenceData.qml').read_text().replace('pragma Singleton\n',''))
+    dock = tree / 'src/features/dock'
+    dock.mkdir(parents=True)
+    # qmltestrunner does not install Quickshell's icon image provider.
+    (dock / 'DockIcon.qml').write_text((ROOT / 'src/features/dock/DockIcon.qml').read_text().replace('"image://icon/application-x-executable"', '""'))
+    shutil.copy2(ROOT / 'src/features/dock/DockTooltip.qml', dock / 'DockTooltip.qml')
+    (dock / 'qmldir').write_text('module qs.src.features.dock\nDockIcon 1.0 DockIcon.qml\nDockTooltip 1.0 DockTooltip.qml\n')
+    # Deterministic preview content; the real native coordinator probe still uses
+    # Quickshell's own Wayland module after the Qt-only mocks are removed.
+    wayland_mock=qs / 'Wayland'
+    wayland_mock.mkdir()
+    (wayland_mock / 'qmldir').write_text('module Quickshell.Wayland\nScreencopyView 1.0 ScreencopyView.qml\n')
+    (wayland_mock / 'ScreencopyView.qml').write_text('import QtQuick\nItem {property QtObject captureSource:null;property bool live:false;property bool hasContent:true;property size constraintSize:Qt.size(280,180);implicitWidth:Math.min(280,constraintSize.width);implicitHeight:constraintSize.height}\n')
+    for name in ['DockPreview','DockContextMenu']:
+        (dock / (name+'.qml')).write_text((ROOT / ('src/features/dock/'+name+'.qml')).read_text().replace('"image://icon/application-x-executable"', '""'))
+        with (dock / 'qmldir').open('a') as module:module.write(name+' 1.0 '+name+'.qml\n')
     launcher = tree / 'src/features/launcher/components'
     launcher.mkdir(parents=True)
     shutil.copy2(ROOT / 'src/features/launcher/components/AppListItem.qml', launcher / 'AppListItem.qml')
@@ -255,6 +276,7 @@ QtObject {
     }
     mocks['SystemMonitorService'] += ';property bool hasGpuTemp:true;property var cpuTempHistory:[0.4,0.6,0.5];property var gpuTempHistory:[0.4,0.6,0.5];property real loadAvg1:1.2;property real loadAvg5:0.8;property real loadAvg15:0.5;property real cpuFreqGHz:4.2;property bool hasDiskIo:true;property string diskReadFormatted:"12 KiB/s";property string diskWriteFormatted:"6 KiB/s"'
     mocks['SystemMonitorService'] += ';property bool storageAvailable:true;property var storageVolumes:[];property var storageDrives:[];property var storageSummary:({available:true,name:"System",availableFormatted:"100 GiB",severity:0});property int storageSeverity:storageSummary.severity ?? 0;property string storageFreeText:(storageSummary.availableFormatted ?? "—")+" free";property string storageAlertText:storageSeverity>0 ? "Low space · Games: 2 GiB free" : ""'
+    mocks['DockService'] = 'signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
     mocks['SessionMonitor'] = 'signal lockRequested(); signal unlockRequested()'
     mocks['HyprlandDispatch'] = 'function exitCompositor() {}'
     mocks['GlobalStates'] += '; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
@@ -377,6 +399,7 @@ import "imports/qs/src/features/statusbar/BarLayoutPolicy.js" as BarPolicy
 import SystemMonitor 1.0 as NativeStats
 import Qalculate 1.0
 import qs.src.features.lockscreen
+import qs.src.features.dock
 import qs.src.features.launcher
 import qs.src.features.osd
 import qs.src.features.dashboard.components.maintab_elements
@@ -453,6 +476,14 @@ Item {
  }}
  Component {id:barOverflowFixture;TestBarOverflow {width:320;height:implicitHeight}}
  Component {id:fakeBarModel;QtObject {property var overflowWidgets:[];property Item overflowAnchor:null}}
+ Component {id:dockPreviewFixture;DockPreview {}}
+ Component {id:dockContextFixture;DockContextMenu {}}
+ Component {id:dockWindowFixture;QtObject {property bool activated:false;property string title:"<b>Literal window title</b>";function activate() {} function close() {}}}
+ Component {id:dockTooltipFixture;DockTooltip {}}
+ Component {id:dockTooltipHost;Item {width:700;height:360;property Item anchor:Item {x:180;y:290;width:340;height:60}}}
+ Component {id:dockSignalSpy;SignalSpy {}}
+ Component {id:dockHostFixture;Item {width:80;height:80}}
+ Component {id:dockIconFixture;DockIcon {index:0;app:QtObject {property string key:"test-dock";property bool pinned:true;property QtObject entry:null;property var windows:[window];property QtObject window:QtObject {property bool urgent:true;property bool activated:false}}}}
  Component {id:clockFixture;ClockWidget {height:40}}
  Component {id:mediaFixture;MPRISWidget {height:40}}
  Component {id:weatherFixture;WeatherWidget {height:40}}
@@ -517,6 +548,149 @@ Item {
   function initTestCase() {
    scene.Window.window.requestActivate()
    tryCompare(scene.Window.window,"active",true)
+  }
+  function test_dock_tooltip_snapshot_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const side of ["top","bottom","left","right"])rows.push({tag:pack+"-"+side,pack:pack,side:side})
+   return rows
+  }
+  function test_dock_tooltip_snapshot(data) {
+   AppConfig.designSystem=data.pack;AppConfig.reduceMotion=false
+   const host=createTemporaryObject(dockTooltipHost,scene)
+   const tip=createTemporaryObject(dockTooltipFixture,host,{anchorItem:host.anchor,position:data.side,center:350,hintText:"Application with a long name",showing:true})
+   tryCompare(tip,"opacity",1)
+   const rect=Qt.rect(tip.x,tip.y,tip.width,tip.height)
+   const text=tip.text
+   tip.showing=false;tip.hintText="";tip.center=0
+   host.anchor.x=0;host.anchor.y=0;host.width=500;host.height=260
+   verify(tip.visible);verify(tip.opacity>0)
+   compare(tip.text,text);compare(tip.x,rect.x);compare(tip.y,rect.y)
+   compare(tip.width,rect.width);compare(tip.height,rect.height)
+   tryCompare(tip,"opacity",0);verify(!tip.visible)
+   tip.hintText="Another application";tip.center=240;tip.showing=true
+   tryCompare(tip,"opacity",1);compare(tip.text,"Another application")
+   verify(tip.x!==rect.x || tip.y!==rect.y)
+   // A new owner may replace a closing hint before the fade completes.
+   tip.showing=false;tip.hintText="Replacement";tip.showing=true
+   tryCompare(tip,"opacity",1);compare(tip.text,"Replacement")
+   // Empty content is also a dismissal, even if the producer's show flag lags.
+   tip.hintText="";tryCompare(tip,"opacity",0);verify(!tip.visible)
+   AppConfig.reduceMotion=true
+   tip.hintText="Immediate";tip.showing=true;compare(tip.opacity,1)
+   tip.showing=false;compare(tip.opacity,0);verify(!tip.visible)
+  }
+  function test_dock_popup_bounds_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const side of ["top","bottom","left","right"])for(const scale of [1,2])for(const width of [220,320])rows.push({tag:pack+"-"+side+"-"+scale+"-"+width,pack:pack,side:side,scale:scale,width:width})
+   return rows
+  }
+  function test_dock_popup_bounds(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale;AppConfig.reduceMotion=true
+   const host=createTemporaryObject(dockTooltipHost,scene,{width:data.width,height:260})
+   const vertical=data.side==="left" || data.side==="right"
+   host.anchor.x=vertical ? (data.side==="left" ? 8 : host.width-80) : 40
+   host.anchor.y=vertical ? 40 : (data.side==="top" ? 8 : 180)
+   host.anchor.width=vertical ? 72 : host.width-80
+   host.anchor.height=vertical ? 180 : 72
+   const a=createTemporaryObject(dockWindowFixture,scene)
+   const b=createTemporaryObject(dockWindowFixture,scene)
+   const c=createTemporaryObject(dockWindowFixture,scene)
+   const preview=createTemporaryObject(dockPreviewFixture,host,{anchorItem:host.anchor,position:data.side,center:0,model:[a,b,c],showing:true})
+   wait(10)
+   function checkBounds(item) {
+    verify(item.width>=0 && item.height>=0)
+    verify(item.x>=0 && item.y>=0)
+    verify(item.x+item.width<=host.width+1)
+    verify(item.y+item.height<=host.height+1)
+   }
+   checkBounds(preview)
+   if(data.side==="top")verify(preview.y>=host.anchor.y+host.anchor.height+Tokens.spacing.extraSmall-1)
+   if(data.side==="bottom")verify(preview.y+preview.height<=host.anchor.y-Tokens.spacing.extraSmall+1)
+   if(data.side==="left")verify(preview.x>=host.anchor.x+host.anchor.width+Tokens.spacing.extraSmall-1)
+   if(data.side==="right")verify(preview.x+preview.width<=host.anchor.x-Tokens.spacing.extraSmall+1)
+   const title=byProperty(preview,"objectName","dockPreviewTitle")
+   verify(title!==null);compare(title.textFormat,Text.PlainText)
+   verify(title.width<=preview.width-Tokens.spacing.medium*2)
+   if(!vertical) {
+    const p=title.mapToItem(preview,0,0)
+    verify(p.y+title.height<=preview.height-Tokens.spacing.medium+1,"title fits below adapted thumbnail")
+   }
+   preview.center=host.width+host.height;checkBounds(preview)
+   preview.showing=false
+   const menu=createTemporaryObject(dockContextFixture,host,{anchorItem:host.anchor,position:data.side,availableWidth:vertical ? host.width-110 : host.width-20,availableHeight:vertical ? 240 : 150})
+   menu.openFor({appId:"test",entry:{},windows:[{}]},Qt.rect(0,0,30,30));wait(10)
+   checkBounds(menu.menuItem)
+   verify(menu.menuItem.width<=menu.availableWidth)
+   verify(menu.menuItem.height<=menu.availableHeight)
+   menu.close()
+   AppConfig.fontScale=1.3
+  }
+  function test_dock_preview_clamps_during_motion() {
+   controls.visible=false;AppConfig.reduceMotion=false
+   const host=createTemporaryObject(dockTooltipHost,scene,{width:320,height:260})
+   host.anchor.x=40;host.anchor.y=180;host.anchor.width=240;host.anchor.height=72
+   const window=createTemporaryObject(dockWindowFixture,scene)
+   const preview=createTemporaryObject(dockPreviewFixture,host,{anchorItem:host.anchor,position:"bottom",center:280,model:[window],showing:true})
+   preview.center=20
+   host.width=200
+   for(let i=0;i<5;i++) {
+    wait(20)
+    verify(preview.x>=0 && preview.x+preview.width<=host.width+1,"position remains clamped on every animation frame")
+   }
+   AppConfig.reduceMotion=true
+  }
+  function test_dock_hover_signals_use_app_key() {
+   controls.visible=false
+   const host=createTemporaryObject(dockHostFixture,scene,{z:100})
+   const icon=createTemporaryObject(dockIconFixture,host)
+   const enter=createTemporaryObject(dockSignalSpy,scene,{target:icon,signalName:"requestPreview"})
+   const leave=createTemporaryObject(dockSignalSpy,scene,{target:icon,signalName:"hoverEnded"})
+   mouseMove(scene,500,500);wait(1);enter.clear();leave.clear()
+   mouseMove(icon,icon.width/2,icon.height/2)
+   tryCompare(enter,"count",1)
+   compare(enter.signalArguments[0][0],"test-dock")
+   icon.index=9
+   mouseMove(scene,500,500)
+   tryCompare(leave,"count",1)
+   compare(leave.signalArguments[0][0],"test-dock")
+  }
+  function test_dock_motion_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_dock_motion(data) {
+   AppConfig.designSystem=data.pack;AppConfig.reduceMotion=false;Tokens.motionFrozen=false
+   const host=createTemporaryObject(dockHostFixture,scene)
+   const icon=createTemporaryObject(dockIconFixture,host)
+   const urgency=findChild(icon,"dockUrgencyMotion")
+   const launch=findChild(icon,"dockLaunchMotion")
+   const image=findChild(icon,"dockAppImage")
+   const indicator=findChild(icon,"dockUrgencyIndicator")
+   verify(urgency.running)
+   DockService.appLaunched("test-dock");verify(launch.running)
+   tryVerify(()=>image.scale>1.01)
+   // Auto-hide stops both loops immediately, before the bar's fade finishes.
+   icon.motionEnabled=false
+   verify(!urgency.running);verify(!launch.running);compare(image.scale,1)
+   compare(indicator.opacity,Tokens.stateLayer.pressedOpacity)
+   icon.motionEnabled=true;verify(urgency.running);verify(launch.running)
+   // Effective ancestor visibility also suspends animation.
+   host.visible=false;verify(!urgency.running);verify(!launch.running)
+   host.visible=true;verify(urgency.running)
+   AppConfig.reduceMotion=true
+   verify(!urgency.running);verify(!launch.running);compare(image.scale,1)
+   verify(indicator.visible);compare(indicator.opacity,Tokens.stateLayer.pressedOpacity)
+   // Urgency clears while motion is suppressed; launch completion still tracks windows.
+   icon.app.window.urgent=false;verify(!indicator.visible)
+   icon.app.windows=[icon.app.window,icon.app.window]
+   verify(!icon._launching)
+   AppConfig.reduceMotion=false
+   verify(!urgency.running);verify(!launch.running);compare(image.scale,1)
+   icon.app.window.urgent=true;verify(urgency.running)
+   Tokens.motionFrozen=true;verify(!urgency.running)
+   Tokens.motionFrozen=false;tryVerify(()=>urgency.running)
+   AppConfig.motionScale=0.00001
+   verify(!urgency.running);verify(!launch.running)
+   AppConfig.motionScale=1;tryVerify(()=>urgency.running)
+   icon.app.window.urgent=false
+   AppConfig.reduceMotion=true
   }
   function test_lock_authentication_and_power_transport() {
    PamProbe.starts=0;PamProbe.responses=0;PamProbe.lastResponse="";PowerProbe.starts=0
@@ -2025,6 +2199,96 @@ Window {
     if not display or not (Path(runtime) / display).is_socket():
         print('Wayland surface checks skipped: no compositor socket.')
         raise SystemExit(0)
+    # Exercise the real dock coordinator and entry pool without mapping its window.
+    # Only desktop/compositor input data is replaced; no app or state action is run.
+    fixture = temp / 'imports/TestDock'
+    fixture.mkdir()
+    (fixture / 'qmldir').write_text('module TestDock\nsingleton Hyprland 1.0 Hyprland.qml\nsingleton DesktopEntries 1.0 DesktopEntries.qml\n')
+    (fixture / 'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var toplevels:({values:[]})}\n')
+    (fixture / 'DesktopEntries.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject applications:QtObject {property var values:[]};function heuristicLookup(value) {return null}}\n')
+    dock_source=(ROOT / 'src/core/services/DockService.qml').read_text().replace('import Quickshell.Hyprland', 'import TestDock as Fixture').replace('Hyprland.', 'Fixture.Hyprland.').replace('DesktopEntries.', 'Fixture.DesktopEntries.')
+    (services / 'DockService.qml').write_text(dock_source)
+    dock_types=['DockIcon','DockTooltip','DockPanel','DockBar','DockContextMenu','DockPreview']
+    (dock / 'qmldir').write_text('module qs.src.features.dock\n'+''.join(name+' 1.0 '+name+'.qml\n' for name in dock_types))
+    for name in dock_types:
+        shutil.copy2(ROOT / ('src/features/dock/'+name+'.qml'),dock / (name+'.qml'))
+    dock_probe=tree / 'dock-probe.qml'
+    dock_probe.write_text("""import QtQuick
+import Quickshell
+import qs.src.core.config
+import qs.src.core.services
+import qs.src.features.dock
+ShellRoot {
+ id:root
+ property int step:0
+ property int ticks:0
+ property var selected:DockService.entryForKey("dock-a")
+ property var original:null
+ DockPanel {id:dock;visible:false}
+ function check(ok,message) {if(!ok) {console.warn("DOCK FAIL: "+message);Qt.exit(1);throw new Error(message)}}
+ Component.onCompleted: {
+  AppConfig.reduceMotion=true
+  AppConfig.dockPinnedApps=["dock-a","dock-b"]
+  root.check(DockService.model.length===2,"initial model")
+  root.original=DockService.entryForKey("dock-a")
+  dock._onPreviewRequest("dock-a",150)
+  AppConfig.dockPinnedApps=["dock-b","dock-c","dock-a"]
+  root.check(DockService.entryForKey("dock-a")===root.original,"pool preserves entry")
+  root.check(dock._hoverApp.appId==="dock-a" && dock._tooltipText==="dock-a","hover follows app through reorder and insertion")
+  root.check(dock._pendingPreviewKey==="dock-a","pending identity preserved")
+ }
+ Timer {
+  interval:Tokens.interaction.tooltipDelay+60;repeat:true;running:true
+  onTriggered: {
+   root.check(++root.ticks<12,"probe deadline")
+   if(root.step===0) {
+    root.check(dock._previewKey==="dock-a" && dock._previewApp.appId==="dock-a","delayed reveal selects original app")
+    AppConfig.dockPinnedApps=["dock-a","dock-b"]
+    root.check(dock._previewKey==="dock-a","shown target survives reorder")
+    dock._dismissPreview()
+    dock._onPreviewRequest("dock-b",180)
+    dock._onHoverEnded("dock-a")
+    root.check(dock._pendingPreviewKey==="dock-b","old exit does not cancel new enter")
+   } else if(root.step===1) {
+    root.check(dock._previewKey==="dock-b","replacement deadline completes")
+    AppConfig.dockPinnedApps=["dock-a"]
+    root.check(dock._previewKey==="" && !dock._previewShowing,"removed shown target cleared")
+    dock._onPreviewRequest("dock-a",150)
+    AppConfig.dockPinnedApps=[]
+    root.check(root.selected===null,"key lookup reacts to deletion")
+    root.check(dock._pendingPreviewKey==="" && dock._hoverKey==="","removed pending target clears")
+    AppConfig.dockPinnedApps=["dock-a","dock-b"]
+   } else if(root.step===2) {
+    root.check(dock._previewKey==="","removed then recreated app cannot revive old deadline")
+    dock._onPreviewRequest("dock-a",150)
+    dock._onHoverEnded("dock-a")
+   } else if(root.step===3) {
+    root.check(dock._previewKey==="" && dock._pendingPreviewKey==="","leave cancels pending reveal")
+    dock._onPreviewRequest("dock-a",150)
+    dock._onPreviewRequest("missing",0)
+    root.check(dock._hoverKey==="dock-a","stale unknown request ignored")
+    dock._onPreviewCancel("dock-b",180)
+   } else if(root.step===4) {
+    root.check(dock._previewKey==="" && dock._hoverKey==="dock-b","nonrunning hover cancels reveal")
+    dock._onPreviewRequest("dock-a",150)
+    dock._dismissPreview()
+   } else {
+    root.check(dock._previewKey==="" && dock._pendingPreviewKey==="","dismiss releases all timers")
+    root.check(!dock.visible && !dock.menuGrabReady,"fixture stays invisible without grab")
+    console.warn("DOCK NATIVE PASS");Qt.quit()
+   }
+   root.step++
+  }
+ }
+}
+""")
+    env['QML_IMPORT_PATH']=str(temp / 'imports')+os.pathsep+env.get('QML_IMPORT_PATH','')
+    dock_env={**env,'QT_QPA_PLATFORM':'wayland','QT_QUICK_BACKEND':'software'}
+    dock_result=subprocess.run(['qs','-p',str(dock_probe)],env=dock_env,capture_output=True,text=True,timeout=10)
+    dock_output=dock_result.stdout+dock_result.stderr
+    print(dock_output)
+    if dock_result.returncode or 'DOCK NATIVE PASS' not in dock_output or any(marker in dock_output for marker in ['DOCK FAIL','ERROR','TypeError','ReferenceError','Binding loop','Unable to assign']):
+        raise SystemExit(1)
     # Real Wayland geometry, with no input region or focus grab. The fixtures
     # are compositor-transparent and never intercept the user's session input.
     shutil.copy2(ROOT / 'src/core/services/PopoutsState.qml', services / 'PopoutsState.qml')

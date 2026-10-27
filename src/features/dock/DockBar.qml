@@ -22,9 +22,9 @@ Surface {
 
     readonly property bool vertical: position === "left" || position === "right"
 
-    signal requestPreview(int index, real center)
-    signal cancelPreview(int index, real center)
-    signal hoverEnded(int index)
+    signal requestPreview(string key, real center)
+    signal cancelPreview(string key, real center)
+    signal hoverEnded(string key)
     signal requestContextMenu(var app, var iconRect)
     signal requestReorder(int from, int to)
 
@@ -79,15 +79,16 @@ Surface {
                 // Repeater fills `index` (DockIcon's own required prop) and `modelData` by name.
                 required property var modelData
 
+                motionEnabled: root.reveal
                 app: modelData
                 iconSize: root.iconSize
                 dockSpacing: root.dockSpacing
                 position: root.position
                 showSeparator: !modelData.pinned && index > 0 && root.model[index - 1].pinned
 
-                onRequestPreview: (i, c) => root.requestPreview(i, c)
-                onCancelPreview: (i, c) => root.cancelPreview(i, c)
-                onHoverEnded: (i) => root.hoverEnded(i)
+                onRequestPreview: (key, center) => root.requestPreview(key, center)
+                onCancelPreview: (key, center) => root.cancelPreview(key, center)
+                onHoverEnded: (key) => root.hoverEnded(key)
                 onRequestContextMenu: (a, r) => root.requestContextMenu(a, r)
                 onRequestReorder: (f, t) => root.requestReorder(f, t)
             }

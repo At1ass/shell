@@ -198,15 +198,14 @@ Singleton {
 
     function _reconcile() {
         const desired = desiredModel
-        let seen = ({})
+        const previous = _entries
+        let nextEntries = ({})
         let out = []
         for (let i = 0; i < desired.length; i++) {
             const d = desired[i]
-            seen[d.key] = true
-            let obj = _entries[d.key]
+            let obj = previous[d.key]
             if (!obj) {
                 obj = dockEntryComponent.createObject(root, d)
-                _entries[d.key] = obj
             } else {
                 obj.appId = d.appId
                 obj.entry = d.entry
@@ -214,16 +213,20 @@ Singleton {
                 obj.pinned = d.pinned
                 obj.cls = d.cls
             }
+            nextEntries[d.key] = obj
             out.push(obj)
         }
-        // Destroy entries whose key disappeared.
-        for (const k in _entries) {
-            if (!seen[k]) {
-                _entries[k].destroy()
-                delete _entries[k]
-            }
-        }
+        // Publish the index as a new snapshot so key lookups remain reactive.
+        _entries = nextEntries
         model = out
+        // Retire removed entries only after consumers receive the replacement.
+        for (const key in previous) {
+            if (!nextEntries[key]) previous[key].destroy()
+        }
+    }
+
+    function entryForKey(key) {
+        return key && Object.prototype.hasOwnProperty.call(_entries, key) ? _entries[key] : null
     }
 
     onDesiredModelChanged: _reconcile()

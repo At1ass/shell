@@ -677,6 +677,12 @@ Available `clickAction` values:
 ### Dock
 
 Per-screen application dock showing pinned + running apps, with live window previews.
+Icon motion pauses while hidden. Reduced motion and gaming mode use a static
+urgency indicator; launch tracking continues without animation. App-name hints
+retain their text and geometry until the closing fade ends. Hover and delayed
+preview targets follow app keys through list reordering; removing an app cancels
+its pending preview. Preview thumbnails shrink to preserve the title when space
+is limited; preview and menu bounds account for the dock's screen edge.
 
 Config (`dock` section):
 

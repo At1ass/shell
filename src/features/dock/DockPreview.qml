@@ -31,14 +31,26 @@ Surface {
 
     readonly property real _contentW: previewGrid.implicitWidth + _pad * 2
     readonly property real _contentH: previewGrid.implicitHeight + _pad * 2
-    // Clamp the overflow axis to the available space; the Flickable scrolls the rest.
+    // Reserve the actual bar-side area, including its position and outer margin.
     readonly property real _maxW: {
-        if (!parent) return 100000
-        if (!vertical) return parent.width - _margin * 2
-        const bw = anchorItem ? anchorItem.width : 0
-        return parent.width - bw - _gap - _margin * 2
+        if (!parent) return 0
+        if (!vertical || !anchorItem) return Math.max(0, parent.width - _margin * 2)
+        return Math.max(0, position === "left"
+            ? parent.width - anchorItem.x - anchorItem.width - _gap - _margin
+            : anchorItem.x - _gap - _margin)
     }
-    readonly property real _maxH: parent ? (parent.height - _margin * 2) : 100000
+    readonly property real _maxH: {
+        if (!parent) return 0
+        if (vertical || !anchorItem) return Math.max(0, parent.height - _margin * 2)
+        return Math.max(0, position === "top"
+            ? parent.height - anchorItem.y - anchorItem.height - _gap - _margin
+            : anchorItem.y - _gap - _margin)
+    }
+    property real _animatedCenter: center
+    Behavior on _animatedCenter {
+        enabled: root.showing && root.visible
+        MotionAnimation { duration: Tokens.motion.duration.short3; curve: "emphasized" }
+    }
 
     signal hoverChanged(bool hovered)
     signal requestDismiss()
@@ -52,18 +64,18 @@ Surface {
 
     // Positioned entirely via x/y (no anchors) so all four sides share one path.
     x: {
-        if (!anchorItem) return 0
-        if (vertical)
-            return position === "left" ? (anchorItem.x + anchorItem.width + _gap)
-                                       : (anchorItem.x - width - _gap)
-        return Math.max(_margin, Math.min(center - width / 2, parent.width - width - _margin))
+        if (!anchorItem || !parent) return 0
+        const target = vertical
+            ? (position === "left" ? anchorItem.x + anchorItem.width + _gap : anchorItem.x - width - _gap)
+            : Math.max(_margin, Math.min(_animatedCenter - width / 2, parent.width - width - _margin))
+        return Math.max(0, Math.min(target, parent.width - width))
     }
     y: {
-        if (!anchorItem) return 0
-        if (vertical)
-            return Math.max(_margin, Math.min(center - height / 2, parent.height - height - _margin))
-        return position === "top" ? (anchorItem.y + anchorItem.height + _gap)
-                                  : (anchorItem.y - height - _gap)
+        if (!anchorItem || !parent) return 0
+        const target = vertical
+            ? Math.max(_margin, Math.min(_animatedCenter - height / 2, parent.height - height - _margin))
+            : (position === "top" ? anchorItem.y + anchorItem.height + _gap : anchorItem.y - height - _gap)
+        return Math.max(0, Math.min(target, parent.height - height))
     }
 
     width: Math.min(_contentW, _maxW)
@@ -89,27 +101,16 @@ Surface {
             curve: "emphasizedDecelerate"
         }
     }
-    Behavior on x {
-        MotionAnimation {
-            duration: Tokens.motion.duration.short3
-            curve: "emphasized"
-        }
-    }
-    Behavior on y {
-        MotionAnimation {
-            duration: Tokens.motion.duration.short3
-            curve: "emphasized"
-        }
-    }
-
     HoverHandler {
         onHoveredChanged: root.hoverChanged(hovered)
     }
 
     Flickable {
         id: flick
-        anchors.fill: parent
-        anchors.margins: root._pad
+        x: root._pad
+        y: root._pad
+        width: Math.max(0, root.width - root._pad * 2)
+        height: Math.max(0, root.height - root._pad * 2)
         contentWidth: previewGrid.implicitWidth
         contentHeight: previewGrid.implicitHeight
         clip: true
@@ -158,12 +159,12 @@ Surface {
 
                     Column {
                         id: thumbColumn
-                        spacing: 4
+                        spacing: Tokens.spacing.extraSmall
 
                         Rectangle {
                             id: thumbContainer
-                            width: Math.max(screencopyView.implicitWidth > 0 ? screencopyView.implicitWidth : 280, 240)
-                            height: root.thumbHeight
+                            width: Math.max(0, Math.min(280, root._maxW - root._pad * 2))
+                            height: Math.max(0, Math.min(root.thumbHeight, root._maxH - root._pad * 2 - windowTitle.implicitHeight - thumbColumn.spacing))
                             radius: Tokens.shape.small
                             color: previewDelegate.isFocused
                                    ? Qt.alpha(Theme.primaryContainer, 0.5)
@@ -177,8 +178,8 @@ Surface {
                                 id: screencopyView
                                 anchors.centerIn: parent
                                 captureSource: previewDelegate.modelData
-                                live: true
-                                constraintSize: Qt.size(280, root.thumbHeight - 4)
+                                live: root.showing && root.visible && thumbContainer.height > 0
+                                constraintSize: Qt.size(Math.max(1, Math.min(280, thumbContainer.width)), Math.max(1, thumbContainer.height - Tokens.spacing.extraSmall))
                                 visible: hasContent
                             }
 
@@ -247,8 +248,11 @@ Surface {
                         }
 
                         MaterialText {
+                            id: windowTitle
+                            objectName: "dockPreviewTitle"
                             width: thumbContainer.width
                             text: previewDelegate.modelData.title || "Untitled"
+                            textFormat: Text.PlainText
                             colorRole: "onSurface"
                             textStyle: "labelMedium"
                             elide: Text.ElideRight

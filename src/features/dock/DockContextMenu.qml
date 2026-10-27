@@ -15,6 +15,7 @@ Item {
     id: root
     anchors.fill: parent
 
+    property real availableWidth: Math.max(0, width - Tokens.spacing.small * 2)
     property real availableHeight: Tokens.size.listItem * 10
     property var app: null
     property var _actions: []
@@ -72,7 +73,8 @@ Item {
     MaterialMenu {
         id: menu
         visible: false
-        maximumHeight: Math.max(Tokens.size.listItem, root.availableHeight)
+        itemWidth: Math.max(0, Math.min(Tokens.size.fieldWidth, root.availableWidth))
+        maximumHeight: Math.max(0, root.availableHeight)
 
         // Beside the bar on its inner side, centered on the icon along the main axis.
         x: {

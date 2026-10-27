@@ -36,96 +36,109 @@ PanelWindow {
     // === Model: pinned + running apps (computed once in DockService, shared across monitors) ===
     readonly property var dockModel: DockService.model
 
-    // === Hover (drives both the preview and the tooltip) ===
-    property int _hoverIndex: -1
+    // Hover and delayed preview targets are identities, independent of list order.
+    property string _hoverKey: ""
     property real _hoverCenter: 0
+    readonly property var _hoverApp: DockService.entryForKey(_hoverKey)
 
     readonly property string _tooltipText: {
-        if (_hoverIndex < 0 || _hoverIndex >= dockModel.length) return ""
-        const it = dockModel[_hoverIndex]
-        const name = it.entry?.name ?? it.appId
-        const count = it.windows.length
+        if (!_hoverApp) return ""
+        const name = _hoverApp.entry?.name ?? _hoverApp.appId
+        const count = _hoverApp.windows.length
         return count > 1 ? (name + " (" + count + ")") : name
     }
-    readonly property bool _tooltipVisible: _hoverIndex >= 0 && !_previewShowing
+    readonly property bool _tooltipVisible: _hoverApp !== null && !_previewShowing
                                             && !contextMenu.open && shouldReveal
 
     // === Preview state machine ===
-    property int _pendingPreviewIdx: -1
-    property int _previewIdx: -1
+    property string _pendingPreviewKey: ""
+    property string _previewKey: ""
+    readonly property var _pendingPreviewApp: DockService.entryForKey(_pendingPreviewKey)
+    readonly property var _previewApp: DockService.entryForKey(_previewKey)
+    // Cleanup follows model publication, outside the derived lookup bindings.
+    onDockModelChanged: {
+        if (_hoverKey && !DockService.entryForKey(_hoverKey)) _hoverKey = ""
+        if (_pendingPreviewKey && !DockService.entryForKey(_pendingPreviewKey)) {
+            previewShowTimer.stop()
+            _pendingPreviewKey = ""
+        }
+        if (_previewKey && !DockService.entryForKey(_previewKey)) {
+            _previewKey = ""
+            _previewHovered = false
+        }
+    }
     property real _previewCenter: 0          // along-axis center (x for horizontal, y for vertical)
     property bool _previewHovered: false
     readonly property int _previewThumbHeight: 180
     readonly property int _previewCardHeight: _previewThumbHeight + 26 + Tokens.spacing.medium * 2
 
     // Reserve toward the screen centre for preview/menu (thickness-axis inner extent).
-    readonly property int _innerReserve: isVertical
+    readonly property int _availableInner: Math.max(0,
+        (isVertical ? (_screen?.width ?? 1920) : (_screen?.height ?? 1080))
+            - dockBarHeight - Tokens.spacing.small * 2)
+    readonly property int _innerReserve: Math.min(_availableInner, isVertical
         ? Math.min((_screen?.width ?? 1920) * 0.4, 720)
-        : _previewCardHeight
+        : _previewCardHeight)
     readonly property real _menuExtent: isVertical ? contextMenu.menuRect.width : contextMenu.menuRect.height
 
     // Does NOT depend on shouldReveal — breaks feedback loop
-    readonly property bool _previewShowing: _previewIdx >= 0 && _previewToplevels.length > 0
+    readonly property bool _previewShowing: _previewApp !== null && _previewToplevels.length > 0
+    readonly property var _previewToplevels: DockService.toplevelsFor(_previewApp)
+    readonly property string _previewFallbackIcon: _previewApp?.entry?.icon ?? ""
 
-    readonly property var _previewToplevels: {
-        if (_previewIdx < 0 || _previewIdx >= dockModel.length) return []
-        return DockService.toplevelsFor(dockModel[_previewIdx])
-    }
-
-    readonly property string _previewFallbackIcon: {
-        if (_previewIdx < 0 || _previewIdx >= dockModel.length) return ""
-        return dockModel[_previewIdx]?.entry?.icon ?? ""
-    }
-
-    // Hover handlers from DockBar/DockIcon drive preview + tooltip.
-    function _onPreviewRequest(index, center) {
-        _hoverIndex = index
+    // Enter(new) may arrive before exit(old). Compare stable keys in every path.
+    function _onPreviewRequest(key, center) {
+        if (!DockService.entryForKey(key)) return
+        _hoverKey = key
         _hoverCenter = center
-        if (contextMenu.open) return   // menu takes precedence over hover preview
+        if (contextMenu.open) return
         previewHideTimer.stop()
         _previewCenter = center
-        _pendingPreviewIdx = index
-        if (_previewIdx >= 0) {
-            _previewIdx = index           // already showing — switch instantly
+        _pendingPreviewKey = key
+        if (_previewKey !== "") {
+            _previewKey = key
+            _pendingPreviewKey = ""
             previewShowTimer.stop()
         } else {
-            previewShowTimer.restart()    // first reveal — use delay
+            previewShowTimer.restart()
         }
     }
 
-    function _onPreviewCancel(index, center) {
-        _hoverIndex = index
+    function _onPreviewCancel(key, center) {
+        if (!DockService.entryForKey(key)) return
+        _hoverKey = key
         _hoverCenter = center
         previewShowTimer.stop()
-        _pendingPreviewIdx = -1
-        if (_previewIdx >= 0) previewHideTimer.restart()
+        _pendingPreviewKey = ""
+        if (_previewKey !== "") previewHideTimer.restart()
     }
 
-    function _onHoverEnded(index) {
-        if (_hoverIndex === index) _hoverIndex = -1
-        // Only the reveal that belongs to THIS icon. Qt delivers the enter on
-        // the icon under the cursor before the exit from the one it left, so
-        // moving between adjacent icons runs requestPreview(new) first and
-        // hoverEnded(old) second. Stopping the timer unconditionally here
-        // cancelled the NEW icon's pending preview: whenever no preview was
-        // already on screen -- after resting on an icon with no windows, or
-        // when such an icon was the first one hovered -- the running app that
-        // came next got its tooltip and never its window previews.
-        if (_pendingPreviewIdx === index)
+    function _onHoverEnded(key) {
+        if (!key) return
+        if (_hoverKey === key) _hoverKey = ""
+        if (_pendingPreviewKey === key) {
             previewShowTimer.stop()
-        if (_previewIdx === index || _pendingPreviewIdx === index)
-            previewHideTimer.restart()
+            _pendingPreviewKey = ""
+        }
+        if (_previewKey === key) previewHideTimer.restart()
     }
 
     function _dismissPreview() {
-        _previewIdx = -1
-        _pendingPreviewIdx = -1
+        previewShowTimer.stop()
+        previewHideTimer.stop()
+        _previewKey = ""
+        _pendingPreviewKey = ""
+        _previewHovered = false
     }
 
     Timer {
         id: previewShowTimer
-        interval: 400
-        onTriggered: dock._previewIdx = dock._pendingPreviewIdx
+        interval: Tokens.interaction.tooltipDelay
+        onTriggered: {
+            if (dock._pendingPreviewApp && dock._hoverKey === dock._pendingPreviewKey && !contextMenu.open)
+                dock._previewKey = dock._pendingPreviewKey
+            dock._pendingPreviewKey = ""
+        }
     }
 
     Timer {
@@ -248,9 +261,9 @@ PanelWindow {
         reveal: dock.shouldReveal
         position: dock.position
 
-        onRequestPreview: (index, center) => dock._onPreviewRequest(index, center)
-        onCancelPreview: (index, center) => dock._onPreviewCancel(index, center)
-        onHoverEnded: (index) => dock._onHoverEnded(index)
+        onRequestPreview: (key, center) => dock._onPreviewRequest(key, center)
+        onCancelPreview: (key, center) => dock._onPreviewCancel(key, center)
+        onHoverEnded: (key) => dock._onHoverEnded(key)
         onRequestContextMenu: (app, rect) => {
             dock._dismissPreview()
             contextMenu.openFor(app, rect)
@@ -260,7 +273,7 @@ PanelWindow {
 
     // === Hover tooltip (app name) ===
     DockTooltip {
-        text: dock._tooltipText
+        hintText: dock._tooltipText
         center: dock._hoverCenter
         showing: dock._tooltipVisible
         anchorItem: bar
@@ -270,7 +283,10 @@ PanelWindow {
     // === Right-click context menu (rendered in-window, on the icon's inner side) ===
     DockContextMenu {
         id: contextMenu
-        availableHeight: (dock._screen?.height ?? dock.height) - dock.dockBarHeight - Tokens.spacing.small * 4
+        availableWidth: Math.max(0, (dock._screen?.width ?? 0)
+            - (dock.isVertical ? dock.dockBarHeight : 0) - Tokens.spacing.small * 4)
+        availableHeight: Math.max(0, (dock._screen?.height ?? 0)
+            - (dock.isVertical ? 0 : dock.dockBarHeight) - Tokens.spacing.small * 4)
         anchorItem: bar
         position: dock.position
         onOpenChanged: {

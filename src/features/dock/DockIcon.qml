@@ -20,12 +20,37 @@ Item {
     property bool showSeparator: false
     property string position: "bottom"
 
+    // Model updates continue while hidden; only presentation motion is suspended.
+    property bool motionEnabled: true
+    readonly property bool animationsActive: motionEnabled && visible && Tokens.motion.duration.medium2 > 0
+    property real _urgencyPhase: 0
+    property real _launchScale: 1
+
+    // A mode change can publish nested duration tokens in separate binding updates.
+    // Keep inactive loop legs positive so a transient zero cannot finish the group
+    // and discard its running binding before the presentation gate settles.
+    SequentialAnimation on _urgencyPhase {
+        objectName: "dockUrgencyMotion"
+        running: root.isUrgent && root.animationsActive
+        loops: Animation.Infinite
+        MotionAnimation { from: 0.0; to: 0.5; duration: Math.max(1, Tokens.motion.duration.extraLong1); curve: "standard" }
+        MotionAnimation { from: 0.5; to: 0.0; duration: Math.max(1, Tokens.motion.duration.extraLong1); curve: "standard" }
+    }
+
+    SequentialAnimation on _launchScale {
+        objectName: "dockLaunchMotion"
+        running: root._launching && root.animationsActive
+        loops: Animation.Infinite
+        MotionAnimation { from: 1.0; to: 1.18; duration: Math.max(1, Tokens.motion.duration.medium2); curve: "emphasizedDecelerate" }
+        MotionAnimation { from: 1.18; to: 1.0; duration: Math.max(1, Tokens.motion.duration.medium2); curve: "emphasizedAccelerate" }
+    }
+
     readonly property bool vertical: position === "left" || position === "right"
 
     // Hover reports the icon center along the main axis (window coords) for preview/tooltip.
-    signal requestPreview(int index, real center)   // running app
-    signal cancelPreview(int index, real center)     // non-running app (still wants a tooltip)
-    signal hoverEnded(int index)
+    signal requestPreview(string key, real center)   // running app
+    signal cancelPreview(string key, real center)     // non-running app (still wants a tooltip)
+    signal hoverEnded(string key)
     signal requestContextMenu(var app, var iconRect)
     // Drag-to-reorder (pinned only): move from this index by `to - from` slots.
     signal requestReorder(int from, int to)
@@ -86,7 +111,7 @@ Item {
         y: root.vertical ? root._dragOffset : 0
     }
     Behavior on _dragOffset {
-        enabled: !dragHandler.active
+        enabled: !dragHandler.active && root.animationsActive
         NumberAnimation { duration: Tokens.motion.duration.short3 }
     }
 
@@ -132,6 +157,7 @@ Item {
         property bool hovered: iconMouseArea.containsMouse
         scale: hovered ? 1.1 : 1.0
         Behavior on scale {
+            enabled: root.animationsActive
             MotionAnimation {
                 duration: Tokens.motion.duration.short3
                 curve: "emphasizedDecelerate"
@@ -140,21 +166,17 @@ Item {
 
         // Urgency pulse (attention) behind the icon.
         Rectangle {
+            objectName: "dockUrgencyIndicator"
             anchors.fill: parent
             radius: parent.radius
             color: Theme.tertiary
             visible: root.isUrgent
-            opacity: 0
-            SequentialAnimation on opacity {
-                running: root.isUrgent
-                loops: Animation.Infinite
-                MotionAnimation { from: 0.0; to: 0.5; duration: Tokens.motion.duration.extraLong1; curve: "standard" }
-                MotionAnimation { from: 0.5; to: 0.0; duration: Tokens.motion.duration.extraLong1; curve: "standard" }
-            }
+            opacity: root.animationsActive ? root._urgencyPhase : Tokens.stateLayer.pressedOpacity
         }
 
         Image {
             id: iconImage
+            objectName: "dockAppImage"
             anchors.centerIn: parent
             width: root.iconSize
             height: root.iconSize
@@ -167,20 +189,8 @@ Item {
             smooth: true
             opacity: root.isActive || root.app.pinned ? 1.0 : 0.5
 
-            // Launch bounce — pulses while the pinned app is starting up.
-            SequentialAnimation on scale {
-                running: root._launching
-                loops: Animation.Infinite
-                MotionAnimation {
-                    from: 1.0; to: 1.18; duration: Tokens.motion.duration.medium2
-                    curve: "emphasizedDecelerate"
-                }
-                MotionAnimation {
-                    from: 1.18; to: 1.0; duration: Tokens.motion.duration.medium2
-                    curve: "emphasizedAccelerate"
-                }
-                onRunningChanged: if (!running) iconImage.scale = 1.0
-            }
+            // Keep the visual baseline immediate when hiding or disabling motion.
+            scale: root._launching && root.animationsActive ? root._launchScale : 1
         }
 
         StateLayer {
@@ -200,10 +210,10 @@ Item {
                 if (containsMouse) {
                     const p = iconButton.mapToItem(null, iconButton.width / 2, iconButton.height / 2)
                     const c = root.vertical ? p.y : p.x
-                    if (root.isActive) root.requestPreview(root.index, c)
-                    else root.cancelPreview(root.index, c)
+                    if (root.isActive) root.requestPreview(root.app.key, c)
+                    else root.cancelPreview(root.app.key, c)
                 } else {
-                    root.hoverEnded(root.index)
+                    root.hoverEnded(root.app?.key ?? "")
                 }
             }
 
@@ -250,12 +260,15 @@ Item {
                 color: root.isFocused ? Theme.primary : Theme.onSurfaceVariant
 
                 Behavior on width {
+                    enabled: root.animationsActive
                     NumberAnimation { duration: Tokens.motion.duration.short3 }
                 }
                 Behavior on height {
+                    enabled: root.animationsActive
                     NumberAnimation { duration: Tokens.motion.duration.short3 }
                 }
                 Behavior on color {
+                    enabled: root.animationsActive
                     ColorAnimation { duration: Tokens.motion.duration.short3 }
                 }
             }
