@@ -49,7 +49,9 @@ Singleton {
     // History read process
     Process {
         id: readProc
+        objectName: "clipboardHistoryRead"
         property list<string> buffer: []
+        property int generation: 0
 
         command: [root.cliphistBinary, "list"]
 
@@ -57,20 +59,47 @@ Singleton {
 
         stdout: SplitParser {
             onRead: (line) => {
-                readProc.buffer.push(line)
+                if (root._readBusy && readProc.generation === root._readGeneration && GlobalStates.launcherOpen)
+                    readProc.buffer.push(line)
             }
         }
 
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode === 0) {
-                root.entries = readProc.buffer
-            } else {
-                console.error("[ClipboardService] Failed to refresh with code", exitCode, "and status", exitStatus)
-            }
-            const refreshAgain = root._refreshPending && GlobalStates.launcherOpen
-            root._refreshPending = false
-            if (refreshAgain) Qt.callLater(root.refresh)
+        onExited: exitCode => {
+            const generation = readProc.generation
+            const snapshot = readProc.buffer.slice()
+            Qt.callLater(() => root._finishRead(generation, exitCode, snapshot))
         }
+    }
+    property bool _readBusy: false
+    property int _readGeneration: 0
+    Timer {
+        id: readDeadline
+        objectName: "clipboardHistoryDeadline"
+        interval: 5000
+        onTriggered: {
+            if (!root._readBusy) return
+            root._readGeneration++
+            if (GlobalStates.launcherOpen) console.warn("Clipboard history read timed out")
+            if (readProc.running) readProc.signal(9)
+            else root._finishRead(readProc.generation, -1, [])
+        }
+    }
+    function _finishRead(generation, exitCode, snapshot) {
+        if (!_readBusy || readProc.generation !== generation) return
+        readDeadline.stop()
+        const current = generation === _readGeneration && GlobalStates.launcherOpen
+        const refreshAgain = _refreshPending && GlobalStates.launcherOpen
+        readProc.buffer = []
+        _refreshPending = false
+        _readBusy = false
+        if (current && exitCode === 0) entries = snapshot
+        else if (current) console.warn("Clipboard history refresh failed with code", exitCode)
+        if (refreshAgain && !_readBusy) Qt.callLater(root.refresh)
+    }
+    function _cancelRead() {
+        _readGeneration++
+        _refreshPending = false
+        if (_readBusy && readProc.running) readProc.signal(9)
     }
 
     // Delete entry via cliphist delete (stdin, no shell interpolation)
@@ -107,16 +136,25 @@ Singleton {
     property bool _refreshPending: false
 
     function refresh() {
-        if (readProc.running) {
+        if (!GlobalStates.launcherOpen) return
+        if (_readBusy || readProc.running) {
+            // The requested refresh supersedes the in-flight snapshot.
+            _readGeneration++
             root._refreshPending = true
             return
         }
+        _readBusy = true
+        _readGeneration++
+        readProc.generation = _readGeneration
+        readProc.buffer = []
+        readDeadline.restart()
         readProc.running = true
     }
 
     // Copy entry to clipboard via cliphist decode | wl-copy
     Process {
         id: copyProc
+        objectName: "clipboardCopy"
         property string pendingEntry: ""
         stdinEnabled: true
 
@@ -160,13 +198,7 @@ Singleton {
     // Non-empty query → fuzzy match against text entries only; binary entries
     // are dropped since their placeholder text would never match meaningfully.
     function fuzzySearch(query, limit = 50) {
-        if (debug) {
-            console.info("[ClipboardService.fuzzySearch] entries:", entries.length,
-                        "query:", JSON.stringify(query))
-            for (let k = 0; k < Math.min(entries.length, 10); k++)
-                console.info("  cliphist[" + k + "]:",
-                            entries[k].substring(0, 60).replace(/\n/g, "\\n"))
-        }
+        if (debug) console.info("Clipboard search:", entries.length, "entries; query length:", query?.length ?? 0)
         // `id` is the cliphist entry id and travels with every result — consumers
         // key their caches on it (see preparedEntries above). Omitting it here is
         // what made ClipboardProvider fall back to the array index, which is the
@@ -225,6 +257,7 @@ Singleton {
     property var _thumbOrder: []          // insertion order for eviction
     readonly property int _maxThumbnails: 48
     property bool _thumbnailDirReady: false
+    property bool _thumbnailDirFailed: false
 
     Connections {
         target: GlobalStates
@@ -234,6 +267,7 @@ Singleton {
             } else {
                 root._thumbQueue = []
                 delayedUpdateTimer.stop()
+                root._cancelRead()
             }
         }
     }
@@ -258,7 +292,7 @@ Singleton {
 
     function requestThumbnail(entry) {
         const id = _extractEntryId(entry)
-        if (!id || _thumbnailCache[id] || (thumbDecodeProc.running && thumbDecodeProc._entryId === id)) return
+        if (!GlobalStates.launcherOpen || _thumbnailDirFailed || !id || _thumbnailCache[id] || (thumbDecodeProc.running && thumbDecodeProc._entryId === id)) return
         // Do not queue duplicates
         for (let i = 0; i < _thumbQueue.length; i++) {
             if (_thumbQueue[i].id === id) return
@@ -271,7 +305,11 @@ Singleton {
     }
 
     function _processNextThumb() {
-        if (!_thumbnailDirReady || thumbDecodeProc.running || _thumbQueue.length === 0) return
+        if (!GlobalStates.launcherOpen || _thumbnailDirFailed || thumbDecodeProc.running || _thumbQueue.length === 0) return
+        if (!_thumbnailDirReady) {
+            if (!thumbDirInitProc.running) thumbDirInitProc.running = true
+            return
+        }
         const item = _thumbQueue.shift()
         thumbDecodeProc._entryId = item.id
         thumbDecodeProc._entry = item.entry
@@ -286,13 +324,15 @@ Singleton {
 
     Process {
         id: thumbDirInitProc
+        objectName: "clipboardThumbnailInit"
         // Literal script + positional argv; also clears thumbnails left
         // over from the previous session (they are keyed to a dead cache).
-        command: ["sh", "-c", 'mkdir -p "$1" && rm -f -- "$1"/* 2>/dev/null; true', "sh", root._thumbnailDir]
-        running: true
+        command: ["sh", "-c", 'mkdir -p "$1" && rm -f -- "$1"/* 2>/dev/null', "sh", root._thumbnailDir]
         onExited: exitCode => {
             root._thumbnailDirReady = exitCode === 0
-            root._processNextThumb()
+            root._thumbnailDirFailed = exitCode !== 0
+            if (root._thumbnailDirFailed) root._thumbQueue = []
+            Qt.callLater(root._processNextThumb)
         }
     }
 

@@ -1104,6 +1104,8 @@ rows follow those tokens and the configured font scale.
   Space/Enter and Escape.
 - Selection fields keep externally owned selections synchronized after keyboard
   choices and catalog updates. Empty/disabled lists do not open blank menus.
+- Clipboard history reads stop when the launcher closes. Image-cache setup waits
+  until a thumbnail is requested; copy actions continue after closing the launcher.
 - Buttons activate with Enter, keypad Enter or Space in both design packs.
 - Dialogs keep keyboard traversal inside the nearest open modal and restore
   the previous focus on close. Editors have a single Tab stop.

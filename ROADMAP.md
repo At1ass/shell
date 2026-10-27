@@ -3794,3 +3794,25 @@ popup, and field/label text is PlainText like menu rows. Generated greeter kit i
 synchronized. Tests cover keyboard and pointer intent, subsequent owner updates,
 literal labels, empty/disabled transitions and real greeter selection/catalog
 reordering/removal. No real login or session launch is performed.
+
+
+## Clipboard passive work and stale reads — 2026-10-27
+
+History reads are visibility-owned and single-flight. Closing the launcher
+invalidates and kills the passive read; reopen coalesces one refresh behind its
+terminal event. Snapshots publish after exit through a deferred generation check,
+so a cancelled or superseded response cannot replace current history. A 5 s deadline handles
+silent/hung reads and failed starts without polling. Copy/delete remain explicit
+operations independent of launcher visibility; their existing APIs are unchanged.
+
+Thumbnail-directory setup is lazy and runs only on the first visible image request.
+Hidden requests are ignored, and failed setup disables thumbnail work for this
+service lifetime instead of pretending success or repeatedly spawning helpers.
+No actual history retention cap is introduced. Debug search logs expose counts and
+query lengths rather than history snippets or query contents.
+
+Nine isolated lifecycle checks cover hidden idle, cancellation, reopen, coalescing,
+read deadline, copy independence and lazy/failing thumbnail init. The native
+Process probe uses an absolute fake cliphist executable, interrupts a streamed
+snapshot and confirms only the complete replacement publishes. Tests never copy,
+delete or list the user's real history and never initialize the real thumbnail dir.

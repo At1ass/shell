@@ -24,9 +24,8 @@ BaseProvider {
         // would mask the just-copied entry behind an old list.
         const searchResults = ClipboardService.fuzzySearch(searchQuery, Math.max(AppConfig.launcherMaxResults, 50))
         if (ClipboardService.debug) {
-            console.info("[ClipboardProvider.search] query:", JSON.stringify(query),
-                        "searchQuery:", JSON.stringify(searchQuery),
-                        "results:", searchResults.length)
+            console.info("Clipboard provider: query length", searchQuery.length,
+                         "; results:", searchResults.length)
         }
         const results = []
         for (let i = 0; i < searchResults.length; i++) {
