@@ -153,8 +153,11 @@ ColumnLayout {
         enabled: !root.identityLocked
         label: "Session"
         model: SessionModel.names
+        controlled: true
         currentIndex: SessionModel.selectedIndex
-        onCurrentIndexChanged: if (visible && !root.identityLocked) SessionModel.selectedIndex = currentIndex
+        onActivated: index => {
+            if (visible && !root.identityLocked) SessionModel.selectedIndex = index
+        }
     }
     MaterialText {
         Layout.fillWidth: true

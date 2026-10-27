@@ -1102,6 +1102,8 @@ rows follow those tokens and the configured font scale.
   have no state marker. Unavailable VPN, Night Light and disabled Screenshot
   actions are omitted from Quick. Tiles support Space and Enter. Combo boxes support arrows, Home/End,
   Space/Enter and Escape.
+- Selection fields keep externally owned selections synchronized after keyboard
+  choices and catalog updates. Empty/disabled lists do not open blank menus.
 - Buttons activate with Enter, keypad Enter or Space in both design packs.
 - Dialogs keep keyboard traversal inside the nearest open modal and restore
   the previous focus on close. Editors have a single Tab stop.

@@ -22,6 +22,10 @@ Remaining code work, in practical order:
 2. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
    existing QML/UI-kit debt. Full subprocess migration is not a prerequisite.
 
+Lockscreen manual acceptance passed (user report). Greeter acceptance remains
+pending and can accompany the next convenient login; it does not block independent
+service/UI work in the desktop session.
+
 Manual acceptance not yet specifically recorded: updated greeter/PAM failure and
 retry flows; remaining Bluetooth PIN/passkey/cancellation and lock/resume cases;
 OpenVPN challenge/MFA and existing agent-owned keyring credentials. Phone numeric comparison,
@@ -3774,3 +3778,19 @@ negative-cache hits, eviction and invalidation when an application appears in th
 catalog. Existing hover/reorder/focus tests remain in place. Heavy desktop catalog
 indexing migration is still a separate architectural task; this bounds the existing
 memo and fixes key correctness without introducing a new plugin dependency.
+
+
+## Controlled selection fields / greeter sessions — 2026-10-27
+
+A real-key greeter form test reproduced a broken currentIndex binding after user
+selection: reordering the session catalog kept SessionModel on the same ID but
+left the displayed picker on the old numeric index. MaterialComboBox now offers
+an additive controlled mode and activated(index) signal. The session picker writes
+intent to SessionModel; currentIndex stays derived. Existing local-index consumers
+retain their behavior.
+
+Empty lists reject opening/selection, disabling or emptying a list closes its
+popup, and field/label text is PlainText like menu rows. Generated greeter kit is
+synchronized. Tests cover keyboard and pointer intent, subsequent owner updates,
+literal labels, empty/disabled transitions and real greeter selection/catalog
+reordering/removal. No real login or session launch is performed.

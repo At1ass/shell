@@ -498,6 +498,7 @@ Item {
  Component {id:eventFormFixture;TestEventDialog {}}
  Component {id:eventFormHost;Item {width:600;height:420}}
  Component {id:testButtonFixture;MaterialButton {text:"Test action";checkable:true}}
+ Component {id:controlledComboFixture;Item {width:260;height:64;property int selection:0;property alias control:control;MaterialComboBox {id:control;width:240;model:["One","Two","Three"];controlled:true;currentIndex:parent.selection;onActivated:index=>parent.selection=index}}}
  Component {id:comboFixture;MaterialComboBox {width:240}}
  Component {id:statsServiceFixture;TestStatsService {}}
  Component {id:storageFixture;StorageSection {width:600}}
@@ -2047,6 +2048,29 @@ Item {
    keyClick(Qt.Key_End);compare(scene.selected,4)
    keyClick(Qt.Key_Right);compare(scene.selected,0)
    keyClick(Qt.Key_Tab);verify(tile.activeFocus,"after tabs: "+scene.Window.window.activeFocusItem)
+  }
+  function test_combo_controlled_selection_and_literal_text() {
+   controls.visible=false;dashboard.visible=false
+   const host=createTemporaryObject(controlledComboFixture,scene)
+   const combo=host.control
+   combo.forceActiveFocus();keyClick(Qt.Key_Down);compare(host.selection,1)
+   host.selection=0;compare(combo.currentIndex,0)
+   combo.open=true;wait(10)
+   const popup=Array.from(combo.data).find(item=>item.closePolicy===(Popup.CloseOnEscape | Popup.CloseOnPressOutside))
+   verify(popup!==undefined)
+   const second=byProperty(popup.contentItem,"text","Two")
+   verify(second!==null);mouseClick(second,second.width/2,second.height/2)
+   compare(host.selection,1)
+   host.selection=2;compare(combo.currentIndex,2)
+   combo.model=["<b>Literal choice</b>"];host.selection=0
+   const label=byProperty(combo,"text","<b>Literal choice</b>")
+   verify(label!==null);compare(label.textFormat,Text.PlainText)
+   combo.open=true;wait(10);combo.enabled=false;verify(!combo.open)
+   combo.enabled=true;combo.open=true;wait(10)
+   combo.model=[];verify(!combo.open)
+   combo.forceActiveFocus();keyClick(Qt.Key_Return);verify(!combo.open)
+   const before=host.selection
+   keyClick(Qt.Key_Down);keyClick(Qt.Key_End);compare(host.selection,before)
   }
   function test_combo_keyboard() {
    combo.forceActiveFocus();keyClick(Qt.Key_Down);compare(combo.currentIndex,1)

@@ -147,6 +147,21 @@ Item {
    Greetd.state=2;Greetd.readyToLaunch()
    compare(Greetd.launchedCommand.join("|"),"/usr/bin/session|two words||$HOME|literal;command")
   }
+  function test_session_choice_binding_survives_keyboard_and_reorder() {
+   GreeterDataBackend.sessions=[{id:"one",name:"One",exec:"one",argv:["one"]},{id:"two",name:"Two",exec:"two",argv:["two"]}]
+   const form=createTemporaryObject(formFixture,scene);wait(1)
+   const chooser=findChild(form,"greeterSessionChoice")
+   verify(chooser!==null && chooser.visible)
+   chooser.forceActiveFocus();keyClick(Qt.Key_Down)
+   compare(SessionModel.currentSession.id,"two");compare(chooser.currentText,"Two")
+   GreeterDataBackend.sessions=[{id:"two",name:"Two",exec:"two",argv:["two"]},{id:"one",name:"One",exec:"one",argv:["one"]}]
+   compare(SessionModel.currentSession.id,"two")
+   compare(chooser.currentIndex,SessionModel.selectedIndex)
+   compare(chooser.currentText,"Two")
+   keyClick(Qt.Key_Down);compare(SessionModel.currentSession.id,"one")
+   GreeterDataBackend.sessions=[{id:"two",name:"Two",exec:"two",argv:["two"]}]
+   compare(SessionModel.currentSession.id,"two");compare(chooser.currentText,"Two")
+  }
   function test_catalog_selection_survives_reorder() {
    GreeterDataBackend.sessions=[{id:"one",name:"One",exec:"one",argv:["one"]},{id:"two",name:"Two",exec:"two",argv:["two"]}]
    SessionModel.selectedIndex=1
@@ -199,7 +214,7 @@ Item {
    verify(!findChild(form,"greeterSessionChoice").visible)
    GreeterDataBackend.sessions=[{id:"one",name:"One",exec:"one",argv:["one"]},{id:"two",name:"Two",exec:"two",argv:["two"]}];wait(1)
    const choice=findChild(form,"greeterSessionChoice")
-   verify(choice.visible);choice.currentIndex=1;compare(SessionModel.selectedIndex,1)
+   verify(choice.visible);choice.forceActiveFocus();keyClick(Qt.Key_Down);compare(SessionModel.selectedIndex,1)
    const field=findChild(form,"greeterPassword")
    verify(field.inputItem.width>0);verify(field.height>0)
   }

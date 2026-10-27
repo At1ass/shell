@@ -12,12 +12,29 @@ Item {
 
     property var model: []
     property int currentIndex: 0
+    // Controlled owners keep the selection binding; activation reports intent.
+    property bool controlled: false
+    signal activated(int index)
     property string currentText: {
         if (!model || model.length === 0) return ""
         return model[currentIndex] || ""
     }
     property string label: ""
     property bool open: false
+
+    onModelChanged: {
+        if (!model?.length) root.open = false
+        Qt.callLater(root.revealSelection)
+    }
+    onEnabledChanged: if (!enabled) root.open = false
+    onOpenChanged: if (open && (!enabled || !model?.length)) root.open = false
+
+    function _select(index) {
+        if (!root.enabled || !root.model?.length) return
+        const next = Math.max(0, Math.min(root.model.length - 1, index))
+        if (!root.controlled) root.currentIndex = next
+        root.activated(next)
+    }
 
     implicitHeight: Math.max(Tokens.size.field, Tokens.typography.bodyLarge.size + Tokens.spacing.small * 2)
     implicitWidth: Tokens.size.fieldWidth
@@ -50,9 +67,9 @@ Item {
             root.open = !root.open
         } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
             const step = event.key === Qt.Key_Down ? 1 : -1
-            root.currentIndex = Math.max(0, Math.min(root.model.length - 1, root.currentIndex + step))
-        } else if (event.key === Qt.Key_Home) root.currentIndex = 0
-        else if (event.key === Qt.Key_End) root.currentIndex = Math.max(0, root.model.length - 1)
+            root._select(root.currentIndex + step)
+        } else if (event.key === Qt.Key_Home) root._select(0)
+        else if (event.key === Qt.Key_End) root._select(root.model.length - 1)
         else return
         event.accepted = true
     }
@@ -85,6 +102,7 @@ Item {
             MaterialText {
                 Layout.fillWidth: true
                 text: root.currentText
+                textFormat: Text.PlainText
                 textStyle: "bodyLarge"
                 colorRole: "onSurface"
                 elide: Text.ElideRight
@@ -126,6 +144,7 @@ Item {
             id: labelText
             anchors.centerIn: parent
             text: root.label
+            textFormat: Text.PlainText
             textStyle: "labelSmall"
             colorRole: root.open ? "primary" : "onSurfaceVariant"
         }
@@ -234,7 +253,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.currentIndex = menuRow.index
+                                root._select(menuRow.index)
                                 root.open = false
                             }
                         }
