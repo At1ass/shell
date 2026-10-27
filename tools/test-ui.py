@@ -2356,7 +2356,7 @@ Window {
     fixture.mkdir()
     (fixture / 'qmldir').write_text('module TestDock\nsingleton Hyprland 1.0 Hyprland.qml\nsingleton DesktopEntries 1.0 DesktopEntries.qml\n')
     (fixture / 'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var toplevels:({values:[]})}\n')
-    (fixture / 'DesktopEntries.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject applications:QtObject {property var values:[]};function heuristicLookup(value) {return null}}\n')
+    (fixture / 'DesktopEntries.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject applications:QtObject {property var values:[]};property var stats:({lookups:0});function heuristicLookup(value) {stats.lookups++;return null}}\n')
     dock_source=(ROOT / 'src/core/services/DockService.qml').read_text().replace('import Quickshell.Hyprland', 'import TestDock as Fixture').replace('Hyprland.', 'Fixture.Hyprland.').replace('DesktopEntries.', 'Fixture.DesktopEntries.')
     (services / 'DockService.qml').write_text(dock_source)
     dock_types=['DockIcon','DockTooltip','DockPanel','DockBar','DockContextMenu','DockPreview']
@@ -2365,6 +2365,7 @@ Window {
         shutil.copy2(ROOT / ('src/features/dock/'+name+'.qml'),dock / (name+'.qml'))
     dock_probe=tree / 'dock-probe.qml'
     dock_probe.write_text("""import QtQuick
+import TestDock as Fixture
 import Quickshell
 import qs.src.core.config
 import qs.src.core.services
@@ -2426,6 +2427,19 @@ ShellRoot {
    } else {
     root.check(dock._previewKey==="" && dock._pendingPreviewKey==="","dismiss releases all timers")
     root.check(!dock.visible && !dock.menuGrabReady,"fixture stays invisible without grab")
+    AppConfig.dockPinnedApps=["__proto__","constructor","tostring"]
+    root.check(DockService.model.length===3,"prototype-like IDs remain distinct apps")
+    root.check(DockService.entryForKey("__proto__").appId==="__proto__","prototype app is addressable")
+    for(let i=0;i<600;i++)DockService.resolveEntry("fixture-miss-"+i)
+    root.check(Object.keys(DockService._entryCache).length<=512,"entry cache stays bounded")
+    const lookups=Fixture.DesktopEntries.stats.lookups
+    DockService.resolveEntry("fixture-miss-599")
+    root.check(Fixture.DesktopEntries.stats.lookups===lookups,"negative result is cached")
+    DockService.resolveEntry("fixture-miss-0")
+    root.check(Fixture.DesktopEntries.stats.lookups===lookups+1,"old negative result evicts")
+    DockService.resolveEntry("fixture-class")
+    Fixture.DesktopEntries.applications.values=[{id:"matched.desktop",name:"Fixture",startupClass:"fixture-class"}]
+    root.check(DockService.resolveEntry("fixture-class")?.id==="matched.desktop","catalog change invalidates negative cache")
     console.warn("DOCK NATIVE PASS");Qt.quit()
    }
    root.step++

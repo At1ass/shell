@@ -252,7 +252,7 @@ gamingMode               — gaming mode (Hyprland overrides)
 wallpaper                — wallpaper sources and per-monitor bindings
 services.weather         — weather (Open-Meteo, no API key)
 services.calendar        — calendar (native libical plugin), reminders (timed + all-day), day view
-services.nightLight      — hyprsunset wrapper (default temperature, schedule)
+services.nightLight      — hyprsunset wrapper (default temperature; runtime toggle in state.json)
 services.vpn             — VPN status (NetworkManager); tracking is OFF by default,
                            set services.vpn.enabled to start it
 ```
@@ -577,6 +577,9 @@ The bar follows top/bottom placement and grows when larger fonts require it.
 Dashboard Quick keeps modes, destination tiles, brightness and system/media
 information. Audio controls live in the Audio panel, and the header shows the
 date without duplicating the bar clock.
+
+Night Light retries repeated helper exits with a capped backoff. Explicit temperature
+changes remain fast; stopping waits for the old helper before starting another.
 
 Brightness DDC commands run serially with deadlines. Initial values are published
 only after valid VCP reads; writes use each display's reported maximum, coalesce

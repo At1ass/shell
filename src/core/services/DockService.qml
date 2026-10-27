@@ -71,11 +71,12 @@ Singleton {
     // window IPC event (title changes fire on each browser navigation!), and
     // heuristicLookup plus two linear scans over all desktop entries per
     // toplevel is far too heavy for that. Negative results are cached too.
-    property var _entryCache: ({})
+    property var _entryCache: Object.create(null)
+    property var _entryCacheOrder: []
 
     Connections {
         target: DesktopEntries.applications
-        function onValuesChanged() { root._entryCache = ({}) }
+        function onValuesChanged() { root._entryCacheOrder = []; root._entryCache = Object.create(null) }
     }
 
     // Resolve a desktop entry from a window class, desktop id, or display name.
@@ -106,6 +107,8 @@ Singleton {
             }
         }
         _entryCache[n] = found ?? null
+        _entryCacheOrder.push(n)
+        if (_entryCacheOrder.length > 512) delete _entryCache[_entryCacheOrder.shift()]
         return found ?? null
     }
 
@@ -121,7 +124,7 @@ Singleton {
         const tls = toplevels
 
         // Group running windows by stable entry-derived key.
-        let groups = ({})
+        let groups = Object.create(null)
         for (let i = 0; i < tls.length; i++) {
             const tl = tls[i]
             const cls = tl.lastIpcObject?.class ?? ""
@@ -135,7 +138,7 @@ Singleton {
         }
 
         let items = []
-        let used = ({})
+        let used = Object.create(null)
 
         // Pinned first, in config order.
         for (let i = 0; i < pinned.length; i++) {
@@ -193,13 +196,13 @@ Singleton {
         }
     }
 
-    property var _entries: ({})       // key -> entry QtObject
+    property var _entries: Object.create(null)       // key -> entry QtObject
     property var model: []            // array of entry QtObjects, stable references
 
     function _reconcile() {
         const desired = desiredModel
         const previous = _entries
-        let nextEntries = ({})
+        let nextEntries = Object.create(null)
         let out = []
         for (let i = 0; i < desired.length; i++) {
             const d = desired[i]

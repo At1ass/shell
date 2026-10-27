@@ -12,6 +12,10 @@ background is fixed, including section collapse and tab changes. Wallpaper chang
 without the white flash and VPN profile discovery/connect/disconnect also passed
 user acceptance after the rebuilt Connectivity package was installed.
 
+Next acceptance step: install the queued greeter UI-kit/keyboard changes and
+check login, wrong-password recovery and retry in the actual greetd session.
+Those flows cannot be accepted from the running desktop's mock authentication.
+
 Remaining code work, in practical order:
 1. Final consistency pass for bar/dock/popouts, typography and default behavior,
    concentrating on concrete remaining inconsistencies rather than another redesign.
@@ -3740,3 +3744,33 @@ stale reads, errors, unavailable/NaN values, failed starts and kill/exit orderin
 The native Process probe uses an absolute fake ddcutil executable and confirms two
 displays and readback. No real brightness was changed by automated tests. Runtime
 startup still performs only discovery/read operations; there is no polling.
+
+
+## Night Light restart supervision — 2026-10-27
+
+Unexpected helper exits now back off from short retries to a 30 s cap rather than
+respawning forever every 150 ms. A healthy run resets the failure count; explicit
+toggle/temperature changes reset the backoff. Intentional restart waits for the
+terminating process's exit; a 3 s stop deadline escalates to SIGKILL for this owned
+helper. Disable stops pending retry, and non-finite temperatures are rejected.
+State ownership remains AppConfig.stateData, with no config writes or GUI settings.
+
+Isolated tests cover restore-before-detection, latest temperature while stopping,
+backoff/cap/healthy reset, disable/late exit, stop timeout and input validation.
+The real Process probe uses an absolute fake helper with a delayed SIGTERM exit;
+its log must be start/stop/start/stop with the current arguments. No live filter
+is toggled by tests. Run tools/test-nightlight.py --native.
+
+
+## Dock resolver cache bounds and external keys — 2026-10-27
+
+The positive/negative DesktopEntry memo now evicts oldest entries above 512 and
+resets on catalog changes. Per-app dictionaries (cache, grouping, used keys and
+stable pool) have no prototype, so app classes/IDs such as constructor or __proto__
+remain ordinary keys rather than inherited functions or prototype setters.
+
+The native dock fixture checks prototype-like pinned IDs, more than 512 misses,
+negative-cache hits, eviction and invalidation when an application appears in the
+catalog. Existing hover/reorder/focus tests remain in place. Heavy desktop catalog
+indexing migration is still a separate architectural task; this bounds the existing
+memo and fixes key correctness without introducing a new plugin dependency.

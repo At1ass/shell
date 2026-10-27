@@ -28,9 +28,14 @@ Singleton {
     // Whether hyprsunset is available on the system
     readonly property bool available: _detected
     property bool _detected: false
+    property int _consecutiveFailures: 0
+    property bool _awaitingExit: false
+    property bool _intentionalStop: false
+    readonly property int _retryDelay: Math.min(30000, 150 * Math.pow(2, _consecutiveFailures))
 
     Process {
         id: detectProc
+        objectName: "nightLightDetect"
         command: ["which", "hyprsunset"]
         onExited: (exitCode) => {
             root._detected = exitCode === 0
@@ -39,21 +44,40 @@ Singleton {
 
     Process {
         id: sunsetProc
+        objectName: "nightLightProcess"
         command: ["hyprsunset", "-t", root.temperature.toString()]
 
         onExited: (exitCode) => {
-            if (exitCode !== 0 && root.enabled)
-                console.warn("NightLightService: hyprsunset exited with code", exitCode)
-            // Whatever ended this run (temperature restart, crash), if the
-            // user still wants night light — bring it back. The old code
-            // bailed when the previous instance had not exited yet and
-            // never retried, leaving enabled=true with no hyprsunset.
-            if (root.enabled)
-                _restartTimer.restart()
+            const intentional = root._intentionalStop
+            root._intentionalStop = false
+            root._awaitingExit = false
+            stopDeadline.stop()
+            if (!root.enabled) return
+            if (!intentional) {
+                root._consecutiveFailures = Math.min(8, root._consecutiveFailures + 1)
+                if (exitCode !== 0) console.warn("NightLightService: hyprsunset exited with code", exitCode)
+            }
+            _restartTimer.restart()
         }
     }
 
+    Timer {
+        objectName: "nightLightHealthy"
+        interval: 30000
+        running: sunsetProc.running && root._consecutiveFailures > 0
+        onTriggered: root._consecutiveFailures = 0
+    }
+
+    Timer {
+        id: stopDeadline
+        objectName: "nightLightStopDeadline"
+        interval: 3000
+        onTriggered: if (root._awaitingExit) sunsetProc.signal(9)
+    }
+
     onEnabledChanged: {
+        _consecutiveFailures = 0
+        _restartTimer.stop()
         if (enabled) {
             _startSunset()
         } else {
@@ -63,6 +87,7 @@ Singleton {
 
     onTemperatureChanged: {
         if (enabled) {
+            _consecutiveFailures = 0
             _stopSunset()
             _restartTimer.restart()
         }
@@ -75,10 +100,11 @@ Singleton {
         }
     }
 
-    // Small delay when changing temperature to avoid rapid restarts
+    // Fast intentional restarts; unexpected exits use a capped backoff.
     Timer {
         id: _restartTimer
-        interval: 150
+        objectName: "nightLightRetry"
+        interval: root._retryDelay
         repeat: false
         onTriggered: {
             if (root.enabled) root._startSunset()
@@ -99,18 +125,23 @@ Singleton {
     }
 
     function setTemperature(temp) {
+        if (!Number.isFinite(temp)) return
         _temperatureOverride = Math.max(1000, Math.min(6500, temp))
     }
 
     function _startSunset() {
-        if (!AppConfig.ready || !_detected || sunsetProc.running) return
+        if (!root.enabled || !AppConfig.ready || !_detected || _awaitingExit || sunsetProc.running) return
         sunsetProc.command = ["hyprsunset", "-t", root.temperature.toString()]
         sunsetProc.running = true
     }
 
     function _stopSunset() {
-        if (sunsetProc.running)
+        if (sunsetProc.running && !_awaitingExit) {
+            _intentionalStop = true
+            _awaitingExit = true
+            stopDeadline.restart()
             sunsetProc.running = false
+        }
     }
 
     // State is restored from disk before `which hyprsunset` has answered, so an
