@@ -3977,3 +3977,58 @@ Validation: 236 Qt UI checks, 16 greeter checks and native rendering/config prob
 foundation checks, read-only native overview/capture-handle probe, clean changed-file
 qmllint and the zero-regression ratchet passed. Engine compilation: 202/202 main
 components and 24/24 greeter components. No C++ rebuild is required.
+
+
+## Overview: close windows without leaving the overview — 2026-10-27
+
+Physical Ctrl+W closes the selected window, including from search and non-Latin
+layouts. A selected/hovered preview exposes an explicit close IconButton; its
+address is used even if another window is selected. The button is keyboard
+accessible, and its pointer subtree is separate from the body DragHandler.
+
+OverviewService revalidates the live target and delegates to the existing normal
+Hyprland close command, without focus, workspace switches or force kill. The UI
+remains open and waits for native removal, allowing unsaved-changes dialogs.
+Focus returns to the stable overview scope; native removal reconciles selection.
+Autorepeat is ignored, and drag/modal states block UI close requests. Tests use
+only fake close dispatchers, including the native read-only model probe.
+
+Validation: targeted pointer/keyboard tests cover explicit mouse targets, Tab/Enter,
+physical Ctrl+W from search, non-Latin scancodes, autorepeat suppression, modal/drag
+guards, native-removal selection and missing targets. The dispatch probe verifies
+normal close syntax and rejects a malformed address without a real command.
+
+All 237 Qt UI checks and native rendering probes passed; changed-file qmllint
+and all invariant checks are clean, including engine compilation for main/greeter.
+
+
+## Overview: stop capture before closing a source — 2026-10-27
+
+The first user close after the feature landed terminated the shell at 23:45:56:
+Qt reported a fatal Wayland connection error (Invalid argument), exit 255, and
+systemd restarted it at 23:45:58. The detailed QS log ends with the close dispatch,
+closewindow, destruction of workspace 5, native toplevel closure and buffer disposal.
+There is no protocol object/error detail, so the exact cause is unconfirmed.
+[Upstream issue #1123](https://github.com/quickshell-mirror/quickshell/issues/1123)
+reports similar fatal errors under concurrent live toplevel
+captures, but its object-ID allocator explanation is a hypothesis, not a diagnosis
+of this incident. No real user windows are closed for automated reproduction.
+
+A defensive lifecycle change emits windowCloseRequested before dispatch. Matching
+thumbnails synchronously set live=false and captureSource=null before unloading
+the capture Loader. Native Toplevel.closed also stops capture before destruction.
+A per-thumbnail latch prevents visibility/config changes from restarting an
+outstanding close source; reopening overview or replacing the source resets it.
+If a save confirmation is cancelled, the preview stays paused until reopening.
+This reduces close/capture overlap; it does not claim to fix the underlying
+Quickshell/compositor protocol race.
+
+The v0.3.2 ScreencopyView implementation destroys the native context immediately
+when captureSource is cleared; live=false alone leaves the context alive.
+Reference: https://github.com/quickshell-mirror/quickshell/blob/v0.3.2/src/wayland/screencopy/view.cpp
+
+Validation: 238 Qt UI checks and native rendering probes, the read-only overview
+probe, changed-file qmllint and all invariant/engine-compilation checks passed.
+New tests cover synchronous source clearing, source-closed handling, isolation of
+other windows, no restart after visibility/config changes and latch reset. The
+protocol crash itself was not reproduced in these isolated tests.

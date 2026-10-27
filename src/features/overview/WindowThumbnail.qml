@@ -16,6 +16,23 @@ Surface {
     property bool selected: false
     property bool matched: true
     property bool captureEnabled: false
+    property bool _captureStopped: false
+    function stopCapture() {
+        const view = preview.item as ScreencopyView
+        // Clear the native context synchronously before dispatching close.
+        if (view) { view.live = false; view.captureSource = null }
+        _captureStopped = true
+    }
+    onWindowChanged: root._captureStopped = false
+    Connections {
+        target: OverviewService
+        function onWindowCloseRequested(address) { if (root.window?.address === address) root.stopCapture() }
+    }
+    Connections {
+        target: root.window?.wayland ?? null
+        ignoreUnknownSignals: true
+        function onClosed() { root.stopCapture() }
+    }
     property Item dragSpace: keyOwner
     property string _gestureAddress: ""
     property bool _dragConsumed: false
@@ -32,6 +49,7 @@ Surface {
     signal selectedRequested(string address)
     signal activated(string address)
     signal moveRequested(string address)
+    signal closeRequested(string address)
     radius: Tokens.shape.extraSmall
     color: Theme.surfaceContainerHighest
     outlineWidth: selected ? Tokens.focusRing.width : 0
@@ -40,7 +58,7 @@ Surface {
     activeFocusOnTab: (matched && selected) || activeFocus
     Accessible.role: Accessible.Button
     Accessible.name: window?.title ?? "Window"
-    Accessible.description: "Enter to focus; Ctrl+M to move"
+    Accessible.description: "Enter to focus; Ctrl+M to move; Ctrl+W to close"
     Accessible.onPressAction: if (window) root.activated(window.address)
     onActiveFocusChanged: if (activeFocus && window) root.selectedRequested(window.address)
     Keys.onPressed: event => {
@@ -60,7 +78,7 @@ Surface {
             id: preview
             objectName: "overviewCaptureLoader"
             anchors.fill: parent
-            active: AppConfig.overviewShowPreviews && root.captureEnabled && root.matched && root.window?.wayland !== null && root.window?.wayland !== undefined
+            active: !root._captureStopped && AppConfig.overviewShowPreviews && root.captureEnabled && root.matched && root.window?.wayland !== null && root.window?.wayland !== undefined
             sourceComponent: ScreencopyView {
                 objectName: "overviewWindowCapture"
                 anchors.centerIn: parent
@@ -100,26 +118,6 @@ Surface {
         }
     }
     StateLayer { hovered: pointer.containsMouse && root.matched; focused: root.selected }
-    DragHandler {
-        id: drag
-        target: null
-        enabled: root.matched && root.window !== null && root.dragSpace !== null
-        acceptedButtons: Qt.LeftButton
-        grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.CanTakeOverFromHandlersOfDifferentType
-        cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-        onActiveChanged: if (active) {
-            root.forceActiveFocus(Qt.MouseFocusReason)
-            root._dragConsumed = true
-            root._gestureAddress = root.window?.address ?? ""
-            if (root._gestureAddress) root.dragBegan(root._gestureAddress,root.scenePoint(centroid.scenePosition))
-        }
-        onCentroidChanged: if (active && root._gestureAddress) root.dragMoved(root._gestureAddress,root.scenePoint(centroid.scenePosition))
-        onGrabChanged: (transition, point) => {
-            if (transition === PointerDevice.CancelGrabExclusive) root.finishGesture(point.scenePosition,true)
-            else if (transition === PointerDevice.UngrabExclusive) root.finishGesture(point.scenePosition,point.state !== EventPoint.Released)
-        }
-        onCanceled: point => root.finishGesture(point.scenePosition,true)
-    }
     MouseArea {
         id: pointer
         anchors.fill: parent
@@ -133,5 +131,41 @@ Surface {
             if (event.button === Qt.RightButton) root.moveRequested(root.window.address)
             else root.activated(root.window.address)
         }
+        DragHandler {
+            id: drag
+            target: null
+            enabled: root.matched && root.window !== null && root.dragSpace !== null
+            acceptedButtons: Qt.LeftButton
+            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.CanTakeOverFromHandlersOfDifferentType
+            cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+            onActiveChanged: if (active) {
+                root.forceActiveFocus(Qt.MouseFocusReason)
+                root._dragConsumed = true
+                root._gestureAddress = root.window?.address ?? ""
+                if (root._gestureAddress) root.dragBegan(root._gestureAddress,root.scenePoint(centroid.scenePosition))
+            }
+            onCentroidChanged: if (active && root._gestureAddress) root.dragMoved(root._gestureAddress,root.scenePoint(centroid.scenePosition))
+            onGrabChanged: (transition, point) => {
+                if (transition === PointerDevice.CancelGrabExclusive) root.finishGesture(point.scenePosition,true)
+                else if (transition === PointerDevice.UngrabExclusive) root.finishGesture(point.scenePosition,point.state !== EventPoint.Released)
+            }
+            onCanceled: point => root.finishGesture(point.scenePosition,true)
+        }
+    }
+    HoverHandler { id: tileHover }
+    IconButton {
+        id: closeButton
+        objectName: "overviewCloseWindow"
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: Tokens.focusRing.width
+        z: 2
+        iconName: "close"
+        variant: "tonal"
+        visible: root.matched && !root._gestureAddress && (root.selected || tileHover.hovered || activeFocus)
+        enabled: root.window !== null && root.matched
+        activeFocusOnTab: (root.selected && enabled) || activeFocus
+        Accessible.name: "Close window: " + (root.window?.title ?? "")
+        onClicked: if (root.window) root.closeRequested(root.window.address)
     }
 }

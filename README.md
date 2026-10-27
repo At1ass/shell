@@ -1101,6 +1101,16 @@ that workspace. Physical Ctrl+M (including non-Latin layouts), the move button, 
 keyboard-accessible destination picker; the move keeps the overview open. Escape
 closes the picker or overview. Initial selection follows the active window.
 
+Physical Ctrl+W closes the selected window, including from search; a close button
+appears on the selected or hovered preview. Closing requests the application's
+normal close operation without focusing its workspace or force-killing it. Its
+preview capture is stopped before the close request. If the application keeps the
+window open (for example, after cancelling a save dialog), reopening overview
+restores its live preview. The
+overview stays open and updates from the native window model; applications may
+show their usual unsaved-changes confirmation. Closing is disabled during a drag
+or while the destination picker is open.
+
 Drag a window preview (or icon/title when previews are disabled) onto another
 workspace card. A highlighted target and ghost label show the destination; release
 moves the window and leaves overview open. Escape, an outside drop, or removal of

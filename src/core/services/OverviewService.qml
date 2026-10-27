@@ -62,6 +62,13 @@ Singleton {
         HyprlandDispatch.focusWorkspace(target.id, target.name)
         return true
     }
+    signal windowCloseRequested(string address)
+    function closeWindow(address) {
+        if (!active || !windowFor(address)) return false
+        root.windowCloseRequested(address)
+        HyprlandDispatch.closeWindow(address)
+        return true
+    }
     function moveWindow(address, id) {
         const window = windowFor(address)
         const target = workspaces.find(workspace => workspace.id === id)

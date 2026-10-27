@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read native workspace/window models and validate dispatch strings in isolation.
 
-No real dispatch, focus change, move, capture, lock or clipboard access.
+No real dispatch, focus change, move, close, capture, lock or clipboard access.
 """
 from pathlib import Path
 import os,subprocess,tempfile,shutil
@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='shell-overview-test-') as directory:
     (services/'qmldir').write_text('module qs.src.core.services\nsingleton OverviewService 1.0 OverviewService.qml\nsingleton GlobalStates 1.0 GlobalStates.qml\nsingleton HyprlandDispatch 1.0 HyprlandDispatch.qml\n')
     shutil.copy2(ROOT/'src/core/services/OverviewService.qml',services/'OverviewService.qml')
     (services/'GlobalStates.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property bool overviewOpen:true;function closePanel(name){overviewOpen=false}}\n')
-    (services/'HyprlandDispatch.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int commands:0;function focusWindow(address){commands++} function focusWorkspace(id,name){commands++} function moveWindowToWorkspace(address,id,name){commands++}}\n')
+    (services/'HyprlandDispatch.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int commands:0;function closeWindow(address){commands++} function focusWindow(address){commands++} function focusWorkspace(id,name){commands++} function moveWindowToWorkspace(address,id,name){commands++}}\n')
     fake=tree/'FixtureHyprland';fake.mkdir()
     (fake/'qmldir').write_text('module FixtureHyprland\nsingleton Hyprland 1.0 Hyprland.qml\n')
     (fake/'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var commands:[];function dispatch(expression){commands=commands.concat([expression])}}\n')
@@ -52,6 +52,7 @@ ShellRoot {
     console.warn("Native window count:",nativeCount)
     if(nativeCount>0){
      const address=OverviewService.windows[0].address
+     root.check(OverviewService.closeWindow(address),"close intent routed to fake dispatcher")
      const target=OverviewService.workspaces.find(workspace=>workspace.id!==OverviewService.windows[0].workspace?.id)
      if(target)root.check(OverviewService.moveWindow(address,target.id),"move intent routed to fake dispatcher")
     }
@@ -61,6 +62,11 @@ ShellRoot {
     dispatch.moveWindowToWorkspace("abc",2,"")
     root.check(Fixture.Hyprland.commands.length===before+1,"one fake command")
     root.check(Fixture.Hyprland.commands[before]==='hl.dsp.window.move({window="address:0xabc",workspace=2,follow=false})',"silent move expression")
+    dispatch.closeWindow("abc")
+    root.check(Fixture.Hyprland.commands[Fixture.Hyprland.commands.length-1]==='hl.dsp.window.close({window="address:0xabc"})',"targeted normal close")
+    const closeCount=Fixture.Hyprland.commands.length
+    dispatch.closeWindow('abc\\";hl.dsp.exit()')
+    root.check(Fixture.Hyprland.commands.length===closeCount,"malformed close target refused")
     const name='special:quotes"\\\\and unicode ё'
     const literal=dispatch._workspace(-99,name)
     root.check(JSON.parse(literal)===name,"workspace literal escaping")

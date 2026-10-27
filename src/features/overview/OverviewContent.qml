@@ -133,6 +133,12 @@ FocusScope {
         else if (!OverviewService.query.trim()) OverviewService.focusWorkspace(selectedWorkspaceId)
     }
     onSelectedWindowChanged: if (selectedWindow?.workspace) selectedWorkspaceId=selectedWindow.workspace.id
+    function closeWindow(address) {
+        if (dragging || modalOpen || !OverviewService.matches.includes(address)) return false
+        if (!OverviewService.windowFor(address)) return false
+        root.forceActiveFocus(Qt.OtherFocusReason)
+        return OverviewService.closeWindow(address)
+    }
     function openMove(address) {
         if (!OverviewService.windowFor(address)) return
         root.cancelDrag()
@@ -163,6 +169,8 @@ FocusScope {
         else if (navigation && key===Qt.Key_K) root.step(-1)
         else if (key===Qt.Key_M && (event.modifiers & Qt.ControlModifier)) {
             if (!event.isAutoRepeat) root.openMove(root.selectedAddress)
+        } else if (key===Qt.Key_W && event.modifiers===Qt.ControlModifier) {
+            if (!event.isAutoRepeat) root.closeWindow(root.selectedAddress)
         } else if (!editing && (key===Qt.Key_Return || key===Qt.Key_Enter || key===Qt.Key_Space)) {
             if (!event.isAutoRepeat) root.activateSelection()
         } else if (key === Qt.Key_Escape) GlobalStates.closePanel("overview")
@@ -229,6 +237,7 @@ FocusScope {
                 onActivated: address => OverviewService.focusWindow(address)
                 onWorkspaceRequested: id => OverviewService.focusWorkspace(id)
                 onMoveRequested: address => root.openMove(address)
+                onCloseRequested: address => root.closeWindow(address)
             }
         }
         MaterialText {
@@ -238,7 +247,7 @@ FocusScope {
             textStyle:"bodyMedium"
             elide:Text.ElideRight
         }
-        MaterialText { Layout.fillWidth:true; text: root.width < Tokens.size.fieldWidth * 2 ? "Alt+H/L Workspace · Alt+J/K Window" : "Alt+H/L Workspace · Alt+J/K Window · Enter Switch · Ctrl+M Move · Esc Close"; textStyle:"labelSmall"; colorRole:"onSurfaceVariant"; wrapMode:Text.WordWrap }
+        MaterialText { Layout.fillWidth:true; text: root.width < Tokens.size.fieldWidth * 2 ? "Alt+H/L Workspace · Alt+J/K Window" : "Alt+H/L Workspace · Alt+J/K Window · Enter Switch · Ctrl+M Move · Ctrl+W Close window · Esc Dismiss"; textStyle:"labelSmall"; colorRole:"onSurfaceVariant"; wrapMode:Text.WordWrap }
     }
     Surface {
         id: dragGhost

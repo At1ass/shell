@@ -24,6 +24,7 @@ MaterialCard {
     signal selectedRequested(string address)
     signal activated(string address)
     signal moveRequested(string address)
+    signal closeRequested(string address)
     signal workspaceRequested(int id)
     readonly property QS.ObjectModel windowModel: workspace.native?.toplevels as QS.ObjectModel
     readonly property var screenGeometry: {
@@ -100,6 +101,7 @@ MaterialCard {
                                 onSelectedRequested: address => root.selectedRequested(address)
                                 onActivated: address => root.activated(address)
                                 onMoveRequested: address => root.moveRequested(address)
+                                onCloseRequested: address => root.closeRequested(address)
                             }
                         }
                     }

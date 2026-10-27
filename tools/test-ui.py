@@ -325,6 +325,7 @@ QtObject {
     mocks['WallpaperManager'] = 'function getWallpaper(name) {return ""} function getFillMode(name) {return 0}'
     mocks['NetworkService'] += '; property bool wiredConnected:false'
     mocks['KeyboardLayoutService'] = 'property var layoutCodes:["en","ru"];property string currentLayoutCode:"en";property bool capsLockEnabled:false;property bool numLockEnabled:false;function addLockStateWatcher() {} function removeLockStateWatcher() {} function switchLayout() {currentLayoutCode=currentLayoutCode==="en" ? "ru" : "en"}'
+    mocks['HyprlandDispatch'] += ';property string closedWindow:"";property int closeCount:0;function closeWindow(address) {closedWindow=address;closeCount++}'
     mocks['HyprlandDispatch'] += ';property int lastWorkspace:0;function focusWorkspace(id) {lastWorkspace=id} property string lastWindow:"";function focusWindow(address) {lastWindow=address}'
     mocks['NetworkService'] += ';property string connectionLabel:"A long wireless network name";property string connectionIcon:"wifi"'
     mocks['GlobalStates'] += ';property QtObject activePanelScreen:null;function closeAllPanels() {dashboardOpen=false}'
@@ -522,7 +523,8 @@ Item {
  Component {id:barWidgetFixture;BarWidgetLoader {width:100;height:40;widgetConfig:({type:"volume"});tooltipManager:null;barRevealed:true;screenName:"test"}}
  Component {id:powerFixture;PowerMenuContent {width:Math.min(implicitWidth,600);height:Math.min(implicitHeight,400);actions:[{label:"Lock",action:"lock",key:"L",icon:"lock"},{label:"Suspend",action:"suspend",key:"S",icon:"dark_mode"},{label:"Reboot",action:"reboot",key:"R",icon:"restart_alt"},{label:"Shutdown",action:"shutdown",key:"D",icon:"power_settings_new"},{label:"Logout",action:"logout",key:"O",icon:"logout"}];property string requested:"";property int requests:0;property int closes:0;onActionRequested:action=>{requested=action;requests++};onCloseRequested:closes++}}
  Component {id:overviewFixture;OverviewContent {width:740;height:480}}
- Component {id:overviewHandleFixture;QtObject {}}
+ Component {id:overviewCloseSpyFixture;SignalSpy {}}
+ Component {id:overviewHandleFixture;QtObject {signal closed()}}
  Component {id:overviewThumbFixture;WindowThumbnail {width:240;height:160;captureEnabled:true;keyOwner:scene}}
  Component {id:overviewScreenFixture;ShellScreen {name:"DP-test";width:3440;height:1440}}
  Component {id:overviewWindowFixture;HyprlandToplevel {}}
@@ -1217,6 +1219,32 @@ Item {
    tile.captureEnabled=false;wait(20);compare(findChild(tile,"overviewWindowCapture"),null)
    tile.captureEnabled=true;window.wayland=null;wait(20);compare(findChild(tile,"overviewWindowCapture"),null)
   }
+  function test_overview_capture_stops_before_close() {
+   controls.visible=false
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",workspace:ws})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",workspace:ws})
+   const firstSource=createTemporaryObject(overviewHandleFixture,scene)
+   const secondSource=createTemporaryObject(overviewHandleFixture,scene)
+   one.wayland=firstSource;two.wayland=secondSource
+   Hyprland.toplevels.values=[one,two];GlobalStates.overviewOpen=true
+   const first=createTemporaryObject(overviewThumbFixture,scene,{window:one})
+   const second=createTemporaryObject(overviewThumbFixture,scene,{window:two})
+   wait(20);verify(findChild(first,"overviewWindowCapture")!==null);verify(findChild(second,"overviewWindowCapture")!==null)
+   // Observe the real production service signal before the fake dispatch.
+   HyprlandDispatch.closedWindow=""
+   const observer=createTemporaryObject(overviewCloseSpyFixture,scene,{target:OverviewService,signalName:"windowCloseRequested"})
+   const view=findChild(first,"overviewWindowCapture")
+   verify(OverviewService.closeWindow("abc"));compare(observer.count,1)
+   compare(HyprlandDispatch.closedWindow,"abc");verify(first._captureStopped)
+   compare(view.captureSource,null,"native capture context is cleared synchronously");verify(!view.live)
+   wait(20);compare(findChild(first,"overviewWindowCapture"),null)
+   verify(!second._captureStopped);verify(findChild(second,"overviewWindowCapture")!==null)
+   first.captureEnabled=false;first.captureEnabled=true;AppConfig.overviewShowPreviews=false;AppConfig.overviewShowPreviews=true
+   wait(20);compare(findChild(first,"overviewWindowCapture"),null,"an outstanding close must not restart capture")
+   secondSource.closed();verify(second._captureStopped);wait(20);compare(findChild(second,"overviewWindowCapture"),null)
+   first.window=two;verify(!first._captureStopped,"a new source clears the old latch")
+  }
   function test_overview_mouse_drag() {
    controls.visible=false
    const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
@@ -1314,6 +1342,46 @@ Item {
    verify(!content.modalOpen,"removed window cancels the move menu")
    OverviewService.query="";wait(20);compare(content.selectedAddress,"def")
    GlobalStates.overviewOpen=false;wait(20);compare(OverviewService.windows.length,0);compare(OverviewService.query,"")
+  }
+  function test_overview_close_window() {
+   controls.visible=false
+   Quickshell.screens=[createTemporaryObject(overviewScreenFixture,scene,{width:1600,height:900})]
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:2})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",title:"First",workspace:ws})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",title:"Second",workspace:ws,lastIpcObject:({at:[800,0],size:[800,600],class:"browser"})})
+   ws.toplevels.values=[one,two];Hyprland.workspaces.values=[ws];Hyprland.toplevels.values=[one,two];GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   wait(80);content.reset();content.selectedAddress="def";content.focusInitial()
+   HyprlandDispatch.closedWindow="";HyprlandDispatch.closeCount=0;HyprlandDispatch.lastWindow="";HyprlandDispatch.lastWorkspace=0
+   keyClick(Qt.Key_W,Qt.ControlModifier)
+   compare(HyprlandDispatch.closedWindow,"def");compare(HyprlandDispatch.closeCount,1)
+   verify(GlobalStates.overviewOpen);compare(HyprlandDispatch.lastWindow,"");compare(HyprlandDispatch.lastWorkspace,0)
+   compare(OverviewService.windows.length,2,"close request must not optimistically remove a live window")
+   const repeat={key:Qt.Key_W,nativeScanCode:25,modifiers:Qt.ControlModifier,isAutoRepeat:true,accepted:false}
+   content.handleKey(repeat);verify(repeat.accepted);compare(HyprlandDispatch.closeCount,1)
+   const physical={key:"ц".codePointAt(0),nativeScanCode:25,modifiers:Qt.ControlModifier,isAutoRepeat:false,accepted:false}
+   content.handleKey(physical);verify(physical.accepted);compare(HyprlandDispatch.closeCount,2)
+   // A real click on the explicit target must not focus or drag the window.
+   content.selectedAddress="abc"
+   const second=byProperty(content,"window",two);verify(second!==null)
+   mouseMove(second,second.width/2,second.height/2);wait(20)
+   const button=findChild(second,"overviewCloseWindow");verify(button.visible)
+   mouseClick(button,button.width/2,button.height/2)
+   compare(HyprlandDispatch.closedWindow,"def");compare(HyprlandDispatch.closeCount,3)
+   verify(!content.dragging);verify(GlobalStates.overviewOpen);compare(HyprlandDispatch.lastWindow,"")
+   second.forceActiveFocus();keyClick(Qt.Key_Tab);verify(button.activeFocus)
+   keyClick(Qt.Key_Return);compare(HyprlandDispatch.closeCount,4);compare(HyprlandDispatch.lastWindow,"")
+   content.openMove("abc");wait(20);verify(content.modalOpen)
+   verify(!content.closeWindow("abc"));compare(HyprlandDispatch.closeCount,4)
+   keyClick(Qt.Key_Escape);wait(20)
+   verify(content.beginDrag("abc",Qt.point(10,100)))
+   verify(!content.closeWindow("abc"));content.handleKey(physical);compare(HyprlandDispatch.closeCount,4);content.cancelDrag()
+   content.selectedAddress="def";ws.toplevels.values=[one];Hyprland.toplevels.values=[one];wait(30)
+   compare(content.selectedAddress,"abc","native removal selects a remaining local match")
+   verify(!OverviewService.closeWindow("def"));verify(!content.closeWindow("missing"))
+   ws.toplevels.values=[];Hyprland.toplevels.values=[];wait(30)
+   compare(content.selectedAddress,"");keyClick(Qt.Key_W,Qt.ControlModifier);compare(HyprlandDispatch.closeCount,4)
+   GlobalStates.overviewOpen=false;verify(!OverviewService.closeWindow("abc"))
   }
   function test_overview_hhkb_navigation() {
    controls.visible=false

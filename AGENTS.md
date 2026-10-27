@@ -665,3 +665,17 @@ OverviewContent, адрес исходного окна фиксируется �
 захват скрытой карточки выключается. ScreencopyView получает HyprlandToplevel.wayland
 (как DockService), не handle другого протокола. overview.showPreviews=false удаляет
 capture Loader; фон выбранной карточки и canvas используют токенизированный tint.
+
+Обзор закрывает окно по физическому Ctrl+W или явной кнопке превью через
+OverviewService → HyprlandDispatch.closeWindow. Команда не фокусирует окно, не
+закрывает обзор и не удаляет его из модели оптимистично. Drag/modal блокируют
+закрытие; autorepeat игнорируется. DragHandler принадлежит body MouseArea, чтобы
+не перехватывать жест кнопки закрытия, расположенной рядом в дереве. Тесты закрытия
+используют только fake dispatcher; реальные окна пользователя не закрывать.
+
+Перед closeWindow сервис эмитит windowCloseRequested: превью синхронно очищает
+captureSource (не только live=false), затем выгружает Loader. Toplevel.closed
+делает то же до уничтожения native source. Локальный latch не возобновляет
+захват при изменении видимости во время закрытия; новый делегат/источник снимает
+его. При отмене диалога сохранения превью вернётся после повторного открытия обзора.
+Это защита от overlap close/capture, не доказанное исправление fatal Wayland error.
