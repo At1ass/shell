@@ -16,8 +16,20 @@ Singleton {
     // Referencing only the Hyprland mapping handle is insufficient for capture.
     readonly property QS.ObjectModel _captureHandles: active && AppConfig.overviewShowPreviews ? ToplevelManager.toplevels as QS.ObjectModel : null
     readonly property QS.ObjectModel _windows: Hyprland.toplevels as QS.ObjectModel
+    readonly property QS.ObjectModel _monitors: Hyprland.monitors as QS.ObjectModel
+    readonly property var monitors: active ? Array.from(_monitors?.values ?? []).map(monitor => ({name:monitor.name})) : []
     readonly property QS.ObjectModel _workspaces: Hyprland.workspaces as QS.ObjectModel
     readonly property list<HyprlandToplevel> windows: active ? Array.from(_windows?.values ?? []) : []
+    readonly property var windowsByWorkspace: {
+        const result = Object.create(null)
+        for (const window of windows) {
+            const id = window?.workspace?.id
+            if (id === undefined) continue
+            if (!result[id]) result[id] = []
+            result[id].push(window)
+        }
+        return result
+    }
     readonly property var byAddress: {
         const result = Object.create(null)
         for (const window of windows) if (window?.address) result[window.address] = window
@@ -74,6 +86,25 @@ Singleton {
         const target = workspaces.find(workspace => workspace.id === id)
         if (!window || !target || window.workspace?.id === id) return false
         HyprlandDispatch.moveWindowToWorkspace(address, target.id, target.name)
+        return true
+    }
+    function workspaceFor(id) { return workspaces.find(workspace => workspace.id === id) ?? null }
+    function moveWorkspaceToMonitor(id, monitorName) {
+        const source = workspaceFor(id)
+        if (!active || id <= 0 || !source?.native || source.native.monitor?.name === monitorName
+            || !monitors.some(monitor => monitor.name === monitorName)) return false
+        return HyprlandDispatch.moveWorkspaceToMonitor(id, monitorName)
+    }
+    function transferWorkspace(id, targetId) {
+        const source = workspaceFor(id)
+        const target = workspaceFor(targetId)
+        if (!active || id <= 0 || targetId <= 0 || id === targetId || !source?.native || !target) return false
+        // Transfer the complete native source, independent of search filtering.
+        const addresses = windows.filter(window => window?.workspace?.id === id).map(window => window.address)
+        if (!addresses.length) return false
+        for (const address of addresses) {
+            if (windowFor(address)?.workspace?.id === id) HyprlandDispatch.moveWindowToWorkspace(address, target.id, target.name)
+        }
         return true
     }
     function refresh() {

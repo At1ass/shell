@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='shell-overview-test-') as directory:
     (services/'qmldir').write_text('module qs.src.core.services\nsingleton OverviewService 1.0 OverviewService.qml\nsingleton GlobalStates 1.0 GlobalStates.qml\nsingleton HyprlandDispatch 1.0 HyprlandDispatch.qml\n')
     shutil.copy2(ROOT/'src/core/services/OverviewService.qml',services/'OverviewService.qml')
     (services/'GlobalStates.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property bool overviewOpen:true;function closePanel(name){overviewOpen=false}}\n')
-    (services/'HyprlandDispatch.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int commands:0;function closeWindow(address){commands++} function focusWindow(address){commands++} function focusWorkspace(id,name){commands++} function moveWindowToWorkspace(address,id,name){commands++}}\n')
+    (services/'HyprlandDispatch.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int commands:0;function moveWorkspaceToMonitor(id,name){commands++;return true} function closeWindow(address){commands++} function focusWindow(address){commands++} function focusWorkspace(id,name){commands++} function moveWindowToWorkspace(address,id,name){commands++}}\n')
     fake=tree/'FixtureHyprland';fake.mkdir()
     (fake/'qmldir').write_text('module FixtureHyprland\nsingleton Hyprland 1.0 Hyprland.qml\n')
     (fake/'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var commands:[];function dispatch(expression){commands=commands.concat([expression])}}\n')
@@ -67,6 +67,11 @@ ShellRoot {
     const closeCount=Fixture.Hyprland.commands.length
     dispatch.closeWindow('abc\\";hl.dsp.exit()')
     root.check(Fixture.Hyprland.commands.length===closeCount,"malformed close target refused")
+    dispatch.moveWorkspaceToMonitor(2,"DP-3")
+    root.check(Fixture.Hyprland.commands[Fixture.Hyprland.commands.length-1]==='hl.dsp.workspace.move({workspace=2,monitor="DP-3"})',"explicit workspace monitor move")
+    const workspaceCommands=Fixture.Hyprland.commands.length
+    root.check(!dispatch.moveWorkspaceToMonitor(2,'DP-3";bad') && !dispatch.moveWorkspaceToMonitor(-1,"DP-3"),"bad monitor targets refused")
+    root.check(Fixture.Hyprland.commands.length===workspaceCommands,"invalid workspace commands do not dispatch")
     const name='special:quotes"\\\\and unicode ё'
     const literal=dispatch._workspace(-99,name)
     root.check(JSON.parse(literal)===name,"workspace literal escaping")

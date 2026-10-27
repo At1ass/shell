@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell as QS
 import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.core.services
@@ -26,7 +25,8 @@ MaterialCard {
     signal moveRequested(string address)
     signal closeRequested(string address)
     signal workspaceRequested(int id)
-    readonly property QS.ObjectModel windowModel: workspace.native?.toplevels as QS.ObjectModel
+    signal actionsRequested(int id)
+    readonly property var workspaceWindows: OverviewService.windowsByWorkspace[workspace.id] ?? []
     readonly property var screenGeometry: {
         const screen = Quickshell.screens.find(screen => screen?.name === root.workspace.native?.monitor?.name)
         return screen ? {x:screen.x,y:screen.y,width:Math.max(1,screen.width),height:Math.max(1,screen.height)} : {x:0,y:0,width:Math.max(1,Quickshell.screens[0]?.width ?? root.width),height:Math.max(1,Quickshell.screens[0]?.height ?? root.width*9/16)}
@@ -50,6 +50,12 @@ MaterialCard {
                 textStyle: "labelLarge"
                 colorRole: root.selectedWorkspace ? "primary" : "onSurface"
                 elide: Text.ElideRight
+            }
+            IconButton {
+                iconName: "more_vert"
+                enabled: root.workspace.id > 0 && !!root.workspace.native
+                Accessible.name: "Workspace actions: " + root.workspace.name
+                onClicked: root.actionsRequested(root.workspace.id)
             }
             IconButton {
                 iconName: "arrow_forward"
@@ -81,7 +87,7 @@ MaterialCard {
                     asynchronous: true
                     sourceComponent: Item {
                         Repeater {
-                            model: ScriptModel { values: root.windowModel ? Array.from(root.windowModel.values) : [] }
+                            model: ScriptModel { values: root.workspaceWindows }
                             delegate: WindowThumbnail {
                                 required property HyprlandToplevel modelData
                                 window: modelData

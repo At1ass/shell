@@ -1118,6 +1118,17 @@ the source cancels. Holding near the grid edge scrolls; the source delegate stay
 alive without overwriting its position bindings. Background tint marks the selected
 workspace and a separate outline marks the drop target.
 
+The workspace header's ⋮ menu (physical Ctrl+Shift+M for the selected workspace)
+provides **Move to monitor** and **Transfer to number**. Monitor transfer keeps
+the workspace number and layout. Transferring to another number moves all source windows into the destination,
+including windows hidden by search, using normal Hyprland placement. A free target
+is created as needed; an existing target merges its windows with the source.
+The tiling tree is not preserved during number transfer. Native change_id is
+avoided because Quickshell 0.3.2 retains stale workspace identities after it. The picker labels these cases explicitly. Commands keep the
+overview open, and stale source/output selections are rejected. These actions
+apply to existing positive-number workspaces; synthetic empty cards and special
+workspaces do not expose transferable state. Window movement still uses Ctrl+M.
+
 Tiled insertion remains Hyprland's normal layout placement, as in ii; dropping on
 a card does not choose a split relative to a particular window. Exact split
 placement would need a separate compositor integration, not cursor/focus tricks.

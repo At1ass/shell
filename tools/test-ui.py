@@ -117,7 +117,7 @@ QtObject {
     with (hypr / 'qmldir').open('a') as module: module.write('HyprlandToplevel 1.0 HyprlandToplevel.qml\n')
     (hypr / 'HyprlandToplevel.qml').write_text('import QtQml\nQtObject {property string address:"abc";property string title:"Editor";property QtObject workspace:null;property QtObject handle:null;property QtObject wayland:null;property var lastIpcObject:({at:[0,0],size:[800,600],class:"editor"})}\n')
     hp=hypr / 'Hyprland.qml'
-    hp.write_text(hp.read_text().replace('import QtQml','import QtQml\nimport Quickshell').replace('property var toplevels:({values:[]})','property var toplevels:ObjectModel {};property var workspaces:ObjectModel {};function refreshToplevels() {} function refreshWorkspaces() {}'))
+    hp.write_text(hp.read_text().replace('import QtQml','import QtQml\nimport Quickshell').replace('property var toplevels:({values:[]})','property var toplevels:ObjectModel {};property var workspaces:ObjectModel {};property var monitors:ObjectModel {};function refreshToplevels() {} function refreshWorkspaces() {}'))
     overview = tree / 'src/features/overview'
     shutil.copytree(ROOT / 'src/features/overview',overview)
     pipewire = qs / 'Services/Pipewire'
@@ -326,6 +326,7 @@ QtObject {
     mocks['NetworkService'] += '; property bool wiredConnected:false'
     mocks['KeyboardLayoutService'] = 'property var layoutCodes:["en","ru"];property string currentLayoutCode:"en";property bool capsLockEnabled:false;property bool numLockEnabled:false;function addLockStateWatcher() {} function removeLockStateWatcher() {} function switchLayout() {currentLayoutCode=currentLayoutCode==="en" ? "ru" : "en"}'
     mocks['HyprlandDispatch'] += ';property string closedWindow:"";property int closeCount:0;function closeWindow(address) {closedWindow=address;closeCount++}'
+    mocks['HyprlandDispatch'] += ';property int movedSourceWorkspace:0;property string movedMonitor:"";property int renumberTarget:0;function moveWorkspaceToMonitor(id,name) {movedSourceWorkspace=id;movedMonitor=name;return true} function renumberWorkspace(id,target) {movedSourceWorkspace=id;renumberTarget=target;return true}'
     mocks['HyprlandDispatch'] += ';property int lastWorkspace:0;function focusWorkspace(id) {lastWorkspace=id} property string lastWindow:"";function focusWindow(address) {lastWindow=address}'
     mocks['NetworkService'] += ';property string connectionLabel:"A long wireless network name";property string connectionIcon:"wifi"'
     mocks['GlobalStates'] += ';property QtObject activePanelScreen:null;function closeAllPanels() {dashboardOpen=false}'
@@ -855,7 +856,7 @@ Item {
    verify(!view.mediaShown)
   }
   function init() {
-   GlobalStates.overviewOpen=false;Hyprland.workspaces.values=[];Hyprland.toplevels.values=[]
+   GlobalStates.overviewOpen=false;Hyprland.monitors.values=[];Hyprland.workspaces.values=[];Hyprland.toplevels.values=[]
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[]
@@ -1382,6 +1383,69 @@ Item {
    ws.toplevels.values=[];Hyprland.toplevels.values=[];wait(30)
    compare(content.selectedAddress,"");keyClick(Qt.Key_W,Qt.ControlModifier);compare(HyprlandDispatch.closeCount,4)
    GlobalStates.overviewOpen=false;verify(!OverviewService.closeWindow("abc"))
+  }
+  function test_overview_workspace_membership_after_transfer() {
+   controls.visible=false;AppConfig.overviewWorkspaceCount=7
+   const source=createTemporaryObject(overviewWorkspaceFixture,scene,{id:7})
+   const target=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",workspace:source})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",workspace:source})
+   source.toplevels.values=[one,two];target.toplevels.values=[]
+   Hyprland.workspaces.values=[target,source];Hyprland.toplevels.values=[one,two];GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene,{width:1000,height:1000});wait(60)
+   compare(OverviewService.windowsByWorkspace[7].length,2)
+   // Model the compositor's move notifications while the source child list lags.
+   one.workspace=target;two.workspace=target;target.toplevels.values=[one,two]
+   wait(30)
+   verify(!OverviewService.windowsByWorkspace[7]);compare(OverviewService.windowsByWorkspace[1].length,2)
+   let sourceCard=null;let targetCard=null
+   const queue=[content]
+   while (queue.length) {
+    const child=queue.shift()
+    for (const nested of child.children ?? []) queue.push(nested)
+    if (child.workspaceWindows!==undefined && child.workspace?.id===7) sourceCard=child
+    if (child.workspaceWindows!==undefined && child.workspace?.id===1) targetCard=child
+   }
+   verify(sourceCard!==null);verify(targetCard!==null)
+   compare(sourceCard.workspaceWindows.length,0);compare(targetCard.workspaceWindows.length,2)
+   sourceCard.keepDragSource=true;sourceCard.captureEnabled=true;wait(20)
+   compare(byProperty(sourceCard,"window",one),null,"stale source list must not render a duplicate")
+   verify(byProperty(targetCard,"window",one)!==null)
+   // Removal and same-ID recreation must not reuse the old membership.
+   Hyprland.workspaces.values=[target];wait(20);verify(!OverviewService.windowsByWorkspace[7])
+   one.workspace=source;wait(20);compare(OverviewService.windowsByWorkspace[7].length,1);compare(OverviewService.windowsByWorkspace[1].length,1)
+  }
+  function test_overview_workspace_actions() {
+   controls.visible=false
+   const firstMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-2"})
+   const otherMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-3"})
+   Hyprland.monitors.values=[firstMonitor,otherMonitor]
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1,monitor:firstMonitor})
+   const target=createTemporaryObject(overviewWorkspaceFixture,scene,{id:2,monitor:otherMonitor})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",title:"Unique needle",workspace:ws})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",title:"Browser",workspace:ws})
+   const existing=createTemporaryObject(overviewWindowFixture,scene,{address:"fed",workspace:target})
+   Hyprland.workspaces.values=[ws,target];Hyprland.toplevels.values=[one,two,existing];GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene);wait(40);content.reset()
+   HyprlandDispatch.movedMonitor="";HyprlandDispatch.renumberTarget=0
+   content.selectedWorkspaceId=1;content.focusInitial();keyClick(Qt.Key_M,Qt.ControlModifier|Qt.ShiftModifier);wait(20)
+   verify(content.modalOpen);compare(content.actionWorkspaceId,1)
+   keyClick(Qt.Key_Return);wait(20);compare(content.workspaceActionPage,"monitor")
+   keyClick(Qt.Key_Return);wait(20)
+   compare(HyprlandDispatch.movedMonitor,"DP-3");compare(HyprlandDispatch.movedSourceWorkspace,1);verify(GlobalStates.overviewOpen);verify(!content.modalOpen)
+   verify(!OverviewService.moveWorkspaceToMonitor(1,"DP-2"));verify(!OverviewService.moveWorkspaceToMonitor(1,"missing"))
+   content.openWorkspaceActions(1);content.chooseWorkspaceAction("number");wait(20)
+   content.runWorkspaceAction(2);wait(20)
+   compare(HyprlandDispatch.renumberTarget,0);compare(HyprlandDispatch.movedWorkspace,3);compare(HyprlandDispatch.movedAddress,"def")
+   OverviewService.query="Unique";wait(20);compare(OverviewService.matches.length,1)
+   verify(OverviewService.transferWorkspace(1,2));compare(HyprlandDispatch.movedAddress,"def","merge includes windows outside search")
+   compare(HyprlandDispatch.movedWorkspace,2);verify(!OverviewService.transferWorkspace(1,1));verify(!OverviewService.transferWorkspace(999,2))
+   content.openWorkspaceActions(1);content.chooseWorkspaceAction("monitor");wait(20)
+   Hyprland.monitors.values=[firstMonitor];verify(!OverviewService.moveWorkspaceToMonitor(1,"DP-3"))
+   content.runWorkspaceAction(1);verify(content.modalOpen,"stale destination cannot trigger a move")
+   Hyprland.workspaces.values=[target];wait(20);verify(!content.modalOpen,"missing source dismisses its menu")
+   content.openWorkspaceActions(3);verify(!content.modalOpen,"synthetic workspace has no transferable state")
+   GlobalStates.overviewOpen=false;verify(!OverviewService.transferWorkspace(2,3))
   }
   function test_overview_hhkb_navigation() {
    controls.visible=false

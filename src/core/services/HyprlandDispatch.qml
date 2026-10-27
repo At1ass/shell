@@ -51,6 +51,11 @@ Singleton {
         Hyprland.dispatch(`hl.dsp.window.move({window="address:${a}",workspace=${workspace},follow=false})`)
         return true
     }
+    function moveWorkspaceToMonitor(id, monitor) {
+        if (!root._isId(id) || id <= 0 || typeof monitor !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(monitor)) return false
+        Hyprland.dispatch(`hl.dsp.workspace.move({workspace=${id},monitor="${monitor}"})`)
+        return true
+    }
     function focusWorkspace(id, name) {
         if (!root._isId(id)) {
             console.warn("HyprlandDispatch: refusing non-integer workspace id:", id)

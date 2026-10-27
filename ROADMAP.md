@@ -4032,3 +4032,63 @@ probe, changed-file qmllint and all invariant/engine-compilation checks passed.
 New tests cover synchronous source clearing, source-closed handling, isolation of
 other windows, no restart after visibility/config changes and latch reset. The
 protocol crash itself was not reproduced in these isolated tests.
+
+
+## Overview: workspace monitor/number transfers — 2026-10-28
+
+A header actions menu and physical Ctrl+Shift+M expose whole-workspace operations
+without adding controls to the bar. Monitor selection uses native Hyprland.monitors
+and explicit workspace.move, preserving the number. Moving to an unused number
+uses workspace.change_id, preserving the workspace/layout; moving to an existing
+number merges the complete source window set, independent of the search filter.
+This matches the user's explicit choice for occupied destinations. Existing
+positive workspaces only; synthetic empty cards and managed/special IDs are excluded.
+
+Menu source and destination snapshots use stable IDs/names. Native model changes
+update availability; vanished sources dismiss the modal and disconnected monitors
+are rejected before dispatch. Dialog selection supports J/K and ordinary keys;
+normal overview commands and drag are gated by modalOpen. No additional focus or
+cursor dispatch is issued and overview stays open. Hyprland may apply its normal
+focus/placement behavior to a workspace moved between outputs.
+
+Hyprland v0.56.2 dispatch/action sources confirm explicit workspace.move and
+workspace.change_id; the latter rejects an occupied ID, so existing targets use
+normal silent window transfers instead. Sources:
+https://github.com/hyprwm/Hyprland/blob/v0.56.2/src/config/lua/bindings/LuaBindingsDispatchers.cpp
+https://github.com/hyprwm/Hyprland/blob/v0.56.2/src/config/shared/actions/ConfigActions.cpp
+
+Validation: 239 Qt UI checks and native rendering probes passed. Focused coverage
+includes physical Ctrl+Shift+M, keyboard destination selection, output transfer,
+free-number renumber, merge outside search, stale output/source cancellation and
+synthetic-source rejection. The read-only native probe validates dispatch strings
+and rejects malformed monitor/ID arguments against a fake compositor. Changed-file
+qmllint and all zero-baseline invariant/engine-compilation checks passed.
+
+
+## Overview: stale workspace identities after number transfer — 2026-10-28
+
+User observed identical windows on 7 and 1 after transfer. QS service logs then
+show change_id(7,1) and change_id(7,3) failing because 7 no longer exists. A separate
+read-only native probe sees only actual 1 membership. Hyprland emits
+changeworkspaceid, which QS 0.3.2 does not handle; its public refreshWorkspaces
+uses canCreate=false, leaving stale native workspace identities after renumber.
+Refreshing alone cannot safely reconcile them.
+
+Supersedes the previous free-number change_id implementation: all number transfers
+now use normal silent per-window moves, including free targets. This preserves
+the user's content-transfer/merge workflow, but Hyprland rebuilds the tiling tree.
+Whole-workspace monitor transfer is unchanged. Removed the unsupported renumber
+dispatch. Cards use one reactive windowsByWorkspace index from the global live
+window list and current window.workspace.id, never cached workspace.toplevels
+children, preventing one window from appearing in multiple cards.
+
+Regression fixtures leave the source child model deliberately stale while moving
+windows 7→1, assert source/target cards and delegates, then remove/recreate a source
+and check membership updates. Commands are fakes; no user windows are moved.
+References: Hyprland v0.56.2 Workspace.cpp changeID; QS v0.3.2
+wayland/hyprland/ipc/{connection.cpp,qml.cpp,workspace.cpp}.
+
+Validation: 240 Qt UI checks, native rendering and read-only overview probes,
+changed-file qmllint and the zero-baseline invariant/engine compile checks passed.
+Applying the fix restarts QS safely while unlocked, clearing the already-stale
+process-local native models without moving any actual windows.

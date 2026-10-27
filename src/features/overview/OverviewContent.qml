@@ -92,7 +92,7 @@ FocusScope {
     property string selectedAddress: ""
     property string moveSourceAddress: ""
     readonly property var moveSourceWindow: OverviewService.windowFor(moveSourceAddress)
-    readonly property bool modalOpen: moveDialog.visible
+    readonly property bool modalOpen: moveDialog.visible || workspaceDialog.visible
     property var moveDestinations: []
     readonly property var selectedWindow: OverviewService.windowFor(selectedAddress)
     function focusInitial() { search.forceActiveFocus(Qt.TabFocusReason) }
@@ -139,6 +139,37 @@ FocusScope {
         root.forceActiveFocus(Qt.OtherFocusReason)
         return OverviewService.closeWindow(address)
     }
+    property int actionWorkspaceId: 0
+    property string workspaceActionPage: "actions"
+    property var workspaceActionTargets: []
+    readonly property var actionWorkspace: OverviewService.workspaceFor(actionWorkspaceId)
+    function openWorkspaceActions(id) {
+        if (modalOpen || dragging || !OverviewService.workspaceFor(id)?.native || id <= 0) return
+        actionWorkspaceId = id
+        workspaceActionPage = "actions"
+        workspaceActionTargets = []
+        workspaceDialog.open()
+    }
+    function chooseWorkspaceAction(page) {
+        workspaceActionPage = page
+        workspaceActionTargets = page === "monitor"
+            ? OverviewService.monitors.map(monitor => ({name:monitor.name}))
+            : OverviewService.workspaces.filter(workspace => workspace.id > 0).map(workspace => ({id:workspace.id,name:workspace.name}))
+        Qt.callLater(() => { if (workspaceDialog.visible) workspaceActions.focusFirst() })
+    }
+    function runWorkspaceAction(index) {
+        if (workspaceActionPage === "actions") {
+            chooseWorkspaceAction(index === 0 ? "monitor" : "number")
+            return
+        }
+        const target = workspaceActionTargets[index]
+        if (!target) return
+        const done = workspaceActionPage === "monitor"
+            ? OverviewService.moveWorkspaceToMonitor(actionWorkspaceId, target.name)
+            : OverviewService.transferWorkspace(actionWorkspaceId, target.id)
+        if (done) workspaceDialog.close()
+    }
+    onActionWorkspaceChanged: if (workspaceDialog.visible && !actionWorkspace?.native) workspaceDialog.close()
     function openMove(address) {
         if (!OverviewService.windowFor(address)) return
         root.cancelDrag()
@@ -167,7 +198,9 @@ FocusScope {
         else if (navigation && key===Qt.Key_L) root.stepWorkspace(1)
         else if (navigation && key===Qt.Key_J) root.step(1)
         else if (navigation && key===Qt.Key_K) root.step(-1)
-        else if (key===Qt.Key_M && (event.modifiers & Qt.ControlModifier)) {
+        else if (key===Qt.Key_M && event.modifiers === (Qt.ControlModifier | Qt.ShiftModifier)) {
+            if (!event.isAutoRepeat) root.openWorkspaceActions(root.selectedWorkspaceId)
+        } else if (key===Qt.Key_M && (event.modifiers & Qt.ControlModifier)) {
             if (!event.isAutoRepeat) root.openMove(root.selectedAddress)
         } else if (key===Qt.Key_W && event.modifiers===Qt.ControlModifier) {
             if (!event.isAutoRepeat) root.closeWindow(root.selectedAddress)
@@ -236,6 +269,7 @@ FocusScope {
                 onSelectedRequested: address => { root.selectedAddress=address }
                 onActivated: address => OverviewService.focusWindow(address)
                 onWorkspaceRequested: id => OverviewService.focusWorkspace(id)
+                onActionsRequested: id => root.openWorkspaceActions(id)
                 onMoveRequested: address => root.openMove(address)
                 onCloseRequested: address => root.closeWindow(address)
             }
@@ -304,6 +338,46 @@ FocusScope {
                 }
             }
             MaterialText { text:"Esc to cancel";textStyle:"labelSmall";colorRole:"onSurfaceVariant" }
+        }
+    }
+    Dialog {
+        id: workspaceDialog
+        parent: root
+        dialogWidth: Math.min(root.width - Tokens.spacing.large * 2, Tokens.size.fieldWidth * 2)
+        dialogHeight: Math.min(root.height - Tokens.spacing.large * 2, Tokens.size.listItem * 7)
+        onOpened: Qt.callLater(() => { if (workspaceDialog.visible) workspaceActions.focusFirst() })
+        onClosed: { root.actionWorkspaceId = 0; root.workspaceActionTargets = []; root.forceActiveFocus(Qt.OtherFocusReason) }
+        ColumnLayout {
+            anchors.fill: parent
+            MaterialText {
+                Layout.fillWidth: true
+                text: "Workspace " + root.actionWorkspaceId + (root.workspaceActionPage === "monitor" ? " · Move to monitor" : root.workspaceActionPage === "number" ? " · Transfer to number" : " · Actions")
+                textStyle: "titleMedium"
+                wrapMode: Text.WordWrap
+            }
+            MaterialMenu {
+                id: workspaceActions
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                itemWidth: width
+                maximumHeight: height
+                Keys.onPressed: event => {
+                    const key = Keycodes.key(event)
+                    if (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier)) return
+                    if (key === Qt.Key_J) workspaceActions.focusNext(1)
+                    else if (key === Qt.Key_K) workspaceActions.focusNext(-1)
+                    else return
+                    event.accepted = true
+                }
+                model: root.workspaceActionPage === "actions" ? [
+                    {label:"Move to monitor…", enabled:OverviewService.monitors.some(monitor => monitor.name !== root.actionWorkspace?.native?.monitor?.name)},
+                    {label:"Transfer to number…", enabled:OverviewService.workspaces.some(workspace => workspace.id > 0 && workspace.id !== root.actionWorkspaceId && (OverviewService.windowsByWorkspace[root.actionWorkspaceId]?.length ?? 0) > 0)}
+                ] : root.workspaceActionTargets.map(target => root.workspaceActionPage === "monitor"
+                    ? {label:target.name, enabled:OverviewService.monitors.some(monitor => monitor.name === target.name) && target.name !== root.actionWorkspace?.native?.monitor?.name}
+                    : {label:target.name + (OverviewService.workspaceFor(target.id)?.native ? " · Merge windows" : " · Move all windows"), enabled:target.id !== root.actionWorkspaceId && !!OverviewService.workspaceFor(target.id)})
+                onTriggered: index => root.runWorkspaceAction(index)
+            }
+            MaterialText { Layout.fillWidth:true; text:"Esc to cancel · J/K to select"; textStyle:"labelSmall"; colorRole:"onSurfaceVariant" }
         }
     }
     onMoveSourceWindowChanged: if (!moveSourceWindow && moveDialog.visible) moveDialog.close()
