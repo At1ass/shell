@@ -17,7 +17,7 @@ Item {
     // Type detection
     readonly property bool isShellBind: modelData.type === "shell"
 
-    Rectangle {
+    MaterialShape {
         id: bg
         anchors.fill: parent
         radius: Tokens.shape.small
@@ -57,7 +57,7 @@ Item {
                     Repeater {
                         model: root.modelData.modifiers || []
 
-                        Rectangle {
+                        MaterialShape {
                             id: modifierChip
                             required property string modelData
                             width: modLabel.implicitWidth + 12
@@ -75,7 +75,7 @@ Item {
                         }
                     }
 
-                    Rectangle {
+                    MaterialShape {
                         width: keyLabel.implicitWidth + 12
                         height: 24
                         radius: Tokens.shape.small
@@ -93,13 +93,13 @@ Item {
             }
 
             // Shell bind: action chip
-            Rectangle {
+            MaterialShape {
                 Layout.preferredWidth: 220
                 Layout.fillHeight: true
                 visible: root.isShellBind
                 color: "transparent"
 
-                Rectangle {
+                MaterialShape {
                     anchors.verticalCenter: parent.verticalCenter
                     width: actionLabel.implicitWidth + 16
                     height: 24

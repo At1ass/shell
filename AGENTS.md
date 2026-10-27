@@ -218,7 +218,7 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
 
 Готовые MD3-примитивы. В `features/` собирай UI **только из них**, а не из сырых `Rectangle`/`Text`.
 
-- **base/** — `MaterialText`, `MaterialIcon`, `MaterialButton`, `IconButton`, `FAB`, `MaterialIndicator`, `SectionHeader`, `CircleAvatar`, `Sparkline`, `MaterialMarqueeText`, `ElevationShadow`.
+- **base/** — `MaterialShape` (лёгкая плоская геометрия/маски без elevation и неявной анимации), `MaterialText`, `MaterialIcon`, `MaterialButton`, `IconButton`, `FAB`, `MaterialIndicator`, `SectionHeader`, `CircleAvatar`, `Sparkline`, `MaterialMarqueeText`, `ElevationShadow`.
   Тень приподнятой поверхности — только через `ElevationShadow` (`RectangularShadow` + маппинг `Tokens.elevation`).
   `MultiEffect { shadowEnabled: true }` не использовать: он гоняет источник через FBO и блюр на каждое его изменение,
   а у каждой поверхности есть `Behavior on color`. `MultiEffect` остаётся для блюра картинок и масок.
@@ -618,7 +618,7 @@ QtConcurrent-результаты доставляются через прина
 - **Источники правды:** этот `AGENTS.md` + `CLAUDE.md` (конвенции), `README.md` (фичи/установка/IPC), `ROADMAP.md` (открытая работа), `config/config.schema.json` (конфиг). Других «документов-планов» в репо нет — архив `docs/` удалён, не воссоздавай.
 - **Устарело / не существует — не использовать** (следы старых планов могут встретиться в комментариях или git-истории): `ColorService.layer()` (нет в коде → `Theme.<role>`), `DesignTokens.qml` (→ `Tokens.qml`), путь `~/.config/shell/` (→ `~/.config/quickshell/config.json`). Верь коду.
 - C++ плагины должны быть **собраны и установлены**, иначе `import Mcu 1.0` падает и копит ошибки → segfault.
-- Технический долг (не плодить дальше): остаток CLI сети (VPN actions по UUID через `nmcli`; модели Wi-Fi/Ethernet/VPN нативные), механический baseline предупреждений qmllint и сырых Rectangle в features.
+- Отложена миграция VPN actions по UUID с `nmcli` на D-Bus; модели Wi-Fi/Ethernet/VPN уже нативные. Механические baselines предупреждений qmllint, Rectangle в features и StackLayout равны нулю и не должны расти.
 - Изменил поведение или фичу — обнови `README.md`/`ROADMAP.md`, а конвенцию — здесь. Не создавай новый отчётный `.md`.
 
 ### Нативные каталоги гритера
@@ -630,3 +630,38 @@ codes один раз и передаёт argv. GreeterAuth копирует arg
 принадлежащий фасаду QFutureWatcher, удаление фасада не ждёт worker. Новую версию
 гритера устанавливать вместе с пакетом плагинов, содержащим GreeterData. Проверки:
 greeter_data_test, tools/test-greeter.py и tools/test-greeter-data.py (read-only).
+
+
+### Обзор воркспейсов
+
+Overview — отдельная лениво создаваемая модальность activePanel. OverviewService
+читает нативные Hyprland.workspaces/toplevels; карточки используют workspace.toplevels,
+без CLI/polling. Пустые цели берутся из overview в config/schema/defaults. Поиск —
+нативный FuzzySearch, адрес окна является стабильным ключом; выбор не хранит QObject
+между командами. Перенос фиксирует адрес исходного окна и снимок ID целей до открытия
+меню, повторно проверяет их через сервис перед dispatch. Исчезновение исходного окна
+закрывает меню. Скрытые карточки не захватываются, живой захват у видимых окон при overview.showPreviews=true; закрытие уничтожает панель. Настоящие focus/move в тестах запрещены —
+tools/test-overview.py использует отдельные fake dispatchers даже с нативной моделью.
+
+MaterialShape сохраняет прямое Rectangle-родительство для масок и координат потомков;
+панели с elevation используют Surface. Сгенерированный greeter/ui относится к слою UI,
+его Rectangle не считаются feature-кодом и защищены проверкой генератора. Базлайн
+предупреждений QML, feature Rectangle и StackLayout снижен до нуля. Горячие клавиши
+аудио/медиа регистрирует GlobalStates; ServiceBootstrap заранее создаёт AudioService
+и MprisController, чтобы получение PipeWire/MPRIS не зависело от виджетов.
+
+Обзор поддерживает физические Alt+H/L (воркспейсы), Alt+J/K (окна), в том числе
+из поиска; без Alt эти команды действуют вне редактора. В меню назначения J/K
+используют MaterialMenu.focusNext(), сохраняя пропуск отключённых строк. Высота
+сетки ограничивается viewport и минимальным читаемым размером; canvas сохраняет
+пропорции монитора. Не возвращать расчёт высоты только по ширине ultrawide-экрана.
+
+DragHandler обзора не перемещает исходный Item: ghost/выбор цели живут в
+OverviewContent, адрес исходного окна фиксируется при старте. Commit допускается
+только при нормальном отпускании exclusive grab, с повторной проверкой окна и
+цели. Escape, потеря grab/окна/воркспейса, скрытие и modal отменяют перенос. Потеря
+источника обрабатывается отложенно с epoch, чтобы не перезаписать dragAddress внутри
+биндинга dragWindow. Кэш GridView удерживает исходную карточку при edge scroll, но
+захват скрытой карточки выключается. ScreencopyView получает HyprlandToplevel.wayland
+(как DockService), не handle другого протокола. overview.showPreviews=false удаляет
+capture Loader; фон выбранной карточки и canvas используют токенизированный tint.

@@ -658,7 +658,7 @@ Item {
                                 // no timer needed (the old one also ran while the
                                 // line was hidden: Timer has no `visible`, so
                                 // `running: visible` bound to the TAB's).
-                                Rectangle {
+                                MaterialShape {
                                     visible: root.todayIsSelected
                                     x: 38
                                     width: timelineColumn.width - 38
@@ -669,7 +669,7 @@ Item {
                                         + DateTime.clock.date.getMinutes() / 60)
                                        * AppConfig.calendarDayViewHourHeight
 
-                                    Rectangle {
+                                    MaterialShape {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: -4

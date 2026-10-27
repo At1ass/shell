@@ -131,7 +131,7 @@ Item {
 
     // Separator between pinned and running groups: vertical line (horizontal dock) at the
     // start edge, or horizontal line (vertical dock) at the top.
-    Rectangle {
+    MaterialShape {
         id: separatorRect
         visible: root.showSeparator
         color: Qt.alpha(Theme.outline, 0.4)
@@ -143,7 +143,7 @@ Item {
         anchors.top: root.vertical ? parent.top : undefined
     }
 
-    Rectangle {
+    MaterialShape {
         id: iconButton
         width: root.iconSize + 8
         height: root.iconSize + 8
@@ -165,7 +165,7 @@ Item {
         }
 
         // Urgency pulse (attention) behind the icon.
-        Rectangle {
+        MaterialShape {
             objectName: "dockUrgencyIndicator"
             anchors.fill: parent
             radius: parent.radius
@@ -251,7 +251,7 @@ Item {
         Repeater {
             model: Math.min(root.app.windows.length, 3)
 
-            Rectangle {
+            MaterialShape {
                 required property int index
                 readonly property bool long: root.isFocused && index === 0
                 width: root.vertical ? 4 : (long ? 10 : 4)

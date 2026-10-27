@@ -183,33 +183,29 @@ Item {
 
 
             // ===== TAB CONTENT =====
-            // StackLayout here is a pure positioner: each tab sits behind a
-            // Loader gated on the current index, so only ONE tab is alive at
-            // a time (the §10.14 ban targets eager all-tabs instantiation).
-            StackLayout {
+            // One active Loader; inactive tabs do not contribute geometry.
+            Item {
                 id: tabView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: GlobalStates.dashboardOpenIndex
+                readonly property int currentIndex: GlobalStates.dashboardOpenIndex
+                implicitHeight: root._tabLoaders[currentIndex]?.implicitHeight ?? 0
 
                 Loader {
                     id: quickLoader
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    anchors.fill: parent
                     active: tabView.currentIndex === 0
                     sourceComponent: Component { QuickTab {} }
                 }
                 Loader {
                     id: weatherLoader
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    anchors.fill: parent
                     active: tabView.currentIndex === 1
                     sourceComponent: Component { WeatherTab {} }
                 }
                 Loader {
                     id: calendarLoader
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    anchors.fill: parent
                     active: tabView.currentIndex === 2
                     sourceComponent: Component { CalendarTab {objectName: "dashboardCalendar"} }
                 }

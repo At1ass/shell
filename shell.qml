@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import qs.src.features.overview
 import qs.src.features.background
 import qs.src.features.audio
 import qs.src.features.connections
@@ -83,6 +84,8 @@ ShellRoot {
             }
         }
     }
+
+    LazyLoader { active: AppConfig.moduleEnabled("overview") && GlobalStates.overviewOpen; Overview {} }
 
     // Panels below stay loaded once opened, when listed in
     // performance.keepPanelsLoaded. Each is otherwise torn down on close and

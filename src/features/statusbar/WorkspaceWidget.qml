@@ -149,8 +149,8 @@ BarElement {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                     onClicked: function (mouse) {
-                        if (mouse.button === Qt.RightButton && workspaceWidget.widgetConfig?.clickAction) {
-                            GlobalStates.handleClickAction(workspaceWidget.widgetConfig.clickAction);
+                        if (mouse.button === Qt.RightButton) {
+                            GlobalStates.handleClickAction(workspaceWidget.widgetConfig?.clickAction ?? "overview");
                             return;
                         }
                         if (mouse.button === Qt.LeftButton)

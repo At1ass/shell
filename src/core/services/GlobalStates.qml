@@ -39,6 +39,7 @@ Singleton {
         else root.openConnections(section, source)
     }
 
+    readonly property bool overviewOpen: activePanel === "overview"
     readonly property bool audioOpen: activePanel === "audio"
     property Item audioSource: null
     function openAudio(source) {
@@ -78,6 +79,7 @@ Singleton {
 
     // Panel name → modules.* key gating it.
     readonly property var _panelModule: ({
+        "overview": "overview",
         "audio": "audio",
         "connections": "connections",
         "dashboard": "dashboard",
@@ -188,6 +190,7 @@ Singleton {
             case "connections-bluetooth": toggleConnections("bluetooth", null); return
             case "dashboard-network":  toggleConnections("wifi", null); return
             case "notification-center": togglePanel("notificationCenter"); return
+            case "overview":            togglePanel("overview"); return
             case "launcher":            togglePanel("launcher"); return
             default:
                 console.warn("GlobalStates: unknown clickAction:", action)
@@ -249,6 +252,29 @@ Singleton {
         description: "Toggle audio panel"
         onPressed: root.toggleAudio(null)
     }
+
+    // ===== GLOBAL SHORTCUTS =====
+    GlobalShortcut {
+        name: "audioVolumeUp"
+        description: "Increase master volume"
+        onPressed: AudioService.setMasterVolume(AudioService.masterVolume + 0.05)
+    }
+
+    GlobalShortcut {
+        name: "audioVolumeDown"
+        description: "Decrease master volume"
+        onPressed: AudioService.setMasterVolume(AudioService.masterVolume - 0.05)
+    }
+
+    GlobalShortcut {
+        name: "audioToggleMute"
+        description: "Toggle master mute"
+        onPressed: AudioService.toggleMasterMute()
+    }
+
+    GlobalShortcut { name:"overviewToggle";description:"Toggle workspace overview";onPressed:root.togglePanel("overview") }
+
+    GlobalShortcut { name:"mprisCyclePlayer";description:"Switch to the next media player";onPressed:MprisController.cyclePlayer() }
 
     // Global hotkeys
     GlobalShortcut {
@@ -315,6 +341,9 @@ Singleton {
     IpcHandler {
         target: "globalstates"
 
+        function toggleOverview(): void { root.togglePanel("overview") }
+        function openOverview(): void { root.openPanel("overview") }
+        function closeOverview(): void { root.closePanel("overview") }
         function toggleAudio(): void { root.toggleAudio(null) }
         function openAudio(): void { root.openAudio(null) }
         function closeAudio(): void { root.closePanel("audio") }

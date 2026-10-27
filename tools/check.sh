@@ -262,12 +262,12 @@ count hardcoded-home-paths \
     "$(grep -rE '(/home/[a-z0-9_]+|file:///home/)' "$root/src" --include='*.qml' | grep -v 'Quickshell.env' | wc -l)"
 
 # --- Kit adoption (§10.4) --------------------------------------------------------
-# Raw Rectangle in features. A RATCHET, not a ban: some are legitimate (an image
-# backing that needs `clip`, a 1px rule, a scrim behind a grab). The number must
-# not grow — every new one should be a kit component instead.
+# Feature visuals use the kit (MaterialShape for flat geometry). The generated
+# greeter/ui directory IS a UI implementation, checked separately by ui-drift;
+# it must not be counted as feature-layer debt.
 count raw-rectangle-in-features \
-    "$(grep -rcE '^\s*Rectangle\s*\{' "$root/src/features" --include='*.qml' \
-        | awk -F: '{s+=$2} END {print s+0}')"
+    "$(find "$root/src/features" -name '*.qml' ! -path '*/greeter/ui/*' -print0 \
+        | xargs -0 grep -cE '^\s*Rectangle\s*\{' | awk -F: '{s+=$2} END {print s+0}')"
 # String enums that silently fall back on a typo. Validates the literals passed
 # to the kit's enum-shaped properties against the values each one accepts.
 count unknown-enum-literals \

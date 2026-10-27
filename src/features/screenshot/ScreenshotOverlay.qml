@@ -102,7 +102,7 @@ Scope {
                 // --- Dim overlay: 4 rectangles around selection ---
 
                 // Top
-                Rectangle {
+                MaterialShape {
                     x: 0; y: 0
                     width: parent.width
                     height: content.hasSelection ? Math.max(0, content.sy) : parent.height
@@ -110,7 +110,7 @@ Scope {
                 }
 
                 // Bottom
-                Rectangle {
+                MaterialShape {
                     visible: content.hasSelection
                     x: 0
                     y: content.sy + content.sh
@@ -120,7 +120,7 @@ Scope {
                 }
 
                 // Left
-                Rectangle {
+                MaterialShape {
                     visible: content.hasSelection
                     x: 0
                     y: content.sy
@@ -130,7 +130,7 @@ Scope {
                 }
 
                 // Right
-                Rectangle {
+                MaterialShape {
                     visible: content.hasSelection
                     x: content.sx + content.sw
                     y: content.sy
@@ -140,7 +140,7 @@ Scope {
                 }
 
                 // Selection border
-                Rectangle {
+                MaterialShape {
                     visible: content.hasSelection
                     x: content.sx
                     y: content.sy
@@ -152,7 +152,7 @@ Scope {
                 }
 
                 // Dimensions label
-                Rectangle {
+                MaterialShape {
                     visible: content.hasSelection && content.sw > 10 && content.sh > 10
                     x: content.sx + content.sw / 2 - width / 2
                     y: content.sy + content.sh + 8
@@ -171,7 +171,7 @@ Scope {
                 }
 
                 // Mouse crosshair (when hovering without selecting)
-                Rectangle {
+                MaterialShape {
                     visible: mouseArea.containsMouse && !root.selecting && !root.keyboardMode
                     x: 0
                     y: mouseArea.mouseY
@@ -179,7 +179,7 @@ Scope {
                     height: 1
                     color: Qt.alpha(Theme.primary, 0.5)
                 }
-                Rectangle {
+                MaterialShape {
                     visible: mouseArea.containsMouse && !root.selecting && !root.keyboardMode
                     x: mouseArea.mouseX
                     y: 0
@@ -189,7 +189,7 @@ Scope {
                 }
 
                 // --- Keyboard crosshair ---
-                Rectangle {
+                MaterialShape {
                     visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
                     x: 0
                     y: root.cursorY
@@ -197,7 +197,7 @@ Scope {
                     height: 1
                     color: Qt.alpha(Theme.tertiary, 0.9)
                 }
-                Rectangle {
+                MaterialShape {
                     visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
                     x: root.cursorX
                     y: 0
@@ -207,7 +207,7 @@ Scope {
                 }
 
                 // Anchor marker dot
-                Rectangle {
+                MaterialShape {
                     visible: root.anchorPlaced && root.activeScreen === overlayWindow.modelData
                     x: root.startX - 4
                     y: root.startY - 4
@@ -218,7 +218,7 @@ Scope {
                 }
 
                 // Keyboard mode hint
-                Rectangle {
+                MaterialShape {
                     visible: root.keyboardMode && root.activeScreen === overlayWindow.modelData
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter

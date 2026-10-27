@@ -29,7 +29,7 @@ Item {
             spacing: Tokens.spacing.medium
 
             // Usage banner
-            Rectangle {
+            MaterialShape {
                 Layout.fillWidth: true
                 Layout.preferredHeight: bannerLayout.implicitHeight + Tokens.spacing.medium * 2
                 radius: Tokens.shape.medium

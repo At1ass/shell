@@ -37,12 +37,27 @@ Singleton {
         return a.startsWith("0x") ? a : "0x" + a
     }
 
-    function focusWorkspace(id) {
+    function _workspace(id, name) {
+        if (!root._isId(id) || id === 0) return ""
+        if (id > 0 || !name) return String(id)
+        if (typeof name !== "string" || name.length > 256 || /[\x00-\x1f\x7f]/.test(name)) return ""
+        const selector = name.startsWith("special:") ? name : "name:" + name
+        return '"' + selector.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'
+    }
+    function moveWindowToWorkspace(address, id, name) {
+        const a = root._addr(address)
+        const workspace = root._workspace(id, name)
+        if (!root._isAddress(a) || !workspace) return false
+        Hyprland.dispatch(`hl.dsp.window.move({window="address:${a}",workspace=${workspace},follow=false})`)
+        return true
+    }
+    function focusWorkspace(id, name) {
         if (!root._isId(id)) {
             console.warn("HyprlandDispatch: refusing non-integer workspace id:", id)
             return
         }
-        Hyprland.dispatch(`hl.dsp.focus({workspace=${id}})`)
+        const workspace = root._workspace(id, name)
+        if (workspace) Hyprland.dispatch(`hl.dsp.focus({workspace=${workspace}})`)
     }
 
     function focusWindow(address) {

@@ -5,6 +5,8 @@ import Quickshell
 // Background services must exist independently of lazy panels.
 Singleton {
     function init() {
+        AudioService.init()
+        MprisController.init()
         NetworkAuthService.init()
         VPNService.init()
         SystemMonitorService.init()

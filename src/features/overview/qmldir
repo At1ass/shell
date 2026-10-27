@@ -1,0 +1,5 @@
+module qs.src.features.overview
+Overview 1.0 Overview.qml
+OverviewContent 1.0 OverviewContent.qml
+WorkspaceCard 1.0 WorkspaceCard.qml
+WindowThumbnail 1.0 WindowThumbnail.qml

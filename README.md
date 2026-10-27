@@ -1078,6 +1078,63 @@ shell after checking that it is unlocked. Building the test targets does not
 replace installed plugins.
 
 
+## Workspace overview
+
+An on-demand overlay shows workspace miniatures with window previews and their
+relative positions, including existing workspaces outside the configured empty
+workspace range. The interaction is inspired by the local ii overview; the model,
+UI and commands use this shell's own services and kit.
+
+Open with `qs -c shell ipc call globalstates toggleOverview`, the global shortcut
+`quickshell:overviewToggle`, or a workspace chip's right-click when no explicit
+clickAction is configured. A widget can set `clickAction: "overview"`.
+
+Search by window title, application or workspace name. Alt+J/K select windows;
+Alt+H/L select workspaces from any control, including search. Outside the editor,
+bare J/K and H/L do the same. In the destination picker, J/K (also with Alt)
+move between enabled destinations. These bindings use physical key positions on
+all layouts; ordinary H/J/K/L still type into search. Up/Down also select matches;
+Enter or clicking a preview switches to its window. PgUp/PgDn select a workspace,
+including empty ones; Enter from search switches to an empty selected workspace
+when there is no query. Workspace arrows switch to
+that workspace. Physical Ctrl+M (including non-Latin layouts), the move button, Menu or right-clicking a preview opens a
+keyboard-accessible destination picker; the move keeps the overview open. Escape
+closes the picker or overview. Initial selection follows the active window.
+
+Drag a window preview (or icon/title when previews are disabled) onto another
+workspace card. A highlighted target and ghost label show the destination; release
+moves the window and leaves overview open. Escape, an outside drop, or removal of
+the source cancels. Holding near the grid edge scrolls; the source delegate stays
+alive without overwriting its position bindings. Background tint marks the selected
+workspace and a separate outline marks the drop target.
+
+Tiled insertion remains Hyprland's normal layout placement, as in ii; dropping on
+a card does not choose a split relative to a particular window. Exact split
+placement would need a separate compositor integration, not cursor/focus tricks.
+
+```json
+"overview": {
+  "firstWorkspace": 1,
+  "workspaceCount": 9,
+  "columns": 3,
+  "includeSpecial": true,
+  "showPreviews": true
+}
+```
+
+`modules.overview` gates all entry points. Columns adapt to narrow outputs, and
+card height is capped by the rows and viewport height so nine workspaces fit both
+ultrawide and portrait outputs. Workspace canvases preserve monitor aspect ratio.
+At large counts or short viewports, minimum readable card height wins and the grid
+scrolls to selection. Captures are limited to visible workspace cards
+and resolution-constrained. Previews use the same Wayland ScreencopyView source as the dock and update live
+while their cards are visible. Set `overview.showPreviews` to false for icons and
+titles with no capture objects or buffers. Unavailable capture uses an icon, and closing unloads the UI
+and clears search/capture state. The destination picker retains its original
+source and target IDs across unrelated model updates; a disappearing source
+cancels it. All normal commands are validated and routed through HyprlandDispatch;
+see [Hyprland dispatchers](https://wiki.hypr.land/configuring/core/dispatchers/).
+
 ## Keyboard and compact layouts
 
 The minimal pack is the primary desktop profile; MD3 uses the same components

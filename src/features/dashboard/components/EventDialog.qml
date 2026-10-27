@@ -578,7 +578,7 @@ Dialog {
 
     // Discard-confirmation overlay shown when user tries to dismiss
     // a dialog that has unsaved changes.
-    Rectangle {
+    MaterialShape {
         id: discardConfirm
         anchors.fill: parent
         color: Qt.alpha(Theme.scrim, Tokens.state.scrimOpacity)
@@ -587,7 +587,7 @@ Dialog {
 
         MouseArea { anchors.fill: parent }  // swallow clicks
 
-        Rectangle {
+        MaterialShape {
             anchors.centerIn: parent
             width: Math.min(parent.width - Tokens.spacing.large * 2, 360)
             height: discardCol.implicitHeight + Tokens.spacing.large * 2

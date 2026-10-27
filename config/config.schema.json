@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "quickshell-shell-config",
   "title": "Quickshell Shell Configuration",
-  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported \u2014 changes apply immediately.",
+  "description": "Configuration schema for the Quickshell Hyprland shell. Place config at ~/.config/quickshell/config.json. Hot-reload is supported — changes apply immediately.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -35,7 +35,7 @@
                 "custom"
               ],
               "default": "wallpaper",
-              "description": "'wallpaper' \u2014 generate palette from the current wallpaper. 'custom' \u2014 use a fixed seed color (reserved, not yet implemented)."
+              "description": "'wallpaper' — generate palette from the current wallpaper. 'custom' — use a fixed seed color (reserved, not yet implemented)."
             },
             "variant": {
               "type": "string",
@@ -72,7 +72,7 @@
             "minimal"
           ],
           "default": "md3",
-          "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' \u2014 Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' \u2014 flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
+          "description": "Which design pack supplies shape, motion, state-layer and elevation tokens. 'md3' — Material Design 3: large radii, tonal elevation with shadows, expressive easing. 'minimal' — flat structure: square panels with small radii only on controls, no shadows, one surface tier, faster and simpler motion. Colour comes from the same MCU palette either way; the pack changes form and motion, not the palette."
         },
         "fontScale": {
           "type": "number",
@@ -179,7 +179,7 @@
         "lockscreen": {
           "type": "boolean",
           "default": false,
-          "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops \u2014 pair with an external locker."
+          "description": "Built-in lockscreen. When false, lock requests (power menu, loginctl/DBus lock-session) are no-ops — pair with an external locker."
         },
         "powerMenu": {
           "type": "boolean",
@@ -204,7 +204,7 @@
         "polkit": {
           "type": "boolean",
           "default": false,
-          "description": "In-shell polkit authentication agent. OFF by default because polkit allows one agent per session and Hyprland setups normally run hyprpolkitagent already \u2014 the loser of that race only logs an error. Turn this on (and stop the other agent, e.g. `systemctl --user disable --now hyprpolkitagent`) to get the prompt in the shell's own style. With it off, nothing here is constructed and no agent is registered."
+          "description": "In-shell polkit authentication agent. OFF by default because polkit allows one agent per session and Hyprland setups normally run hyprpolkitagent already — the loser of that race only logs an error. Turn this on (and stop the other agent, e.g. `systemctl --user disable --now hyprpolkitagent`) to get the prompt in the shell's own style. With it off, nothing here is constructed and no agent is registered."
         },
         "popouts": {
           "type": "boolean",
@@ -225,6 +225,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable the standalone output, microphone and application volume panel."
+        },
+        "overview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the workspace overview overlay."
         }
       }
     },
@@ -311,7 +316,7 @@
         "pinnedApps": {
           "type": "array",
           "default": [],
-          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) \u2014 those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
+          "description": "Declarative pinned application IDs (desktop id, window class, or app name), in order. Editing this list wins: it is applied on the next load (re-seeding the live set). Between edits, pin/unpin from the dock UI persists to state.json (~/.config/quickshell/state.json) — those UI-only pins are reset whenever you edit this list. The shell never writes back to this config.",
           "items": {
             "type": "string"
           }
@@ -843,7 +848,7 @@
     },
     "gamingMode": {
       "type": "object",
-      "description": "Gaming mode disables visual effects for performance. State persists across restarts \u2014 Hyprland settings are saved before and restored after.",
+      "description": "Gaming mode disables visual effects for performance. State persists across restarts — Hyprland settings are saved before and restored after.",
       "additionalProperties": false,
       "properties": {
         "disableAnimations": {
@@ -1000,7 +1005,7 @@
                   "1y"
                 ],
                 "default": "1M",
-                "description": "For type=wallhaven: time window \u2014 only used when sorting='toplist'."
+                "description": "For type=wallhaven: time window — only used when sorting='toplist'."
               },
               "atleast": {
                 "type": "string",
@@ -1385,6 +1390,44 @@
           "description": "Preset durations in minutes for launcher actions. Order is preserved; an empty list hides the presets. IPC accepts any whole duration from 1 to 1440 minutes."
         }
       }
+    },
+    "overview": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Workspace and window overview.",
+      "properties": {
+        "firstWorkspace": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99900,
+          "default": 1,
+          "description": "First empty workspace offered as a switch/move target."
+        },
+        "workspaceCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 9,
+          "description": "Number of configured empty workspace targets. Existing workspaces are included too."
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "default": 3,
+          "description": "Maximum number of workspace columns; narrow outputs use fewer."
+        },
+        "includeSpecial": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include existing named/special workspaces."
+        },
+        "showPreviews": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show live window contents using ScreencopyView, like dock previews. Disable to release all capture sources and show icons/titles instead."
+        }
+      }
     }
   },
   "definitions": {
@@ -1418,7 +1461,8 @@
         "connections",
         "connections-wifi",
         "connections-bluetooth",
-        "audio"
+        "audio",
+        "overview"
       ],
       "description": "Panel to open when the widget is left-clicked."
     },

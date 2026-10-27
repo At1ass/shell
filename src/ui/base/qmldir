@@ -14,3 +14,4 @@ MotionAnimation 1.0 MotionAnimation.qml
 MotionColorAnimation 1.0 MotionColorAnimation.qml
 SectionHeader 1.0 SectionHeader.qml
 Sparkline 1.0 Sparkline.qml
+MaterialShape 1.0 MaterialShape.qml

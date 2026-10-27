@@ -23,10 +23,14 @@ covered by isolated fixtures. Brightness, Night Light, dock caches and passive
 clipboard reads received focused lifecycle fixes. Power menu reflows on narrow
 outputs and guards confirmation against held keys. No new redesign is queued.
 
-Existing mechanical debt is explicitly deferred: 10 Quickshell model/import
-metadata lint warnings, 52 raw Rectangle uses and two StackLayouts. The ratchet
-prevents increases; replacing every existing instance or migrating all processes
-is separate work, not a prerequisite for this UI/UX pass.
+The listed mechanical debt is now cleared: zero QML warnings, zero raw feature
+Rectangle uses and zero StackLayouts. ObjectModel casts use the public native
+Quickshell type. Global shortcuts live in GlobalStates and audio/media services
+bootstrap independently of widgets. A lightweight MaterialShape kit primitive
+preserves flat geometry and masks without adding Surface wrappers/motion/shadows;
+generated greeter UI is counted as UI, not feature logic. No warning is suppressed.
+
+Workspace overview with previews is the newly approved feature (see latest entry).
 
 Lockscreen manual acceptance passed (user report). Greeter acceptance remains
 pending and can accompany the next convenient login; it does not block independent
@@ -3870,3 +3874,106 @@ remaining BlueZ hardware cases and OpenVPN challenge/keyring flows still require
 manual acceptance at a convenient time; they are not reported as tested. Full applet
 parity, protocol expansion, a wallpaper picker and broad mechanical migration remain
 deferred. Minimal remains primary, MD3 compatible; configuration stays file-only.
+
+
+## Workspace overview and mechanical debt closure — 2026-10-27
+
+The user requested an overview similar to ii, explicitly including window previews
+in its first version. Local ii and end4-pC implementations informed the workspace
+miniature interaction; this is an independent implementation using the shell kit.
+The overlay has one focus grab on the requested monitor, activePanel exclusion,
+module/config/schema/defaults, IPC open/close/toggle and overviewToggle shortcut.
+Right-click on workspace chips defaults to overview while explicit actions win.
+
+Native per-workspace toplevel models provide grouping; native FuzzySearch handles
+search. Stable window addresses and workspace IDs retain command identity across
+model changes. The window picker supports search, Up/Down/Enter, pointer selection,
+Ctrl+M and a destination menu. Move sources and destination IDs are captured before
+opening, revalidated at execution, and do not change to the next selected window
+when the source disappears. The command uses follow=false and keeps the overview
+open. Named/special workspace selectors are quoted and control characters rejected.
+No application launcher, wallpaper picker or settings UI is added.
+
+Only visible cards load thumbnail delegates asynchronously. Capture sizes follow
+the miniature bounds; snapshots are passive except selected/hovered live previews.
+Missing capture has an icon fallback. Closing drops UI/models/search and capture
+sources. Monitor geometry comes from ShellScreen logical coordinates; invalid or
+missing window positions are clamped inside the card.
+
+The public ObjectModel cast clears the existing metadata warnings; audio/media
+shortcut registration is centralized with explicit service bootstrap. Dashboard
+and cheatsheet use lazy containers instead of StackLayout. Real feature geometry
+is implemented through MaterialShape; generated greeter primitives were previously
+miscounted as feature debt. The ratchet is zero for all three categories and no
+lint category is disabled. Existing pixel/layout and notification regressions run
+against the migrated components, along with greeter generation/rendering checks.
+
+Overview tests use fake windows and commands for keyboard search, destinations,
+source removal, empty-workspace PgUp/PgDn/Enter and narrow/font-scale layouts in both packs. The native probe reads
+host models with no windows mapped, then routes moves to a fake dispatcher and tests
+production Lua escaping/validation against a fake Hyprland module. No real window
+focus/move, recording, network, authentication or power action is performed.
+
+Validation: 217 Qt UI checks, 16 greeter checks with native rendering/config probes,
+notification persistence/centre probes, foundation transactions/HTTP/session tests,
+the read-only native overview/dispatch probe and the zero-regression ratchet passed.
+
+Ctrl+M forwarding is handled before TextInput editing using Keycodes, not a
+layout-dependent string shortcut; Qt key tests cover the search field and a
+non-Latin event at the physical M scancode. MaterialTextField exposes an optional
+keyForwardTargets list, empty by default; greeter copies stay generated.
+
+
+## Overview: HHKB navigation and output fitting — 2026-10-27
+
+User acceptance found nine workspaces fitting portrait DP-3, but only six on
+ultrawide DP-2. Cell height formerly followed width alone. It now fits the
+configured rows into available height, retaining a token-based minimum for usable
+controls/previews; larger counts fall back to scrolling. The canvas is aspect-fit
+inside its card instead of stretching window geometry. Tests use DP-2 3440x1440
+and DP-3 logical 1080x1920, both packs and font scales 1/1.3/2, plus overflow.
+
+For HHKB, Alt+H/L traverse workspaces and Alt+J/K traverse matching windows even
+from search. Bare keys work outside the editor; normal search input and editing
+shortcuts remain available. The move picker accepts J/K via MaterialMenu's relative
+focus API, skipping disabled destinations. All letter matching uses Keycodes.
+OverviewContent is a FocusScope so a disabled/removed focused control does not
+strand navigation; Enter from a thumbnail follows the selected address even if
+focus remained on the previous delegate. Tests dispatch to fakes only.
+
+
+## Overview: pointer transfer, real window capture and workspace tint — 2026-10-27
+
+User asked about split placement and mouse operation. Local ii performs a silent
+workspace move with no target/split parameters; end4-pC similarly delegates tiled
+placement and handles floating coordinates separately. The installed Hyprland
+0.56.2 sources confirm workspace move has no focal-point/split argument; layout
+preselect targets the active workspace, and directional moves warp the cursor.
+No plugin or temporary focus/cursor mutation is introduced. Exact targeted tiled
+insertion remains a separate compositor integration decision.
+
+Native DragHandler handles threshold and pointer grabs with target:null. The
+thumbnail's geometry bindings stay intact; one overlay-owned ghost and highlighted
+workspace show destination. A release commits a revalidated silent move, while Esc,
+outside/same-workspace drop, lost grab, missing/moved source, modal and closure
+cancel. Epoch-guarded source loss avoids reentrant binding writes. Edge scrolling
+runs only during a drag at a reachable boundary; virtualization retains the source
+delegate and pauses its capture when it is offscreen. No real focus/move is used
+in automated tests; synthetic pointer presses/moves/releases exercise the gesture.
+
+User also asked for ScreencopyView like the dock, with a configuration toggle. The
+overview had an incorrect capture source: handle is the Hyprland mapping-protocol
+object, while wayland is the Toplevel accepted by ScreencopyView and used in the
+dock. The source is corrected; visible matching windows update live. The new
+showPreviews boolean has complete schema/default/getter coverage. Disabling it
+removes all capture items and leaves icons/plain-text titles. Tests use distinct
+fake handle/wayland objects and verify source identity, live state and teardown.
+A native read-only probe checks Wayland handles against ToplevelManager.
+
+A subtle token-based primary tint marks the selected card and canvas; destination
+highlight uses dragged opacity and an outline. Both design profiles are covered.
+
+Validation: 236 Qt UI checks, 16 greeter checks and native rendering/config probes,
+foundation checks, read-only native overview/capture-handle probe, clean changed-file
+qmllint and the zero-regression ratchet passed. Engine compilation: 202/202 main
+components and 24/24 greeter components. No C++ rebuild is required.

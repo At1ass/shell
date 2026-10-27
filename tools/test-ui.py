@@ -69,6 +69,11 @@ QtObject {
  property int launcherListMaxHeight:400
  property var powerMenuActions:["lock","suspend","reboot","shutdown","logout"]
  property bool powerMenuConfirmActions:true
+ property int overviewFirstWorkspace:1
+ property int overviewWorkspaceCount:3
+ property int overviewColumns:3
+ property bool overviewIncludeSpecial:true
+ property bool overviewShowPreviews:true
  property int audioWidth:420
  property int audioMaxHeight:640
  property string barPosition:"top"
@@ -90,6 +95,8 @@ QtObject {
     qs.mkdir()
     (qs / 'qmldir').write_text('module Quickshell\nSingleton 1.0 Singleton.qml\nScriptModel 1.0 ScriptModel.qml\nsingleton Quickshell 1.0 Quickshell.qml\n')
     (qs / 'ScriptModel.qml').write_text('import QtQml.Models\nListModel {property var values:[];property string objectProp:"";dynamicRoles:true;onValuesChanged:{clear();for(const entry of values) append({modelData:entry})}}\n')
+    with (qs / 'qmldir').open('a') as module: module.write('ObjectModel 1.0 ObjectModel.qml\n')
+    (qs / 'ObjectModel.qml').write_text('import QtQml\nQtObject {property var values:[]}\n')
     (qs / 'Singleton.qml').write_text('import QtQml\nQtObject { default property list<QtObject> children }\n')
     (qs / 'Quickshell.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {function env(name) {return "Test User"} function iconPath(name,fallback) {return ""}}\n')
     with (qs / 'qmldir').open('a') as module:
@@ -106,6 +113,13 @@ QtObject {
         for name, body in types.items():
             (module_dir / f'{name}.qml').write_text(body + '\n')
     (temp / 'TestPanelState.qml').write_text((ROOT / 'src/core/services/GlobalStates.qml').read_text().replace('pragma Singleton\n','').replace('import qs.src.core.config', 'import qs.src.core.services\nimport qs.src.core.config'))
+    hypr = qs / 'Hyprland'
+    with (hypr / 'qmldir').open('a') as module: module.write('HyprlandToplevel 1.0 HyprlandToplevel.qml\n')
+    (hypr / 'HyprlandToplevel.qml').write_text('import QtQml\nQtObject {property string address:"abc";property string title:"Editor";property QtObject workspace:null;property QtObject handle:null;property QtObject wayland:null;property var lastIpcObject:({at:[0,0],size:[800,600],class:"editor"})}\n')
+    hp=hypr / 'Hyprland.qml'
+    hp.write_text(hp.read_text().replace('import QtQml','import QtQml\nimport Quickshell').replace('property var toplevels:({values:[]})','property var toplevels:ObjectModel {};property var workspaces:ObjectModel {};function refreshToplevels() {} function refreshWorkspaces() {}'))
+    overview = tree / 'src/features/overview'
+    shutil.copytree(ROOT / 'src/features/overview',overview)
     pipewire = qs / 'Services/Pipewire'
     pipewire.mkdir(parents=True)
     (pipewire / 'qmldir').write_text('module Quickshell.Services.Pipewire\nsingleton Pipewire 1.0 Pipewire.qml\nPwObjectTracker 1.0 PwObjectTracker.qml\n')
@@ -135,6 +149,8 @@ QtObject {
     wayland_mock=qs / 'Wayland'
     wayland_mock.mkdir()
     (wayland_mock / 'qmldir').write_text('module Quickshell.Wayland\nScreencopyView 1.0 ScreencopyView.qml\n')
+    with (wayland_mock / 'qmldir').open('a') as module: module.write('singleton ToplevelManager 1.0 ToplevelManager.qml\n')
+    (wayland_mock / 'ToplevelManager.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var toplevels:({values:[]})}\n')
     (wayland_mock / 'ScreencopyView.qml').write_text('import QtQuick\nItem {property QtObject captureSource:null;property bool live:false;property bool hasContent:true;property size constraintSize:Qt.size(280,180);implicitWidth:Math.min(280,constraintSize.width);implicitHeight:constraintSize.height}\n')
     for name in ['DockPreview','DockContextMenu']:
         (dock / (name+'.qml')).write_text((ROOT / ('src/features/dock/'+name+'.qml')).read_text().replace('"image://icon/application-x-executable"', '""'))
@@ -309,7 +325,7 @@ QtObject {
     mocks['WallpaperManager'] = 'function getWallpaper(name) {return ""} function getFillMode(name) {return 0}'
     mocks['NetworkService'] += '; property bool wiredConnected:false'
     mocks['KeyboardLayoutService'] = 'property var layoutCodes:["en","ru"];property string currentLayoutCode:"en";property bool capsLockEnabled:false;property bool numLockEnabled:false;function addLockStateWatcher() {} function removeLockStateWatcher() {} function switchLayout() {currentLayoutCode=currentLayoutCode==="en" ? "ru" : "en"}'
-    mocks['HyprlandDispatch'] += ';property int lastWorkspace:0;function focusWorkspace(id) {lastWorkspace=id} function focusWindow(address) {}'
+    mocks['HyprlandDispatch'] += ';property int lastWorkspace:0;function focusWorkspace(id) {lastWorkspace=id} property string lastWindow:"";function focusWindow(address) {lastWindow=address}'
     mocks['NetworkService'] += ';property string connectionLabel:"A long wireless network name";property string connectionIcon:"wifi"'
     mocks['GlobalStates'] += ';property QtObject activePanelScreen:null;function closeAllPanels() {dashboardOpen=false}'
     mocks['NotificationDND'] = 'property bool enabled:false;property bool temporary:false;property string statusText:"";property real expiresAt:0;property int lastDuration:0;function toggle() {enabled=!enabled} function setForMinutes(minutes) {lastDuration=minutes;return true}'
@@ -318,12 +334,16 @@ QtObject {
     mocks['ToastService'] = 'readonly property int levelInfo:0;readonly property int levelSuccess:1;readonly property int levelWarning:2;readonly property int levelError:3;signal toastRequested(string message,string icon,int level,int duration)'
     mocks['LauncherService'] = ''
     mocks['ClipboardService'] = 'property bool debug:false;property int _thumbnailVersion:0;property int refreshes:0;signal entriesChanged();function refresh() {refreshes++} function fuzzySearch(query,limit) {return []} function requestThumbnail(entry) {} function thumbnailFor(entry) {return ""}'
-    mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false}')
-    mocks['GlobalStates'] += '; signal panelOpened(string name);property bool lockscreenActive:false;property QtObject testScreen:null;function focusedScreen() {return testScreen} function openPanel(name) {lastAction=name;actionCount++} function openDashboardTab(index) {dashboardOpenIndex=index;lastAction="dashboard";actionCount++} function lockSession() {lastAction="lock";actionCount++}'
+    mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false;if(name==="overview") overviewOpen=false}')
+    mocks['GlobalStates'] += '; property bool overviewOpen:false; signal panelOpened(string name);property bool lockscreenActive:false;property QtObject testScreen:null;function focusedScreen() {return testScreen} function openPanel(name) {lastAction=name;actionCount++} function openDashboardTab(index) {dashboardOpenIndex=index;lastAction="dashboard";actionCount++} function lockSession() {lastAction="lock";actionCount++}'
     (services / 'qmldir').write_text('module qs.src.core.services\n' +
         ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\n')
     for name, body in mocks.items():
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject {'+body.replace('};', '}')+'}\n')
+    shutil.copy2(ROOT / 'src/core/services/OverviewService.qml',services / 'OverviewService.qml')
+    with (services / 'qmldir').open('a') as module: module.write('singleton OverviewService 1.0 OverviewService.qml\n')
+    dispatch=services / 'HyprlandDispatch.qml'
+    dispatch.write_text(dispatch.read_text().replace('QtObject {','QtObject {property string movedAddress:"";property int movedWorkspace:0;function moveWindowToWorkspace(address,id,name) {movedAddress=address;movedWorkspace=id}\n',1))
     shutil.copy2(ROOT / 'src/core/services/NetworkInfo.qml', services / 'NetworkInfo.qml')
     (services / 'connectivity').mkdir()
     (services / 'connectivity/NativeNetworkInfo.qml').write_text('import QtQml\nQtObject {property string interfaceName:"";property bool ready:true;property var ipv4Addresses:[];property var ipv6Addresses:[];property string ipv4Gateway:"";property string ipv6Gateway:"";function refresh() {}}\n')
@@ -426,6 +446,7 @@ import qs.src.ui.feedback
 import qs.src.features.dashboard
 import qs.src.features.statusbar
 import qs.src.features.powermenu
+import qs.src.features.overview
 import qs.src.features.dashboard.components
 import qs.src.features.connections
 import qs.src.features.audio
@@ -500,6 +521,12 @@ Item {
  Component {id:checkboxRepeatFixture;MaterialCheckbox {property int activations:0;onToggled:value=>{activations++;checked=value}}}
  Component {id:barWidgetFixture;BarWidgetLoader {width:100;height:40;widgetConfig:({type:"volume"});tooltipManager:null;barRevealed:true;screenName:"test"}}
  Component {id:powerFixture;PowerMenuContent {width:Math.min(implicitWidth,600);height:Math.min(implicitHeight,400);actions:[{label:"Lock",action:"lock",key:"L",icon:"lock"},{label:"Suspend",action:"suspend",key:"S",icon:"dark_mode"},{label:"Reboot",action:"reboot",key:"R",icon:"restart_alt"},{label:"Shutdown",action:"shutdown",key:"D",icon:"power_settings_new"},{label:"Logout",action:"logout",key:"O",icon:"logout"}];property string requested:"";property int requests:0;property int closes:0;onActionRequested:action=>{requested=action;requests++};onCloseRequested:closes++}}
+ Component {id:overviewFixture;OverviewContent {width:740;height:480}}
+ Component {id:overviewHandleFixture;QtObject {}}
+ Component {id:overviewThumbFixture;WindowThumbnail {width:240;height:160;captureEnabled:true;keyOwner:scene}}
+ Component {id:overviewScreenFixture;ShellScreen {name:"DP-test";width:3440;height:1440}}
+ Component {id:overviewWindowFixture;HyprlandToplevel {}}
+ Component {id:overviewWorkspaceFixture;QtObject {property int id:1;property string name:"1";property QtObject monitor:null;property bool focused:false;property ObjectModel toplevels:ObjectModel {}}}
  Component {id:volumeFixture;VolumeWidget {height:40}}
  Component {id:launcherLoaderFixture;Loader {active:GlobalStates.launcherOpen;sourceComponent:LauncherContent {width:600;height:400}}}
  Component {id:launcherFixture;LauncherContent {width:600;height:Math.min(implicitHeight,500)}}
@@ -826,6 +853,8 @@ Item {
    verify(!view.mediaShown)
   }
   function init() {
+   GlobalStates.overviewOpen=false;Hyprland.workspaces.values=[];Hyprland.toplevels.values=[]
+   AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[]
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
@@ -1168,6 +1197,208 @@ Item {
    const weather=createTemporaryObject(weatherFixture,scene,{y:160})
    verify(weather!==null);wait(20);mouseClick(weather,1,1)
    compare(GlobalStates.lastAction,"dashboard-weather")
+  }
+  function test_overview_live_capture_config() {
+   controls.visible=false
+   const window=createTemporaryObject(overviewWindowFixture,scene,{title:"<b>Literal title</b>"})
+   const wayland=createTemporaryObject(overviewHandleFixture,scene)
+   const protocolHandle=createTemporaryObject(overviewHandleFixture,scene)
+   window.wayland=wayland;window.handle=protocolHandle
+   const tile=createTemporaryObject(overviewThumbFixture,scene,{window:window})
+   verify(tile!==null);wait(20)
+   let capture=findChild(tile,"overviewWindowCapture")
+   verify(capture!==null);compare(capture.captureSource,wayland,"capture uses the Wayland object, like DockService")
+   verify(capture.live);verify(capture.constraintSize.width<=tile.width)
+   AppConfig.overviewShowPreviews=false;wait(20)
+   compare(findChild(tile,"overviewWindowCapture"),null,"disabled previews own no capture item")
+   const caption=byProperty(tile,"text",window.title)
+   verify(caption.visible);compare(caption.textFormat,Text.PlainText)
+   AppConfig.overviewShowPreviews=true;wait(20);verify(findChild(tile,"overviewWindowCapture")!==null)
+   tile.captureEnabled=false;wait(20);compare(findChild(tile,"overviewWindowCapture"),null)
+   tile.captureEnabled=true;window.wayland=null;wait(20);compare(findChild(tile,"overviewWindowCapture"),null)
+  }
+  function test_overview_mouse_drag() {
+   controls.visible=false
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const window=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",title:"Drag me",workspace:ws})
+   ws.toplevels.values=[window];Hyprland.workspaces.values=[ws];Hyprland.toplevels.values=[window];GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(80);content.reset();wait(10);keyClick(Qt.Key_Tab)
+   const view=byProperty(content,"cacheBuffer",0)
+   const tile=byProperty(content,"window",window)
+   verify(tile!==null);const originX=tile.x;const originY=tile.y
+   const destination=view.itemAtIndex(1)
+   verify(destination!==null)
+   const drop=destination.mapToItem(content,destination.width/2,destination.height/2)
+   HyprlandDispatch.movedAddress="";HyprlandDispatch.movedWorkspace=0
+   mousePress(tile,tile.width/2,tile.height/2,Qt.LeftButton)
+   mouseMove(tile,tile.width/2+40,tile.height/2,5,Qt.LeftButton)
+   tryCompare(content,"dragging",true);verify(tile.activeFocus,"drag owns keyboard cancellation even after a toolbar button had focus")
+   mouseMove(content,drop.x,drop.y,5,Qt.LeftButton);wait(10)
+   compare(content.dragTargetId,2);verify(content.dropAllowed)
+   verify(destination.dropTarget);verify(findChild(content,"overviewDragGhost").visible)
+   compare(tile.x,originX);compare(tile.y,originY,"drag does not overwrite miniature geometry")
+   mouseRelease(content,drop.x,drop.y,Qt.LeftButton);wait(20)
+   compare(HyprlandDispatch.movedAddress,"abc");compare(HyprlandDispatch.movedWorkspace,2)
+   verify(!content.dragging);verify(GlobalStates.overviewOpen,"drag release must not activate the window")
+   // Escape and out-of-bounds drop must never move a window.
+   HyprlandDispatch.movedAddress=""
+   mousePress(tile,tile.width/2,tile.height/2,Qt.LeftButton)
+   mouseMove(tile,tile.width/2+40,tile.height/2,5,Qt.LeftButton);tryCompare(content,"dragging",true)
+   keyClick(Qt.Key_M,Qt.ControlModifier);verify(!content.modalOpen)
+   keyClick(Qt.Key_Escape);verify(!content.dragging)
+   mouseRelease(content,drop.x,drop.y,Qt.LeftButton);wait(10)
+   verify(!content.finishDrag("abc",drop,false));compare(HyprlandDispatch.movedAddress,"")
+   verify(content.beginDrag("abc",drop));verify(!content.finishDrag("abc",Qt.point(-10,-10),false));compare(HyprlandDispatch.movedAddress,"")
+   verify(content.beginDrag("abc",drop));Hyprland.toplevels.values=[];ws.toplevels.values=[];wait(20)
+   verify(!content.dragging,"removed source cancels drag");compare(HyprlandDispatch.movedAddress,"")
+  }
+  function test_overview_drag_autoscroll() {
+   controls.visible=false;AppConfig.overviewWorkspaceCount=50
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const window=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",workspace:ws})
+   ws.toplevels.values=[window];Hyprland.workspaces.values=[ws];Hyprland.toplevels.values=[window];GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(60)
+   const view=byProperty(content,"cacheBuffer",0)
+   const point=view.mapToItem(content,view.width/2,view.height-Tokens.spacing.small)
+   verify(content.beginDrag("abc",point))
+   tryVerify(()=>view.contentY>0)
+   wait(Tokens.interaction.dragScrollInterval*4)
+   verify(content.dragging);verify(view.itemAtIndex(0)!==null,"source card survives edge scroll")
+   content.cancelDrag();const stopped=view.contentY
+   wait(Tokens.interaction.dragScrollInterval*2+10);compare(view.contentY,stopped)
+  }
+  function test_overview_workspace_tint_data(){return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_overview_workspace_tint(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(40);content.reset()
+   const view=byProperty(content,"cacheBuffer",0)
+   const first=view.itemAtIndex(0);const second=view.itemAtIndex(1)
+   verify(first!==null && second!==null)
+   compare(first.workspace.id,1);compare(second.workspace.id,2);compare(content.selectedWorkspaceId,1)
+   verify(first.selectedWorkspace);verify(!second.selectedWorkspace)
+   const normal=second.color.toString();verify(first.color.toString()!==normal,"selected card has a tonal background")
+   const firstCanvas=findChild(first,"overviewWorkspaceCanvas")
+   const secondCanvas=findChild(second,"overviewWorkspaceCanvas")
+   verify(firstCanvas.color!==secondCanvas.color,"canvas is tinted as well as its header")
+   content.stepWorkspace(1);wait(20);compare(first.color.toString(),normal);verify(second.color.toString()!==normal)
+  }
+  function test_overview_search_selection_and_move() {
+   controls.visible=false
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",title:"Editor project",workspace:ws})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",title:"Browser docs",workspace:ws,lastIpcObject:({at:[800,0],size:[800,600],class:"browser"})})
+   ws.toplevels.values=[one,two];Hyprland.workspaces.values=[ws];Hyprland.toplevels.values=[one,two]
+   GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(60);content.reset();wait(20)
+   compare(OverviewService.workspaces.length,3);compare(OverviewService.matches.length,2)
+   content.focusInitial();keyClick(Qt.Key_Down);compare(content.selectedAddress,"def","search forwards window navigation")
+   OverviewService.query="Editor";wait(20);compare(OverviewService.matches.length,1,"search filters title and application");compare(content.selectedAddress,"abc")
+   OverviewService.query="";wait(20)
+   content.selectedAddress="abc";content.focusInitial()
+   keyClick(Qt.Key_M,Qt.ControlModifier);wait(20);verify(content.modalOpen)
+   content.selectedAddress="def"
+   keyClick(Qt.Key_Return);wait(30)
+   compare(HyprlandDispatch.movedAddress,"abc","destination action keeps its original source window")
+   compare(HyprlandDispatch.movedWorkspace,2)
+   verify(!content.modalOpen)
+   content.selectedAddress="abc"
+   const physicalMove={key:"Ь".codePointAt(0),nativeScanCode:58,modifiers:Qt.ControlModifier,isAutoRepeat:false,accepted:false}
+   content.handleKey(physicalMove);verify(physicalMove.accepted);wait(20);verify(content.modalOpen)
+   verify(OverviewService.moveWindow("abc",2));compare(HyprlandDispatch.movedAddress,"abc");compare(HyprlandDispatch.movedWorkspace,2)
+   verify(!OverviewService.moveWindow("missing",2));verify(!OverviewService.moveWindow("abc",1))
+   Hyprland.toplevels.values=[two];ws.toplevels.values=[two];wait(30)
+   verify(!content.modalOpen,"removed window cancels the move menu")
+   OverviewService.query="";wait(20);compare(content.selectedAddress,"def")
+   GlobalStates.overviewOpen=false;wait(20);compare(OverviewService.windows.length,0);compare(OverviewService.query,"")
+  }
+  function test_overview_hhkb_navigation() {
+   controls.visible=false
+   const ws=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const one=createTemporaryObject(overviewWindowFixture,scene,{address:"abc",title:"First",workspace:ws})
+   const two=createTemporaryObject(overviewWindowFixture,scene,{address:"def",title:"Second",workspace:ws})
+   ws.toplevels.values=[one,two];Hyprland.workspaces.values=[ws];Hyprland.toplevels.values=[one,two]
+   GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(40);content.reset()
+   keyClick(Qt.Key_J,Qt.AltModifier);compare(content.selectedAddress,"def")
+   keyClick(Qt.Key_K,Qt.AltModifier);compare(content.selectedAddress,"abc")
+   keyClick(Qt.Key_L,Qt.AltModifier);compare(content.selectedWorkspaceId,2);compare(content.selectedAddress,"")
+   keyClick(Qt.Key_H,Qt.AltModifier);compare(content.selectedWorkspaceId,1)
+   // Ordinary letters still belong to the editor.
+   keyClick(Qt.Key_H);keyClick(Qt.Key_J);keyClick(Qt.Key_K);keyClick(Qt.Key_L)
+   compare(OverviewService.query,"hjkl")
+   content.reset();keyClick(Qt.Key_Tab)
+   verify(!byProperty(content,"placeholderText","Find a window or application").inputItem.activeFocus)
+   keyClick(Qt.Key_L);compare(content.selectedWorkspaceId,2)
+   keyClick(Qt.Key_H);compare(content.selectedWorkspaceId,1,"navigation survives the focused move button becoming disabled")
+   keyClick(Qt.Key_J);compare(content.selectedAddress,"def")
+   const physical={key:"р".codePointAt(0),nativeScanCode:43,modifiers:Qt.AltModifier,isAutoRepeat:false,accepted:false}
+   content.stepWorkspace(1);content.handleKey(physical);verify(physical.accepted);compare(content.selectedWorkspaceId,1)
+   content.openMove("abc");wait(20)
+   keyClick(Qt.Key_J);keyClick(Qt.Key_Return);wait(30)
+   compare(HyprlandDispatch.movedAddress,"abc");compare(HyprlandDispatch.movedWorkspace,3,"J selects the next enabled destination")
+   // Selection may move while the old thumbnail retains keyboard focus.
+   const first=byProperty(content,"window",one)
+   verify(first!==null);first.forceActiveFocus();content.selectedAddress="abc"
+   keyClick(Qt.Key_J);compare(content.selectedAddress,"def")
+   HyprlandDispatch.lastWindow="";keyClick(Qt.Key_Return);compare(HyprlandDispatch.lastWindow,"def")
+  }
+  function test_overview_grid_fit_data() {
+   const cases=[]
+   for(const pack of ["minimal","md3"])
+    for(const scale of [1,1.3,2]) {
+     cases.push({tag:pack+"-DP2-"+scale,pack:pack,scale:scale,width:3440,height:1440})
+     cases.push({tag:pack+"-DP3-"+scale,pack:pack,scale:scale,width:1080,height:1920})
+    }
+   return cases
+  }
+  function test_overview_grid_fit(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale;AppConfig.overviewWorkspaceCount=9
+   GlobalStates.overviewOpen=true
+   const screen=createTemporaryObject(overviewScreenFixture,scene,{width:data.width,height:data.height})
+   Quickshell.screens=[screen]
+   const content=createTemporaryObject(overviewFixture,scene,{width:data.width,height:data.height})
+   verify(content!==null);wait(40)
+   const view=byProperty(content,"cacheBuffer",0)
+   compare(view.columns,3);compare(view.rows,3)
+   verify(view.cellHeight>=view.minimumCellHeight)
+   verify(view.contentHeight<=view.height+1,"all nine workspaces fit the output")
+   const canvas=findChild(content,"overviewWorkspaceCanvas")
+   verify(canvas!==null);verify(canvas.height>0)
+   fuzzyCompare(canvas.width/canvas.height,data.width/data.height,0.001,"workspace aspect is preserved")
+   content.stepWorkspace(-1);wait(10);compare(view.contentY,0,"last row needs no scroll")
+  }
+  function test_overview_grid_scroll_fallback() {
+   controls.visible=false;AppConfig.fontScale=2;AppConfig.overviewWorkspaceCount=50;GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene,{width:320,height:450})
+   verify(content!==null);wait(40)
+   const view=byProperty(content,"cacheBuffer",0)
+   verify(view.cellHeight>=view.minimumCellHeight)
+   verify(view.contentHeight>view.height)
+   content.stepWorkspace(-1);wait(30);verify(view.contentY>0,"overflow remains keyboard reachable")
+  }
+  function test_overview_empty_workspace_keyboard() {
+   controls.visible=false;GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene)
+   verify(content!==null);wait(30);content.reset()
+   keyClick(Qt.Key_PageDown);compare(content.selectedWorkspaceId,2)
+   keyClick(Qt.Key_PageUp);compare(content.selectedWorkspaceId,1)
+   keyClick(Qt.Key_PageDown);keyClick(Qt.Key_Return);compare(HyprlandDispatch.lastWorkspace,2)
+   verify(!GlobalStates.overviewOpen)
+  }
+  function test_overview_density_data(){return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_overview_density(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=2
+   GlobalStates.overviewOpen=true
+   const content=createTemporaryObject(overviewFixture,scene,{width:320,height:450})
+   verify(content!==null);wait(80)
+   const view=byProperty(content,"cacheBuffer",0)
+   verify(view!==null);verify(view.cellWidth<=view.width)
+   grabImage(content).save("RENDERS/overview-"+data.tag+".png")
   }
   function test_power_keyboard_and_confirmation() {
    controls.visible=false
@@ -2388,6 +2619,7 @@ import Quickshell
 import Quickshell.Io
 import qs.src.features.statusbar
 import qs.src.features.powermenu
+import qs.src.features.overview
 import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.connections
@@ -2660,6 +2892,7 @@ import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.statusbar
 import qs.src.features.powermenu
+import qs.src.features.overview
 import qs.src.ui.feedback
 ShellRoot {
  id:root

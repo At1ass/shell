@@ -22,7 +22,7 @@ Singleton {
     // Central on/off map for every top-level UI element. A user disables anything
     // via the `modules` block in config.json; absent keys fall back to these defaults.
     readonly property var moduleDefaults: ({
-        bar: true, dock: false, wallpaper: true, dashboard: true, connections: true, audio: true,
+        overview: true, bar: true, dock: false, wallpaper: true, dashboard: true, connections: true, audio: true,
         launcher: true, notifications: true, osd: true, lockscreen: false,
         powerMenu: true, cheatsheet: true, screenshot: true, toasts: true, popouts: true,
         polkit: false, recorder: true
@@ -182,6 +182,12 @@ Singleton {
         return widget?.priority ?? automatic[widget?.type] ?? 50
     }
     readonly property var barWidgets: data.bar?.widgets || []
+
+    readonly property bool overviewShowPreviews: data.overview?.showPreviews ?? true
+    readonly property int overviewFirstWorkspace: data.overview?.firstWorkspace ?? 1
+    readonly property int overviewWorkspaceCount: data.overview?.workspaceCount ?? 9
+    readonly property int overviewColumns: data.overview?.columns ?? 3
+    readonly property bool overviewIncludeSpecial: data.overview?.includeSpecial ?? true
 
     // Dashboard
     readonly property int audioWidth: data.audio?.width ?? 420

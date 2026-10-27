@@ -14,7 +14,7 @@ Item {
     implicitHeight: 44
     implicitWidth: parent ? parent.width : 400
 
-    Rectangle {
+    MaterialShape {
         id: bg
         anchors.fill: parent
         radius: Tokens.shape.small

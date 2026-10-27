@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
+import Quickshell as QS
 import Quickshell.Io
-import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 
 pragma Singleton
@@ -9,9 +9,11 @@ pragma ComponentBehavior: Bound
 
 Singleton {
     id: root
+    function init() {}
 
     // ===== PIPEWIRE NODES =====
-    readonly property var pipewireNodes: (Pipewire.nodes && Pipewire.nodes.values) ? Pipewire.nodes.values : []
+    readonly property QS.ObjectModel _nodes: Pipewire.nodes as QS.ObjectModel
+    readonly property var pipewireNodes: _nodes?.values ?? []
     readonly property var sinkNodes: pipewireNodes.filter(node => node && node.audio && node.isSink && !node.isStream)
     readonly property var sourceNodes: pipewireNodes.filter(node => node && node.audio && !node.isSink && !node.isStream)
     readonly property var streamNodes: pipewireNodes.filter(node => node && node.audio && node.isStream)
@@ -186,22 +188,4 @@ Singleton {
         }
     }
 
-    // ===== GLOBAL SHORTCUTS =====
-    GlobalShortcut {
-        name: "audioVolumeUp"
-        description: "Increase master volume"
-        onPressed: root.setMasterVolume(root.masterVolume + 0.05)
-    }
-
-    GlobalShortcut {
-        name: "audioVolumeDown"
-        description: "Decrease master volume"
-        onPressed: root.setMasterVolume(root.masterVolume - 0.05)
-    }
-
-    GlobalShortcut {
-        name: "audioToggleMute"
-        description: "Toggle master mute"
-        onPressed: root.toggleMasterMute()
-    }
 }

@@ -7,6 +7,7 @@ import qs.config
 // robustness across any surface background.
 Item {
     id: root
+    property list<Item> keyForwardTargets: []
 
     property alias text: input.text
     property alias inputItem: input
@@ -77,6 +78,7 @@ Item {
 
     TextInput {
         id: input
+        Keys.forwardTo: root.keyForwardTargets
         anchors.fill: parent
         anchors.leftMargin: root.leadingIcon !== "" ? leading.x + leading.width + Tokens.spacing.small : Tokens.spacing.medium
         anchors.rightMargin: accessories.width + (root.trailingIcon !== "" ? trailing.width + Tokens.spacing.small : Tokens.spacing.medium)

@@ -3,12 +3,15 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import Quickshell as QS
 import Quickshell.Io
 import Quickshell.Services.Mpris
 
 Singleton {
     id: root
+    function init() {}
+
+    readonly property QS.ObjectModel _players: Mpris.players as QS.ObjectModel
 
     // ===== PLAYER MANAGEMENT =====
     // playerctld is a proxy that mirrors whichever player is active — it
@@ -35,7 +38,7 @@ Singleton {
     property bool _userPinned: false
 
     property MprisPlayer trackedPlayer: null
-    property MprisPlayer activePlayer: trackedPlayer ?? _defaultPick(Mpris.players.values)
+    property MprisPlayer activePlayer: trackedPlayer ?? _defaultPick(root._players.values)
 
     // ===== TRACK INFO =====
     signal trackChanged(reverse: bool)
@@ -113,7 +116,7 @@ Singleton {
     readonly property bool canSetFullscreen: activePlayer?.canSetFullscreen ?? false
 
     // ===== PLAYER MANAGEMENT =====
-    readonly property var availablePlayers: (Mpris.players.values ?? []).filter(p => !root._isProxy(p))
+    readonly property var availablePlayers: (root._players.values ?? []).filter(p => !root._isProxy(p))
 
     function setActivePlayer(player: MprisPlayer) {
         root.trackedPlayer = player
@@ -127,7 +130,7 @@ Singleton {
     // to exist ONLY as a click inside the dashboard.
     //
     // Reference comparison is correct here: availablePlayers is filtered from
-    // Mpris.players.values and activePlayer is one of those same objects, the
+    // root._players.values and activePlayer is one of those same objects, the
     // same identity the players-changed handler already relies on.
     function cyclePlayer() {
         const list = root.availablePlayers
@@ -184,7 +187,7 @@ Singleton {
     // reactive path was bypassed and the shell sat on whichever player it had
     // picked up first.
     Instantiator {
-        model: Mpris.players
+        model: root._players
 
         delegate: QtObject {
             required property MprisPlayer modelData
@@ -230,18 +233,18 @@ Singleton {
         if (player !== root.trackedPlayer)
             return
         root._userPinned = false
-        const pick = root._defaultPick(Mpris.players.values)
+        const pick = root._defaultPick(root._players.values)
         if (pick && pick.isPlaying)
             root.trackedPlayer = pick
     }
 
     // Track player changes
     Connections {
-        target: Mpris.players
+        target: root._players
 
         function onValuesChanged() {
             // If the current player disconnected
-            if (root.trackedPlayer && !Mpris.players.values.includes(root.trackedPlayer)) {
+            if (root.trackedPlayer && !root._players.values.includes(root.trackedPlayer)) {
                 root.trackedPlayer = null
                 root._userPinned = false
             }
@@ -250,7 +253,7 @@ Singleton {
             // re-runs on every arrival, so a later playing player replaces
             // an idle first-comer unless the user pinned one explicitly).
             if (!root._userPinned) {
-                const pick = root._defaultPick(Mpris.players.values)
+                const pick = root._defaultPick(root._players.values)
                 if (pick && pick !== root.trackedPlayer
                     && !(root.trackedPlayer?.isPlaying ?? false)) {
                     root.trackedPlayer = pick
@@ -564,42 +567,4 @@ Singleton {
         }
     }
 
-    // Quickshell does not export GlobalShortcut declaratively, so qmllint cannot
-    // resolve a type a dozen shortcuts in this shell already use at runtime.
-    // qmllint disable unresolved-type
-    GlobalShortcut {
-        name: "mprisCyclePlayer"
-        description: "Switch to the next media player"
-        onPressed: root.cyclePlayer()
-    }
-
-    // qmllint enable unresolved-type
-
-    // ===== GLOBAL SHORTCUTS (optional) =====
-    // Can be uncommented for global hotkeys
-    /*
-    GlobalShortcut {
-        name: "mprisPlayPause"
-        description: "Toggle play/pause"
-        onPressed: root.togglePlaying()
-    }
-
-    GlobalShortcut {
-        name: "mprisNext"
-        description: "Next track"
-        onPressed: root.next()
-    }
-
-    GlobalShortcut {
-        name: "mprisPrevious"
-        description: "Previous track"
-        onPressed: root.previous()
-    }
-
-    GlobalShortcut {
-        name: "mprisStop"
-        description: "Stop playback"
-        onPressed: root.stop()
-    }
-    */
 }

@@ -45,3 +45,4 @@ HttpRequest 1.0 HttpRequest.qml
 TimedMode 1.0 TimedMode.qml
 singleton NetworkAuthService 1.0 NetworkAuthService.qml
 NetworkInfo 1.0 NetworkInfo.qml
+singleton OverviewService 1.0 OverviewService.qml

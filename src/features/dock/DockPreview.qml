@@ -161,7 +161,7 @@ Surface {
                         id: thumbColumn
                         spacing: Tokens.spacing.extraSmall
 
-                        Rectangle {
+                        MaterialShape {
                             id: thumbContainer
                             width: Math.max(0, Math.min(280, root._maxW - root._pad * 2))
                             height: Math.max(0, Math.min(root.thumbHeight, root._maxH - root._pad * 2 - windowTitle.implicitHeight - thumbColumn.spacing))
@@ -215,7 +215,7 @@ Surface {
                             // Per-window close — window-level action lives where you see the
                             // window. Closes via the Wayland toplevel; the preview updates
                             // (and auto-hides when the last window closes).
-                            Rectangle {
+                            MaterialShape {
                                 id: closeBtn
                                 anchors.top: parent.top
                                 anchors.right: parent.right

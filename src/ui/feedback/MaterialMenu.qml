@@ -11,6 +11,7 @@ Surface {
     property var model: []
     property int itemWidth: Tokens.size.fieldWidth
     property real maximumHeight: (root.Window.window?.height ?? Tokens.size.listItem * 10) - Tokens.spacing.large * 2
+    property int _focusedIndex: -1
     signal triggered(int index)
 
     elevation: 2
@@ -25,12 +26,17 @@ Surface {
             const index = (start + direction * i + items.count * 2) % items.count
             const row = items.itemAt(index)
             if (row && row.enabled && row.activeFocusOnTab) {
+                root._focusedIndex = index
                 row.forceActiveFocus(Qt.TabFocusReason)
                 return
             }
         }
     }
     function focusFirst() { root.focusItem(0, 1) }
+    function focusNext(direction) {
+        const step = direction < 0 ? -1 : 1
+        root.focusItem(root._focusedIndex < 0 ? (step > 0 ? 0 : items.count - 1) : root._focusedIndex + step, step)
+    }
 
     ScrollableList {
         anchors.fill: parent
@@ -56,6 +62,7 @@ Surface {
                     headline: isSeparator ? "" : (isObject ? modelData.label ?? "" : modelData)
                     leadingIcon: isObject ? modelData.icon ?? "" : ""
                     opacity: enabled ? 1 : Tokens.state.disabledContentOpacity
+                    onActiveFocusChanged: if (activeFocus) root._focusedIndex = row.index
                     onClicked: root.triggered(row.index)
                     Keys.onPressed: event => {
                         switch (event.key) {

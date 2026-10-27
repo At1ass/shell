@@ -329,7 +329,7 @@ Item {
             }
 
             // ─── Search field ───────────────────────────────────
-            Rectangle {
+            MaterialShape {
                 id: searchContainer
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
@@ -430,7 +430,7 @@ Item {
 
                         readonly property bool isActive: root.currentTab === index
 
-                        Rectangle {
+                        MaterialShape {
                             anchors.fill: parent
                             radius: Tokens.shape.small
                             color: "transparent"
@@ -467,7 +467,7 @@ Item {
                             }
 
                             // Active indicator (bottom line)
-                            Rectangle {
+                            MaterialShape {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 width: parent.width * 0.6
@@ -491,32 +491,21 @@ Item {
             Divider { Layout.fillWidth: true }
 
             // ─── Tab content — only the active tab exists (§10.14) ───
-            StackLayout {
+            Loader {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: root.currentTab
-
-                Loader {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    active: root.currentTab === 0
-                    sourceComponent: Component {
-                        Components.KeybindingsTab {
-                            categories: root.filteredBindCategories
-                        }
-                    }
+                sourceComponent: root.currentTab === 0 ? bindingsComponent : ipcComponent
+                Component {
+                    id: bindingsComponent
+                    Components.KeybindingsTab { categories: root.filteredBindCategories }
                 }
-                Loader {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    active: root.currentTab === 1
-                    sourceComponent: Component {
-                        Components.IpcReferenceTab {
-                            handlers: root.filteredIpcHandlers
-                            loading: Components.IpcReferenceData.busy
-                            errorMessage: Components.IpcReferenceData.errorMessage
-                            onRetryRequested: Components.IpcReferenceData.refresh()
-                        }
+                Component {
+                    id: ipcComponent
+                    Components.IpcReferenceTab {
+                        handlers: root.filteredIpcHandlers
+                        loading: Components.IpcReferenceData.busy
+                        errorMessage: Components.IpcReferenceData.errorMessage
+                        onRetryRequested: Components.IpcReferenceData.refresh()
                     }
                 }
             }

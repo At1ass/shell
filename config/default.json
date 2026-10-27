@@ -40,7 +40,8 @@
     "polkit": false,
     "recorder": true,
     "connections": true,
-    "audio": true
+    "audio": true,
+    "overview": true
   },
   "bar": {
     "position": "top",
@@ -363,5 +364,12 @@
       60,
       120
     ]
+  },
+  "overview": {
+    "firstWorkspace": 1,
+    "workspaceCount": 9,
+    "columns": 3,
+    "includeSpecial": true,
+    "showPreviews": true
   }
 }

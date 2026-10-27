@@ -10,7 +10,7 @@ import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.ui.feedback
 
-Rectangle {
+MaterialShape {
     id: root
 
     required property var notificationData
@@ -152,7 +152,7 @@ Rectangle {
         radius: root.radius
     }
 
-    Rectangle {
+    MaterialShape {
         anchors.fill: parent
         radius: parent.radius
         border.color: Theme.outlineVariant
@@ -161,7 +161,7 @@ Rectangle {
     }
 
     // Critical urgency pulse overlay
-    Rectangle {
+    MaterialShape {
         id: criticalPulse
         anchors.fill: parent
         radius: parent.radius
@@ -188,7 +188,7 @@ Rectangle {
     }
 
     // Hover state layer
-    Rectangle {
+    MaterialShape {
         anchors.fill: parent
         radius: parent.radius
         color: root.isCritical ? Theme.onErrorContainer : Theme.onSurface
@@ -278,7 +278,7 @@ Rectangle {
             // instead of replacing it, so a second "New message" reads as "×2"
             // and nothing is lost — the old behaviour silently expired the
             // previous popup and the count of events disappeared with it.
-            Rectangle {
+            MaterialShape {
                 readonly property int repeatCount: root.hasData ? (root.notificationData.count ?? 1) : 1
                 visible: repeatCount > 1
                 implicitWidth: Math.max(countLabel.implicitWidth + Tokens.spacing.small, implicitHeight)
@@ -330,7 +330,7 @@ Rectangle {
         }
 
         // Notification image
-        Rectangle {
+        MaterialShape {
             visible: root.hasData && (root.notificationData.image || "") !== ""
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? Math.min(notifImage.implicitHeight, 180) : 0
