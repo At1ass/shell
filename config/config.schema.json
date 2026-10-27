@@ -1218,12 +1218,13 @@
             "enabled": {
               "type": "boolean",
               "default": false,
-              "description": "Enable VPN status tracking and quick-toggle."
+              "description": "Enable VPN profile discovery, status and selection in Connections."
             },
             "name": {
               "type": "string",
               "default": "",
-              "description": "NetworkManager VPN connection name to monitor and toggle."
+              "deprecated": true,
+              "description": "Deprecated compatibility field; ignored. VPN profiles are discovered from NetworkManager and selected by UUID."
             }
           }
         },

@@ -1,4 +1,6 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -6,168 +8,79 @@ import qs.src.core.config
 
 Singleton {
     id: root
-
-    // VPN state
-    property bool connected: false
+    function init() {}
+    readonly property bool enabled: AppConfig.vpnEnabled
+    Loader {
+        id: modelLoader
+        active: AppConfig.ready && root.enabled
+        source: active ? "connectivity/NativeVpnProfiles.qml" : ""
+    }
+    function value(name, fallback) { return modelLoader.item ? (modelLoader.item[name] ?? fallback) : fallback }
+    function invoke(name, args) {
+        const item = modelLoader.item
+        return item && typeof item[name] === "function" ? item[name](...args) : false
+    }
+    readonly property bool ready: value("ready", false)
+    readonly property var profiles: Array.from(value("profiles", []))
+    readonly property list<string> availableVPNs: value("names", [])
+    readonly property list<string> activeUuids: value("activeUuids", [])
+    readonly property bool connected: activeUuids.length > 0
+    readonly property string activeVPN: value("activeNames", "")
+    readonly property string icon: connected ? "vpn_lock" : "vpn_key_off"
+    readonly property string errorMessage: root._actionError || value("errorString", "")
+        || (modelLoader.status === Loader.Error ? "VPN information is unavailable" : "")
     property string busyVPN: ""
     readonly property bool busy: busyVPN !== ""
-    property string activeVPN: ""
-    property list<string> availableVPNs: []
+    property string _actionError: ""
+    property int _generation: 0
+    property int _operationGeneration: 0
+    property bool _disconnecting: false
 
-    // Primary VPN connection name (user-configurable)
-    readonly property string primaryVPN: AppConfig.vpnName
-
-    // services.vpn.enabled — "Enable VPN status tracking and quick-toggle".
-    // Defaults to FALSE, so honouring it matters: the two nmcli queries below
-    // used to run at startup and on every NetworkManager event regardless, for
-    // a feature the user had not turned on.
-    readonly property bool enabled: AppConfig.vpnEnabled
-
-    // Drop stale state when tracking is switched off mid-session, otherwise the
-    // dashboard keeps showing the last known connection forever. Switching it
-    // back ON needs nothing here — the query processes below bind their
-    // `running` straight to this flag.
-    onEnabledChanged: {
-        if (enabled) return
-        connected = false
-        activeVPN = ""
-        availableVPNs = []
-        busyVPN = ""
-    }
-
-    // Material icon based on state
-    readonly property string icon: connected ? "vpn_lock" : "vpn_key_off"
-
-    // Toggle primary VPN
+    onEnabledChanged: { ++root._generation; root.clearError() }
+    function clearError() { root._actionError = "" }
+    // A generic action opens the choice; it never guesses a primary profile.
     function toggle() {
-        if (!enabled) {
-            ToastService.info("VPN tracking is off — set services.vpn.enabled in config.json")
-            return
-        }
-        if (busy) return
-        if (connected && activeVPN === primaryVPN) {
-            disconnect()
-        } else {
-            connect(primaryVPN)
-        }
+        if (!root.enabled) { ToastService.info("VPN tracking is off — set services.vpn.enabled in config.json"); return }
+        GlobalStates.openConnections("vpn", null)
     }
-
-    // Connect to specific VPN
-    function connect(vpnName) {
-        if (busy) return
-        busyVPN = vpnName
-        specificConnectProc.command = ["nmcli", "connection", "up", vpnName]
-        specificConnectProc.running = true
+    function refresh() { if (enabled) invoke("refresh", []) }
+    function openSettings() { AppLaunchService.launchCommand(["nm-connection-editor"]) }
+    function connect(uuid) { return root._run(uuid, false) }
+    function disconnect(uuid) { return root._run(uuid, true) }
+    function _run(uuid, down) {
+        if (!root.enabled || !root.ready || root.busy || actionProc.running
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) return false
+        const profile = root.invoke("profile", [uuid])
+        if (!profile?.uuid || profile.busy || (down ? !profile.connected : profile.connected)) return false
+        root.clearError()
+        root.busyVPN = profile.uuid
+        root._disconnecting = down
+        root._operationGeneration = root._generation
+        actionProc.command = ["nmcli", "--wait", String(AppConfig.networkAuthenticationTimeout + 30),
+            "connection", down ? "down" : "up", "uuid", profile.uuid]
+        actionProc.running = true
+        return true
     }
-
-    // Disconnect active VPN
-    function disconnect() {
-        if (busy) return
-        busyVPN = root.activeVPN
-        disconnectProc.command = ["nmcli", "connection", "down", root.activeVPN]
-        disconnectProc.running = true
-    }
-
-    // Open system network settings
-    function openSettings() {
-        AppLaunchService.launchCommand(["nm-connection-editor"])
-    }
-
-    // Refresh on demand — NetworkEventMonitor calls this on NM events.
-    function refresh() {
-        if (!enabled) return
-        if (!vpnStateProc.running) vpnStateProc.running = true
-        if (!vpnListProc.running) vpnListProc.running = true
-    }
-
-    // Monitor VPN connection state
     Process {
-        id: vpnStateProc
-        running: root.enabled
-        command: ["nmcli", "-t", "-f", "NAME,TYPE,STATE", "connection", "show", "--active"]
-
-        stdout: StdioCollector {
-            id: vpnStateCollector
-            onStreamFinished: {
-                const lines = vpnStateCollector.text.trim().split('\n')
-                let vpnFound = false
-                let vpnName = ""
-
-                for (const line of lines) {
-                    const parts = line.split(':')
-                    if (parts.length >= 3 && parts[1] === 'vpn' && parts[2] === 'activated') {
-                        vpnFound = true
-                        vpnName = parts[0]
-                        break
-                    }
-                }
-
-                root.connected = vpnFound
-                root.activeVPN = vpnName
+        id: actionProc
+        objectName: "vpnOperation"
+        onExited: exitCode => {
+            root.busyVPN = ""
+            root.refresh()
+            if (!root.enabled || root._operationGeneration !== root._generation) return
+            if (exitCode === 0) {
+                if (!GlobalStates.connectionsOpen) ToastService.success(root._disconnecting ? "VPN disconnected" : "VPN connected")
+            } else {
+                root._actionError = exitCode === 3 ? "VPN operation timed out."
+                    : exitCode === 10 ? "VPN connection is no longer available."
+                    : root._disconnecting ? "Could not disconnect VPN."
+                    : "VPN connection failed. Check credentials or edit the profile."
+                if (!GlobalStates.connectionsOpen) ToastService.error(root._actionError)
             }
         }
-
-        onExited: (exitCode) => {
-            if (exitCode !== 0)
-                console.warn("VPNService: failed to query VPN state (exit " + exitCode + ")")
-        }
     }
-
-    // Get list of all VPN connections
-    Process {
-        id: vpnListProc
-        running: root.enabled
-        command: ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]
-
-        stdout: StdioCollector {
-            id: vpnListCollector
-            onStreamFinished: {
-                const lines = vpnListCollector.text.trim().split('\n')
-                const vpns = []
-
-                for (const line of lines) {
-                    const parts = line.split(':')
-                    if (parts.length >= 2 && parts[1] === 'vpn') {
-                        vpns.push(parts[0])
-                    }
-                }
-
-                root.availableVPNs = vpns
-            }
-        }
-
-        onExited: (exitCode) => {
-            if (exitCode !== 0)
-                console.warn("VPNService: failed to list VPN connections (exit " + exitCode + ")")
-        }
+    Connections {
+        target: GlobalStates
+        function onConnectionsOpenChanged() { if (GlobalStates.connectionsOpen) root.clearError() }
     }
-
-    // Connect to specific VPN
-    Process {
-        id: specificConnectProc
-
-        onExited: (exitCode) => {
-            root.busyVPN = ""
-            if (exitCode === 0)
-                ToastService.success("VPN connected")
-            else
-                ToastService.error("VPN connection failed (exit " + exitCode + ")")
-            vpnStateProc.running = true
-        }
-    }
-
-    // Disconnect VPN
-    Process {
-        id: disconnectProc
-
-        onExited: (exitCode) => {
-            root.busyVPN = ""
-            if (exitCode === 0)
-                ToastService.success("VPN disconnected")
-            else
-                ToastService.error("VPN disconnect failed (exit " + exitCode + ")")
-            vpnStateProc.running = true
-        }
-    }
-
 }

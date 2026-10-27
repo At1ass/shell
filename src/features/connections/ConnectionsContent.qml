@@ -205,7 +205,7 @@ MaterialCard {
             detailsDialog._previousFocus = origin
         } else if (kind === "vpn") {
             if (action.action === "connect") {
-                if (root.targetVpn === VPNService.activeVPN) VPNService.disconnect()
+                if (action.connected) VPNService.disconnect(root.targetVpn)
                 else VPNService.connect(root.targetVpn)
             }
         }
@@ -402,33 +402,55 @@ MaterialCard {
                 Layout.fillWidth: true
                 visible: VPNService.enabled
                 headline: "VPN"
+                supportingTextFormat: Text.PlainText
                 leadingIcon: VPNService.icon
-                supportingText: root.section === "vpn" ? "" : VPNService.busy ? "Working…" : VPNService.connected ? VPNService.activeVPN : "Not connected"
+                supportingText: root.section === "vpn" ? ""
+                    : !VPNService.ready ? (VPNService.errorMessage ? "Unavailable" : "Loading…")
+                    : VPNService.busy ? "Working…" : VPNService.connected ? VPNService.activeVPN : "Not connected"
                 expanded: root.section === "vpn"
                 onClicked: root.toggleSection("vpn")
             }
             Repeater {
-                model: ScriptModel { values: root.section === "vpn" && VPNService.enabled ? Array.from(VPNService.availableVPNs) : [] }
+                model: ScriptModel { values: root.section === "vpn" && VPNService.enabled ? Array.from(VPNService.profiles) : []; objectProp: "uuid" }
                 delegate: ConnectionRow {
                     id: vpnRow
-                    required property string modelData
+                    required property var modelData
                     Layout.fillWidth: true
-                    headline: vpnRow.modelData
+                    headline: vpnRow.modelData.name
+                    headlineTextFormat: Text.PlainText
                     leadingIcon: "vpn_key"
-                    supportingText: VPNService.busyVPN === vpnRow.modelData ? "Working…" : VPNService.activeVPN === vpnRow.modelData ? "Connected" : ""
-                    busy: VPNService.busy
+                    supportingText: vpnRow.modelData.busy ? (vpnRow.modelData.state === 3 ? "Disconnecting…" : "Connecting…")
+                        : VPNService.busyVPN === vpnRow.modelData.uuid ? "Working…" : vpnRow.modelData.connected ? "Connected" : ""
+                    busy: VPNService.busy || vpnRow.modelData.busy
                     onClicked: {
-                        if (VPNService.activeVPN === vpnRow.modelData) vpnRow.optionsRequested()
-                        else VPNService.connect(vpnRow.modelData)
+                        if (vpnRow.modelData.connected) vpnRow.optionsRequested()
+                        else VPNService.connect(vpnRow.modelData.uuid)
                     }
                     onOptionsRequested: {
-                        root.targetVpn = vpnRow.modelData
-                        root.showActions("vpn", vpnRow.modelData, [
-                            {label: VPNService.activeVPN === vpnRow.modelData ? "Disconnect" : "Connect", action: "connect", enabled: !VPNService.busy},
+                        root.targetVpn = vpnRow.modelData.uuid
+                        root.showActions("vpn", vpnRow.modelData.name, [
+                            {label: vpnRow.modelData.connected ? "Disconnect" : "Connect", action: "connect", connected: vpnRow.modelData.connected, enabled: !VPNService.busy && !vpnRow.modelData.busy},
                             {label: "Edit connections…", action: "editor", icon: "open_in_new"}
                         ])
                     }
                 }
+            }
+            MaterialText {
+                Layout.fillWidth: true
+                visible: root.section === "vpn" && VPNService.enabled && VPNService.errorMessage !== ""
+                text: VPNService.errorMessage
+                textFormat: Text.PlainText
+                textStyle: "bodySmall"
+                colorRole: "error"
+                wrapMode: Text.Wrap
+            }
+            MaterialText {
+                Layout.fillWidth: true
+                visible: root.section === "vpn" && VPNService.enabled && VPNService.profiles.length === 0 && VPNService.errorMessage === ""
+                text: VPNService.ready ? "No saved VPN connections" : "Loading VPN connections…"
+                textStyle: "bodySmall"
+                colorRole: "onSurfaceVariant"
+                wrapMode: Text.Wrap
             }
             ConnectionRow {
                 Layout.fillWidth: true
@@ -489,7 +511,7 @@ MaterialCard {
             ColumnLayout {
                 id: menuColumn
                 Layout.fillWidth: true
-                MaterialText { Layout.fillWidth: true; text: root.menuTitle; textStyle: "titleSmall"; elide: Text.ElideRight }
+                MaterialText { Layout.fillWidth: true; text: root.menuTitle; textFormat: Text.PlainText; textStyle: "titleSmall"; elide: Text.ElideRight }
                 MaterialMenu {
                     id: menu
                     Layout.fillWidth: true

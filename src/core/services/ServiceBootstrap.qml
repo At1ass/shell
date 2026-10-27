@@ -6,6 +6,7 @@ import Quickshell
 Singleton {
     function init() {
         NetworkAuthService.init()
+        VPNService.init()
         SystemMonitorService.init()
         NightLightService.init()
         IdleInhibitorService.init()

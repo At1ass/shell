@@ -11,9 +11,9 @@ have user acceptance. The user explicitly confirmed the dashboard trailing
 background is fixed, including section collapse and tab changes.
 
 Remaining code work, in practical order:
-1. Clean up VPNService's legacy primary-name toggle dependency. Selection should
-   use NetworkManager profiles/UUIDs, with correct refresh and failure handling;
-   removing services.vpn.name must not leave an invalid action behind.
+1. Deploy the completed VPNService cleanup: rebuild/install Connectivity for native
+   UUID profile snapshots, then verify profile selection and reconnect in normal use.
+   The legacy primary-name dependency and CLI list/state parsing are removed.
 2. Final consistency pass for bar/dock/popouts, typography and default behavior,
    concentrating on concrete remaining inconsistencies rather than another redesign.
 3. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
@@ -3542,3 +3542,30 @@ An isolated real-render probe replaced a red image with a deliberately delayed
 blue image and checked pixels repeatedly during loading: all intermediate samples
 retained red, then switched to blue. The probe changed no live wallpaper/config.
 Qt 6.8+ is required for retainWhileLoading; the installed Qt 6.12 supports it.
+
+
+## VPN profile identities and refresh — 2026-10-27
+
+Removed the legacy primary-name toggle. The general action opens Connections/VPN,
+rows reconcile by UUID and up/down commands explicitly select uuid. services.vpn.name
+is accepted as deprecated config metadata but ignored; no config file is rewritten.
+Profiles with duplicate names, colons, backslashes and newlines remain distinct.
+Multiple active VPNs are represented in the snapshot and disconnected individually.
+
+Connectivity.VpnProfiles is a read-only asynchronous D-Bus model. It reads settings
+without GetSecrets, observes profile and active-connection signals and publishes a
+whole bounded snapshot. Requests are single-flight/coalesced with a total deadline;
+owner/enable generations reject stale data. Failed refresh keeps the working model,
+and errors do not replace the profile list. Commands remain one bounded nmcli process
+with fixed argv and a validated UUID; stale completions after disabling tracking
+produce no toast. The global NetworkEventMonitor and CLI list/state queries are gone.
+
+Verification: private-bus metadata/lifecycle tests, QML command tests with a fake
+non-spawning Process, shared UI tests for duplicate-name selection and rename,
+and a read-only native ScriptModel probe against the machine's existing profile.
+No real VPN was activated/disconnected and no profiles/keyring entries were changed.
+Existing authentication support remains OpenVPN; this does not add protocol parity.
+Deployment requires rebuilding/installing Connectivity and restarting the unlocked
+shell; the old plugin cannot supply the new VpnProfiles type. Hardware reconnect
+acceptance follows installation. Wallpaper white-flash fix is separate and already
+works without a plugin rebuild.

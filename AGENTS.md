@@ -53,7 +53,7 @@ MD3-библиотека компонентов). Это **не форк** — �
 | Цвет | C++ плагин `Mcu` (Material Color Utilities, сабмодуль) |
 
 **Внешние CLI** (только там, где нет нативного API): `ddcutil`, `grim`, `wl-copy`, `swappy`,
-`cliphist`, `nmcli` (vpn), `hyprsunset`, `hyprctl`, `gdbus`, `systemctl`.
+`cliphist`, `nmcli` (VPN actions by UUID), `hyprsunset`, `hyprctl`, `gdbus`, `systemctl`.
 
 ---
 
@@ -407,6 +407,18 @@ PropertiesChanged учитывает текущие device/IP-config пути; �
 держит реактивную привязку к деталям, а не снимок при открытии. Проверки:
 network_info_test, tools/test-network-info.py (--native — read-only QS/DBus), test-ui.py.
 
+VPNService использует Connectivity.VpnProfiles: read-only D-Bus snapshot по UUID,
+один запрос в полёте, coalescing и общий deadline 5 с, ограничение числа профилей.
+GetSettings не запрашивает секреты; GetSecrets не вызывается. New/Updated/Removed,
+ActiveConnections и StateChanged обновляют модель; сбой refresh сохраняет последний
+рабочий snapshot, смена владельца/disable сбрасывает его, поздние ответы отбрасываются.
+ScriptModel согласует строки по uuid. Имя — только отображение; services.vpn.name
+игнорируется (схема оставлена для совместимости). Общее действие открывает выбор,
+команды up/down идут по UUID через один Process с deadline и защитой от повторов.
+Поздние результаты после смены enabled не поднимают тост. NetworkEventMonitor удалён:
+нет фонового nmcli monitor и CLI-запросов списка/статуса. Проверки: vpn_profiles_test,
+tools/test-vpn.py (--native только чтение), test-ui.py.
+
 ### Аудио и трей
 
 Dashboard держит стабильную по высоте Wayland-поверхность; input mask ограничен
@@ -575,7 +587,7 @@ QtConcurrent-результаты доставляются через прина
 - **Источники правды:** этот `AGENTS.md` + `CLAUDE.md` (конвенции), `README.md` (фичи/установка/IPC), `ROADMAP.md` (открытая работа), `config/config.schema.json` (конфиг). Других «документов-планов» в репо нет — архив `docs/` удалён, не воссоздавай.
 - **Устарело / не существует — не использовать** (следы старых планов могут встретиться в комментариях или git-истории): `ColorService.layer()` (нет в коде → `Theme.<role>`), `DesignTokens.qml` (→ `Tokens.qml`), путь `~/.config/shell/` (→ `~/.config/quickshell/config.json`). Верь коду.
 - C++ плагины должны быть **собраны и установлены**, иначе `import Mcu 1.0` падает и копит ошибки → segfault.
-- Технический долг (не плодить дальше): остаток CLI сети (VPN через `nmcli`, Wi-Fi/Ethernet нативно), механический baseline предупреждений qmllint и сырых Rectangle в features.
+- Технический долг (не плодить дальше): остаток CLI сети (VPN actions по UUID через `nmcli`; модели Wi-Fi/Ethernet/VPN нативные), механический baseline предупреждений qmllint и сырых Rectangle в features.
 - Изменил поведение или фичу — обнови `README.md`/`ROADMAP.md`, а конвенцию — здесь. Не создавай новый отчётный `.md`.
 
 ### Нативные каталоги гритера

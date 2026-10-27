@@ -52,7 +52,7 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 | `libical` | Native calendar plugin (events, RRULE expansion) |
 | `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
 | `hyprsunset` | Night Light temperature shift |
-| `networkmanager` | Network widget and VPN status (event-driven via `nmcli monitor`) |
+| `networkmanager` | Native device/profile status; UUID-based VPN activation through `nmcli` |
 | `bluez` | Bluetooth support for the Connections panel |
 | `libsecret` + a Secret Service provider | NetworkManager agent-owned credentials (compatible with nm-applet keyring entries) |
 | `networkmanager-openvpn` | OpenVPN authentication helper, when OpenVPN profiles are used |
@@ -1135,6 +1135,28 @@ qs ipc call globalstates closeConnections
 `connections.maxHeight` (640) set its preferred logical dimensions; both are
 clamped to the output and long lists scroll. `performance.keepPanelsLoaded` can
 include `connections`. User configuration is never rewritten.
+
+VPN profiles and active states are discovered through NetworkManager D-Bus when
+`services.vpn.enabled` is true. Rows use UUIDs, so renaming a profile and duplicate
+names do not change the action target. Multiple active profiles are represented
+individually. A general VPN action opens the selector; `services.vpn.name` is now
+ignored and retained in the schema only for config compatibility. Additions,
+renames, removals and active-state changes update the list without reopening it.
+Refresh failures keep the last working snapshot and show an inline error.
+
+Activation/disconnection use `nmcli connection up/down uuid …` with one owned,
+bounded command at a time; the deadline allows credential entry. Submitted
+credentials are handled by the existing secret agent, never passed as CLI arguments.
+Profile discovery never calls GetSecrets. The global `nmcli monitor` process and
+separate list/state query processes are no longer needed. Rebuild/install the
+Connectivity plugin for the new VpnProfiles reader; an older plugin leaves the
+shell running but cannot provide the new VPN list.
+
+`python3 tools/test-vpn.py` tests actions using a non-spawning process and fake
+metadata. `--native` additionally reads the real profile/model bridge, without
+activation, profile changes or secret requests. `vpn_profiles_test` exercises a
+private D-Bus manager, including duplicate/control-character names, rename/removal,
+multiple active states, stale replies, restart, errors and pending destruction.
 
 The network bar widget supports `connections`, `connections-wifi` and
 `connections-bluetooth` click actions. Its `settings.showLabel` defaults to false;

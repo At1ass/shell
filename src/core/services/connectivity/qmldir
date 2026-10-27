@@ -1,3 +1,4 @@
 NativeBluetoothAgent 1.0 NativeBluetoothAgent.qml
 NativeNetworkAgent 1.0 NativeNetworkAgent.qml
 NativeNetworkInfo 1.0 NativeNetworkInfo.qml
+NativeVpnProfiles 1.0 NativeVpnProfiles.qml

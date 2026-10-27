@@ -261,7 +261,6 @@ Singleton {
     readonly property int calendarDayViewHourHeight: data.services?.calendar?.dayView?.hourHeight ?? 60
     readonly property int calendarFirstDayOfWeek: data.services?.calendar?.firstDayOfWeek ?? 1
     readonly property bool vpnEnabled: data.services?.vpn?.enabled ?? false
-    readonly property string vpnName: data.services?.vpn?.name ?? ""
 
     // OSD
     readonly property string osdMonitorPolicy: data.osd?.monitorPolicy ?? "focused"

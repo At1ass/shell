@@ -272,7 +272,7 @@ QtObject {
     mocks['AudioService'] += '; property var sinkNodes:[]; property var sourceNodes:[]; property var defaultSource:null; property var streamNodes:[]; function getAppIcon(node) {return \"\"} function formatVolume(value) {return \"0\"} function setDefaultSink(node) {defaultSink=node} function setDefaultSource(node) {defaultSource=node}'
     mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++;return true}'
     mocks['BluetoothService'] += '; property int connectedDeviceCount:0; property var pairedDevices:[]; property var discoveredDevices:[]; property string busyDeviceAddress:""; property int connections:0; property int pairs:0; function connectDevice(device) {connections++} function disconnectDevice(device) {connections++} function pairDevice(device) {pairs++} function stopScan() {scanning=false} function startScan() {scanning=true} property bool scanning:false'
-    mocks['VPNService'] += '; property var availableVPNs:[]; property bool busy:false; property string busyVPN:""; property string activeVPN:""; property int connections:0; function connect(name) {connections++} function disconnect() {connections++}'
+    mocks['VPNService'] += '; property var profiles:[];property bool ready:true;property string errorMessage:"";property bool busy:false;property string busyVPN:"";property string activeVPN:"";property int connections:0;property string lastUuid:"";function connect(uuid) {lastUuid=uuid;connections++} function disconnect(uuid) {lastUuid=uuid;connections++}'
     mocks['NetworkAuthService'] = 'property bool busy:false;property string requestToken:"";property string connectionName:"";property string message:"";property var fields:[];property bool requestNew:false;property string validationError:"";function submit(token,answers) {requestToken="";return true} function reject(token) {requestToken="";return true}'
     mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property var ipv4Addresses:[];property var ipv6Addresses:[];property string ipv4Gateway:"";property string ipv6Gateway:""'
     mocks['SystemMonitorService'] += '; property bool hasNet:false; property string netRxFormatted:""; property string netTxFormatted:""; property var netRxHistory:[]; property var netTxHistory:[]'
@@ -649,6 +649,7 @@ Item {
    AudioService.streamNodes=[];AudioService.defaultSource=null;AudioService.masterVolume=0.45;AudioService.masterMuted=false;AudioService.micVolume=0.5;AudioService.micMuted=false
    GlobalStates.connectionsOpen=true;GlobalStates.connectionsSection=""
    NetworkService.wifiEnabled=true;NetworkService.deviceReady=true;NetworkService.errorMessage="";NetworkService.connectionPending=false;BluetoothService.enabled=true
+   VPNService.profiles=[];VPNService.errorMessage="";VPNService.lastUuid="";VPNService.connections=0
    NetworkService.networks=[];NetworkService.scanning=false;NetworkService.connections=0;NetworkService.disconnections=0
    BluetoothService.pairedDevices=[];BluetoothService.discoveredDevices=[];BluetoothService.scanning=false;BluetoothService.connections=0;BluetoothService.pairs=0
    scene.width=760;scene.height=520
@@ -1238,6 +1239,20 @@ Item {
    verify(panel.detailLines.includes("IPv6 gateway: None"))
    keyClick(Qt.Key_Escape);wait(20)
    EthernetService.connected=false;EthernetService.interfaceName="";EthernetService.ipv4Addresses=[]
+  }
+  function test_connections_vpn_uuid_and_rename() {
+   controls.visible=false;GlobalStates.connectionsSection="vpn"
+   VPNService.profiles=[{uuid:"first",name:"Same: VPN",connected:false,busy:false,state:0},{uuid:"second",name:"Same: VPN",connected:true,busy:false,state:2}]
+   const panel=createTemporaryObject(connectionsPanel,scene)
+   wait(20)
+   const row=byProperty(panel,"supportingText", "Connected")
+   verify(row!==null);row.forceActiveFocus();keyClick(Qt.Key_Return);wait(20);keyClick(Qt.Key_Return);wait(20)
+   compare(VPNService.lastUuid,"second")
+   VPNService.profiles=[{uuid:"first",name:"Renamed: VPN",connected:false,busy:false,state:0}]
+   wait(20)
+   const renamed=byProperty(panel,"headline","Renamed: VPN")
+   verify(renamed!==null);renamed.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(VPNService.lastUuid,"first")
   }
   function test_connections_legacy_wep_uses_editor() {
    controls.visible=false

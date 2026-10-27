@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='shell-statistics-test-') as directory:
     names = ['SystemMonitorService','ServiceBootstrap']
     for name in names:
         shutil.copy2(ROOT / f'src/core/services/{name}.qml', services / f'{name}.qml')
-    for name in ['NightLightService','IdleInhibitorService','GamingModeService']:
+    for name in ['NightLightService','IdleInhibitorService','GamingModeService','NotificationDND','NetworkAuthService','VPNService']:
         names.append(name)
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int calls:0;function init(){calls++}}\n')
     names.append('GlobalStates')

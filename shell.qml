@@ -29,7 +29,6 @@ ShellRoot {
     Component.onCompleted: {
         ServiceBootstrap.init()
         HyprlandWindowService.init()
-        NetworkEventMonitor.init()
     }
     LazyLoader {
         active: AppConfig.moduleEnabled("popouts")
