@@ -169,7 +169,7 @@ bind = , XF86AudioRaiseVolume, global, quickshell:audioVolumeUp
 bind = , XF86AudioLowerVolume, global, quickshell:audioVolumeDown
 bind = , XF86AudioMute,        global, quickshell:audioToggleMute
 
-# Brightness (DDC/CI external monitors + backlight)
+# Brightness (DDC/CI external monitors)
 bind = , XF86MonBrightnessUp,   global, quickshell:brightnessUp
 bind = , XF86MonBrightnessDown, global, quickshell:brightnessDown
 
@@ -577,6 +577,11 @@ The bar follows top/bottom placement and grows when larger fonts require it.
 Dashboard Quick keeps modes, destination tiles, brightness and system/media
 information. Audio controls live in the Audio panel, and the header shows the
 date without duplicating the bar clock.
+
+Brightness DDC commands run serially with deadlines. Initial values are published
+only after valid VCP reads; writes use each display's reported maximum, coalesce
+to the latest requested level and read back the result. `python3 tools/test-brightness.py --native` tests the transport with an absolute fake executable, without changing
+hardware brightness.
 
 Available widget types:
 
@@ -1022,8 +1027,8 @@ Full list of shortcuts for `hyprland.conf` (`bind = ..., global, quickshell:<nam
 | `audioVolumeUp` | Volume +5% |
 | `audioVolumeDown` | Volume −5% |
 | `audioToggleMute` | Mute / unmute |
-| `brightnessUp` | Brightness +5% (DDC/CI + backlight) |
-| `brightnessDown` | Brightness −5% (DDC/CI + backlight) |
+| `brightnessUp` | Brightness +5% (DDC/CI) |
+| `brightnessDown` | Brightness −5% (DDC/CI) |
 
 Notification regressions can be checked with `tools/test-notifications.py`. It runs
 the real list, cards and history in an isolated offscreen shell with temporary

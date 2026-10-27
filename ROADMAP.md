@@ -3719,3 +3719,24 @@ pressed/released/clicked sequence and one answer or rejection. Existing lockscre
 and fake-greetd/power tests cover the other consumers without locking, powering off
 or authenticating the live session. The main shell changes require no rebuild;
 greeter presentation changes ship with its next package build.
+
+
+## DDC brightness transport — 2026-10-27
+
+A read-only host check confirmed ddcutil returns `VCP 10 C current maximum`;
+the old parser treated C as the current number and retained placeholder values.
+It also started each next read in stdout completion before process exit and wrote
+percentage values as raw VCP values, assuming every monitor's maximum was 100.
+
+One asynchronous Process now serializes detection, reads and writes. Model
+publication follows exit through a deferred callback. No provisional 50% monitor
+is published; invalid reads are skipped. Commands have deadlines, detection is
+bounded, writes use the reported maximum and a latest-request generation; stale
+reads cannot overwrite newer intent. Final readback confirms each display or
+restores its last confirmed value, without resetting other pending readbacks.
+
+Eight isolated unit checks cover parsing, no-overlap, max != 100, fast requests,
+stale reads, errors, unavailable/NaN values, failed starts and kill/exit ordering.
+The native Process probe uses an absolute fake ddcutil executable and confirms two
+displays and readback. No real brightness was changed by automated tests. Runtime
+startup still performs only discovery/read operations; there is no polling.

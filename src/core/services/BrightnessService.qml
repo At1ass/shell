@@ -4,152 +4,150 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.src.core.config
 
 Singleton {
     id: root
 
-    // Array of { display: int, current: int, max: int }
     property var monitors: []
-
-    // Primary brightness (0.0–1.0), averaged across all monitors
+    readonly property bool available: _ready && monitors.length > 0
     readonly property real brightness: {
-        if (monitors.length === 0) return 0.5
+        if (!monitors.length) return 0.5
         let sum = 0
-        for (let i = 0; i < monitors.length; i++)
-            sum += monitors[i].current / Math.max(monitors[i].max, 1)
+        for (const monitor of monitors) sum += monitor.current / monitor.max
         return sum / monitors.length
     }
-
-    readonly property bool available: monitors.length > 0
-
-    // Emitted when brightness is actively changed by the user (not on initial read)
     signal brightnessAdjusted(real value)
 
-    // --- Detect monitors via ddcutil at startup ---
-    Process {
-        id: detectProc
-        command: ["ddcutil", "detect", "--terse"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: root._parseDetect(text)
-        }
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0) {
-                console.warn("BrightnessService: ddcutil detect failed (exit " + exitCode + ")")
-                ToastService.warning("Brightness unavailable: ddcutil failed")
-            }
-        }
-    }
-
-    function _parseDetect(text) {
-        // ddcutil detect --terse outputs lines like:
-        // Display 1 ...
-        // Display 2 ...
-        const displayNums = []
-        const lines = text.split("\n")
-        for (const line of lines) {
-            const m = line.match(/^Display\s+(\d+)/)
-            if (m) displayNums.push(parseInt(m[1]))
-        }
-        if (displayNums.length === 0) {
-            console.warn("BrightnessService: no DDC/CI displays found")
-            return
-        }
-        // Initialize monitors array and start reading brightness
-        const initial = displayNums.map(n => ({ display: n, current: 50, max: 100 }))
-        root.monitors = initial
-        _readBrightness(0)
-    }
-
-    // --- Sequential brightness read for each monitor ---
-    property int _readIndex: 0
-
-    Process {
-        id: readProc
-        stdout: StdioCollector {
-            onStreamFinished: root._parseBrightness(text)
-        }
-        onExited: (exitCode) => {
-            if (exitCode !== 0)
-                console.warn("BrightnessService: ddcutil getvcp failed (exit " + exitCode + ")")
-        }
-    }
-
-    function _readBrightness(index) {
-        if (index >= monitors.length) return
-        _readIndex = index
-        readProc.command = ["ddcutil", "getvcp", "10",
-                            "--display", String(monitors[index].display),
-                            "--terse"]
-        readProc.running = true
-    }
-
-    function _parseBrightness(text) {
-        // terse output: "10 C <current> <max>"
-        const parts = text.trim().split(/\s+/)
-        if (parts.length >= 4) {
-            const current = parseInt(parts[2])
-            const max = parseInt(parts[3])
-            if (!isNaN(current) && !isNaN(max) && max > 0) {
-                const updated = monitors.slice()
-                updated[_readIndex] = { display: monitors[_readIndex].display, current: current, max: max }
-                monitors = updated
-            }
-        }
-        _readBrightness(_readIndex + 1)
-    }
-
-    // --- Set brightness on all monitors sequentially ---
+    property bool _ready: false
+    property var _displays: []
+    property var _confirmed: ({})
+    property var _readQueue: []
+    property real _desired: -1
+    property int _writeGeneration: 0
     property int _setIndex: 0
-    property int _setPending: -1
+    property string errorMessage: ""
+    property var _active: null
+    property int _epoch: 0
+    property string _output: ""
+    property bool _timedOut: false
 
-    // Set while a chain is in flight: restart CLEANLY from monitor 0 after
-    // the current process exits. Resetting _setIndex mid-chain raced the
-    // in-flight onExited increment — monitor 0 kept the old value while
-    // monitor 1 got the new one.
-    property bool _setRestartPending: false
-
+    // One transport for all DDC commands: reads and writes never overlap.
     Process {
-        id: setProc
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0)
-                console.warn("BrightnessService: ddcutil setvcp failed (exit " + exitCode + ")")
-            if (root._setRestartPending) {
-                root._setRestartPending = false
-                root._setIndex = 0
-            } else {
-                root._setIndex++
-            }
-            root._doSetNext()
+        id: commandProc
+        objectName: "brightnessCommand"
+        stdout: StdioCollector { onStreamFinished: root._output = text.slice(0, 65536) }
+        onExited: exitCode => {
+            const epoch = root._epoch
+            Qt.callLater(() => root._finish(epoch, exitCode))
         }
+    }
+    Timer {
+        id: deadline
+        objectName: "brightnessDeadline"
+        interval: root._active?.kind === "detect" ? 15000 : 5000
+        onTriggered: {
+            if (!root._active) return
+            root._timedOut = true
+            if (commandProc.running) commandProc.signal(9)
+            else root._finish(root._epoch, -1) // A failed start may have no exited signal.
+        }
+    }
+
+    function _start(job, argv) {
+        if (_active || commandProc.running) return
+        _active = job
+        _epoch++
+        _output = ""
+        _timedOut = false
+        commandProc.command = argv
+        deadline.restart()
+        commandProc.running = true
+    }
+    function _schedule() {
+        if (_active || commandProc.running) return
+        if (_desired >= 0) {
+            if (_setIndex < monitors.length) {
+                const monitor = monitors[_setIndex]
+                const raw = Math.round(_desired * monitor.max)
+                _start({kind: "set", display: monitor.display, generation: _writeGeneration},
+                    ["ddcutil", "setvcp", "10", String(raw), "--display", String(monitor.display)])
+                return
+            }
+            _desired = -1
+            _setIndex = 0
+            _readQueue = _displays.slice()
+            if (errorMessage) ToastService.warning(errorMessage)
+        }
+        if (_readQueue.length) {
+            const display = _readQueue[0]
+            _readQueue = _readQueue.slice(1)
+            _start({kind: "read", display: display, generation: _writeGeneration},
+                ["ddcutil", "getvcp", "10", "--display", String(display), "--terse"])
+        } else _ready = true
+    }
+    function _publishDisplay(display) {
+        const value = _confirmed[display]
+        if (!value) return
+        const updated = monitors.slice()
+        let index = -1
+        for (let i = 0; i < updated.length; i++) {
+            if (updated[i].display === display) { index = i; break }
+        }
+        if (index >= 0) updated[index] = value
+        else updated.push(value)
+        monitors = updated
+    }
+    function _finish(epoch, exitCode) {
+        if (!_active || epoch !== _epoch) return
+        deadline.stop()
+        const job = _active
+        const output = _output
+        const success = exitCode === 0 && !_timedOut
+        _active = null
+        if (job.kind === "detect") {
+            const displays = []
+            if (success) {
+                for (const line of output.split("\n")) {
+                    const match = line.match(/^Display\s+(\d+)\b/)
+                    const display = match ? Number(match[1]) : 0
+                    if (display > 0 && display <= 256 && !displays.includes(display)) displays.push(display)
+                    if (displays.length >= 16) break
+                }
+            } else ToastService.warning("Brightness unavailable: ddcutil detection failed")
+            _displays = displays
+            _readQueue = displays.slice()
+        } else if (job.kind === "read" && job.generation === _writeGeneration) {
+            // Current ddcutil: "VCP 10 C <current> <max>". Accept the old prefix-less form too.
+            const match = success ? output.trim().match(/^(?:VCP\s+)?10\s+C\s+(\d+)\s+(\d+)$/) : null
+            const current = match ? Number(match[1]) : -1
+            const maximum = match ? Number(match[2]) : 0
+            if (maximum > 0 && maximum <= 65535 && current >= 0 && current <= maximum)
+                _confirmed[job.display] = {display: job.display, current: current, max: maximum}
+            // Readback failure restores the last confirmed value, not an optimistic write.
+            _publishDisplay(job.display)
+        } else if (job.kind === "set" && job.generation === _writeGeneration) {
+            if (!success) errorMessage = "Could not set display brightness"
+            _setIndex++
+        }
+        _schedule()
     }
 
     function setBrightness(value) {
-        const clamped = Math.max(0.0, Math.min(1.0, value))
-        const updated = monitors.slice()
-        for (let i = 0; i < updated.length; i++)
-            updated[i] = { display: updated[i].display,
-                           current: Math.round(clamped * updated[i].max),
-                           max: updated[i].max }
+        if (!available || !Number.isFinite(value)) return false
+        const clamped = Math.max(0, Math.min(1, value))
+        _writeGeneration++
+        _setIndex = 0
+        _desired = clamped
+        errorMessage = ""
+        const updated = []
+        for (const monitor of monitors)
+            updated.push({display: monitor.display, current: Math.round(clamped * monitor.max), max: monitor.max})
         monitors = updated
         brightnessAdjusted(clamped)
-        _setPending = Math.round(clamped * 100)
-        if (setProc.running) {
-            _setRestartPending = true
-        } else {
-            _setIndex = 0
-            _doSetNext()
-        }
+        _schedule()
+        return true
     }
-
-    function _doSetNext() {
-        if (_setIndex >= monitors.length || setProc.running) return
-        setProc.command = ["ddcutil", "setvcp", "10", String(_setPending),
-                           "--display", String(monitors[_setIndex].display)]
-        setProc.running = true
-    }
-
-    function increase(step) { setBrightness(brightness + (step || 0.05)) }
-    function decrease(step) { setBrightness(brightness - (step || 0.05)) }
+    function increase(step) { return setBrightness(brightness + (step || 0.05)) }
+    function decrease(step) { return setBrightness(brightness - (step || 0.05)) }
+    Component.onCompleted: _start({kind: "detect"}, ["ddcutil", "detect", "--terse"])
 }
