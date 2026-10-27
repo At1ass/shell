@@ -13,6 +13,7 @@ Item {
     property string placeholderText: ""
 
     signal textEdited()
+    onActiveFocusChanged: if (activeFocus) input.forceActiveFocus()
 
     implicitWidth: 240
     implicitHeight: Math.max(96, input.implicitHeight + Tokens.spacing.medium * 2)
@@ -39,6 +40,9 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.spacing.medium
         enabled: root.enabled
+        activeFocusOnTab: root.enabled
+        // Let form owners handle navigation before TextEdit inserts a Tab.
+        Keys.forwardTo: [root]
         clip: true
         color: Theme.onSurface
         selectionColor: Theme.primary

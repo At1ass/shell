@@ -54,8 +54,6 @@ Item {
                         enabled: !root.busy || modelData.action === "cancel"
                         variant: modelData.action === "cancel" ? "text" : "tonal"
                         Keys.forwardTo: [root]
-                        Keys.onReturnPressed: clicked()
-                        Keys.onEnterPressed: clicked()
                         onClicked: {
                             const action = modelData.action
                             if (action === "cancel") root.close()

@@ -1077,20 +1077,24 @@ with its own density tokens. Shared buttons, fields, icon buttons and launcher
 rows follow those tokens and the configured font scale.
 
 - Dashboard: Tab/Shift+Tab traverse controls; Ctrl+Tab/Ctrl+Shift+Tab change
-  sections. Inside the section strip, arrows and Home/End select a tab. Existing
-  number and vi navigation shortcuts remain available when an editor is not
-  consuming them.
+  sections from any focused control, except while a modal is open. Inside the
+  section strip, Left/Right and Home/End select a tab; Up/Down do not move calendar
+  days behind it. Tab enters the content. Bare number/media/vi panel shortcuts
+  apply only when the panel background itself has focus.
 - Audio/Connections: Enter or Space activates device rows; radio/switch actions remain
   controlled by the native services. Bluetooth list updates preserve focus by
   device address. Busy operations cannot be activated again from their row.
-- Calendar: Tab enters/leaves the date grid; arrows move its focused day and Enter
-  selects it. Tab reaches events; Enter opens the editor and scrolls the timeline
-  to the focused card. The Today button or T returns to the current day.
+- Calendar: Tab enters/leaves the date grid; arrows or H/J/K/L move its focused day
+  and Enter selects it. Tab reaches events; Enter opens the editor and scrolls the timeline
+  to the focused card. The Today button or T within the date grid returns to the current day.
   Month and day views stack on narrow panels; Tab reveals actions below the fold.
+  The event editor scrolls to focused fields. Description grows with text and
+  follows the caret; Tab/Shift+Tab leave it for adjacent fields.
 - Mode tiles show on/off state; destination tiles have arrows and command tiles
   have no state marker. Unavailable VPN, Night Light and disabled Screenshot
   actions are omitted from Quick. Tiles support Space and Enter. Combo boxes support arrows, Home/End,
   Space/Enter and Escape.
+- Buttons activate with Enter, keypad Enter or Space in both design packs.
 - Dialogs keep keyboard traversal inside the nearest open modal and restore
   the previous focus on close. Editors have a single Tab stop.
 - Dashboard and launcher sizes are limited to the active screen. Quick controls

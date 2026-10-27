@@ -3643,3 +3643,79 @@ viewports, multiple windows, literal titles, menu limits and every sampled frame
 while the viewport shrinks during motion. Screencopy rendering is mocked for these
 geometry checks; native coordinator, engine compilation and Wayland checks remain
 separate. No plugin rebuild or compositor configuration change is needed.
+
+
+## Dashboard tab/calendar keyboard ownership — 2026-10-27
+
+Reported: selecting Calendar with strip arrows leaves Left/Right switching tabs
+while Up/Down move calendar days; tab cycling stops from other focused controls.
+The strip consumed horizontal arrows, and the panel's bubbling handler routed
+vertical arrows into the calendar without checking focus ownership. Ctrl+Tab in
+the same handler could be swallowed by a child's focus traversal.
+
+Ctrl+Tab/Ctrl+Shift+Tab now use WindowShortcut with visible/open/modal gates and
+return focus to the selected strip tab. Bare panel commands apply only to panel
+background focus. Calendar date cells own arrows and the existing physical vi,
+month/day and event shortcuts; strip Up/Down does not change hidden calendar focus.
+Tab/Shift+Tab remain ordinary control traversal. Dialogs block section shortcuts.
+
+Tests load the real CalendarTab inside DashboardContent rather than an editor-only
+stand-in. Both packs cover strip/calendar focus, all four day arrows, vi keys,
+forward/backward cycling from a date cell, button, slider and text field, literal
+entry without panel/media actions and modal blocking. Repeated lazy calendar
+creation also exposed an initial-date reentrancy warning: the midnight refresh now
+waits until initialization and defers mutations outside the today binding chain.
+No plugin rebuild is needed.
+
+
+## MaterialButton Enter activation / Add Event — 2026-10-27
+
+The focused Calendar Add Event button opened with Space but not Return/keypad
+Enter. The shared MaterialButton relied on platform-dependent native Return
+handling. Handle both Enter keys before the native item via AbstractButton.click(),
+retaining checked/pressed/released semantics and suppressing key auto-repeat.
+Space retains its standard press/release behavior. Regenerate the greeter kit from
+the same component; no authentication code changes.
+
+Regression checks reproduce both Enter failures before the fix in Minimal/MD3,
+then open the calendar editor through each activation key and verify focus return.
+Shared-button checks assert exactly one click per key, checkable state and disabled
+behavior. The shell fix is QML-only; the generated greeter copy takes effect when
+its package is next rebuilt and installed.
+
+
+## Event editor focus/caret scrolling — 2026-10-27
+
+EventDialog used a plain Flickable, bypassing the shared focus-reveal behavior.
+Use ScrollableList for its form and let Description grow with content instead
+of forcing an 80 px height. ScrollableList observes only a focused descendant's
+editor cursor/height and follows cursorRectangle when the editor is taller than
+the viewport. Cursor movement and text growth trigger deferred/coalesced reveals;
+there is no polling or reveal animation.
+
+MaterialTextArea's editor participates in Tab traversal and forwards keys to its
+owner before TextEdit can insert Tab. EventDialog routes Tab/Shift+Tab through its
+existing modal focus cycle, including exit from a long Description. Other text
+and newline input retain native editing behavior.
+
+Isolated tests load the production event form with a fake calendar backend,
+exercise real Tab traversal through Description/Categories, type in the revealed
+field, grow Description to 50 lines, move/type at both ends and leave backwards.
+Both design packs, font scales 1/2 and short/tall dialogs are covered. No real event
+is saved and no calendar file is modified. No plugin rebuild is required.
+
+
+## Shared button activation ownership — 2026-10-27
+
+Remove the remaining direct clicked() Enter handlers from network/Bluetooth
+prompts, LockContent buttons and greeter power actions. They bypassed the shared
+MaterialButton's native click path and repeat guard. Existing modal key forwarding,
+confirmation defaults, request-token checks and authentication/power transport
+remain in their current owners.
+
+Real-key fixture checks cover confirm/cancel, both Enter keys and Space in both
+design packs for network and Bluetooth. Every activation must emit exactly one
+pressed/released/clicked sequence and one answer or rejection. Existing lockscreen
+and fake-greetd/power tests cover the other consumers without locking, powering off
+or authenticating the live session. The main shell changes require no rebuild;
+greeter presentation changes ship with its next package build.

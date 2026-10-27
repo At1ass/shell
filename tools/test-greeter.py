@@ -21,9 +21,12 @@ with tempfile.TemporaryDirectory(prefix='shell-greeter-test-') as temp:
     }
     for name,body in mocks.items():
         (config / (name+'.qml')).write_text('pragma Singleton\nimport QtQml\nQtObject {\n'+body+'\n}\n')
-    backend = imports / 'GreeterData'
+    # A distinct URI prevents an installed native type from shadowing the fixture.
+    for source in tree.rglob('*.qml'):
+        source.write_text(source.read_text().replace('import GreeterData', 'import TestGreeterData'))
+    backend = imports / 'TestGreeterData'
     backend.mkdir(parents=True)
-    (backend/'qmldir').write_text('module GreeterData\nsingleton GreeterDataBackend 1.0 GreeterDataBackend.qml\n')
+    (backend/'qmldir').write_text('module TestGreeterData\nsingleton GreeterDataBackend 1.0 GreeterDataBackend.qml\n')
     (backend/'GreeterDataBackend.qml').write_text('''pragma Singleton
 import QtQml
 QtObject {
@@ -67,7 +70,7 @@ QtObject {
  function launch(command,environment,quit) {launches++;launchedCommand=command;state=3}
 }
 ''')
-    (temp/'tst_greeter.qml').write_text('''import GreeterData
+    (temp/'tst_greeter.qml').write_text('''import TestGreeterData
 import QtQuick
 import QtTest
 import qs.config

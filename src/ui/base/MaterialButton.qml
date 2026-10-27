@@ -9,10 +9,15 @@ Button {
 
     property string variant: "tonal" // filled, tonal, elevated, outlined, text
 
-    // Reachable by Tab. QtQuick.Controls already handles Space/Enter activation
-    // and tracks `visualFocus` for us; what was missing was the policy to let
-    // focus arrive at all, and anything on screen to show it once it did.
+    // Space follows the native button press/release path. Return activation
+    // depends on the platform theme, so make both Enter keys explicit here.
     focusPolicy: Qt.StrongFocus
+    function _activateFromKey(event) {
+        event.accepted = true
+        if (!event.isAutoRepeat) control.click()
+    }
+    Keys.onReturnPressed: event => control._activateFromKey(event)
+    Keys.onEnterPressed: event => control._activateFromKey(event)
 
     // MD3 button padding: 24dp horizontal, pill shape, 40dp min height.
     leftPadding: Tokens.spacing.large

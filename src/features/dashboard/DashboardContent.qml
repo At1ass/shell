@@ -58,10 +58,27 @@ Item {
     // openDashboardTab()/IPC keep working after manual tab switches
     // (imperative writes to currentIndex would sever the binding).
 
+    function _cycleTab(delta) {
+        GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + delta + 3) % 3
+        tabBar.forceActiveFocus(Qt.ShortcutFocusReason)
+    }
+    // Shortcut delivery precedes a child's Tab focus traversal. Bubbling Keys
+    // handlers cannot guarantee Ctrl+Tab from buttons, sliders and text fields.
+    Shortcut {
+        sequence: "Ctrl+Tab"
+        context: Qt.WindowShortcut
+        enabled: root.visible && GlobalStates.dashboardOpen && !root._modalOpen
+        onActivated: root._cycleTab(1)
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Tab"
+        context: Qt.WindowShortcut
+        enabled: root.visible && GlobalStates.dashboardOpen && !root._modalOpen
+        onActivated: root._cycleTab(-1)
+    }
+
     Keys.onPressed: (event) => {
-        // Physical key, not the layout's symbol — the H/L tab switch, the 1-3
-        // jump and the whole calendar vi set below were dead on a Cyrillic
-        // layout. See Keycodes.
+        // Physical keys keep background shortcuts independent of layout.
         const key = Keycodes.key(event)
 
         // Escape: an open modal consumes it (dirty-guard prompt included);
@@ -76,15 +93,9 @@ Item {
         // Every other dashboard-level key is inert while a modal is up.
         if (root._modalOpen) return
 
-        // Tab/Shift+Tab remain the standard control focus chain. Ctrl+Tab
-        // changes sections from anywhere in the panel, including an editor.
-        if ((key === Qt.Key_Tab || key === Qt.Key_Backtab)
-                && (event.modifiers & Qt.ControlModifier)) {
-            const backwards = key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier)
-            GlobalStates.dashboardOpenIndex = (GlobalStates.dashboardOpenIndex + (backwards ? 2 : 1)) % 3
-            event.accepted = true
-            return
-        }
+        // Unmodified shortcuts belong to the panel background. Controls and
+        // the tab strip own their own arrows, digits and activation keys.
+        if (!root.activeFocus || (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) return
 
         // Direct tab jump (keys 1-3)
         if (key >= Qt.Key_1 && key <= Qt.Key_3) {
@@ -117,53 +128,7 @@ Item {
         }
 
         // Route to active tab
-        if (tabView.currentIndex === 2) _handleCalendarKey(event)
-    }
-
-    function _handleCalendarKey(event) {
-        const cal = calendarLoader.item as CalendarTab
-        if (!cal) return
-        const shift = !!(event.modifiers & Qt.ShiftModifier)
-        const key = Keycodes.key(event)
-
-        // Shift+key: month nav / jump to last
-        if (shift) {
-            if (key === Qt.Key_H) { cal.goToPrevMonth(); event.accepted = true }
-            else if (key === Qt.Key_L) { cal.goToNextMonth(); event.accepted = true }
-            else if (key === Qt.Key_G) { cal.goToLastDay(); event.accepted = true }
-            return
-        }
-
-        switch (key) {
-            // Arrows + vi h/j/k/l
-            case Qt.Key_Left:
-            case Qt.Key_H:       cal.moveFocusBy(-1); event.accepted = true; break
-            case Qt.Key_Right:
-            case Qt.Key_L:       cal.moveFocusBy(1); event.accepted = true; break
-            case Qt.Key_Up:
-            case Qt.Key_K:       cal.moveFocusBy(-7); event.accepted = true; break
-            case Qt.Key_Down:
-            case Qt.Key_J:       cal.moveFocusBy(7); event.accepted = true; break
-
-            case Qt.Key_Return:
-            case Qt.Key_Enter:   cal.selectFocused(); event.accepted = true; break
-
-            // Month navigation
-            case Qt.Key_PageUp:  cal.goToPrevMonth(); event.accepted = true; break
-            case Qt.Key_PageDown: cal.goToNextMonth(); event.accepted = true; break
-
-            // First/last day
-            case Qt.Key_Home:    cal.goToFirstDay(); event.accepted = true; break
-            case Qt.Key_End:     cal.goToLastDay(); event.accepted = true; break
-
-            // g = first day (G handled above with shift)
-            case Qt.Key_G:       cal.goToFirstDay(); event.accepted = true; break
-
-            case Qt.Key_T:       cal.goToToday(); event.accepted = true; break
-
-            // N = new event
-            case Qt.Key_N:       cal.openNewEvent(); event.accepted = true; break
-        }
+        if (tabView.currentIndex === 2) (calendarLoader.item as CalendarTab)?.handleNavigationKey(event)
     }
 
     MaterialCard {
@@ -201,6 +166,7 @@ Item {
                 }
                 MaterialTabs {
                     id: tabBar
+                    objectName: "dashboardTabs"
                     width: Math.min(implicitWidth, Math.max(0, parent.width - Tokens.panelPadding * 2))
                     height: implicitHeight
                     x: root._stackedHeader ? Tokens.panelPadding
@@ -245,7 +211,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     active: tabView.currentIndex === 2
-                    sourceComponent: Component { CalendarTab {} }
+                    sourceComponent: Component { CalendarTab {objectName: "dashboardCalendar"} }
                 }
 
 

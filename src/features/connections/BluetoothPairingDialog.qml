@@ -144,8 +144,6 @@ Dialog {
                 enabled: root._current && (!root._input || input.inputItem.acceptableInput)
                 text: root._kind === "confirm" ? "Codes match" : root._input ? "Pair" : "Allow"
                 onClicked: root.submit()
-                Keys.onReturnPressed: clicked()
-                Keys.onEnterPressed: clicked()
             }
             MaterialButton {
                 id: cancel
@@ -155,8 +153,6 @@ Dialog {
                 text: "Cancel"
                 variant: "text"
                 onClicked: root.requestClose()
-                Keys.onReturnPressed: clicked()
-                Keys.onEnterPressed: clicked()
             }
         }
     }

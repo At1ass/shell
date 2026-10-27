@@ -12,7 +12,21 @@ Item {
 
     // Reveal a keyboard-focused descendant without polling or animating a
     // hidden subtree. Focus can move below the viewport after panel clamping.
-    readonly property Item _focusedItem: root.Window.window?.activeFocusItem ?? null
+    readonly property Item _focusedItem: {
+        const focused = root.Window.window?.activeFocusItem ?? null
+        for (let owner = focused; owner; owner = owner.parent)
+            if (owner === contentLayout) return focused
+        return null
+    }
+    readonly property rect _focusCursor: {
+        const input = root._focusedItem as TextInput
+        if (input) return input.cursorRectangle
+        const edit = root._focusedItem as TextEdit
+        return edit ? edit.cursorRectangle : Qt.rect(0, 0, 0, 0)
+    }
+    readonly property real _focusHeight: _focusedItem?.height ?? 0
+    on_FocusCursorChanged: Qt.callLater(root._revealFocus)
+    on_FocusHeightChanged: Qt.callLater(root._revealFocus)
     on_FocusedItemChanged: Qt.callLater(root._revealFocus)
     // Font scaling and panel clamping can move the same focused control
     // outside the viewport without producing another focus event.
@@ -22,14 +36,15 @@ Item {
 
     function _revealFocus() {
         if (!root.visible || !root._focusedItem) return
-        let owner = root._focusedItem
-        while (owner && owner !== contentLayout) owner = owner.parent
-        if (!owner) return
         const view = scrollView.contentItem as Flickable
         if (!view) return
-        const top = root._focusedItem.mapToItem(contentLayout, 0, 0).y + root.contentPadding
-        const bottom = top + root._focusedItem.height
         const margin = Tokens.spacing.small
+        // An expanding editor may be taller than the viewport. Reveal its
+        // caret rather than repeatedly scrolling to the bottom of the editor.
+        const caret = root._focusCursor
+        const useCaret = caret.height > 0 && root._focusHeight > view.height - margin * 2
+        const top = root._focusedItem.mapToItem(contentLayout, 0, useCaret ? caret.y : 0).y + root.contentPadding
+        const bottom = top + (useCaret ? caret.height : root._focusHeight)
         const maximum = Math.max(0, view.contentHeight - view.height)
         if (top < view.contentY + margin)
             view.contentY = Math.max(0, top - margin)

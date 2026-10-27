@@ -12,8 +12,6 @@ Item {
     id: root
     component LockButton: MaterialButton {
         Keys.forwardTo: [root]
-        Keys.onReturnPressed: clicked()
-        Keys.onEnterPressed: clicked()
     }
     property bool formActive: true
     property string username: ""

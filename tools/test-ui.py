@@ -175,8 +175,7 @@ BaseProvider {
         ''.join(f'{name} 1.0 {name}.qml\n' for name in names))
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/QuickTab.qml', dashboard / 'tabs/QuickTab.qml')
     shutil.copytree(ROOT / 'src/features/dashboard/components/weathertab_elements', dashboard / 'components/weathertab_elements')
-    for name in names[2:]:
-        (dashboard / f'tabs/{name}.qml').write_text('import QtQuick\nimport qs.src.ui.inputs\nItem {property bool modalOpen:false; MaterialTextField {objectName:"tabEditor"}}\n')
+    shutil.copy2(ROOT / 'src/features/dashboard/tabs/CalendarTab.qml', dashboard / 'tabs/CalendarTab.qml')
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/WeatherTab.qml', dashboard / 'tabs/WeatherTab.qml')
     connections = tree / 'src/features/connections'
     connections.mkdir(parents=True)
@@ -190,6 +189,7 @@ BaseProvider {
     (networking / 'WifiSecurityType.qml').write_text('import QtQml\nQtObject {enum Security {Open, Wpa2Psk, Sae, WpaPsk, StaticWep, Owe, Wpa2Eap}}\n')
     (networking / 'WifiNetwork.qml').write_text('import QtQml\nQtObject {property string name:"Test Wi-Fi";property bool connected:false;property bool known:false;property int security:1;property bool stateChanging:false;property real signalStrength:0.8}\n')
     shutil.copy2(ROOT / 'src/features/dashboard/tabs/CalendarTab.qml', temp / 'TestCalendar.qml')
+    shutil.copy2(ROOT / 'src/features/dashboard/components/EventDialog.qml', temp / 'TestEventDialog.qml')
     shutil.copy2(ROOT / 'src/features/dashboard/components/RecurrenceEditChoice.qml', dashboard / 'components/RecurrenceEditChoice.qml')
     with (dashboard / 'components/qmldir').open('a') as module:
         module.write('EventDialog 1.0 EventDialog.qml\nRecurrenceEditChoice 1.0 RecurrenceEditChoice.qml\n')
@@ -493,6 +493,11 @@ Item {
  Component {id:snackbarFixture;Snackbar {width:360;property int activations:0;message:"200 notifications cleared";actionText:"Undo";onActionClicked:activations++}}
  Component {id:meterFixture;OsdMeterContent {width:300;height:implicitHeight;title:"Brightness";iconName:"brightness_high";progress:0.75}}
  Component {id:ipcFixture;TestIpcData {}}
+ Component {id:dashboardFieldFixture;MaterialTextField {width:240}}
+ Component {id:dashboardSliderFixture;MaterialSlider {width:240}}
+ Component {id:eventFormFixture;TestEventDialog {}}
+ Component {id:eventFormHost;Item {width:600;height:420}}
+ Component {id:testButtonFixture;MaterialButton {text:"Test action";checkable:true}}
  Component {id:comboFixture;MaterialComboBox {width:240}}
  Component {id:statsServiceFixture;TestStatsService {}}
  Component {id:storageFixture;StorageSection {width:600}}
@@ -1451,6 +1456,34 @@ Item {
    keyClick(Qt.Key_Escape);wait(20);verify(!panel.modalOpen)
    keyClick(Qt.Key_Escape);wait(20);compare(panel.section,"")
   }
+  function test_auth_button_native_activation_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const kind of ["network","pairing"])for(const cancel of [false,true])for(const key of [Qt.Key_Return,Qt.Key_Enter,Qt.Key_Space])rows.push({tag:pack+"-"+kind+"-"+cancel+"-"+key,pack:pack,kind:kind,cancel:cancel,key:key})
+   return rows
+  }
+  function test_auth_button_native_activation(data) {
+   controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
+   const network=data.kind==="network"
+   const view=network
+    ? createTemporaryObject(networkAuthFixture,scene,{fields:[{key:"password",label:"Password",secret:true}],requestToken:"test"})
+    : createTemporaryObject(pairingFixture,scene,{requestKind:"confirm",code:"123456",requestToken:"test"})
+   tryVerify(()=>view.visible)
+   if(network) {
+    tryVerify(()=>findChild(view,"networkCredential_password")?.inputItem.activeFocus ?? false)
+    findChild(view,"networkCredential_password").text="fixture-password"
+   } else tryVerify(()=>findChild(view,"pairingCancel")?.activeFocus ?? false)
+   // The prompt schedules its initial editor focus after opening.
+   wait(10)
+   const name=network ? (data.cancel ? "networkAuthCancel" : "networkAuthenticate") : (data.cancel ? "pairingCancel" : "pairingConfirm")
+   const button=findChild(view,name)
+   verify(button!==null && button.enabled)
+   const pressed=createTemporaryObject(dockSignalSpy,scene,{target:button,signalName:"pressed"})
+   const released=createTemporaryObject(dockSignalSpy,scene,{target:button,signalName:"released"})
+   const clicked=createTemporaryObject(dockSignalSpy,scene,{target:button,signalName:"clicked"})
+   button.forceActiveFocus();keyClick(data.key)
+   compare(pressed.count,1,"pressed");compare(released.count,1,"released");compare(clicked.count,1,"clicked")
+   compare(view.answers,data.cancel ? 0 : 1);compare(view.rejections,data.cancel ? 1 : 0)
+  }
   function test_network_auth_input_replacement_and_cancel() {
    controls.visible=false
    const fields=[{key:"psk",label:"Wi-Fi password",secret:true}]
@@ -1576,6 +1609,83 @@ Item {
    GlobalStates.connectionsSection="bluetooth";wait(30)
    grabImage(panel).save("RENDERS/connections-bluetooth-"+data.tag+".png")
 
+  }
+  function test_event_form_keyboard_scroll_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const scale of [1,2])for(const height of [320,600])rows.push({tag:pack+"-"+scale+"-"+height,pack:pack,scale:scale,height:height})
+   return rows
+  }
+  function test_event_form_keyboard_scroll(data) {
+   controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale;AppConfig.reduceMotion=true
+   CalendarBackend.calendars=["Test"]
+   const host=createTemporaryObject(eventFormHost,scene,{height:data.height})
+   const form=createTemporaryObject(eventFormFixture,host)
+   form.openDialog(false,null,new Date(2026,9,25));wait(20)
+   const scroll=findChild(form,"eventFormScroll")
+   verify(scroll!==null)
+   const description=byProperty(form,"placeholderText","Add description")
+   const categories=byProperty(form,"placeholderText","work, personal, ...")
+   let reached=false,reachedDescription=false
+   for(let i=0;i<25;i++) {
+    const focused=scene.Window.window.activeFocusItem
+    if(focused===description.inputItem)reachedDescription=true
+    const p=focused.mapToItem(scroll,0,0)
+    verify(p.y>=-1 && p.y+focused.height<=scroll.height+1,"Tab reveals focused field: "+focused+" y="+p.y)
+    if(focused===categories.inputItem) {reached=true;break}
+    keyClick(Qt.Key_Tab);wait(10)
+   }
+   verify(reached,"categories reached through real Tab traversal")
+   verify(reachedDescription,"description participates in the Tab chain")
+   keyClick(Qt.Key_A);wait(10)
+   compare(categories.text,"a")
+   description.inputItem.forceActiveFocus();wait(10)
+   description.text=("Line"+String.fromCharCode(10)).repeat(50);description.inputItem.cursorPosition=description.text.length;wait(20)
+   function caretVisible() {
+    const rect=description.inputItem.cursorRectangle
+    const p=description.inputItem.mapToItem(scroll,rect.x,rect.y)
+    verify(p.y>=-1 && p.y+rect.height<=scroll.height+1,"caret visible: y="+p.y+" height="+rect.height+" viewport="+scroll.height)
+   }
+   caretVisible()
+   description.inputItem.cursorPosition=0;wait(20);caretVisible()
+   keyClick(Qt.Key_A);wait(10);caretVisible()
+   description.inputItem.cursorPosition=description.text.length;wait(20);caretVisible()
+   keyClick(Qt.Key_Return);keyClick(Qt.Key_B);wait(20);caretVisible()
+   const descriptionBefore=description.text
+   keyClick(Qt.Key_Tab,Qt.ShiftModifier);wait(10)
+   compare(description.text,descriptionBefore)
+   const previous=scene.Window.window.activeFocusItem
+   const p=previous.mapToItem(scroll,0,0)
+   verify(p.y>=-1 && p.y+previous.height<=scroll.height+1,"Shift+Tab reveals previous field: "+previous+" y="+p.y+" height="+previous.height+" viewport="+scroll.height)
+   form.close();AppConfig.fontScale=1.3;CalendarBackend.calendars=["Test"]
+  }
+  function test_calendar_add_event_keyboard_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const key of [Qt.Key_Return,Qt.Key_Enter,Qt.Key_Space])rows.push({tag:pack+"-"+key,pack:pack,key:key})
+   return rows
+  }
+  function test_calendar_add_event_keyboard(data) {
+   controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
+   CalendarBackend.calendars=[{name:"Test"}]
+   const cal=createTemporaryObject(testCalendar,scene)
+   wait(20)
+   const add=byProperty(cal,"text","Add Event")
+   verify(add!==null && add.enabled)
+   add.forceActiveFocus();verify(add.activeFocus)
+   keyClick(data.key);wait(10)
+   verify(cal.modalOpen,"focused Add Event opens editor")
+   cal.closeTopModal();wait(20)
+   verify(!cal.modalOpen);verify(add.activeFocus,"editor restores button focus")
+  }
+  function test_material_button_enter_once() {
+   controls.visible=false;dashboard.visible=false
+   const button=createTemporaryObject(testButtonFixture,scene)
+   const spy=createTemporaryObject(dockSignalSpy,scene,{target:button,signalName:"clicked"})
+   button.forceActiveFocus()
+   keyClick(Qt.Key_Return);compare(spy.count,1);verify(button.checked)
+   keyClick(Qt.Key_Enter);compare(spy.count,2);verify(!button.checked)
+   keyClick(Qt.Key_Space);compare(spy.count,3);verify(button.checked)
+   button.enabled=false
+   keyClick(Qt.Key_Return);compare(spy.count,3)
   }
   function test_calendar_focus_and_events() {
    controls.visible=false;scene.width=900;scene.height=600
@@ -1775,22 +1885,63 @@ Item {
    controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
    verify(dashboard.tabContentHeight>0)
    const previous=dashboard.tabContentHeight
-   // This isolated Calendar stub has no measurement, like a loading tab.
-   GlobalStates.dashboardOpenIndex=2;wait(20)
-   compare(dashboard.tabContentHeight,previous)
+   // Hold one real tab unready to exercise measurement handover explicitly.
+   const loader=dashboard._tabLoaders[2]
+   const source=loader.sourceComponent
+   try {
+    loader.sourceComponent=null
+    GlobalStates.dashboardOpenIndex=2;wait(20)
+    compare(dashboard._rawTabContentHeight,0)
+    compare(dashboard.tabContentHeight,previous)
+   } finally {loader.sourceComponent=source}
+   wait(20);verify(dashboard._rawTabContentHeight>0)
    GlobalStates.dashboardOpenIndex=1;wait(30)
    verify(dashboard.tabContentHeight>0)
    compare(dashboard.tabContentHeight,dashboard._rawTabContentHeight)
   }
-  function test_dashboard_keyboard() {
+  function test_dashboard_keyboard_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_dashboard_keyboard(data) {
+   AppConfig.designSystem=data.pack;GlobalStates.dashboardOpen=true;GlobalStates.dashboardOpenIndex=0
    dashboard.visible=true;controls.visible=false;wait(30)
-   dashboard.forceActiveFocus();keyClick(Qt.Key_Tab,Qt.ControlModifier)
-   compare(GlobalStates.dashboardOpenIndex,1)
-   GlobalStates.dashboardOpenIndex=2;wait(20)
-   const editor=findChild(dashboard,"tabEditor")
-   verify(editor!==null);editor.inputItem.forceActiveFocus()
-   keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(GlobalStates.dashboardOpenIndex,0)
-   controls.visible=true;dashboard.visible=false
+   const strip=findChild(dashboard,"dashboardTabs")
+   strip.forceActiveFocus();wait(10)
+   keyClick(Qt.Key_Right);compare(GlobalStates.dashboardOpenIndex,1)
+   keyClick(Qt.Key_Right);compare(GlobalStates.dashboardOpenIndex,2);wait(30)
+   const cal=findChild(dashboard,"dashboardCalendar")
+   verify(cal!==null)
+   const before=cal.focusedCellIndex
+   keyClick(Qt.Key_Up);compare(cal.focusedCellIndex,before)
+   keyClick(Qt.Key_Down);compare(cal.focusedCellIndex,before)
+   verify(strip.activeFocus,"tab selection keeps focus in strip")
+   // The grid owns all four arrows and physical vi keys once focus enters it.
+   cal.focusedCellIndex=15
+   const cell=byProperty(cal,"isFocused",true);verify(cell!==null);cell.forceActiveFocus()
+   keyClick(Qt.Key_Left);compare(cal.focusedCellIndex,14);compare(GlobalStates.dashboardOpenIndex,2)
+   keyClick(Qt.Key_Right);compare(cal.focusedCellIndex,15)
+   keyClick(Qt.Key_Up);compare(cal.focusedCellIndex,8)
+   keyClick(Qt.Key_Down);compare(cal.focusedCellIndex,15)
+   keyClick(Qt.Key_H);compare(cal.focusedCellIndex,14)
+   keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(GlobalStates.dashboardOpenIndex,0);wait(20)
+   keyClick(Qt.Key_Backtab,Qt.ControlModifier|Qt.ShiftModifier);compare(GlobalStates.dashboardOpenIndex,2);wait(20)
+   // A different focused control still has access to window-level tab cycling.
+   const button=byProperty(findChild(dashboard,"dashboardCalendar"),"iconName","chevron_left")
+   verify(button!==null);button.forceActiveFocus()
+   keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(GlobalStates.dashboardOpenIndex,0);wait(20)
+   const slider=createTemporaryObject(dashboardSliderFixture,dashboard,{x:20,y:120})
+   slider.forceActiveFocus()
+   keyClick(Qt.Key_Backtab,Qt.ControlModifier|Qt.ShiftModifier);compare(GlobalStates.dashboardOpenIndex,2);wait(20)
+   keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(GlobalStates.dashboardOpenIndex,0);wait(20)
+   const field=createTemporaryObject(dashboardFieldFixture,dashboard,{x:20,y:160})
+   field.inputItem.forceActiveFocus()
+   const toggles=MprisController.toggles
+   keyClick(Qt.Key_H);keyClick(Qt.Key_1);keyClick(Qt.Key_Space)
+   compare(GlobalStates.dashboardOpenIndex,0);compare(MprisController.toggles,toggles)
+   keyClick(Qt.Key_Backtab,Qt.ControlModifier|Qt.ShiftModifier);compare(GlobalStates.dashboardOpenIndex,2);wait(20)
+   const modalCal=findChild(dashboard,"dashboardCalendar")
+   modalCal.openNewEvent();wait(20);verify(modalCal.modalOpen)
+   keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(GlobalStates.dashboardOpenIndex,2)
+   modalCal.closeTopModal();wait(20)
+   controls.visible=true;dashboard.visible=false;GlobalStates.dashboardOpenIndex=0
   }
   function lastFocusable(item) {
    let found=item.activeFocusOnTab && item.enabled && item.visible ? item : null
@@ -2182,7 +2333,7 @@ Window {
     env = {**os.environ, 'QT_QPA_PLATFORM': 'offscreen', 'QSG_RHI_BACKEND': 'software'}
     result = subprocess.run(['/usr/lib/qt6/bin/qmltestrunner', '-input', str(test),
                              '-import', str(temp / 'imports')], env=env,
-                            capture_output=True, text=True, timeout=40)
+                            capture_output=True, text=True, timeout=60)
     print(result.stdout + result.stderr)
     if result.returncode or "QWARN" in result.stdout + result.stderr:
         raise SystemExit(1)

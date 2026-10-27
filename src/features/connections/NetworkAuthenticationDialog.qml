@@ -135,8 +135,6 @@ Dialog {
                 text: "Connect"
                 enabled: root._current
                 onClicked: root.submit()
-                Keys.onReturnPressed: clicked()
-                Keys.onEnterPressed: clicked()
             }
             MaterialButton {
                 objectName: "networkAuthCancel"
@@ -145,8 +143,6 @@ Dialog {
                 variant: "text"
                 enabled: root._current
                 onClicked: root.requestClose()
-                Keys.onReturnPressed: clicked()
-                Keys.onEnterPressed: clicked()
             }
         }
     }

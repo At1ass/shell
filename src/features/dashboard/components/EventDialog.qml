@@ -233,16 +233,14 @@ Dialog {
         return fields
     }
 
-    Flickable {
+    ScrollableList {
+        objectName: "eventFormScroll"
         anchors.fill: parent
         anchors.margins: Tokens.spacing.large
-        contentHeight: formLayout.implicitHeight
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
 
         ColumnLayout {
             id: formLayout
-            width: parent.width
+            Layout.fillWidth: true
 
             spacing: Tokens.spacing.medium
 
@@ -426,9 +424,15 @@ Dialog {
                 MaterialTextArea {
                     id: descriptionField
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 80
                     placeholderText: "Add description"
                     onTextEdited: root.dirty = true
+                    Keys.onPressed: event => {
+                        if ((event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+                                && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+                            root._cycleFocus(event.key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier))
+                            event.accepted = true
+                        }
+                    }
                 }
 
                 // Clickable links extracted from description

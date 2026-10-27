@@ -25,7 +25,8 @@ Item {
     readonly property date today: new Date(DateTime.clock.date.getFullYear(),
                                            DateTime.clock.date.getMonth(),
                                            DateTime.clock.date.getDate())
-    onTodayChanged: updateCalendar()
+    property bool _initialized: false
+    onTodayChanged: if (_initialized) Qt.callLater(root.updateCalendar)
 
     // Modal state for DashboardContent's key routing: while a dialog is up,
     // dashboard-level keys (Escape/tab digits) must not fire.
@@ -36,11 +37,8 @@ Item {
     }
     property var selectedDayEvents: CalendarBackend.dayEvents
 
-    // Explicit property rather than calling isSameDate() inside a binding.
-    // QML cannot see through a function call to know what it depends on, and
-    // the "current time" indicator's `visible` read both selectedDate and
-    // today while onTodayChanged -> updateCalendar() writes selectedDate —
-    // which QML reported as a binding loop on `visible`.
+    // Keep rendering comparison separate from the deferred midnight refresh:
+    // evaluating today must not synchronously rewrite selectedDate.
     readonly property bool todayIsSelected:
         selectedDate.getFullYear() === today.getFullYear()
         && selectedDate.getMonth() === today.getMonth()
@@ -73,6 +71,51 @@ Item {
         currentYear = today.getFullYear()
         currentMonth = today.getMonth()
         updateCalendar()
+    }
+
+    function handleNavigationKey(event) {
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
+        const shift = !!(event.modifiers & Qt.ShiftModifier)
+        const key = Keycodes.key(event)
+
+        // Shift+key: month nav / jump to last
+        if (shift) {
+            if (key === Qt.Key_H) { root.goToPrevMonth(); event.accepted = true }
+            else if (key === Qt.Key_L) { root.goToNextMonth(); event.accepted = true }
+            else if (key === Qt.Key_G) { root.goToLastDay(); event.accepted = true }
+            return
+        }
+
+        switch (key) {
+            // Arrows + vi h/j/k/l
+            case Qt.Key_Left:
+            case Qt.Key_H:       root.moveFocusBy(-1); event.accepted = true; break
+            case Qt.Key_Right:
+            case Qt.Key_L:       root.moveFocusBy(1); event.accepted = true; break
+            case Qt.Key_Up:
+            case Qt.Key_K:       root.moveFocusBy(-7); event.accepted = true; break
+            case Qt.Key_Down:
+            case Qt.Key_J:       root.moveFocusBy(7); event.accepted = true; break
+
+            case Qt.Key_Return:
+            case Qt.Key_Enter:   root.selectFocused(); event.accepted = true; break
+
+            // Month navigation
+            case Qt.Key_PageUp:  root.goToPrevMonth(); event.accepted = true; break
+            case Qt.Key_PageDown: root.goToNextMonth(); event.accepted = true; break
+
+            // First/last day
+            case Qt.Key_Home:    root.goToFirstDay(); event.accepted = true; break
+            case Qt.Key_End:     root.goToLastDay(); event.accepted = true; break
+
+            // g = first day (G handled above with shift)
+            case Qt.Key_G:       root.goToFirstDay(); event.accepted = true; break
+
+            case Qt.Key_T:       root.goToToday(); event.accepted = true; break
+
+            // N = new event
+            case Qt.Key_N:       root.openNewEvent(); event.accepted = true; break
+        }
     }
 
     // Keyboard navigation
@@ -214,7 +257,7 @@ Item {
                date1.getDate() === date2.getDate()
     }
 
-    Component.onCompleted: updateCalendar()
+    Component.onCompleted: { _initialized = true; updateCalendar() }
 
     // What this tab needs, so the window can be sized to it instead of to a
     // constant kept in a table indexed by tab number. See Dashboard.qml.
@@ -368,17 +411,10 @@ Item {
                                     root.selectFocused()
                                 }
                                 Keys.onPressed: event => {
-                                    switch (event.key) {
-                                    case Qt.Key_Left: root.moveFocusBy(-1); break
-                                    case Qt.Key_Right: root.moveFocusBy(1); break
-                                    case Qt.Key_Up: root.moveFocusBy(-7); break
-                                    case Qt.Key_Down: root.moveFocusBy(7); break
-                                    case Qt.Key_Return:
-                                    case Qt.Key_Enter:
-                                    case Qt.Key_Space: dayCell._select(); break
-                                    default: return
-                                    }
-                                    event.accepted = true
+                                    if (event.key === Qt.Key_Space && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+                                        dayCell._select()
+                                        event.accepted = true
+                                    } else root.handleNavigationKey(event)
                                 }
                                 StateLayer { target: dayCell; anchors.fill: parent; focused: dayCell.activeFocus; layerColor: Theme.onSurface }
 
