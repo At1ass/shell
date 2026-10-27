@@ -1236,12 +1236,14 @@ measurement), with short separators rather than list-sized blank rows. Large fon
 and custom slots can increase the measured height; long menus retain scrolling
 and keyboard navigation through all actions and submenus.
 
-Dashboard native-window height follows the measured target without a QML geometry
-animation. Lazy tab handovers retain the previous measurement until the next is
-available, and the initial window waits for measured content. Media expansion
-keeps its own motion inside the final available bounds; hidden/initial media state
-changes apply immediately. This avoids stacking native surface resizing over the
-player's own animation.
+Dashboard uses a stable Wayland surface within the available screen height.
+The card follows the actual content extent without a second resize animation.
+Player controls and occupied height share one morph; statistics and weather details
+keep their lazy content alive through the clipped collapse, then release it.
+Tab changes apply the newly measured height directly, so no empty background trails
+the smaller tab. The input region follows the card; transparent space passes clicks
+through. Initial/hidden changes and reduced motion apply immediately, and long
+content stays scrollable within the screen bounds.
 
 The cheatsheet discovers IPC handlers and signatures with `qs ipc show` on every
 open. Local descriptions enrich those commands without defining a second list.

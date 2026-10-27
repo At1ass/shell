@@ -188,11 +188,12 @@ ScrollableList {
             margin: Tokens.spacing.small
             onClicked: root.metricsExpanded = !root.metricsExpanded
         }
-        Loader {
+        CollapsibleContent {
             id: metricsLoader
             Layout.fillWidth: true
-            visible: active
-            active: root.metricsExpanded
+            spacing: column.spacing
+            expanded: root.metricsExpanded
+            animated: GlobalStates.dashboardOpen
             sourceComponent: SystemMonitoringElement {}
         }
 

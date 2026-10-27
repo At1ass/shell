@@ -478,6 +478,7 @@ Item {
  Component {id:trayFixture;TrayWidget {height:40}}
  Component {id:overflowFixture;TestTrayOverflow {width:320;height:400}}
  Component {id:panelState;TestPanelState {}}
+ Component {id:collapsibleFixture;CollapsibleContent {width:300;sourceComponent:Component {Item {implicitHeight:160}}}}
  Component {id:mediaRowFixture;QuickMediaRow {width:600;visible:true}}
  Component {id:connectionsPanel;ConnectionsContent {width:420;height:Math.min(implicitHeight,500)}}
  Component {
@@ -632,7 +633,7 @@ Item {
    verify(!view.mediaShown)
   }
   function init() {
-   AppConfig.designSystem="minimal";AppConfig.fontScale=1.3
+   AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[]
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
    GlobalStates.launcherOpen=false;LauncherService.search("")
@@ -641,6 +642,7 @@ Item {
    CalendarBackend.dayEvents=[]
    SystemMonitorService.storageVolumes=[];SystemMonitorService.storageDrives=[];SystemMonitorService.storageSummary=({available:true,name:"System",availableFormatted:"100 GiB",severity:0})
    SystemMonitorService.hasCpuTemp=true;SystemMonitorService.hasGpuTemp=true;SystemMonitorService.hasGpuStats=true
+   MprisController.availablePlayers=[]
    GlobalStates.actionCount=0;GlobalStates.lastAction="";MprisController.toggles=0;NightLightService.available=true;VPNService.enabled=true
    dashboard.visible=false;controls.visible=true;GlobalStates.dashboardOpenIndex=0
    GlobalStates.audioOpen=true;PopoutsState.closePopout();SystemTray.items=({values:[]})
@@ -1522,6 +1524,64 @@ Item {
    GlobalStates.dashboardOpen=previousOpen
    AppConfig.reduceMotion=previousMotion
   }
+  function test_dashboard_media_collapse_keeps_content_extent() {
+   controls.visible=false;AppConfig.reduceMotion=false;GlobalStates.dashboardOpen=true
+   const row=createTemporaryObject(mediaRowFixture,scene,{expanded:true})
+   const openHeight=row.implicitHeight
+   verify(openHeight>row.rowHeight)
+   row.expanded=false
+   compare(row.implicitHeight,openHeight,"collapsing cannot clip the player before its controls move")
+   wait(60)
+   verify(row.implicitHeight>row.rowHeight && row.implicitHeight<openHeight)
+   const partial=row.implicitHeight
+   row.expanded=true
+   compare(row.implicitHeight,partial,"reversal starts at the current player size")
+   tryCompare(row,"morph",1)
+   row.expanded=false
+   tryCompare(row,"morph",0)
+   compare(row.implicitHeight,row.rowHeight)
+   row.expanded=true;wait(50);GlobalStates.dashboardOpen=false
+   compare(row.morph,1,"closing the dashboard settles retained motion")
+   AppConfig.reduceMotion=true
+  }
+  function test_dashboard_source_list_collapse_keeps_extent() {
+   controls.visible=false;AppConfig.reduceMotion=false;GlobalStates.dashboardOpen=true
+   MprisController.availablePlayers=[{identity:"One",trackTitle:"First"},{identity:"Two",trackTitle:"Second"}]
+   const row=createTemporaryObject(mediaRowFixture,scene,{expanded:true})
+   const base=row.implicitHeight
+   row.sourceListOpen=true;tryCompare(row,"sourceMorph",1)
+   const open=row.implicitHeight;verify(open>base)
+   row.sourceListOpen=false
+   compare(row.implicitHeight,open)
+   wait(60);verify(row.implicitHeight>base && row.implicitHeight<open)
+   tryCompare(row,"sourceMorph",0);compare(row.implicitHeight,base)
+   AppConfig.reduceMotion=true
+  }
+  function test_collapsible_content_lifetime() {
+   controls.visible=false;AppConfig.reduceMotion=false
+   const view=createTemporaryObject(collapsibleFixture,scene)
+   compare(view.item,null);compare(view.implicitHeight,0)
+   view.expanded=true
+   tryCompare(view,"progress",1)
+   const body=view.item
+   verify(body!==null);compare(view.implicitHeight,160)
+   view.expanded=false
+   compare(view.item,body,"closing retains the painted body")
+   wait(60)
+   verify(view.implicitHeight>0 && view.implicitHeight<160)
+   verify(view.item!==null && !view.item.enabled)
+   const partial=view.implicitHeight
+   view.expanded=true
+   compare(view.implicitHeight,partial,"reversal starts at the current section size")
+   compare(view.item,body,"reversing reuses the same body")
+   tryCompare(view,"progress",1)
+   view.expanded=false
+   tryCompare(view,"progress",0)
+   compare(view.item,null);compare(view.implicitHeight,0)
+   AppConfig.reduceMotion=true
+   view.expanded=true;compare(view.progress,1)
+   view.expanded=false;compare(view.progress,0);compare(view.item,null)
+  }
   function test_dashboard_measurement_handover() {
    controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
    verify(dashboard.tabContentHeight>0)
@@ -1973,14 +2033,15 @@ Window {
     (tree / 'NativePopouts.qml').write_text(source)
     source=no_grab((ROOT / 'src/features/dashboard/Dashboard.qml').read_text())
     source=source.replace('import QtQuick\n','import QtQuick\nimport qs.src.features.dashboard\n')
-    source=source.replace('    id: root','    id: root\n    readonly property PanelWindow window: dashboardWindow',1)
-    source=source.replace('        color: "transparent"','        mask: Region {}\n        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None\n        contentItem.opacity: 0\n        color: "transparent"',1)
+    source=source.replace('    id: root','    id: root\n    readonly property PanelWindow window: dashboardWindow\n    readonly property Item panel: dashboardLoader',1)
+    source=source.replace('mask: Region { item: dashboardLoader }', 'mask: Region {}')
+    source=source.replace('        color: "transparent"','        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None\n        contentItem.opacity: 0\n        color: "transparent"',1)
     source=source.replace('quickshell:dashboard','shell:bar-test:dashboard')
     (tree / 'NativeDashboard.qml').write_text(source)
     config_source=(config / 'AppConfig.qml').read_text().replace(' property int barHeight:', ' property int dashboardWidth:600\n property int dashboardHeight:640\n property int barHeight:')
     (config / 'AppConfig.qml').write_text(config_source)
     states=services / 'GlobalStates.qml'
-    states.write_text(states.read_text().replace('QtObject {','QtObject {function panelRetained(name) {return false}\n',1))
+    states.write_text(states.read_text().replace('QtObject {','QtObject {function panelRetained(name) {return false}\n',1).replace('property bool dashboardOpen:true','property bool dashboardOpen:false'))
     # Keep the real popup alive through suspension long enough to inspect its
     # last geometry; a fallback origin during unmap causes a visible left jump.
     source=(ROOT / 'src/ui/feedback/TooltipManager.qml').read_text()
@@ -2016,6 +2077,33 @@ ShellRoot {
  property int osdStep:0
  property int ticks:0
  property int settle:0
+ property real dashboardSurfaceHeight:0
+ property real dashboardEdge:0
+ property real dashboardStartHeight:0
+ property bool dashboardMoved:false
+ property real dashboardFirstSampleHeight:-1
+ function findProperty(item,name) {
+  if(!item)return null
+  if(item[name]!==undefined)return item
+  for(const child of item.children ?? []) {const found=findProperty(child,name);if(found)return found}
+  return null
+ }
+ function sampleDashboard(bottom) {
+  root.check(dashboard.window.height===root.dashboardSurfaceHeight,"dashboard keeps native height during resizing")
+  root.check(Math.abs(dashboard.panel.height-(dashboard.window.targetPanelHeight-Tokens.spacing.small*2))<=1,"card follows the painted extent without a trailing resize")
+  const edge=dashboard.panel.y+(bottom ? dashboard.panel.height : 0)
+  root.check(Math.abs(edge-root.dashboardEdge)<1,"dashboard card keeps its bar-side edge")
+  const target=dashboard.window.targetPanelHeight-Tokens.spacing.small*2
+  if(Math.abs(dashboard.panel.height-root.dashboardStartHeight)>1) {
+   if(root.dashboardFirstSampleHeight<0)root.dashboardFirstSampleHeight=dashboard.panel.height
+   else if(Math.abs(dashboard.panel.height-root.dashboardFirstSampleHeight)>1)root.dashboardMoved=true
+  }
+ }
+ function settledDashboard() {
+  const target=dashboard.window.targetPanelHeight-Tokens.spacing.small*2
+  root.check(Math.abs(dashboard.panel.height-target)<=1,"dashboard reaches measured card height")
+  if(Math.abs(target-root.dashboardStartHeight)>2)root.check(root.dashboardMoved,"dashboard height has intermediate frames step="+root.step+" start="+root.dashboardStartHeight+" target="+target)
+ }
  function findRow(item,title) {
   if(!item) return null
   if(item.headline===title) return item
@@ -2050,7 +2138,7 @@ ShellRoot {
  Timer {
   interval:60;repeat:true;running:true
   onTriggered: {
-   root.check(++root.ticks<130,"Wayland deadline step="+root.step+" entries="+layout.entries.length+" hidden="+layout.overflowWidgets.length+" name="+PopoutsState.name+" popup="+popoutFixture.visible+" size="+popoutFixture.width+","+popoutFixture.height+" screen="+popoutFixture._screen+" rect="+PopoutsState.popoutHeight)
+   root.check(++root.ticks<170,"Wayland deadline step="+root.step+" entries="+layout.entries.length+" hidden="+layout.overflowWidgets.length+" name="+PopoutsState.name+" popup="+popoutFixture.visible+" size="+popoutFixture.width+","+popoutFixture.height+" screen="+popoutFixture._screen+" rect="+PopoutsState.popoutHeight)
    if(root.step===-2) {
     if(!hints.testPopup || !hints.testPopup.visible || hint.opacity<1) return
     const popup=hints.testPopup
@@ -2135,11 +2223,29 @@ ShellRoot {
    } else if(root.step===3) {
     if(!PopoutsState.popoutHeight) return
     root.check(PopoutsState.popoutY+PopoutsState.popoutHeight<=bar.screen.height-BarMetrics.height+1,"More above bottom bar")
-    PopoutsState.closePopout();GlobalStates.activePanelScreen=bar.screen;GlobalStates.dashboardOpen=true;root.step=4
+    PopoutsState.closePopout();AppConfig.fontScale=1;GlobalStates.activePanelScreen=bar.screen;GlobalStates.dashboardOpen=true;root.settle=0;root.step=4
    } else if(root.step===4) {
     if(!dashboard.window.visible || !dashboard.window.height) return
     root.check(dashboard.window.height<=bar.screen.height-BarMetrics.height,"dashboard height bounded")
     root.check(dashboard.window.margins.bottom>=BarMetrics.height && dashboard.window.anchors.bottom,"dashboard bottom margin")
+    if(++root.settle<3)return
+    root.dashboardSurfaceHeight=dashboard.window.height
+    root.dashboardEdge=dashboard.panel.y+dashboard.panel.height
+    root.dashboardStartHeight=dashboard.panel.height;root.dashboardMoved=false;root.dashboardFirstSampleHeight=-1
+    AppConfig.reduceMotion=false
+    findProperty(dashboard.panel,"metricsExpanded").metricsExpanded=true
+    root.settle=0;root.step=41
+   } else if(root.step===41) {
+    root.sampleDashboard(true)
+    if(++root.settle<10)return
+    root.settledDashboard()
+    root.dashboardStartHeight=dashboard.panel.height;root.dashboardMoved=false;root.dashboardFirstSampleHeight=-1
+    findProperty(dashboard.panel,"metricsExpanded").metricsExpanded=false
+    root.settle=0;root.step=42
+   } else if(root.step===42) {
+    root.sampleDashboard(true)
+    if(++root.settle<10)return
+    root.settledDashboard()
     GlobalStates.dashboardOpen=false;AppConfig.barPosition="top";root.settle=0;root.step=5
    } else if(root.step===5) {
     if(++root.settle<4) return
@@ -2147,10 +2253,32 @@ ShellRoot {
    } else if(root.step===6) {
     if(++root.settle<4) return
     root.check(dashboard.window.margins.top>=BarMetrics.height && dashboard.window.anchors.top,"dashboard top margin")
-    AppConfig.reduceMotion=false;GlobalStates.dashboardOpenIndex=1;root.step=7
+    root.dashboardSurfaceHeight=dashboard.window.height
+    root.dashboardEdge=dashboard.panel.y
+    root.dashboardStartHeight=dashboard.panel.height;root.dashboardMoved=false;root.dashboardFirstSampleHeight=-1
+    findProperty(dashboard.panel,"morph").expanded=true
+    root.settle=0;root.step=7
+   } else if(root.step===7) {
+    root.sampleDashboard(false)
+    if(++root.settle<10)return
+    root.settledDashboard()
+    root.dashboardStartHeight=dashboard.panel.height;root.dashboardMoved=false;root.dashboardFirstSampleHeight=-1
+    findProperty(dashboard.panel,"morph").expanded=false
+    root.settle=0;root.step=71
+   } else if(root.step===71) {
+    root.sampleDashboard(false)
+    if(++root.settle<10)return
+    root.settledDashboard()
+    GlobalStates.dashboardOpenIndex=1;root.settle=0;root.step=8
+   } else if(root.step===8) {
+    root.check(dashboard.window.height===root.dashboardSurfaceHeight,"tab handover keeps native surface stable")
+    root.check(Math.abs(dashboard.panel.height-(dashboard.window.targetPanelHeight-Tokens.spacing.small*2))<=1,"tab handover has no trailing background")
+    if(++root.settle<10)return
+    root.check(Math.abs(dashboard.panel.height-(dashboard.window.targetPanelHeight-Tokens.spacing.small*2))<=1,"tab handover reaches its measured height")
+    AppConfig.reduceMotion=true;GlobalStates.dashboardOpenIndex=0;root.settle=0;root.step=9
    } else {
-    const target=Math.min(dashboard.window.availableHeight,dashboard.window._measured+dashboard.window.chromeHeight)
-    root.check(dashboard.window._measured>0 && dashboard.window.implicitHeight===target,"dashboard applies final native height without a second geometry animation")
+    if(++root.settle<2)return
+    root.check(Math.abs(dashboard.panel.height-(dashboard.window.targetPanelHeight-Tokens.spacing.small*2))<=1,"reduced motion applies geometry immediately")
     GlobalStates.dashboardOpen=false
     console.warn("BAR WAYLAND PASS");Qt.quit()
    }

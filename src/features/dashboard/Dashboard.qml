@@ -40,26 +40,24 @@ Scope {
         // either a clipped bottom edge or a band of dead space, in a panel whose
         // content was measurable all along. Quick, Weather and Calendar report
         // their measured height. The configured height is only a fallback.
-        implicitHeight: Math.min(availableHeight, _measured > 0
+        readonly property int targetPanelHeight: Math.min(availableHeight, _measured > 0
             ? _measured + chromeHeight
             : root.sidebarHeight + (_content?.tabExtraHeight ?? 0))
 
-        // Everything the window holds around the tab's own content: the loader's
-        // margins and the tab bar above it.
         readonly property int chromeHeight: Tokens.spacing.small * 2 + (_content?.chromeHeight ?? 0)
+        readonly property bool _contentReady: _measured > 0
 
-        // Resize the native surface once to the measured target. Animating this
-        // property resizes the entire layout every frame, retargets measurements
-        // during lazy loading and competes with the player's own morph.
-        property bool _contentReady: false
-        on_MeasuredChanged: if (_measured > 0) _contentReady = true
-        Component.onCompleted: if (_measured > 0) _contentReady = true
-        anchors {
-            top: AppConfig.barPosition !== "bottom"
-            bottom: AppConfig.barPosition === "bottom"
-        }
-        Binding { target: dashboardWindow; property: "margins.top"; value: AppConfig.barPosition !== "bottom" ? BarMetrics.reservation + Tokens.spacing.small : 0 }
-        Binding { target: dashboardWindow; property: "margins.bottom"; value: AppConfig.barPosition === "bottom" ? BarMetrics.reservation + Tokens.spacing.small : 0 }
+        // Keep the Wayland surface stable. Resizing it before the player's
+        // morph makes compositor geometry and QML content move in two stages.
+        // Only the visible card changes height; its region owns pointer input.
+        implicitHeight: availableHeight
+        // Sections animate their actual layout extent. A second animation here
+        // would leave empty card background chasing already collapsed content.
+        readonly property real panelHeight: targetPanelHeight
+        anchors { top: true; bottom: true }
+        Binding { target: dashboardWindow; property: "margins.top"; value: Tokens.spacing.small + (AppConfig.barPosition !== "bottom" ? BarMetrics.reservation : 0) }
+        Binding { target: dashboardWindow; property: "margins.bottom"; value: Tokens.spacing.small + (AppConfig.barPosition === "bottom" ? BarMetrics.reservation : 0) }
+        mask: Region { item: dashboardLoader }
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         exclusiveZone: 0
 
@@ -85,10 +83,12 @@ Scope {
 
             focus: GlobalStates.dashboardOpen
 
-            anchors {
-                fill: parent
-                margins: Tokens.spacing.small
-            }
+            width: Math.max(0, dashboardWindow.width - Tokens.spacing.small * 2)
+            height: Math.max(0, Math.min(dashboardWindow.panelHeight, dashboardWindow.height) - Tokens.spacing.small * 2)
+            x: Tokens.spacing.small
+            y: AppConfig.barPosition === "bottom"
+                ? Math.max(Tokens.spacing.small, dashboardWindow.height - height - Tokens.spacing.small)
+                : Tokens.spacing.small
 
             // No implicit-size bindings back to the Loader: it forwards its
             // item's implicit size, so those would be circular.

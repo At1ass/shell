@@ -1,6 +1,33 @@
 # ROADMAP
 
-Open work. The active stream is the root-cause refactor below; feature extensions are deferred behind it.
+Current priorities are summarized below. Dated sections preserve implementation
+history; older plans and acceptance notes can be superseded by later entries.
+
+## Current status — 2026-10-27
+
+The foundation and main UI/UX implementation passes are complete. NetworkManager
+agent migration, IPv6 status/details and the dashboard resize/collapse corrections
+have user acceptance. The user explicitly confirmed the dashboard trailing
+background is fixed, including section collapse and tab changes.
+
+Remaining code work, in practical order:
+1. Clean up VPNService's legacy primary-name toggle dependency. Selection should
+   use NetworkManager profiles/UUIDs, with correct refresh and failure handling;
+   removing services.vpn.name must not leave an invalid action behind.
+2. Final consistency pass for bar/dock/popouts, typography and default behavior,
+   concentrating on concrete remaining inconsistencies rather than another redesign.
+3. Targeted nonblocking/lifecycle cleanup in remaining services and reduction of
+   existing QML/UI-kit debt. Full subprocess migration is not a prerequisite.
+
+Manual acceptance not yet specifically recorded: updated greeter/PAM failure and
+retry flows; remaining Bluetooth PIN/passkey/cancellation and lock/resume cases;
+OpenVPN and existing agent-owned keyring credentials. Phone numeric comparison,
+network connection, IPv6 and dashboard motion have already passed and need not be
+repeated just to close old entries. Hardware checks can accompany normal use.
+
+Full applet feature parity, extra VPN protocols, hotspot/mobile/PAN management and
+calendar/notification feature extensions remain deferred. nm-connection-editor
+stays the profile editor; blueman-applet remains enabled.
 
 ## Foundation — 2026-10
 
@@ -3445,3 +3472,59 @@ on private fixtures; the live system's profiles and radio were not modified.
 Deployment: rebuild/install Connectivity, restart the unlocked shell. Until then
 the optional detail loader leaves the existing shell running and native Ethernet
 status works; the new address/gateway reader is not available in the older plugin.
+
+
+## Dashboard resize jump follow-up — 2026-10-26
+
+The earlier correction removed QML animation from native window height, but each
+expansion still resized that surface immediately before the player's own morph.
+Hyprland's layer geometry animation can therefore move the whole dashboard before
+QML unfolds the player. The user reports an upward jump followed by expansion.
+
+Dashboard now keeps one stable, vertically stretched Wayland surface between the
+bar/screen margins. The measured card height animates inside it with the same
+medium4/emphasized tokens as the player. Its bar-side edge stays fixed for both
+top and bottom bars; its input region follows the actual card rather than the
+transparent surface. There is still one focus grab. Native surface height changes
+only when screen/bar geometry changes, not when sections or tabs change.
+
+Initial/hidden layout and reduced motion apply immediately; the window waits for
+positive content measurement before showing. Lazy tab handovers keep the previous
+measurement, and card height remains clamped to the available viewport. No native
+plugin rebuild or compositor configuration change is needed.
+
+Validation: changed QML lint, invariant/compile checks and shared UI checks.
+Transparent native Wayland probes sample expansion/collapse frames, assert stable
+surface height and fixed bar-side edges, verify intermediate card heights, and
+exercise player expansion, tab handover and reduced motion. The probes hold no
+focus grab and have empty input regions. Final visual acceptance remains manual.
+
+
+## Dashboard collapse trailing background — 2026-10-27
+
+The stable Wayland surface removed the initial resize jump, but the card's own
+height Behavior still chased already shrunken content. Player implicitHeight used
+the final expanded flag while its controls followed morph. Statistics unloaded
+immediately, and shorter tabs also appeared before the card finished shrinking.
+The user reports this trailing background in all three cases.
+
+Remove the independent card-height animation while retaining the stable surface
+and card input mask. Player layout height now follows the same morph as its
+controls, including its source-list extent. CollapsibleContent is a pure UI-kit
+lazy reveal: it retains the body through closing, clips to the current extent,
+animates one parent-layout gap with that extent and unloads only at zero. Quick
+statistics and weather details use it. Tab replacement applies the measured size
+directly, rather than animating an oversized empty card behind the new content.
+Retained player motion completes when the dashboard hides; reduced motion and
+initial geometry remain immediate. The native surface never resizes for folding.
+
+Checks cover lazy-body lifetime, reversal, player collapse without premature
+clipping, hidden completion and reduced motion. Native Wayland probes assert on
+intermediate expansion/collapse frames that the card equals the measured content
+extent, with stable native height and a fixed bar-side edge. They cover statistics,
+player and tab handover. UI checks run in an isolated tree with empty native input
+regions and no focus grabs; no native plugin rebuild is required.
+
+
+Dashboard fold acceptance: the user confirmed the trailing background is gone and
+the behavior is correct (2026-10-27). The current motion correction is complete.

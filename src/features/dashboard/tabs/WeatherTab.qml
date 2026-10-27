@@ -177,11 +177,12 @@ ScrollableList {
             Accessible.expanded: root.detailsExpanded
             onClicked: root.detailsExpanded = !root.detailsExpanded
         }
-        Loader {
+        CollapsibleContent {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            active: root.hasConditions && root.detailsExpanded
-            visible: active
+            spacing: column.spacing
+            expanded: root.hasConditions && root.detailsExpanded
+            animated: GlobalStates.dashboardOpen
             sourceComponent: GridLayout {
                 columns: width < Tokens.size.fieldWidth * 2 ? 1 : 2
                 columnSpacing: Tokens.spacing.small

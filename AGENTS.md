@@ -222,7 +222,7 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
   Тень приподнятой поверхности — только через `ElevationShadow` (`RectangularShadow` + маппинг `Tokens.elevation`).
   `MultiEffect { shadowEnabled: true }` не использовать: он гоняет источник через FBO и блюр на каждое его изменение,
   а у каждой поверхности есть `Behavior on color`. `MultiEffect` остаётся для блюра картинок и масок.
-- **containers/** — `Surface`, `MaterialCard`, `BarElement`, `ListItem`, `Divider`, `ScrollableList`, `CollapsibleSection`.
+- **containers/** — `Surface`, `MaterialCard`, `BarElement`, `ListItem`, `Divider`, `ScrollableList`, `CollapsibleContent`.
   `ListView.reuseItems` — **только для делегатов фиксированной высоты.** При переменной высоте (перенос текста)
   и/или секциях переиспользованный делегат позиционируется по прошлой высоте раньше, чем содержимое разложилось:
   карточки наезжают друг на друга и на заголовки групп. Проверено на центре уведомлений — откачено; в лаунчере
@@ -408,6 +408,16 @@ PropertiesChanged учитывает текущие device/IP-config пути; �
 network_info_test, tools/test-network-info.py (--native — read-only QS/DBus), test-ui.py.
 
 ### Аудио и трей
+
+Dashboard держит стабильную по высоте Wayland-поверхность; input mask ограничен
+Loader карточки. Высота карточки следует текущему layout без второго Behavior:
+иначе после уменьшения содержимого остаётся догоняющая пустая подложка. Плеер
+публикует высоту из того же morph, что двигает контролы; CollapsibleContent сохраняет
+ленивое содержимое до конца закрытия и анимирует высоту вместе с одним отступом
+родительского layout (spacing). На смене вкладки размер применяется сразу после
+измерения. Не возвращать resize нативного окна: Hyprland накладывает его анимацию
+геометрии на QML motion. Начальные/скрытые изменения мгновенны, reduceMotion
+соблюдается; край со стороны бара остаётся привязанным.
 
 `features/audio` владеет выбором устройств и ленивым микшером. Состояние аудио
 читается из AudioService, команды идут через его сеттеры; UI не хранит копию

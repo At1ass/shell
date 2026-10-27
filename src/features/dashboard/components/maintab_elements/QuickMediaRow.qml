@@ -70,28 +70,54 @@ Item {
     // showing a list of one.
     onHasChoiceChanged: if (!root.hasChoice) root.sourceListOpen = false
     onExpandedChanged: {
-        root.morph = root.expanded ? 1 : 0
-        if (!root.expanded)
-            root.sourceListOpen = false
+        if (!root.expanded) root.sourceListOpen = false
+        root._syncMotion()
     }
+    onSourceListOpenChanged: root._syncMotion()
 
-    // The single parameter every position below is derived from. Animating this
-    // rather than the individual geometries is what keeps them in step.
+    // Geometry and layout share the same progress. Explicit animations also
+    // allow retained content to settle synchronously when its panel hides.
     property real morph: 0
+    property real sourceMorph: 0
     property bool _motionReady: false
-    Behavior on morph {
-        enabled: root._motionReady && root.visible && GlobalStates.dashboardOpen
-        MotionAnimation {
-            duration: Tokens.motion.duration.medium4
-            curve: "emphasized"
+    function _syncMotion() {
+        if (root._motionReady) {
+            morphAnimation.stop()
+            sourceAnimation.stop()
+            if (root.visible && GlobalStates.dashboardOpen && !AppConfig.reduceMotion) {
+                morphAnimation.to = root.expanded ? 1 : 0
+                sourceAnimation.to = root.sourceListOpen ? 1 : 0
+                if (root.morph !== morphAnimation.to) morphAnimation.start()
+                if (root.sourceMorph !== sourceAnimation.to) sourceAnimation.start()
+                return
+            }
         }
-    }
-
-    // Initial expanded content must start at its final geometry before motion
-    // is enabled; otherwise its first frame starts a second opening transition.
-    Component.onCompleted: {
         root.morph = root.expanded ? 1 : 0
-        root._motionReady = true
+        root.sourceMorph = root.sourceListOpen ? 1 : 0
+    }
+    MotionAnimation {
+        id: morphAnimation
+        target: root
+        property: "morph"
+        duration: Tokens.motion.duration.medium4
+        curve: "emphasized"
+    }
+    MotionAnimation {
+        id: sourceAnimation
+        target: root
+        property: "sourceMorph"
+        duration: Tokens.motion.duration.medium4
+        curve: "emphasized"
+    }
+    Component.onCompleted: { root._syncMotion(); root._motionReady = true }
+    onVisibleChanged: if (!visible) root._syncMotion()
+    Connections {
+        target: GlobalStates
+        function onDashboardOpenChanged() { if (!GlobalStates.dashboardOpen) root._syncMotion() }
+    }
+    Connections {
+        target: AppConfig
+        function onReduceMotionChanged() { if (AppConfig.reduceMotion) root._syncMotion() }
     }
     function _l(a, b) { return a + (b - a) * root.morph }
 
@@ -109,17 +135,16 @@ Item {
     readonly property int rowHeight: Math.max(root.artSmall, labels.implicitHeight,
                                               transport.implicitHeight)
                                      + root.padding * 2
-    readonly property int openHeight: root.padding + root.artLarge
+    readonly property real openHeight: root.padding + root.artLarge
                                       + Tokens.spacing.medium + transport.implicitHeight
                                       + root.padding
-                                      + (root.sourceListOpen
-                                         ? sourceList.implicitHeight + Tokens.spacing.medium : 0)
+                                      + (sourceList.implicitHeight + Tokens.spacing.medium) * root.sourceMorph
 
-    // Reported from `expanded`, not from `morph`: the window has to be the final
-    // size BEFORE the content walks into it, or the clip below eats whatever is
-    // still on its way.
-    readonly property int expandedDelta: root.expanded
-                                         ? Math.max(0, root.openHeight - root.rowHeight) : 0
+    // The row, its clip and the surrounding card follow the same morph.
+    // Collapsing the row to its final height before the controls move would
+    // clip the controls and leave a separately shrinking background behind.
+    readonly property real expandedDelta: Math.max(0, root.openHeight - root.rowHeight)
+        * Math.max(0, Math.min(1, root.morph))
 
     implicitHeight: root.rowHeight + root.expandedDelta
     clip: true
@@ -479,7 +504,8 @@ Item {
         // Not the full row width: a check mark parked at the far edge of a 900px
         // panel reads as unrelated to the two short names beside it.
         width: Math.min(root.width - x - root.gutter, root.artLarge * 3)
-        visible: root.sourceListOpen && root.morph > 0.5
+        visible: root.sourceMorph > 0 && (root.morph > 0.5 || !root.expanded)
+        enabled: root.sourceListOpen
         spacing: 0
 
         Repeater {
