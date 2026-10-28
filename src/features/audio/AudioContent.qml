@@ -100,6 +100,16 @@ MaterialCard {
                 colorRole: "onSurfaceVariant"
                 wrapMode: Text.WordWrap
             }
+            MaterialButton {
+                Layout.alignment: Qt.AlignRight
+                variant: "text"
+                text: "Advanced audio…"
+                Accessible.name: "Open advanced audio controls in pwvucontrol"
+                onClicked: {
+                    AudioService.openSettings()
+                    root.closeRequested()
+                }
+            }
         }
     }
     AudioDevicePicker {

@@ -1385,6 +1385,8 @@ click actions), right-click toggles mute, and the wheel adjusts output volume.
 Without a ready output device the bar shows `--%`; mute and wheel commands wait
 for its audio interface, while opening the device panel remains available.
 Quick offers a direct Audio action; system diagnostics are collapsed by default.
+The **Advanced audio…** button opens `pwvucontrol` in a separate application scope
+and closes the audio panel. Install `pwvucontrol` to use this optional external tool.
 
 ```bash
 qs ipc call globalstates toggleAudio

@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 Singleton {
     id: root
     function init() {}
+    function openSettings() { AppLaunchService.launchCommand(["pwvucontrol"]) }
 
     // ===== PIPEWIRE NODES =====
     readonly property QS.ObjectModel _nodes: Pipewire.nodes as QS.ObjectModel
