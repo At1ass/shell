@@ -26,113 +26,177 @@ A Hyprland shell built on [Quickshell](https://quickshell.outfoxxed.me/) with a 
 
 ---
 
-## Dependencies
+## License
 
-### Required
+The shell and its original native plugins are licensed under **GPL-3.0-or-later**;
+see [LICENSE](LICENSE). Vendored Material Color Utilities retains Apache-2.0 and
+RapidFuzz retains MIT. Their notices are included in the native plugin package.
 
-| Package | Purpose |
-|---------|---------|
-| `quickshell-git` | Shell framework (Wayland, QML) |
-| `hyprland` | Compositor (uses ext-global-shortcuts, WlrLayershell, HyprlandFocusGrab) |
-| `qt6-base`, `qt6-declarative` | Qt 6.8+ runtime |
-| `pipewire` + `wireplumber` | Audio — volume widget and OSD |
-| `app2unit` | Launches apps (launcher, dock, settings buttons) into their own systemd scopes; Terminal=true entries via `xdg-terminal-exec` |
+## Dependencies and Arch packages
 
-### Optional
+The authoritative dependency declarations are in `packaging/arch/PKGBUILD`.
+Dependencies below are checked against QML imports, CMake, external command call
+sites, ELF NEEDED entries and Arch file ownership; disabling a UI module does not
+remove a linked native library requirement. Supported baseline: Quickshell 0.3.2,
+Hyprland 0.56.2 Lua dispatch, Qt 6.8+. Those versions are the tested baseline,
+not a promise of compatibility with future breaking compositor/framework changes.
 
-| Package | Purpose |
-|---------|---------|
-| `grim` | Screenshots (required for the Screenshot overlay) |
-| `wl-clipboard` | Copy screenshots to the clipboard (`wl-copy`) |
-| `swappy` | Screenshot annotations |
-| `ddcutil` | External-monitor brightness via DDC/CI |
-| `cliphist` | Clipboard history in the launcher |
-| `qalculate-glib` | Calculator in the launcher (also a build dep for the plugin) |
-| `glib2` | Desktop entry and command-line parsing for GreeterData |
-| `libical` | Native calendar plugin (events, RRULE expansion) |
-| `vdirsyncer` | CalDAV synchronization (Google, Yandex, iCloud, …) |
-| `hyprsunset` | Night Light temperature shift |
-| `networkmanager` | Native device/profile status; UUID-based VPN activation through `nmcli` |
-| `bluez` | Bluetooth support for the Connections panel |
-| `libsecret` + a Secret Service provider | NetworkManager agent-owned credentials (compatible with nm-applet keyring entries) |
-| `networkmanager-openvpn` | OpenVPN authentication helper, when OpenVPN profiles are used |
+| Category | Required packages | Reason |
+|---|---|---|
+| Shell engine | `quickshell>=0.3.2`, `hyprland>=0.56` | Native QS modules including Networking, Bluetooth, PipeWire, PAM, Polkit and Hyprland; compositor Lua IPC and focus grabs |
+| QML runtime | `qt6-base`, `qt6-declarative`, `qt6-wayland`, `qt6-svg` | Controls, layouts, effects, LocalStorage, Wayland rendering and SVG application icons |
+| Native plugins | matching `at1ass-shell-plugins-git` | All seven QML modules are shipped as one versioned set |
+| Plugin shared libraries | `glibc`, `libgcc`, `libstdc++`, `qt6-base`, `qt6-declarative`, `libical>=4.0`, `libqalculate`, `lm_sensors`, `glib2`, `libsecret` | Direct native linkage; in this package SystemMonitor is built with libsensors, so lm_sensors is required at runtime |
+| Application launching | `app2unit`, `xdg-terminal-exec` | Separate systemd scope per application; Terminal=true desktop entries |
+| Commands/session | `bash`, `coreutils`, `findutils`, `gawk`, `grep`, `sed`, `glib2`, `systemd`, `pam`, `util-linux`, `which` | Packaged CLI, local wallpaper/cache operations, gdbus/logind, lockscreen PAM `login` policy and capability probes |
+| Default appearance | `ttf-material-symbols-variable`, `ttf-roboto`, `ttf-dejavu`, `hicolor-icon-theme` | Sharp/Rounded icon cuts, MD3 text, portable minimal monospace and desktop icon fallback |
+| Build only | `base-devel`, `git`, `cmake`, `ninja`, `pkgconf`, `python`, `rapidfuzz-cpp`, plus native library headers | base-devel is the Arch build environment; RapidFuzz is header-only and uses the system CMake package, with configure-time downloads disabled |
+| Review/test only | `namcap`, `devtools` | Dependency/lint review and clean-chroot validation; not installed with the shell |
 
-> Bluetooth pairing from Connections uses the shell's application-scoped BlueZ
-> agent: PIN/passkey input, keyboard code display and explicit confirmation.
-> It never becomes the default agent and rejects unsolicited requests.
-> NetworkManager authentication uses a separate native agent; its package must be
-> rebuilt before migrating away from nm-applet (see Connections below).
+`qt6-tools` is not a separate build requirement: moc/rcc and QML build tools come
+from the Qt base/declarative packages. A different Quickshell build must include
+the modules imported by this project; a package name alone cannot guarantee that.
 
-### Build dependencies (C++ plugins)
+Optional packages enable these features; their absence must not prevent core UI
+startup. Installing a package is separate from starting its system/user service.
 
-| Package | Purpose |
-|---------|---------|
-| `cmake` + `ninja` | Build system |
-| `qt6-tools` | `moc`, `rcc` |
-| `libqalculate` | Calculator plugin headers |
-| `libical` | Calendar plugin (requires libical ≥ 4.0 — refcounted recurrence API) |
-| `libsecret` | Connectivity password-store backend |
-| `lm_sensors` | Optional: hwmon temperatures in SystemMonitor (built without them if absent) |
+| Optional packages | Feature and additional setup |
+|---|---|
+| `ca-certificates` | HTTPS trust for weather and wallpaper feeds |
+| `xdg-utils` | External calendar URL opening through Qt desktop services |
+| `nvidia-utils` | Optional NVIDIA NVML GPU statistics; loaded dynamically, not linked as a mandatory plugin library |
+| `pipewire-pulse` | Optional PulseAudio compatibility for applications; shell controls use native PipeWire |
+| `xdg-desktop-portal`, `xdg-desktop-portal-hyprland` | Required for recorder `capture.target=portal` (the default), together with a running PipeWire service and session portal backend |
+| `pipewire`, `wireplumber` | Audio controls need a running PipeWire graph and a session policy manager; wireplumber is the supported default |
+| `networkmanager` | Wi-Fi/Ethernet/VPN need the running NetworkManager service; VPN activation uses nmcli |
+| `bluez` | Bluetooth requires bluetooth.service and supported/unblocked hardware |
+| `upower` | Battery/power-device information in the bar, lockscreen and optional greeter; UPower service needed |
+| `gnome-keyring` or another Secret Service provider | Persists agent-owned network credentials; libsecret itself is already a mandatory plugin library |
+| `networkmanager-openvpn` | Supplies `/usr/lib/nm-openvpn-auth-dialog` for OpenVPN authentication; other VPN plugins are profile-specific |
+| `nm-connection-editor`, `blueman`, `pwvucontrol` | Explicit external network profile, Bluetooth and advanced audio actions |
+| `grim`, `wl-clipboard` | Screenshot capture/copy; the basic screenshot action needs both |
+| `swappy` | Screenshot annotation, together with grim |
+| `cliphist`, `wl-clipboard` | Clipboard history also needs external `wl-paste --watch cliphist store` ingestion; installing cliphist alone does not collect history |
+| `gpu-screen-recorder`, `procps-ng` | Recording needs both gpu-screen-recorder and its `gsr-cli` control binary; pgrep detects recordings. A working GPU encoder/driver is also needed. Verify gsr-cli exists in the chosen build; the current host uses gpu-screen-recorder-git |
+| `ddcutil` | Brightness requires DDC/CI-capable displays and I2C/device permissions; package installation alone is insufficient |
+| `hyprsunset` | Night-light temperature changes |
+| `curl` | Remote wallpaper downloads; local wallpapers do not require curl |
+| `qt6-imageformats` | Additional image codecs beyond the base Qt image readers |
+| `hypridle` | Idle lock/suspend policy; explicitly connect it to the packaged IPC command |
+| `vdirsyncer` | External CalDAV synchronization into local calendar stores |
+| `uwsm` | Optional graphical-session environment/lifetime management; a correctly imported systemd user environment works without it |
 
----
+Native status/auth agents replace the need for nm-applet/blueman-applet; those
+applets are not dependencies. pactl/playerctl/bluetoothctl are also not required
+for the native PipeWire/MPRIS/Bluetooth controls. Polkit authorization is separate from Secret Service
+storage: use the shell's optional polkit module or another session agent, not two.
 
-## Installation
+## Installation on Arch Linux
 
-### 1. Clone
+The split build produces `at1ass-shell-git`, `at1ass-shell-plugins-git` and optional
+`at1ass-shell-greeter-git`. The first two provide the full shell; the greeter adds
+greetd and does not enable or replace `/etc/greetd/config.toml` automatically.
+Sources are public HTTPS URLs; no home paths, LAN server or SSH keys are required.
+Published AUR packages: [shell](https://aur.archlinux.org/packages/at1ass-shell-git),
+[native plugins](https://aur.archlinux.org/packages/at1ass-shell-plugins-git) and
+[optional greeter](https://aur.archlinux.org/packages/at1ass-shell-greeter-git).
+The AUR recipe is maintained in `ssh://aur@aur.archlinux.org/at1ass-shell-git.git`;
+application source comes from the public GitHub master branch.
 
-```bash
-git clone <repo> ~/.config/quickshell/shell
-```
+Code/defaults/schema live under `/usr/share/at1ass-shell`, QML plugins under
+`/usr/lib/qt6/qml`, and the user unit under `/usr/lib/systemd/user`. No package
+owns files in a home directory. The greeter has generic output/session defaults;
+its two `/etc/greetd` files use pacman's backup handling.
 
-### 2. Build C++ plugins
-
-```bash
-cd ~/.config/quickshell/shell/src/plugins
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
-cmake --build build
-```
-
-Plugins built: Material Color Utilities (dynamic colors), FuzzySearch (search), Qalculate (calculator), Calendar (iCalendar via libical), SystemMonitor (system monitoring), GreeterData (background session/user catalogs and parsed session argv), Connectivity (BlueZ pairing transport and NetworkManager credential agent).
-
-#### Arch Linux: as a package
-
-`packaging/arch/PKGBUILD` builds two packages from the **committed** state of the repo (the checked-out branch, never the working tree):
-
-- `at1ass-shell-plugins` — the plugins above, into `/usr/lib/qt6/qml`, tracked by pacman;
-- `at1ass-shell-greeter` — the greeter, into `/usr/share/at1ass-shell/greeter`, plus `/etc/greetd/greeter.json` and `/etc/greetd/hyprland-greeter.conf` as `backup` files (local edits survive upgrades; new defaults arrive as `.pacnew`).
-
-```bash
-cd ~/.config/quickshell/shell/packaging/arch
-paru -B .      # builds in paru's clean chroot (Chroot/LocalRepo in paru.conf)
-sudo pacman -Sy at1ass-shell-plugins at1ass-shell-greeter
-```
-
-The first install over plugins that were installed with `cmake --install`, and over hand-made `/etc/greetd` files, needs `--overwrite` for exactly those paths — pacman refuses unowned files otherwise:
-
-```bash
-sudo pacman -Sy \
-  --overwrite '/usr/lib/qt6/qml/Calendar/*' --overwrite '/usr/lib/qt6/qml/FuzzySearch/*' \
-  --overwrite '/usr/lib/qt6/qml/Mcu/*' --overwrite '/usr/lib/qt6/qml/Qalculate/*' \
-  --overwrite '/usr/lib/qt6/qml/SystemMonitor/*' \
-  --overwrite /etc/greetd/greeter.json --overwrite /etc/greetd/hyprland-greeter.conf \
-  at1ass-shell-plugins at1ass-shell-greeter
-```
-
-`--overwrite` does not replace the two `/etc/greetd` files: they are `backup` files, so pacman keeps whatever is already there and writes its own copy as `.pacnew` if the contents differ. Check and swap them in, or the greeter keeps running from the old path:
+For a local checkout, **commit changes first**, then build the committed revision
+without changing the public recipe or the existing submodule working tree:
 
 ```bash
-ls /etc/greetd/*.pacnew
-sudo mv /etc/greetd/hyprland-greeter.conf.pacnew /etc/greetd/hyprland-greeter.conf
+tools/build-arch.sh /tmp/at1ass-shell-build
 ```
 
-The vendored `material-color-utilities` submodule is fetched over HTTPS and patched in `prepare()` (`src/plugins/patches/`), exactly as in a manual build.
+This builds as the normal user and uses existing build dependencies; it does not
+install packages or stop the shell. The temporary recipe pins `git+file://` to
+that exact commit. The public recipe continues to use GitHub HTTPS. For release
+validation also run the public recipe in a clean chroot (`devtools`), so missing
+build dependencies cannot be hidden by the development host.
 
-### 3. Create a user config
+On a fresh machine, install the built shell and plugin packages together with
+pacman, then configure the session explicitly:
 
 ```bash
-cp ~/.config/quickshell/shell/config/default.json \
-   ~/.config/quickshell/config.json
+systemctl --user enable --now at1ass-shell.service
+at1ass-shell ipc call config validate
+shell-ctl help
 ```
+
+The user manager needs WAYLAND_DISPLAY and HYPRLAND_INSTANCE_SIGNATURE from the
+Hyprland session. uwsm normally imports them; otherwise import the session's
+required environment and activate graphical-session.target before starting the
+unit. Direct `at1ass-shell` launch from a session is also supported without the unit. Do not
+enable the unit from a plain TTY with no Wayland session. Hyprland bindings and
+hypridle commands use `at1ass-shell ipc call …`, not `qs -c shell`.
+The package never enables NetworkManager, Bluetooth, greetd or another system
+service automatically.
+
+For development, `qs -p /path/to/checkout` and `tools/shell-ctl` remain available.
+The `/usr/bin/at1ass-shell` wrapper always addresses `/usr/share/at1ass-shell`,
+including IPC; `/usr/bin/shell-ctl` resolves to the installed runtime's CLI.
+Editing a checkout no longer hot-reloads the installed shell: rebuild/upgrade it.
+
+### Migrate an existing development installation
+
+For manual installation through paru, unlock first and stop the running shell
+and idle service before replacing native plugins:
+
+```bash
+qs -c shell ipc call globalstates locked   # must report false
+systemctl --user stop hypridle.service quickshell.service
+paru -S at1ass-shell-git at1ass-shell-greeter-git
+```
+
+Back up the two existing `/etc/greetd` files before changing package ownership,
+and restore the machine's display/session settings afterward. Its exit command
+must use `hyprctl dispatch 'hl.dsp.exit()'` on Hyprland 0.56. Start the packaged
+unit with `systemctl --user daemon-reload` and
+`systemctl --user start at1ass-shell.service`, update old IPC integration paths,
+then disable the development unit, enable the packaged unit and restart hypridle.
+If the installation fails, restore development startup with
+`systemctl --user start quickshell.service hypridle.service`.
+
+
+To build from the **published AUR repository** and migrate the current development
+session, run `tools/install-from-aur.sh` from a desktop terminal as the normal
+user. It clones the public AUR recipe over HTTPS into a fresh cache directory,
+builds without installing, checks the package payload, then invokes the guarded
+migration below. It never substitutes the local checkout as a build source.
+Build dependencies must already be installed; missing dependencies stop the build
+before any service is changed. Fresh systems without a running
+development shell can install with `paru -S at1ass-shell-git` (add the greeter
+package explicitly if needed), then enable the installed service.
+
+```bash
+python3 tools/migrate-installed.py --packages /tmp/at1ass-shell-build
+# Review packages and exact integration paths, then run from your desktop terminal:
+python3 tools/migrate-installed.py --packages /tmp/at1ass-shell-build --apply
+```
+
+The migration authenticates sudo **before** stopping anything, checks the real
+shell lock state again, backs up integration/user config and greetd defaults,
+stops hypridle and the development shell before replacing loaded plugins,
+installs all three packages, preserves existing greetd display/session settings (updating the obsolete
+`hyprctl dispatch exit` command to Lua IPC), changes only
+`qs -c shell`/`quickshell --config shell` integration calls in Hyprland and user
+scripts under `~/.local/bin` (override with `--bin-dir`), and switches user
+services. It validates installed config and reloads Hyprland bindings. A failed
+switch restores integration and development startup; installed package upgrades
+remain installed. Backups are in `$XDG_STATE_HOME/at1ass-shell/migrations`.
+The checkout, `config.json`, `state.json`, notification history and launch-frequency
+database remain in their existing locations. For editor completion, point your
+config's `$schema` at `/usr/share/at1ass-shell/config/config.schema.json` yourself;
+the migration intentionally does not rewrite user config. No logout or greetd restart is done.
+
+## Configuration
 
 Config is read from `$XDG_CONFIG_HOME/quickshell/config.json` (defaults to `~/.config/quickshell/config.json`). If absent, the bundled `config/default.json` is loaded as a fallback.
 

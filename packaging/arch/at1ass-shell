@@ -1,0 +1,3 @@
+#!/bin/sh
+# Always address the packaged configuration, including for IPC.
+exec /usr/bin/qs --path /usr/share/at1ass-shell "$@"

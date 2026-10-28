@@ -4092,3 +4092,134 @@ Validation: 240 Qt UI checks, native rendering and read-only overview probes,
 changed-file qmllint and the zero-baseline invariant/engine compile checks passed.
 Applying the fix restarts QS safely while unlocked, clearing the already-stale
 process-local native models without moving any actual windows.
+
+
+## Portable Arch/AUR packaging and current-host migration — 2026-10-28
+
+User authorized complete package preparation, dependency audit and migration of
+the current host. Selected GPL-3.0-or-later. Public source remains HTTPS GitHub;
+local committed builds use a separate generated pinned file:// recipe. Three
+version-matched -git packages install main runtime, native plugins and optional
+greetd greeter. Existing legacy plugins/greeter names are provided/conflicted.
+
+Audit: direct ELF dependencies checked for all seven modules, QML imports and
+CMake requirements inspected, external command owners queried through pacman.
+libical>=4.0/libqalculate/glib2/libsecret and package-built libsensors are mandatory
+plugin libraries. NM/BlueZ/PipeWire services, credential provider, external
+editors, screenshots, clipboard ingestion, recording, DDC permissions, night light
+and CalDAV are feature integrations with explicit optdepends/setup descriptions.
+Roboto/DejaVu/Material Symbols cover portable default profiles. Python/RapidFuzz
+are build tools/headers; namcap/devtools are review tools. See README matrix.
+
+Runtime installer excludes plugin sources, tests, developer files and personal
+state. Wrapper/CLI always address the installed path; user service activation is
+explicit. Generic greeter defaults remove monitor/session assumptions, while
+migration preserves existing /etc/greetd files and never restarts greetd. Migration
+previews exact Hyprland/hypridle changes, authenticates before stopping, gates on
+real lock IPC, backs up state/integration, stops loaded plugins, upgrades packages,
+switches units and restores development startup on failure.
+
+Public GitHub HEAD currently predates these packaging changes: publication needs
+an explicit source/AUR push after review. Local package testing does not require
+that push. Privileged installation also requires the user's sudo authentication.
+
+Package payload validation compiled all 202 main and 24 greeter components against
+the extracted new plugins. Namcap reports expected synthetic qs.* import warnings
+and attributes native module ownership to the host's installed legacy plugin
+package; the version-exact -git dependency/provides is present and payload imports
+were validated directly. Pure-QML greeter architecture corrected to any. The
+compile probe must use a Wayland backend (offscreen cannot compile PanelWindow);
+it only compiles and never maps windows. Additional audit found the PAM login
+policy in util-linux, dynamically loaded NVIDIA NVML, and the recorder's default
+portal/PipeWire dependencies; declarations and README now include those cases.
+
+Migration safety tests use private XDG files, fake package metadata/commands and
+a private greeter configuration. They cover preview isolation, locked-session
+rejection, authentication failure before service stop, stop-before-plugin-install
+ordering, successful integration switch and rollback after failed config validation.
+The host's old greeter exit command is also migrated to Lua IPC while retaining
+monitor/session settings; package installation does not activate/restart greetd.
+A rootless clean-chroot attempt was blocked when mounting /sys (permission denied);
+clean-chroot release validation still needs a privileged devtools run. This is not
+reported as completed. Host-source build and extracted-payload tests have passed.
+
+Validated local package build: r294.a7e4b80b-1 (main any, plugins x86_64, greeter any).
+The extracted final payload compiles 202/202 main and 24/24 greeter QML components.
+An actual pacman --dbonly replacement transaction passed against a private copy
+of the installed package DB, with private cache/log paths and no real installation.
+Namcap against that prospective package DB reports zero errors; remaining warnings
+are synthetic qs.* imports and runtime dependencies not inferred statically.
+The extra pre-stop lock check also guards a lock arriving during backup work.
+Current-host installation/service migration remains pending user-terminal sudo;
+the development service and installed legacy package DB have not been replaced.
+
+UPower is explicitly optional for battery data in both main and greeter packages.
+Six isolated migration tests now pass, including a lock arriving after backups
+but before the stop operation. Final package artifacts are retained in the user
+cache for the pending privileged migration, instead of depending on /tmp lifetime.
+
+Current-host integration audit additionally found ~/.local/bin/wallpapers.sh
+using old named-config IPC. The migration now previews/backups user text scripts
+as well as Hyprland config, preserving execute modes; --bin-dir isolates the
+script search in tests or custom layouts. Private tests verify script updates
+and rollback without touching actual home integration. Runtime/package payload
+is unchanged by this migration-helper update.
+
+Migration also rejects concurrent integration edits after installation and rolls
+back only its own unchanged writes, preserving an external user edit. The private
+command fixture covers this path without a real pacman transaction or user files.
+
+Final migration helper validation: seven private tests passed. The retained
+r295.e1fc1865-1 runtime packages are unchanged by the subsequent migration-helper
+updates (those tools are not installed into the runtime payload). Public AUR
+export/metadata and SHA256SUMS are prepared in the user cache; no source or AUR
+push and no real package installation/service switch has been performed.
+
+
+## Publish to AUR and consume the public recipe — 2026-10-29
+
+User explicitly requested publishing an AUR repository and installing from it.
+GitHub master was fast-forwarded from 06cdfcb6 to bfe56c26; no history was replaced.
+A clean source checkout built all three packages through the public HTTPS recipe
+(r296.bfe56c26-1). AUR RPC reports at1ass-shell-git unclaimed. AUR SSH Ed25519 host
+fingerprint was verified against the official HTTPS homepage before connecting.
+SSH authentication still rejected the available key after user registration;
+publication waits for a successful authenticated AUR connection.
+
+Added tools/install-from-aur.sh: clone actual public AUR recipe over HTTPS, build
+without install, compile extracted payload, preview and invoke the guarded
+migration. This avoids replacing loaded plugins through an immediate helper
+install and does not silently use local source packages.
+
+AUR publication completed: package base at1ass-shell-git, initial AUR commit
+7a3dbf5, metadata r297.91abb810-1, maintainer At1ass; all three package pages
+and public HTTPS Git clone verified. RPC negative cache cleared and paru -Si
+now resolves the packages. Built again from the cloned AUR repository, with
+GitHub HTTPS sources (no local override); extracted payload compiles 202/202
+main and 24/24 greeter components.
+
+User prefers manual paru installation. Existing machine greeter settings were
+backed up under ~/.local/state/at1ass-shell/aur-transition/original; prepared
+copies retain settings and update the obsolete compositor exit command.
+Prepared greeter config passes Hyprland --verify-config. Current system still
+runs the development service; privileged installation awaits the user's terminal.
+
+
+## Current host migrated to the AUR installation — 2026-10-29
+
+User manually installed main/plugins/greeter r298.5e07066a-1 through paru and
+started at1ass-shell.service. Verified installed-path config validation and
+NetworkManager agent registration. Enabled packaged service, disabled legacy
+quickshell.service without deleting its unit, updated the three Hyprland/idle
+integration files plus ~/.local/bin/wallpapers.sh to /usr/bin/at1ass-shell.
+Original integration copies are under the user's XDG state migrations directory.
+Imported the session's HYPRLAND_INSTANCE_SIGNATURE from the user manager for
+reload; configuration has no errors and active binds contain no legacy IPC calls.
+Restarted hypridle; its log confirms sleep inhibition until the session is locked.
+
+Both /etc/greetd files match the prepared settings-preserving copies, with the
+Lua compositor exit command; greetd was not restarted. User config remains at
+its existing XDG path, and the checkout/submodule working tree are retained.
+AGENTS/CLAUDE operational commands now target the installed unit/IPC. The
+repository's QML is no longer the running code: subsequent runtime fixes require
+a package update, not edits under /usr/share.

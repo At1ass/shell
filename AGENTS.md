@@ -24,7 +24,7 @@
 
 **Сквозной принцип: config-first, без GUI.** Проект настраивается ТОЛЬКО через `config.json`
 (+ `config.schema.json` для автодополнения/валидации в редакторе) и действия через IPC
-(`qs ipc call …`). GUI-настроек в проекте **не будет** — это осознанный дизайн-выбор
+(`at1ass-shell ipc call …`). GUI-настроек в проекте **не будет** — это осознанный дизайн-выбор
 (tiling-WM минимализм). Schema + полные дефолты + миграции конфига — это и есть «интерфейс
 настроек». Чем меньше GUI-конфигурирования, тем лучше.
 
@@ -98,22 +98,22 @@ cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 sudo cmake --install build          # ставит в /usr/lib/qt6/qml/ — В ОБХОД pacman
 # На этой машине плагины и greeter ставятся пакетом (packaging/arch/PKGBUILD):
-#   cd packaging/arch && paru -B . && sudo pacman -Sy at1ass-shell-plugins at1ass-shell-greeter
+#   tools/build-arch.sh /tmp/at1ass-shell-build; затем tools/migrate-installed.py --packages /tmp/at1ass-shell-build --apply
 # Пакет собирается из ЗАКОММИЧЕННОГО состояния: сначала коммит, потом сборка.
 # Не смешивай: cmake --install поверх пакета перезапишет файлы, которыми владеет pacman.
 # ⚠️ Замена .so под работающим шеллом может его уронить, а плагин всё равно
-# подхватится только после перезапуска: systemctl --user restart quickshell
-# (сначала проверь `qs ipc call globalstates locked` — см. предупреждение ниже).
+# подхватится только после перезапуска: systemctl --user restart at1ass-shell.service
+# (сначала проверь `at1ass-shell ipc call globalstates locked` — см. предупреждение ниже).
 
 # Запуск
 quickshell -p ~/.config/quickshell/shell        # (сокращённо: qs -p ...)
 QT_QPA_PLATFORMTHEME=gtk3 qs -p ~/.config/quickshell/shell   # фактический паттерн запуска
-# В живой сессии шелл — user-сервис (~/.config/systemd/user/quickshell.service):
-systemctl --user restart quickshell   # полный перезапуск; НЕ pkill + qs из терминала
-journalctl --user -u quickshell -f    # логи шелла
+# В живой сессии шелл — пакетный user-сервис (/usr/lib/systemd/user/at1ass-shell.service):
+systemctl --user restart at1ass-shell.service   # полный перезапуск; НЕ pkill + qs из терминала
+journalctl --user -u at1ass-shell.service -f    # логи шелла
 
 # Внешнее управление
-qs ipc call <handler> <function> [arg]
+at1ass-shell ipc call <handler> <function> [arg]
 
 # Линт (требование: qmllint clean на всех изменённых QML)
 tools/lint.sh <files...>      # обёртка qmllint с import-путями qs.* (.qmllint-imports/)
@@ -135,6 +135,13 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
 Для C++ плагинов пишутся unit-тесты. Перед коммитом изменённый QML
 обязан проходить `qmllint` без предупреждений.
 
+Текущая система переведена на AUR: код запускается из `/usr/share/at1ass-shell`,
+`at1ass-shell.service` включён, старый `quickshell.service` отключён. Checkout в
+`~/.config/quickshell/shell` сохранён для разработки и не подхватывается пакетным
+процессом. Изменения QML в checkout требуют сборки/обновления пакета для применения;
+не копировать их в `/usr/share` поверх pacman. Для IPC установленного экземпляра
+использовать `at1ass-shell` или `/usr/bin/shell-ctl`, а не `qs -c shell`.
+
 ### ⚠️ Правка на живом шелле = риск потерять сессию
 
 Шелл перезагружается горячо, а загрузка конфигурации — **всё или ничего**: одна ошибка
@@ -149,7 +156,7 @@ tools/compile-check.sh        # exit 1 = что-то не компилирует
 
    Спрашивать состояние так:
    ```bash
-   qs ipc call globalstates locked      # true → НЕ ПРАВИТЬ
+   at1ass-shell ipc call globalstates locked      # true → НЕ ПРАВИТЬ
    ```
    `loginctl show-session <id> -p LockedHint` для этого НЕ годится: `hypridle`
    зовёт `lockScreen()` прямо по IPC, мимо `loginctl lock-session`, поэтому
@@ -250,7 +257,7 @@ defaultAccessibleName как fallback и не перезаписывает би�
 активация кнопок и переключателей игнорирует auto-repeat; навигация может повторяться.
 Основной клик статусного виджета открывает `clickAction`; вложенная кнопка владеет
 своим действием. Наведение не меняет геометрию бара. IPC-справка обнаруживает
-сигнатуры через `qs ipc show`; таблица описаний не создаёт команды.
+сигнатуры через `at1ass-shell ipc show`; таблица описаний не создаёт команды.
 
 ### Обход фокуса
 
@@ -349,7 +356,7 @@ if (Keycodes.letter(event) === action.key) activate()
   `AppConfig` только ПУБЛИКУЕТ ошибки в `configErrors` — тост поднимает `shell.qml`, потому что
   слой `config` не имеет права трогать `services`. Снаружи проверяется через `tools/shell-ctl config validate`
   (IPC-хендлер `config`) — тем же валидатором, без перезапуска шелла.
-- **`tools/shell-ctl`** — единая точка входа в IPC. Список хендлеров он ОБНАРУЖИВАЕТ через `qs ipc show`,
+- **`tools/shell-ctl`** — единая точка входа в IPC. Список хендлеров он ОБНАРУЖИВАЕТ через `at1ass-shell ipc show`,
   а не хранит: справка и zsh-автодополнение поэтому не могут разойтись с кодом. Добавил IPC-функцию —
   ничего в CLI править не надо; ярлыки (`launcher`, `caffeine`, …) — только алиасы поверх той же поверхности.
 - **Шелл НИКОГДА не пишет в `config.json`**. Конфликт — «config edit wins».
@@ -485,7 +492,7 @@ diskseq, пропадании устройства и больших интер�
 После изменения StorageCollector запускать `storage_test` и native/UI-пробы.
 
 ### IPC и хоткеи
-- 5 `IpcHandler`: `globalstates`, `audio`, `mpris`, `wallpaper`, `wallpaper-cache`. Вызов: `qs ipc call <handler> <fn> [arg]`.
+- 5 `IpcHandler`: `globalstates`, `audio`, `mpris`, `wallpaper`, `wallpaper-cache`. Вызов: `at1ass-shell ipc call <handler> <fn> [arg]`.
 - `GlobalShortcut` (ext-global-shortcuts) объявлены в `GlobalStates`/`AudioService`; биндятся `bind = …, global, quickshell:<name>` в hyprland.conf.
 
 ---
@@ -692,3 +699,22 @@ OverviewService повторно проверяет source/monitor/target. На 
 Специальные и синтетические воркспейсы исключены. Modal блокирует обычные команды
 обзора; исчезновение source закрывает меню. Тестировать только fake dispatchers,
 без реального переноса окон/воркспейсов пользователя.
+
+### Переносимая Arch-упаковка
+
+packaging/arch/PKGBUILD — публичный split VCS рецепт: shell/plugins/greeter с
+суффиксом -git, GPL-3.0-or-later; MCU Apache-2.0 и RapidFuzz MIT сохраняют notices.
+Runtime устанавливается в /usr/share/at1ass-shell, плагины — /usr/lib/qt6/qml.
+Пользовательские config/state/history/launcher DB не входят в пакет. Сборка через
+tools/build-arch.sh использует только committed source и отдельный temporary
+recipe с git+file://#commit, не меняя публичные HTTPS source или MCU worktree.
+Новые внешние команды/импорты/ELF зависимости сверять с depends/optdepends и
+матрицей README; обязательная linked library не становится optional от выключения
+UI-модуля. Никаких install hooks для включения системных служб/гритера.
+
+Миграцию выполняет tools/migrate-installed.py: dry-run по умолчанию, sudo до
+остановки, lock-state до и после auth, остановка shell до замены .so, backup и
+rollback интеграции. После перехода использовать at1ass-shell IPC (фиксированный
+пакетный путь), не qs -c shell, который всё ещё обнаруживает dev checkout. Не
+перезапускать greetd и не завершать пользовательскую сессию для проверки пакета.
+Публикация исходников/AUR выполняется отдельным явным действием.

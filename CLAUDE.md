@@ -15,12 +15,12 @@ Desktop shell для **Hyprland** на **Quickshell** (QML/Qt 6) + 7 собст�
 
 ## Команды
 ```bash
-# Плагины (без сборки import Mcu/Calendar/... падает):
-cd src/plugins && cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ \
-  && cmake --build build && sudo cmake --install build
-# Запуск:
-QT_QPA_PLATFORMTHEME=gtk3 qs -p ~/.config/quickshell/shell
-# IPC:        qs ipc call <handler> <fn> [arg]
+# Установленная версия из AUR (код /usr/share/at1ass-shell):
+at1ass-shell ipc call globalstates locked  # true: не менять/не перезапускать
+systemctl --user restart at1ass-shell.service
+# IPC:        at1ass-shell ipc call <handler> <fn> [arg]
+# Разработка: qs -p /path/to/checkout; изменения checkout не reload'ят пакетный процесс.
+# Не устанавливать плагины через cmake --install поверх pacman.
 # Линт:       tools/lint.sh <files>   # qmllint с import-путями; clean на изменённых QML
 # Инварианты: tools/check.sh          # запреты §10, ratchet-базлайн; exit 1 = регресс
 ```

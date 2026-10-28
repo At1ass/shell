@@ -1,0 +1,17 @@
+[Unit]
+Description=at1ass Quickshell desktop shell
+PartOf=graphical-session.target
+After=graphical-session.target
+Requisite=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=exec
+Environment=QT_DISABLE_WINDOW_DECORATION=1 QSG_RENDER_LOOP=threaded
+ExecStart=/usr/bin/at1ass-shell
+Restart=on-failure
+RestartSec=2
+Slice=session-graphical.slice
+
+[Install]
+WantedBy=graphical-session.target

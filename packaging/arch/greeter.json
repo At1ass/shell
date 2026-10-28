@@ -1,9 +1,9 @@
 {
-  "wallpaperPath": "/etc/greetd/wallpaper.jpg",
+  "wallpaperPath": "",
   "darkMode": true,
   "themeVariant": "vibrant",
   "showClock": true,
-  "defaultSession": "Hyprland (uwsm-managed)",
+  "defaultSession": "",
   "$schema": "/usr/share/at1ass-shell/greeter/config/greeter.schema.json",
   "designSystem": "minimal",
   "fontScale": 1.3,
