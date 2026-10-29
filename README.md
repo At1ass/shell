@@ -36,7 +36,7 @@ as paru (run the helper as your regular user):
 
 ```bash
 sudo pacman -Syu --needed base-devel git
-paru -S at1ass-shell-git
+paru -S --aur at1ass-shell-git
 ```
 
 | Package | Purpose |
@@ -625,7 +625,7 @@ The greeter is independent of your shell config and runs as the `greeter` user.
 Install it only if you want to use greetd as your login manager:
 
 ```bash
-paru -S at1ass-shell-greeter-git
+paru -S --aur at1ass-shell-greeter-git
 ```
 
 Review these root-owned files:
@@ -690,6 +690,10 @@ Keep installed shell, plugin and greeter packages at matching
 versions. Include `at1ass-shell-greeter-git` if installed, and ensure the matching
 plugin package is upgraded in the same transaction. Build as your normal user.
 The following examples stop the shell before asking paru to rebuild/install.
+`--aur` explicitly selects the public AUR recipe: with paru's LocalRepo enabled,
+a repository such as `[aur]` can otherwise supply an older prebuilt package even
+when `--rebuild` is specified. Include all three installed split packages when
+forcing a development rebuild.
 
 **Before installing replacement native plugins, unlock the session and stop its
 shell and idle daemon.** Replacing loaded `.so` files can crash the running shell;
@@ -704,7 +708,7 @@ For the service setup, after confirming `false`:
 
 ```bash
 systemctl --user stop hypridle.service at1ass-shell.service
-paru -S at1ass-shell-git --rebuild
+paru -S --aur at1ass-shell-git at1ass-shell-plugins-git --rebuild
 # Include at1ass-shell-greeter-git above if you have it installed.
 systemctl --user daemon-reload
 systemctl --user start at1ass-shell.service
@@ -718,7 +722,7 @@ For the scope setup, after confirming the session is unlocked:
 # Only if you use the idle scope configured above:
 systemctl --user stop at1ass-shell-idle.scope
 systemctl --user stop at1ass-shell.scope
-paru -S at1ass-shell-git --rebuild
+paru -S --aur at1ass-shell-git at1ass-shell-plugins-git --rebuild
 # Include at1ass-shell-greeter-git above if installed.
 ~/.local/bin/start-at1ass-shell
 ```
