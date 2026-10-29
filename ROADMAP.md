@@ -3,6 +3,53 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## N3050 everyday shell migration and measurements — 2026-10-30
+
+The laptop now runs packaged `0.1.0.r3.gdde6dafb-1`, built on the dedicated
+buildbox from committed source. The uwsm-managed shell and hypridle services are
+enabled. Waybar, mako, nm-applet and awww startup entries and processes were
+replaced by the shell; network secret agent registration and notification bus
+ownership were verified. Existing clipboard ingestion and external polkit remain.
+Launcher, overview, dashboard and lock shortcuts target packaged IPC. Idle lock
+commands target the shell; DPMS uses the compositor's explicit action argument
+([dispatcher reference](https://wiki.hypr.land/configuring/core/dispatchers/)).
+Greetd and the workstation installation were not changed.
+
+This run used the real Minimal user configuration, font scale 1.3, with wallpaper,
+weather, dock and live previews enabled, at 1366×768/60 Hz with one application
+window. It therefore supersedes the reduced test profile for everyday memory
+estimates. No real windows were moved/closed and no network/power actions invoked.
+
+- Minute-long initial idle: process 0.81% of one CPU core, whole service 1.26%;
+  RSS 304 MiB.
+- 20 cycles through seven panels (140 opens): RSS at cycles 5/10/15/20 was
+  334/337/342/342.5 MiB. No crashes or automatic service restarts occurred.
+- Two minutes idle after that sequence: process 0.97% of one core, service
+  1.42%; RSS 356.5 MiB. The final churn checkpoint alone is not a memory plateau
+  for the whole application.
+- A separate ordinary-service idle check after restoring uninstrumented startup
+  varied from 300 to 323 MiB over its first three minutes; the last minute stayed
+  near 323 MiB. These short runs cannot exclude longer-term memory growth.
+
+A separate three-repeat open/close run enabled QSG_RENDER_TIMING. Across 504 GUI
+frame-preparation samples the median was 1 ms, p95 51 ms, maximum 178 ms;
+35 samples (6.9%) exceeded the 16.7 ms budget. Maxima by panel were launcher
+89 ms, Quick 112 ms, calendar 150 ms, audio 124 ms, overview 178 ms, cheatsheet
+137 ms and notification centre 75 ms. Large samples mostly included waiting for
+the render thread; the worst overview sample also included 51 ms of polish.
+No QML TypeError/ReferenceError/binding-loop errors appeared in this run.
+
+These are diagnostic frame-preparation timings, including render synchronization,
+not compositor presentation timestamps or CPU work alone. Logging itself adds
+overhead; panel construction before the first frame is not fully described by
+these samples. They establish opening-related stalls, not a reliable FPS figure.
+Use the laptop as supported everyday hardware with a modest memory/idle footprint,
+but do not claim smooth 60 FPS. Next performance work should profile initial
+render synchronization and panel layout, and separately stress overview with many
+windows. Timing overrides and idle inhibition were removed after the run; normal
+shell logging and automatic idle locking are restored. Real PAM unlock on this
+laptop remains a manual acceptance check.
+
 ## N3050 package and runtime validation — 2026-10-29
 
 Validated source `612d52e2` on a Celeron N3050 (two cores, 3.7 GiB RAM,
@@ -43,7 +90,8 @@ future profiling; they do not establish an across-the-board pack multiplier.
 The live run exposed null-parent geometry reads when overview delegates detach
 on close. WorkspaceCard now derives zero canvas dimensions while parentless;
 a repeated live open/close check validates teardown without those TypeErrors.
-This fix follows the measured `612d52e2` package and needs the next package build.
+This fix follows the measured `612d52e2` package; the subsequent laptop migration
+installed it in `0.1.0.r3.gdde6dafb-1`.
 The workstation's real greeter login has user acceptance; laptop checks cover
 compilation and isolated greeter UI, not a real login or suspend/resume cycle.
 
