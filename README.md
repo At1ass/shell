@@ -644,7 +644,11 @@ handling; review `.pacnew` files after upgrades.
 
 This is a VCS (`-git`) package. Use your helper's development-package update mode
 or explicitly rebuild it to get newer source; do not rely only on the version
-shown in AUR metadata. Keep installed shell, plugin and greeter packages at matching
+shown in AUR metadata. Versions derive from release tags: `v0.1.0` produces
+`0.1.0.r0.g<hash>`; twelve commits later the version is `0.1.0.r12.g<hash>`.
+The distance from the tag orders development builds; the hash identifies their
+source. All normal release tags use `vMAJOR.MINOR.PATCH` and remain immutable.
+Keep installed shell, plugin and greeter packages at matching
 versions. Include `at1ass-shell-greeter-git` if installed, and ensure the matching
 plugin package is upgraded in the same transaction. Build as your normal user.
 The following examples stop the shell before asking paru to rebuild/install.

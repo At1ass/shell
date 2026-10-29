@@ -2,7 +2,7 @@
 # Public source by default. tools/build-arch.sh builds a committed local checkout.
 pkgbase=at1ass-shell-git
 pkgname=(at1ass-shell-git at1ass-shell-plugins-git at1ass-shell-greeter-git)
-pkgver=r293.d7afbc10
+pkgver=0.1.0
 pkgrel=1
 pkgdesc='Config-first Quickshell desktop shell for Hyprland'
 arch=(x86_64)
@@ -19,7 +19,9 @@ sha256sums=('SKIP' 'SKIP')
 
 pkgver() {
     cd shell
-    printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    local _description
+    _description=$(git describe --tags --long --match 'v[0-9]*' --abbrev=8) || return
+    printf '%s\n' "$_description" | sed 's/^v//;s/-/.r/;s/-/./'
 }
 
 prepare() {
