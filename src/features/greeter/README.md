@@ -70,7 +70,10 @@ installing it does not require restarting greetd during an active session.
 
 `/etc/greetd/greeter.json` and `hyprland-greeter.conf` are pacman backup files;
 local edits survive upgrades and new package defaults may arrive as `.pacnew`.
-The package's Hyprland config launches the root-owned installed greeter and keeps
+The package's Hyprland config contains Lua despite its historical `.conf` filename.
+Convert old locally edited hyprlang syntax after upgrading to Hyprland 0.57 and
+review `.pacnew`; run `Hyprland --verify-config -c <your-greeter-config>` before
+leaving the current desktop. The config launches the root-owned greeter and keeps
 regreet as its fallback. Do not restore home-directory ACLs or wallpaper symlinks
 from older setups: the greeter needs neither.
 

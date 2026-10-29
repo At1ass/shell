@@ -106,7 +106,7 @@ pkgname = at1ass-shell-greeter-git
 	arch = any
 	depends = at1ass-shell-plugins-git=0.1.0
 	depends = quickshell>=0.3.2
-	depends = hyprland>=0.56
+	depends = hyprland>=0.57
 	depends = greetd
 	depends = bash
 	depends = qt6-base>=6.8

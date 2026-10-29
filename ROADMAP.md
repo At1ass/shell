@@ -3,6 +3,23 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Greeter compositor configuration after Hyprland 0.57 — 2026-10-30
+
+Hyprland 0.57 parses the old packaged hyprlang greeter template as Lua and rejects
+it. The template now uses `hl.monitor`, a `hyprland.start` callback and `hl.config`.
+The historical `hyprland-greeter.conf` path remains so existing greetd commands
+still find it; the greeter package now requires Hyprland 0.57+. Pacman preserves
+local edits, so edited old syntax needs manual conversion/review of `.pacnew`.
+README includes the read-only `Hyprland --verify-config` check; the greeter test
+runs that validator on the actual packaged template before its QML fixtures.
+
+The workstation's manually converted `/etc/greetd/hyprland-greeter.lua` had three
+invalid `general.*` options. They belong to `misc`, and the guiutils flag must be
+named `disable_hyprland_guiutils_check`. A corrected copy retained the user's
+monitor geometry and launch/fallback command; the user installed it and native
+config validation now reports `config ok`. No greetd restart or desktop logout
+was performed for this fix. A new real login is still manual acceptance.
+
 ## N3050 everyday shell migration and measurements — 2026-10-30
 
 The laptop now runs packaged `0.1.0.r3.gdde6dafb-1`, built on the dedicated

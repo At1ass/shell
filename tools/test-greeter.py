@@ -5,6 +5,20 @@ import tempfile, shutil, subprocess, os, json
 
 ROOT = Path(__file__).resolve().parents[1]
 GREETER = ROOT / 'src/features/greeter'
+# Validate the actual compositor entry point as well as the QML UI. Verification
+# does not start a compositor or fire the hyprland.start callback.
+if shutil.which('Hyprland') and os.geteuid() != 0:
+    with tempfile.TemporaryDirectory(prefix='greeter-hypr-verify-') as runtime:
+        checked = subprocess.run(
+            ['Hyprland', '--verify-config', '-c', str(ROOT / 'packaging/arch/hyprland-greeter.conf')],
+            env={**os.environ, 'XDG_RUNTIME_DIR': runtime},
+            capture_output=True, text=True, timeout=15)
+        output = checked.stdout + checked.stderr
+        if checked.returncode or 'config ok' not in output:
+            raise SystemExit('Greeter compositor config validation failed:\n' + output)
+        print('PASS: packaged greeter compositor configuration (Hyprland --verify-config)')
+else:
+    print('SKIP: compositor config verification requires Hyprland and a non-root user')
 with tempfile.TemporaryDirectory(prefix='shell-greeter-test-') as temp:
     temp = Path(temp)
     imports = temp / 'imports'

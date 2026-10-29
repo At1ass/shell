@@ -110,7 +110,7 @@ package_at1ass-shell-plugins-git() {
 package_at1ass-shell-greeter-git() {
     arch=(any)
     pkgdesc='Optional greetd greeter for the at1ass desktop shell'
-    depends=("at1ass-shell-plugins-git=${pkgver}" 'quickshell>=0.3.2' 'hyprland>=0.56'
+    depends=("at1ass-shell-plugins-git=${pkgver}" 'quickshell>=0.3.2' 'hyprland>=0.57'
              greetd bash 'qt6-base>=6.8' 'qt6-declarative>=6.8' qt6-wayland qt6-svg systemd
              ttf-roboto ttf-dejavu ttf-material-symbols-variable)
     optdepends=('accountsservice: selected-user avatar from the system account service'

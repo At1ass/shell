@@ -633,7 +633,7 @@ Review these root-owned files:
 | File | Purpose |
 |---|---|
 | `/etc/greetd/config.toml` | greetd session/VT configuration; not replaced by the package |
-| `/etc/greetd/hyprland-greeter.conf` | Separate Hyprland instance running the greeter; generic monitor defaults |
+| `/etc/greetd/hyprland-greeter.conf` | Lua configuration for the separate Hyprland instance; generic monitor defaults |
 | `/etc/greetd/greeter.json` | Appearance, visible content, default user/session |
 
 In `/etc/greetd/config.toml`, configure the greeter command, keeping the other
@@ -650,6 +650,24 @@ user = "greeter"
 
 The separate compositor configuration launches the installed QML greeter. The
 optional `greetd-regreet` package provides its fallback if Quickshell fails.
+
+The greeter compositor template targets Hyprland 0.57+ and uses Lua; its
+historical `.conf` filename is retained so
+existing greetd commands keep working. With Hyprland 0.57, an edited old hyprlang
+configuration must be converted to Lua: review the package's `.pacnew` rather
+than keeping the old syntax. A local `.lua` filename is also fine if `config.toml`
+points to it. Logo/splash options belong to `misc`; the full guiutils option name
+is `disable_hyprland_guiutils_check`. See the installed
+`/usr/share/hypr/stubs/hl.meta.lua` for the options supported by your version.
+
+Validate the file you actually use before leaving the current desktop:
+
+```bash
+Hyprland --verify-config -c /etc/greetd/hyprland-greeter.conf
+```
+
+`tools/test-greeter.py` also checks the bundled compositor template using this
+validator when Hyprland is available and the tests run as a non-root user.
 
 The login screen discovers sessions from system `wayland-sessions`/`xsessions`
 directories. For uwsm, choose **Hyprland (uwsm-managed)**; without uwsm, choose
