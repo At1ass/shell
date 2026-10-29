@@ -814,6 +814,10 @@ python3 tools/test-package-migration.py
 ```
 
 Native unit tests and feature-specific probes are documented in AGENTS.md.
+On slower test hardware, use `SHELL_UI_TEST_TIMEOUT=300 python3 tools/test-ui.py`
+to extend the total QtTest-suite deadline. Individual control assertions keep
+their own deadlines. QtTest arguments can be passed through for focused runs,
+for example `python3 tools/test-ui.py ShellControls::test_event_form_keyboard_scroll`.
 Tests must not move/close real windows, change the user's connections or invoke
 host lock/power actions.
 

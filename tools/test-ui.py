@@ -6,8 +6,12 @@ import shutil
 import subprocess
 import tempfile
 import re
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+QML_TEST_TIMEOUT = int(os.environ.get('SHELL_UI_TEST_TIMEOUT', '60'))
+if QML_TEST_TIMEOUT <= 0:
+    raise ValueError('SHELL_UI_TEST_TIMEOUT must be a positive number of seconds')
 RENDERS = Path('/tmp/shell-ui-renders')
 RENDERS.mkdir(exist_ok=True)
 
@@ -2125,9 +2129,13 @@ Item {
    description.inputItem.forceActiveFocus();wait(10)
    description.text=("Line"+String.fromCharCode(10)).repeat(50);description.inputItem.cursorPosition=description.text.length;wait(20)
    function caretVisible() {
-    const rect=description.inputItem.cursorRectangle
-    const p=description.inputItem.mapToItem(scroll,rect.x,rect.y)
-    verify(p.y>=-1 && p.y+rect.height<=scroll.height+1,"caret visible: y="+p.y+" height="+rect.height+" viewport="+scroll.height)
+    // Growing TextEdit and ScrollView publish their geometry during polish.
+    // Wait for the actual result instead of assuming a frame fits in 20 ms.
+    tryVerify(()=>{
+     const rect=description.inputItem.cursorRectangle
+     const p=description.inputItem.mapToItem(scroll,rect.x,rect.y)
+     return p.y>=-1 && p.y+rect.height<=scroll.height+1
+    },1000,"caret is revealed after editor layout")
    }
    caretVisible()
    description.inputItem.cursorPosition=0;wait(20);caretVisible()
@@ -2860,8 +2868,8 @@ Window {
 ''')
     env = {**os.environ, 'QT_QPA_PLATFORM': 'offscreen', 'QSG_RHI_BACKEND': 'software'}
     result = subprocess.run(['/usr/lib/qt6/bin/qmltestrunner', '-input', str(test),
-                             '-import', str(temp / 'imports')], env=env,
-                            capture_output=True, text=True, timeout=60)
+                             '-import', str(temp / 'imports'), *sys.argv[1:]], env=env,
+                            capture_output=True, text=True, timeout=QML_TEST_TIMEOUT)
     print(result.stdout + result.stderr)
     if result.returncode or "QWARN" in result.stdout + result.stderr:
         raise SystemExit(1)

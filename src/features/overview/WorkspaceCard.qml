@@ -93,10 +93,12 @@ MaterialCard {
                                 window: modelData
                                 keyOwner: root.keyOwner
                                 readonly property var geometry: modelData?.lastIpcObject ?? ({})
-                                width: Math.min(parent.width, Math.max(Tokens.iconSize.extraLarge * 2, (geometry.size?.[0] ?? root.screenGeometry.width) / root.screenGeometry.width * parent.width))
-                                height: Math.min(parent.height, Math.max(Tokens.touchTarget.minimum, (geometry.size?.[1] ?? root.screenGeometry.height) / root.screenGeometry.height * parent.height))
-                                x: Math.max(0,Math.min(parent.width-width,((geometry.at?.[0] ?? root.screenGeometry.x)-root.screenGeometry.x)/root.screenGeometry.width*parent.width))
-                                y: Math.max(0,Math.min(parent.height-height,((geometry.at?.[1] ?? root.screenGeometry.y)-root.screenGeometry.y)/root.screenGeometry.height*parent.height))
+                                readonly property real canvasWidth: parent?.width ?? 0
+                                readonly property real canvasHeight: parent?.height ?? 0
+                                width: Math.min(canvasWidth, Math.max(Tokens.iconSize.extraLarge * 2, (geometry.size?.[0] ?? root.screenGeometry.width) / root.screenGeometry.width * canvasWidth))
+                                height: Math.min(canvasHeight, Math.max(Tokens.touchTarget.minimum, (geometry.size?.[1] ?? root.screenGeometry.height) / root.screenGeometry.height * canvasHeight))
+                                x: Math.max(0,Math.min(canvasWidth-width,((geometry.at?.[0] ?? root.screenGeometry.x)-root.screenGeometry.x)/root.screenGeometry.width*canvasWidth))
+                                y: Math.max(0,Math.min(canvasHeight-height,((geometry.at?.[1] ?? root.screenGeometry.y)-root.screenGeometry.y)/root.screenGeometry.height*canvasHeight))
                                 selected: modelData?.address === root.selectedAddress
                                 matched: OverviewService.matches.includes(modelData?.address ?? "")
                                 captureEnabled: root.captureEnabled

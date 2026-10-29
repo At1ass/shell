@@ -3,6 +3,50 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## N3050 package and runtime validation — 2026-10-29
+
+Validated source `612d52e2` on a Celeron N3050 (two cores, 3.7 GiB RAM,
+Intel Braswell/i915, 1366×768 at 60 Hz), Hyprland 0.57.0, Quickshell 0.3.2
+and Qt 6.12.0. All AUR compilation ran in the dedicated build container,
+updated after a Proxmox snapshot to match the target Qt/toolchain. Compilation
+uses `-march=x86-64 -mtune=generic`, never `-march=native`. Signed shell,
+plugins and app2unit packages were installed on the laptop; the greeter package
+was built but greetd integration on this machine was left unchanged.
+
+Checks on the target: 203 main and 24 greeter components compile; 242 UI tests,
+17 greeter tests and the native read-only GreeterData catalogue probe pass.
+The UI harness now accepts `SHELL_UI_TEST_TIMEOUT` and QtTest function filters.
+The event editor test waits for its caret to become visible after layout instead
+of assuming polish finishes within 20 ms; production scrolling did not change.
+
+A short live run opened launcher, Quick, calendar, audio, overview, cheatsheet
+and notification centre three times in each design pack. Isolated config/data
+were used, with font scale 1.3, live overview previews enabled, and wallpaper,
+lockscreen, authentication agents, recorder and weather disabled. Existing
+Waybar/mako were temporarily stopped and restored; shell autostart was not enabled.
+No windows were moved/closed, and no network or power actions were invoked.
+
+| Measurement | Minimal | MD3 |
+| --- | ---: | ---: |
+| RSS before opening panels | 215 MiB | 259 MiB |
+| RSS after the panel sequence, panels closed | 283 MiB | 302 MiB |
+| Overview, warm GUI thread CPU | 203 ms | 220 ms |
+| Overview, warm process CPU | 652 ms | 704 ms |
+| Cheatsheet, warm process CPU | 347 ms | 715 ms |
+
+Warm values are medians of two repeats. CPU is measured over the IPC open plus
+one second of displayed content; these values are **not** time to first frame.
+The sequence is too short to assess memory growth or sustained idle consumption.
+Results prioritize overview capture/render work and MD3 cheatsheet rendering for
+future profiling; they do not establish an across-the-board pack multiplier.
+
+The live run exposed null-parent geometry reads when overview delegates detach
+on close. WorkspaceCard now derives zero canvas dimensions while parentless;
+a repeated live open/close check validates teardown without those TypeErrors.
+This fix follows the measured `612d52e2` package and needs the next package build.
+The workstation's real greeter login has user acceptance; laptop checks cover
+compilation and isolated greeter UI, not a real login or suspend/resume cycle.
+
 ## Current status — 2026-10-27
 
 The foundation and main UI/UX implementation passes are complete. NetworkManager
