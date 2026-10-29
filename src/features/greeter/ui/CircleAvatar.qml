@@ -81,7 +81,7 @@ Rectangle {
 
     // Fallback icon (if provided and no image)
     MaterialIcon {
-        visible: root.imageSource === "" && root.fallbackIcon !== ""
+        visible: avatarImage.status !== Image.Ready && root.fallbackIcon !== ""
         anchors.centerIn: parent
         iconName: root.fallbackIcon
         fontSize: root.avatarSize * 0.5
@@ -91,7 +91,7 @@ Rectangle {
 
     // Fallback text (if provided and no image/icon)
     MaterialText {
-        visible: root.imageSource === "" && root.fallbackIcon === "" && root.fallbackText !== ""
+        visible: avatarImage.status !== Image.Ready && root.fallbackIcon === "" && root.fallbackText !== ""
         anchors.centerIn: parent
         text: root.fallbackText.substring(0, 2).toUpperCase()
         textStyle: "titleMedium"

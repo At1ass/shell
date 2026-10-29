@@ -60,6 +60,7 @@ pkgname = at1ass-shell-git
 	optdepends = networkmanager: Wi-Fi, Ethernet and VPN control (running service required)
 	optdepends = bluez: Bluetooth control (running bluetooth service required)
 	optdepends = upower: battery and power-device status through the UPower service
+	optdepends = accountsservice: shared user avatars for dashboard and greeter
 	optdepends = gnome-keyring: Secret Service provider for persistent network credentials; alternatives supported
 	optdepends = networkmanager-openvpn: OpenVPN authentication helper
 	optdepends = nm-connection-editor: external network profile editor
@@ -116,6 +117,7 @@ pkgname = at1ass-shell-greeter-git
 	depends = ttf-roboto
 	depends = ttf-dejavu
 	depends = ttf-material-symbols-variable
+	optdepends = accountsservice: selected-user avatar from the system account service
 	optdepends = greetd-regreet: fallback if the Quickshell greeter fails
 	optdepends = upower: optional battery status in the greeter
 	provides = at1ass-shell-greeter=0.1.0

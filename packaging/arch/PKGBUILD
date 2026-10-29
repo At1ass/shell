@@ -59,6 +59,7 @@ package_at1ass-shell-git() {
         'networkmanager: Wi-Fi, Ethernet and VPN control (running service required)'
         'bluez: Bluetooth control (running bluetooth service required)'
         'upower: battery and power-device status through the UPower service'
+        'accountsservice: shared user avatars for dashboard and greeter'
         'gnome-keyring: Secret Service provider for persistent network credentials; alternatives supported'
         'networkmanager-openvpn: OpenVPN authentication helper'
         'nm-connection-editor: external network profile editor'
@@ -112,7 +113,8 @@ package_at1ass-shell-greeter-git() {
     depends=("at1ass-shell-plugins-git=${pkgver}" 'quickshell>=0.3.2' 'hyprland>=0.56'
              greetd bash 'qt6-base>=6.8' 'qt6-declarative>=6.8' qt6-wayland qt6-svg systemd
              ttf-roboto ttf-dejavu ttf-material-symbols-variable)
-    optdepends=('greetd-regreet: fallback if the Quickshell greeter fails'
+    optdepends=('accountsservice: selected-user avatar from the system account service'
+                'greetd-regreet: fallback if the Quickshell greeter fails'
                 'upower: optional battery status in the greeter')
     provides=("at1ass-shell-greeter=${pkgver}")
     conflicts=(at1ass-shell-greeter)

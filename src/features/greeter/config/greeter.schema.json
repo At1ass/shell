@@ -90,6 +90,11 @@
     "$schema": {
       "type": "string",
       "description": "JSON Schema reference for editor validation."
+    },
+    "showAvatar": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the selected user avatar from AccountsService, with an icon fallback. Only shared system icon paths are accepted; home directories are not used."
     }
   }
 }

@@ -60,6 +60,8 @@ QtObject {
  property bool lockscreenShowMedia:true
  property bool lockscreenMediaShowPaused:true
  property bool lockscreenMediaShowArt:false
+ property bool dashboardShowAvatar:true
+ property bool dashboardShowSystemSummary:true
  property bool weatherEnabled:true
  property string osdMonitorPolicy:"focused"
  property int osdTimeout:500
@@ -282,7 +284,8 @@ QtObject {
         'GlobalStates': 'property int dashboardOpenIndex:0; property bool dashboardOpen:true; property bool launcherOpen:false; function closePanel(name) {}',
         'Weather': 'property string location:"Helsinki"; property string errorString:""; property real tempC:8; property real feelsLikeC:6; property int humidity:70; property real pressure:1009; property real windSpeed:12; property string windUnit:"km/h"; property string tempUnit:"°C"; property string icon:"cloud"; property string weatherDesc:"Cloudy"; property var dailySunrise:["2026-10-25T08:15"]; property var dailySunset:["2026-10-25T17:40"]; property var dailyTime:["2026-10-25","2026-10-26","2026-10-27","2026-10-28","2026-10-29","2026-10-30","2026-10-31"]; property var dailyTempMax:[8,9,7,8,6,5,7]; property var dailyTempMin:[2,3,1,2,1,-2,-1]; property var dailyWeatherCode:[0,0,0,0,0,0,0]; property var dailyPrecipProbMax:[0,10,30,10,0,10,0]',
         'WeatherIcons': 'property var codeToName:({0:"sunny"})',
-        'DateTime': 'property QtObject clock:QtObject {property date date:new Date(2026,9,25,14,30)}',
+        'AccountService': 'property string displayName:"Test User";property url iconSource:""',
+        'DateTime': 'property string uptime:"2h, 15m";property int uptimeWatchers:0;function addUptimeWatcher(){uptimeWatchers++} function removeUptimeWatcher(){uptimeWatchers--} property QtObject clock:QtObject {property date date:new Date(2026,9,25,14,30)}',
         'AudioService': 'property bool masterMuted:false; property real masterVolume:0.45; property QtObject defaultSink:QtObject {}; function setMasterVolume(value) {masterVolume=value}; function toggleMasterMute() {masterMuted=!masterMuted}',
         'BrightnessService': 'property bool available:true; property real brightness:0.7; function setBrightness(value) {}',
         'NetworkService': 'property bool wifiEnabled:true; property string icon:"wifi"; function toggleWifi() {wifiEnabled=!wifiEnabled}',
@@ -296,6 +299,7 @@ QtObject {
         'SystemMonitorService': 'property real cpuUsage:12; property real gpuUsage:7; property real ramUsage:38; property real diskUsage:42; property bool hasCpuTemp:true; property bool hasGpuStats:true; property int cpuTemp:49; property int gpuTemp:45; property string ramUsed:"6.2"; property string diskUsed:"84G"; property var cpuHistory:[]; property var gpuHistory:[]; property var ramHistory:[]; property string cpuModel:"CPU"; property string gpuModel:"GPU"; property string ramTotal:"16"; property string diskTotal:"200G"',
         'MprisController': 'property QtObject activePlayer:QtObject {}; property var activeTrack:({title:"Focus session",artist:"Instrumental",artUrl:""}); property var availablePlayers:[]; property real length:240; property bool lengthSupported:true; property bool positionSupported:true; property real position:50; property bool canTogglePlaying:true; property bool canGoNext:true; property bool canGoPrevious:true; property bool canSeek:true; property bool loopEnabled:false; property bool loopSupported:true; property bool loopingTrack:false; property bool shuffle:false; property bool shuffleSupported:true; property real volume:0.5; property bool volumeSupported:true; property bool isPlaying:false; property string identity:"Player"; signal trackChanged(); function togglePlaying() {toggles++;isPlaying=!isPlaying}; function next() {}; function previous() {}; function setPosition(value) {}; function setVolume(value) {}; function toggleLoop() {}; function toggleShuffle() {}; function switchToPlayer(value) {}'
     }
+    mocks['SystemMonitorService'] += ';property string userName:"tester";property string osName:"Test Linux";property string wmName:"Hyprland"'
     mocks['SystemMonitorService'] += ';property bool hasGpuTemp:true;property var cpuTempHistory:[0.4,0.6,0.5];property var gpuTempHistory:[0.4,0.6,0.5];property real loadAvg1:1.2;property real loadAvg5:0.8;property real loadAvg15:0.5;property real cpuFreqGHz:4.2;property bool hasDiskIo:true;property string diskReadFormatted:"12 KiB/s";property string diskWriteFormatted:"6 KiB/s"'
     mocks['SystemMonitorService'] += ';property bool storageAvailable:true;property var storageVolumes:[];property var storageDrives:[];property var storageSummary:({available:true,name:"System",availableFormatted:"100 GiB",severity:0});property int storageSeverity:storageSummary.severity ?? 0;property string storageFreeText:(storageSummary.availableFormatted ?? "—")+" free";property string storageAlertText:storageSeverity>0 ? "Low space · Games: 2 GiB free" : ""'
     mocks['DockService'] = 'signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
@@ -536,6 +540,7 @@ Item {
  Component {id:snackbarFixture;Snackbar {width:360;property int activations:0;message:"200 notifications cleared";actionText:"Undo";onActionClicked:activations++}}
  Component {id:meterFixture;OsdMeterContent {width:300;height:implicitHeight;title:"Brightness";iconName:"brightness_high";progress:0.75}}
  Component {id:ipcFixture;TestIpcData {}}
+ Component {id:profileFixture;UserInfoElement {width:320}}
  Component {id:dashboardFieldFixture;MaterialTextField {width:240}}
  Component {id:dashboardSliderFixture;MaterialSlider {width:240}}
  Component {id:eventFormFixture;TestEventDialog {}}
@@ -859,7 +864,7 @@ Item {
    GlobalStates.overviewOpen=false;Hyprland.monitors.values=[];Hyprland.workspaces.values=[];Hyprland.toplevels.values=[]
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
-   AppConfig.disabledModules=[]
+   AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
    GlobalStates.launcherOpen=false;LauncherService.search("")
    AppConfig.weatherEnabled=true
@@ -1759,7 +1764,7 @@ Item {
    compare(widget.width,width,"new tray apps must not grow the bar")
    nodes[3].status=Status.NeedsAttention;wait(20);compare(widget.trayModel.hiddenAttentionCount,1)
    AppConfig.disabledModules=["popouts"];wait(20);compare(widget.trayModel.hiddenItems.length,0)
-   AppConfig.disabledModules=[]
+   AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    SystemMonitorService.storageVolumes=[];SystemMonitorService.storageDrives=[];SystemMonitorService.storageSummary=({available:true,name:"System",availableFormatted:"100 GiB",severity:0})
    SystemMonitorService.hasCpuTemp=true;SystemMonitorService.hasGpuTemp=true;SystemMonitorService.hasGpuStats=true
   }
@@ -1792,7 +1797,7 @@ Item {
    state.openConnections("wifi",null);verify(!state.connectionsOpen)
    state.lockscreenActive=false;AppConfig.disabledModules=["connections"]
    state.openConnections("wifi",null);verify(!state.connectionsOpen)
-   AppConfig.disabledModules=[]
+   AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    SystemMonitorService.storageVolumes=[];SystemMonitorService.storageDrives=[];SystemMonitorService.storageSummary=({available:true,name:"System",availableFormatted:"100 GiB",severity:0})
    SystemMonitorService.hasCpuTemp=true;SystemMonitorService.hasGpuTemp=true;SystemMonitorService.hasGpuStats=true
   }
@@ -2493,6 +2498,25 @@ Item {
    grabImage(scene).save("RENDERS/weather-"+data.tag+".png")
    controls.visible=true;dashboard.visible=false
   }
+  function test_dashboard_profile_visibility_and_uptime_data() {
+   return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]
+  }
+  function test_dashboard_profile_visibility_and_uptime(data) {
+   AppConfig.designSystem=data.pack;GlobalStates.dashboardOpen=false;wait(1)
+   compare(DateTime.uptimeWatchers,0)
+   const profile=createTemporaryObject(profileFixture,scene)
+   verify(profile!==null);wait(1)
+   const avatar=findChild(profile,"dashboardAvatar")
+   const summary=findChild(profile,"dashboardSystemSummary")
+   verify(avatar.visible && summary.visible)
+   verify(summary.text.includes("Test Linux") && summary.text.includes("2h, 15m"))
+   GlobalStates.dashboardOpen=true;tryCompare(DateTime,"uptimeWatchers",1)
+   AppConfig.dashboardShowAvatar=false;verify(!avatar.visible);verify(summary.visible)
+   AppConfig.dashboardShowSystemSummary=false;verify(!summary.visible);tryCompare(DateTime,"uptimeWatchers",0)
+   AppConfig.dashboardShowSystemSummary=true;tryCompare(DateTime,"uptimeWatchers",1)
+   GlobalStates.dashboardOpen=false;tryCompare(DateTime,"uptimeWatchers",0)
+   profile.destroy();wait(1);compare(DateTime.uptimeWatchers,0)
+  }
   function test_dashboard_layout_data() {
    return [{tag:"compact",width:480,height:420},{tag:"wide",width:900,height:600}]
   }
@@ -2606,7 +2630,7 @@ Item {
    verify(LauncherService.filteredApps.some(row=>row.resultId==="action:dnd-7m"))
    verify(!LauncherService.filteredApps.some(row=>row.resultId==="action:dnd-15m"),"configured presets replace defaults")
    AppConfig.disabledModules=["notifications"];LauncherService.search(": dnd 30");compare(LauncherService.filteredApps.length,0)
-   AppConfig.disabledModules=[];GlobalStates.launcherOpen=false
+   AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true;GlobalStates.launcherOpen=false
    IdleInhibitorService.statusText="Until Mon 17:30";NotificationDND.statusText="Until Mon 18:00"
    dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
    const caffeine=byProperty(dashboard,"label","Caffeine")

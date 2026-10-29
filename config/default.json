@@ -182,7 +182,9 @@
   },
   "dashboard": {
     "width": 900,
-    "height": 640
+    "height": 640,
+    "showAvatar": true,
+    "showSystemSummary": true
   },
   "notifications": {
     "historyTTLDays": 30,

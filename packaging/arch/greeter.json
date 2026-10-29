@@ -10,5 +10,6 @@
   "showDate": true,
   "showBattery": true,
   "showPower": true,
-  "blurWallpaper": true
+  "blurWallpaper": true,
+  "showAvatar": true
 }

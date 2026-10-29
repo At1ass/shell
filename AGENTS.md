@@ -718,3 +718,23 @@ rollback интеграции. После перехода использова�
 пакетный путь), не qs -c shell, который всё ещё обнаруживает dev checkout. Не
 перезапускать greetd и не завершать пользовательскую сессию для проверки пакета.
 Публикация исходников/AUR выполняется отдельным явным действием.
+
+
+### AccountsService avatars and Quick system summary
+
+GreeterData.AccountProfile is the shared read-only AccountsService bridge for
+AccountService (dashboard) and LoginForm (selected greeter user). It performs
+single-flight asynchronous D-Bus lookups with unique-owner reads, generation
+checks and coalesced Changed/PropertiesChanged handling. User/owner/enable changes
+clear the old avatar immediately. Filesystem validation runs in a value-only
+QtConcurrent job; only shared system icon roots are allowed, including canonical
+path checks against escaping symlinks. Never restore direct .face reads or home
+ACLs. accountsservice is an optional runtime dependency of shell and greeter.
+
+Dashboard flags: dashboard.showAvatar and dashboard.showSystemSummary. Greeter:
+showAvatar. Defaults are true. CircleAvatar keeps its fallback during loading
+and failed decoding. DateTime uptime updates only from FileView.onLoaded and
+holds a minute timer while a visible summary owns a watcher; retained hidden
+panels do not retain that lease. Native tests: account_profile_test under
+dbus-run-session; UI: tools/test-ui.py and tools/test-greeter.py. Use the built
+GreeterData import path for lint/compile checks before installing new plugins.

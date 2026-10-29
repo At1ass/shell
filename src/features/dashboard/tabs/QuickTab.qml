@@ -9,18 +9,7 @@ import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.dashboard.components.maintab_elements
 
-// A column of full-width sections, ordered by how often each is touched.
-//
-// This was a `GridLayout { columns: 4; rows: 4 }` in which no child was sized to
-// the grid -- Weather pinned 240px, the sliders 70, the player 400x250, the
-// monitor strip 100 tall -- so five fixed boxes divided the leftover space
-// instead of columns of equal width. That is why nothing lined up, why the
-// bottom edge came out ragged, and why the sparklines were clipped by the panel.
-//
-// It also spent its largest areas on things nobody clicks: measured on the old
-// panel, the profile card, metrics and weather together took five times the area
-// of the toggles, in a panel that exists for the toggles. Weather has its own
-// tab and the profile card was not an action, so both are gone from here.
+// Frequent actions follow a compact optional identity/system header.
 ScrollableList {
     id: root
     contentPadding: Tokens.panelPadding
@@ -48,6 +37,11 @@ ScrollableList {
         id: column
         Layout.fillWidth: true
         spacing: Tokens.spacing.medium
+
+        UserInfoElement {
+            Layout.fillWidth: true
+            visible: AppConfig.dashboardShowAvatar || AppConfig.dashboardShowSystemSummary
+        }
 
         // Modes are controlled toggles; destinations below use action tiles.
         GridLayout {

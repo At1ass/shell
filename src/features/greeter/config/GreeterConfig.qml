@@ -45,6 +45,7 @@ Singleton {
     readonly property bool showBattery: data.showBattery ?? true
     readonly property bool showPower: data.showPower ?? true
     readonly property bool blurWallpaper: data.blurWallpaper ?? true
+    readonly property bool showAvatar: data.showAvatar ?? true
     readonly property bool showClock: data.showClock ?? true
     readonly property string defaultUser: data.defaultUser ?? ""
     readonly property string defaultSession: data.defaultSession ?? ""

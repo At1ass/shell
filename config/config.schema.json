@@ -339,6 +339,16 @@
           "default": 640,
           "minimum": 200,
           "description": "Dashboard panel height in logical pixels."
+        },
+        "showAvatar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the current user avatar and name in Quick. Avatar metadata comes from AccountsService; no home-directory image fallback is used."
+        },
+        "showSystemSummary": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the distribution, window manager and uptime in the compact Quick header."
         }
       }
     },

@@ -104,6 +104,7 @@ startup. Installing a package is separate from starting its system/user service.
 | `networkmanager` | Wi-Fi/Ethernet/VPN need the running NetworkManager service; VPN activation uses nmcli |
 | `bluez` | Bluetooth requires bluetooth.service and supported/unblocked hardware |
 | `upower` | Battery/power-device information in the bar, lockscreen and optional greeter; UPower service needed |
+| `accountsservice` | Optional dashboard/greeter avatars through system D-Bus; no direct `.face` lookup |
 | `gnome-keyring` or another Secret Service provider | Persists agent-owned network credentials; libsecret itself is already a mandatory plugin library |
 | `networkmanager-openvpn` | Supplies `/usr/lib/nm-openvpn-auth-dialog` for OpenVPN authentication; other VPN plugins are profile-specific |
 | `nm-connection-editor`, `blueman`, `pwvucontrol` | Explicit external network profile, Bluetooth and advanced audio actions |
@@ -226,6 +227,43 @@ For a local collection, use an actual monitor name from `hyprctl monitors`:
 
 Do not run a second wallpaper daemon on the same outputs when using the shell's
 wallpaper layer. Disable `modules.wallpaper` to keep an external wallpaper tool.
+
+### User avatar and system summary
+
+Quick has a compact header showing the current user avatar/name, distribution,
+window manager and uptime. Its two parts can be disabled independently:
+
+```json
+"dashboard": {
+  "showAvatar": true,
+  "showSystemSummary": true
+}
+```
+
+Avatar metadata comes from **AccountsService** (`accountsservice` on Arch), not
+from a direct `.face` lookup. The shell and greeter are read-only clients. Install
+the service if you want account images; normal D-Bus activation starts it on demand.
+The avatar follows account changes, including replacement of an image at the same
+path. A missing daemon, unset/unreadable image or failed decode uses a neutral
+user icon. Uptime refresh runs only while the summary is visible.
+
+To set the system account image from a terminal, use AccountsService itself
+(with your normal polkit authorization agent available):
+
+```bash
+account_path=$(busctl --system call org.freedesktop.Accounts \
+  /org/freedesktop/Accounts org.freedesktop.Accounts FindUserById x "$(id -u)" \
+  | cut -d '"' -f 2)
+busctl --system call org.freedesktop.Accounts "$account_path" \
+  org.freedesktop.Accounts.User SetIconFile s /absolute/path/to/avatar.png
+```
+
+`SetIconFile` copies the image into the account service's shared icon store.
+The reader accepts shared paths under `/var/lib/AccountsService/icons`,
+`/usr/share` and `/usr/local/share`, and rejects home paths and symlinks escaping
+those roots. This lets the login screen display the image without home access or
+ACL changes. In `/etc/greetd/greeter.json`, `showAvatar` independently controls the
+selected-user avatar. It is hidden for manual username entry.
 
 ### Validation and persistent state
 

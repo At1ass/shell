@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import GreeterData 1.0
 import qs.config
 import qs.ui
 
@@ -46,6 +47,20 @@ ColumnLayout {
     }
     function submitResponse() {
         if (!authenticating && username && (responseRequired || passwordField.text.length > 0)) submit(username, passwordField.text)
+    }
+    AccountProfile {
+        id: userProfile
+        active: GreeterConfig.showAvatar && !root.manualUser
+        username: root.manualUser ? "" : root.username
+    }
+    CircleAvatar {
+        objectName: "greeterAvatar"
+        Layout.alignment: Qt.AlignHCenter
+        visible: GreeterConfig.showAvatar && !root.manualUser && root.username !== ""
+        size: "extraLarge"
+        imageSource: userProfile.iconSource.toString()
+        fallbackIcon: "person"
+        Accessible.name: "User avatar"
     }
     MaterialText {
         Layout.fillWidth: true

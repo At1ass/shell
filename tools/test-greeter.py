@@ -16,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix='shell-greeter-test-') as temp:
     assert all(schema['properties'][key]['default'] == value for key,value in defaults.items())
     # No native config, process, keyboard, greetd or user enumeration is used.
     mocks = {
-        'GreeterConfig': 'property string configError:"";property bool ready:true;property string wallpaperPath:"";property bool darkMode:true;property string themeVariant:"vibrant";property string themeColor:"#6200EE";property real themeContrast:0;property string designSystem:"minimal";property real fontScale:1.3;property bool reduceMotion:true;property bool showClock:true;property bool showDate:true;property bool showBattery:true;property bool showPower:true;property bool blurWallpaper:false;property string defaultUser:"";property string defaultSession:""',
+        'GreeterConfig': 'property string configError:"";property bool ready:true;property string wallpaperPath:"";property bool darkMode:true;property string themeVariant:"vibrant";property string themeColor:"#6200EE";property real themeContrast:0;property string designSystem:"minimal";property real fontScale:1.3;property bool reduceMotion:true;property bool showAvatar:true;property bool showClock:true;property bool showDate:true;property bool showBattery:true;property bool showPower:true;property bool blurWallpaper:false;property string defaultUser:"";property string defaultSession:""',
         'KeyboardLayoutService': 'property string currentLayoutCode:"en";property var layoutCodes:["en","ru"];property bool capsLockEnabled:false;property int watchers:0;function addLockStateWatcher() {watchers++} function removeLockStateWatcher() {watchers--} function switchLayout() {currentLayoutCode=currentLayoutCode==="en" ? "ru" : "en"}'
     }
     for name,body in mocks.items():
@@ -26,7 +26,8 @@ with tempfile.TemporaryDirectory(prefix='shell-greeter-test-') as temp:
         source.write_text(source.read_text().replace('import GreeterData', 'import TestGreeterData'))
     backend = imports / 'TestGreeterData'
     backend.mkdir(parents=True)
-    (backend/'qmldir').write_text('module TestGreeterData\nsingleton GreeterDataBackend 1.0 GreeterDataBackend.qml\n')
+    (backend/'qmldir').write_text('module TestGreeterData\nAccountProfile 1.0 AccountProfile.qml\nsingleton GreeterDataBackend 1.0 GreeterDataBackend.qml\n')
+    (backend/'AccountProfile.qml').write_text('import QtQml\nQtObject {property string username:"";property bool active:true;property url iconSource:""}\n')
     (backend/'GreeterDataBackend.qml').write_text('''pragma Singleton
 import QtQml
 QtObject {
@@ -88,11 +89,21 @@ Item {
   function init() {
    Greetd.state=0;Greetd.available=true;Greetd.creates=0;Greetd.responses=0;Greetd.cancels=0;Greetd.launches=0;Greetd.response=""
    GreeterDataBackend.ready=false;SessionModel._defaultApplied=false;SessionModel._selectedId="";SessionModel.selectedIndex=0
-   GreeterConfig.defaultSession=""
+   GreeterConfig.defaultSession="";GreeterConfig.showAvatar=true
    GreeterConfig.designSystem="minimal";GreeterConfig.fontScale=1.3;GreeterConfig.ready=true;GreeterConfig.defaultUser=""
    GreeterDataBackend.users=[{username:"alice",displayName:"Alice"}]
    GreeterDataBackend.sessions=[{name:"Hyprland",exec:"start-hyprland",id:"wayland/hyprland.desktop",argv:["start-hyprland"]}];SessionModel.selectedIndex=0;GreeterDataBackend.ready=true
    scene.Window.window.requestActivate();wait(10)
+  }
+  function test_avatar_visibility_and_identity_fallback() {
+   const form=createTemporaryObject(formFixture,scene);wait(1)
+   const avatar=findChild(form,"greeterAvatar")
+   verify(avatar!==null);verify(avatar.visible);compare(avatar.imageSource,"")
+   GreeterConfig.showAvatar=false;verify(!avatar.visible)
+   GreeterConfig.showAvatar=true;verify(avatar.visible)
+   form.manualUser=true;verify(!avatar.visible)
+   const password=findChild(form,"greeterPassword")
+   verify(password.visible && password.enabled)
   }
   function test_auth_password_failure_retry() {
    const auth=createTemporaryObject(authFixture,scene)

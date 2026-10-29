@@ -1,81 +1,58 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import Quickshell
 import QtQuick.Layouts
-import qs.src.ui.containers
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
 
-MaterialCard {
-    color: Theme.surfaceContainerHigh
-    radius: Tokens.shape.large
-
-    // This element is the only thing in the shell that displays uptime, and
-    // the service can only learn it by re-reading /proc/uptime. Hold a watcher
-    // so the poll exists exactly while something shows its result.
-    Component.onCompleted: DateTime.addUptimeWatcher()
-    Component.onDestruction: DateTime.removeUptimeWatcher()
+Item {
+    id: root
+    implicitHeight: row.implicitHeight
+    readonly property bool summaryActive: visible && GlobalStates.dashboardOpen && AppConfig.dashboardShowSystemSummary
+    property bool _uptimeRegistered: false
+    function syncUptime() {
+        if (_uptimeRegistered === summaryActive) return
+        _uptimeRegistered = summaryActive
+        if (_uptimeRegistered) DateTime.addUptimeWatcher()
+        else DateTime.removeUptimeWatcher()
+    }
+    onSummaryActiveChanged: syncUptime()
+    Component.onCompleted: syncUptime()
+    Component.onDestruction: if (_uptimeRegistered) DateTime.removeUptimeWatcher()
 
     RowLayout {
-        anchors.fill: parent
-        anchors.margins: Tokens.spacing.medium
+        id: row
+        width: parent.width
         spacing: Tokens.spacing.medium
-
         CircleAvatar {
-                customSize: 100
-                imageSource: "file://" + Quickshell.env("HOME") + "/.face"
-                fallbackIcon: "person"
-                fallbackText: SystemMonitorService.userName || "User"
-                Layout.alignment: Qt.AlignHCenter
-            }
-
+            objectName: "dashboardAvatar"
+            visible: AppConfig.dashboardShowAvatar
+            size: "large"
+            imageSource: AccountService.iconSource.toString()
+            fallbackIcon: "person"
+            Accessible.name: "User avatar"
+        }
         ColumnLayout {
-            spacing: Tokens.spacing.small
             Layout.fillWidth: true
-            Layout.fillHeight: true
-
+            Layout.minimumWidth: 0
+            spacing: Tokens.spacing.extraSmall
             MaterialText {
-                text: SystemMonitorService.userName || "User"
-                textStyle: "titleLarge"
-                colorRole: "onSurface"
-                font.weight: Font.Bold
-                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                visible: AppConfig.dashboardShowAvatar
+                text: AccountService.displayName || SystemMonitorService.userName || "User"
+                textStyle: "titleMedium"
+                elide: Text.ElideRight
             }
-
-            // OS + WM
-            RowLayout {
-                spacing: Tokens.spacing.small
-
-                MaterialIcon {
-                    iconName: "computer"
-                    fontSize: Tokens.typography.titleMedium.size
-                    iconColor: Theme.primary
-                    backgroundColor: "transparent"
-                }
-
-                MaterialText {
-                    text: SystemMonitorService.osName + " • " + SystemMonitorService.wmName
-                    textStyle: "bodyLarge"
-                    colorRole: "onSurface"
-                }
-            }
-
-            // Uptime
-            RowLayout {
-                spacing: Tokens.spacing.small
-
-                MaterialIcon {
-                    iconName: "schedule"
-                    fontSize: Tokens.typography.titleMedium.size
-                    iconColor: Theme.primary
-                    backgroundColor: "transparent"
-                }
-
-                MaterialText {
-                    text: DateTime.uptime
-                    textStyle: "bodyLarge"
-                    colorRole: "onSurface"
-                }
+            MaterialText {
+                objectName: "dashboardSystemSummary"
+                Layout.fillWidth: true
+                visible: AppConfig.dashboardShowSystemSummary
+                text: [SystemMonitorService.osName, SystemMonitorService.wmName].filter(value => value !== "").join(" · ")
+                    + (DateTime.uptime ? " · Up " + DateTime.uptime : "")
+                textStyle: "bodySmall"
+                colorRole: "onSurfaceVariant"
+                wrapMode: Text.WordWrap
             }
         }
     }

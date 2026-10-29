@@ -10,6 +10,7 @@ Singleton {
         NetworkAuthService.init()
         VPNService.init()
         SystemMonitorService.init()
+        AccountService.init()
         NightLightService.init()
         IdleInhibitorService.init()
         NotificationDND.init()

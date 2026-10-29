@@ -4223,3 +4223,22 @@ its existing XDG path, and the checkout/submodule working tree are retained.
 AGENTS/CLAUDE operational commands now target the installed unit/IPC. The
 repository's QML is no longer the running code: subsequent runtime fixes require
 a package update, not edits under /usr/share.
+
+
+### AccountsService avatar and compact system identity
+
+- Added the optional Quick identity header: account avatar/name, distribution,
+  window manager and uptime. dashboard.showAvatar/showSystemSummary are independent.
+- The greeter's showAvatar displays the selected account image above its name,
+  with no change to the single-row password controls. Manual user entry hides it.
+- GreeterData.AccountProfile reads AccountsService asynchronously; stale user and
+  daemon replies cannot restore the previous avatar. Shared icon validation runs
+  outside the UI thread and rejects home paths/escaping symlinks. No .face fallback.
+- CircleAvatar keeps a neutral fallback through missing/failed image loads.
+  Uptime follows FileView completion and releases polling while Quick is hidden.
+- Native fake-bus tests cover metadata refresh, same-path image replacement,
+  delayed replies, enablement, missing accounts, private icon paths, daemon restart
+  and destruction. UI checks cover both packs and independent visibility flags.
+- Installing requires an updated native plugin and greeter/shell packages together.
+  Existing installed runtime is not modified during development. Prepared history
+  remains unpublished and must include these follow-up changes before adoption.

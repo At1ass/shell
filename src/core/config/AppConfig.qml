@@ -147,6 +147,9 @@ Singleton {
 
     // === Typed accessors ===
 
+    readonly property bool dashboardShowAvatar: data.dashboard?.showAvatar ?? true
+    readonly property bool dashboardShowSystemSummary: data.dashboard?.showSystemSummary ?? true
+
     // Appearance
     readonly property bool darkMode: data.appearance?.theme?.darkMode ?? true
     readonly property string themeVariant: data.appearance?.theme?.variant ?? "tonalspot"

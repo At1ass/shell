@@ -13,5 +13,6 @@
   "showPower": true,
   "blurWallpaper": true,
   "defaultUser": "",
-  "defaultSession": ""
+  "defaultSession": "",
+  "showAvatar": true
 }

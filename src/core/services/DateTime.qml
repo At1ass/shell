@@ -21,37 +21,29 @@ Singleton {
     function addUptimeWatcher()    { root.uptimeWatchers++ }
     function removeUptimeWatcher() { root.uptimeWatchers = Math.max(0, root.uptimeWatchers - 1) }
 
-    property string uptime: "0h, 0m"
-
-    // 60s, not 3s: the string this produces is `Nd, Nh, Nm`, so a finer poll
-    // cannot change what is displayed. triggeredOnStart keeps the value fresh
-    // the moment a watcher appears.
+    property string uptime: ""
     Timer {
         interval: 60000
         running: root.uptimeWatchers > 0
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            fileUptime.reload()
-            const textUptime = fileUptime.text()
-            const uptimeSeconds = Number(textUptime.split(" ")[0] ?? 0)
-
-            // Convert seconds to days, hours, and minutes
-            const days = Math.floor(uptimeSeconds / 86400)
-            const hours = Math.floor((uptimeSeconds % 86400) / 3600)
-            const minutes = Math.floor((uptimeSeconds % 3600) / 60)
-
-            // Build the formatted uptime string
-            let formatted = ""
-            if (days > 0) formatted += `${days}d`
-            if (hours > 0) formatted += `${formatted ? ", " : ""}${hours}h`
-            if (minutes > 0 || !formatted) formatted += `${formatted ? ", " : ""}${minutes}m`
-            root.uptime = formatted
-        }
+        onTriggered: fileUptime.reload()
     }
-
     FileView {
         id: fileUptime
         path: "/proc/uptime"
+        onLoaded: {
+            const seconds = Number(text().split(" ")[0])
+            if (!Number.isFinite(seconds) || seconds < 0) { root.uptime = ""; return }
+            const days = Math.floor(seconds / 86400)
+            const hours = Math.floor((seconds % 86400) / 3600)
+            const minutes = Math.floor((seconds % 3600) / 60)
+            const parts = []
+            if (days > 0) parts.push(`${days}d`)
+            if (hours > 0) parts.push(`${hours}h`)
+            if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`)
+            root.uptime = parts.join(", ")
+        }
+        onLoadFailed: root.uptime = ""
     }
 }
