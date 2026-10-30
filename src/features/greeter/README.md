@@ -68,9 +68,11 @@ source, so local changes must be committed before building. Build/install as
 shown in the root README. This UI change requires an updated greeter package;
 installing it does not require restarting greetd during an active session.
 
-`/etc/greetd/greeter.json` and `hyprland-greeter.conf` are pacman backup files;
+`/etc/greetd/greeter.json`, `hyprland-greeter.lua` and the compatibility
+`hyprland-greeter.conf` entry point are pacman backup files;
 local edits survive upgrades and new package defaults may arrive as `.pacnew`.
-The package's Hyprland config contains Lua despite its historical `.conf` filename.
+Use `hyprland-greeter.lua` in greetd's command. The `.conf` compatibility entry
+point loads that Lua file; locally modified old files are preserved by pacman.
 Convert old locally edited hyprlang syntax after upgrading to Hyprland 0.57 and
 review `.pacnew`; run `Hyprland --verify-config -c <your-greeter-config>` before
 leaving the current desktop. The config launches the root-owned greeter and keeps

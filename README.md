@@ -633,7 +633,7 @@ Review these root-owned files:
 | File | Purpose |
 |---|---|
 | `/etc/greetd/config.toml` | greetd session/VT configuration; not replaced by the package |
-| `/etc/greetd/hyprland-greeter.conf` | Lua configuration for the separate Hyprland instance; generic monitor defaults |
+| `/etc/greetd/hyprland-greeter.lua` | Lua configuration for the separate Hyprland instance; generic monitor defaults |
 | `/etc/greetd/greeter.json` | Appearance, visible content, default user/session |
 
 In `/etc/greetd/config.toml`, configure the greeter command, keeping the other
@@ -644,26 +644,30 @@ settings appropriate for your system:
 vt = 1
 
 [default_session]
-command = "start-hyprland -- -c /etc/greetd/hyprland-greeter.conf"
+command = "start-hyprland -- -c /etc/greetd/hyprland-greeter.lua"
 user = "greeter"
 ```
 
 The separate compositor configuration launches the installed QML greeter. The
 optional `greetd-regreet` package provides its fallback if Quickshell fails.
 
-The greeter compositor template targets Hyprland 0.57+ and uses Lua; its
-historical `.conf` filename is retained so
-existing greetd commands keep working. With Hyprland 0.57, an edited old hyprlang
-configuration must be converted to Lua: review the package's `.pacnew` rather
-than keeping the old syntax. A local `.lua` filename is also fine if `config.toml`
-points to it. Logo/splash options belong to `misc`; the full guiutils option name
-is `disable_hyprland_guiutils_check`. See the installed
+The greeter compositor template targets Hyprland 0.57+ and uses Lua. The package
+also keeps `/etc/greetd/hyprland-greeter.conf` as a small Lua compatibility entry
+point that loads the `.lua` file, so existing greetd commands continue to work.
+New installations should use the `.lua` path above.
+
+Pacman preserves local edits. If you customized the old `.conf`, move its display
+settings into the `.lua` file, convert any old hyprlang syntax and update the
+command in `config.toml`. Review `.pacnew` files before switching: a locally
+modified `.conf` is preserved rather than automatically replaced by the wrapper.
+Logo/splash options belong to `misc`; the full guiutils option name is
+`disable_hyprland_guiutils_check`. See the installed
 `/usr/share/hypr/stubs/hl.meta.lua` for the options supported by your version.
 
 Validate the file you actually use before leaving the current desktop:
 
 ```bash
-Hyprland --verify-config -c /etc/greetd/hyprland-greeter.conf
+Hyprland --verify-config -c /etc/greetd/hyprland-greeter.lua
 ```
 
 `tools/test-greeter.py` also checks the bundled compositor template using this

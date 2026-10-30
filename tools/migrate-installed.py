@@ -113,7 +113,7 @@ for path in [config/'quickshell/config.json',config/'quickshell/state.json',conf
 config_file = config/'quickshell/config.json'
 config_digest = hashlib.sha256(config_file.read_bytes()).digest() if config_file.exists() else None
 greetd = {}
-for name in ['greeter.json','hyprland-greeter.conf']:
+for name in ['greeter.json','hyprland-greeter.lua','hyprland-greeter.conf']:
     path = Path('/etc/greetd')/name
     if path.is_file():
         target = backup/'greetd'/name

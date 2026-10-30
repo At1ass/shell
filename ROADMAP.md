@@ -3,6 +3,17 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Explicit Lua greeter entry point — 2026-10-30
+
+The main packaged compositor configuration is now `hyprland-greeter.lua`.
+PKGBUILD installs it as a pacman backup file; README and new greetd setup commands
+use that path. A tiny Lua `.conf` compatibility entry point uses `dofile` on the
+installed `.lua`, preserving existing command paths without duplicating settings.
+Modified old configs remain local/pacnew and need explicit conversion; nothing
+rewrites greetd's config.toml or restarts the display manager. The migration helper
+also backs up/restores local `.lua` settings. Native config validation checks both
+entry points in a staged package fixture, without reading the real /etc config.
+
 ## Greeter compositor configuration after Hyprland 0.57 — 2026-10-30
 
 Hyprland 0.57 parses the old packaged hyprlang greeter template as Lua and rejects

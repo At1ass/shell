@@ -9,14 +9,21 @@ GREETER = ROOT / 'src/features/greeter'
 # does not start a compositor or fire the hyprland.start callback.
 if shutil.which('Hyprland') and os.geteuid() != 0:
     with tempfile.TemporaryDirectory(prefix='greeter-hypr-verify-') as runtime:
-        checked = subprocess.run(
-            ['Hyprland', '--verify-config', '-c', str(ROOT / 'packaging/arch/hyprland-greeter.conf')],
-            env={**os.environ, 'XDG_RUNTIME_DIR': runtime},
-            capture_output=True, text=True, timeout=15)
-        output = checked.stdout + checked.stderr
-        if checked.returncode or 'config ok' not in output:
-            raise SystemExit('Greeter compositor config validation failed:\n' + output)
-        print('PASS: packaged greeter compositor configuration (Hyprland --verify-config)')
+        staged = Path(runtime) / 'greetd'
+        staged.mkdir()
+        for name in ('hyprland-greeter.lua', 'hyprland-greeter.conf'):
+            source = (ROOT / 'packaging/arch' / name).read_text()
+            # Map the installed include path into the isolated package fixture.
+            (staged / name).write_text(source.replace('/etc/greetd/', str(staged) + '/'))
+        for name in ('hyprland-greeter.lua', 'hyprland-greeter.conf'):
+            checked = subprocess.run(
+                ['Hyprland', '--verify-config', '-c', str(staged / name)],
+                env={**os.environ, 'XDG_RUNTIME_DIR': runtime},
+                capture_output=True, text=True, timeout=15)
+            output = checked.stdout + checked.stderr
+            if checked.returncode or 'config ok' not in output:
+                raise SystemExit('Greeter compositor config validation failed (' + name + '):\n' + output)
+            print('PASS: packaged greeter compositor configuration: ' + name)
 else:
     print('SKIP: compositor config verification requires Hyprland and a non-root user')
 with tempfile.TemporaryDirectory(prefix='shell-greeter-test-') as temp:

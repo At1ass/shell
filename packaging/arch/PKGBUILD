@@ -118,7 +118,7 @@ package_at1ass-shell-greeter-git() {
                 'upower: optional battery status in the greeter')
     provides=("at1ass-shell-greeter=${pkgver}")
     conflicts=(at1ass-shell-greeter)
-    backup=(etc/greetd/greeter.json etc/greetd/hyprland-greeter.conf)
+    backup=(etc/greetd/greeter.json etc/greetd/hyprland-greeter.lua etc/greetd/hyprland-greeter.conf)
     local src=shell/src/features/greeter
     local dest="$pkgdir/usr/share/at1ass-shell/greeter"
     install -d "$dest"
@@ -126,6 +126,7 @@ package_at1ass-shell-greeter-git() {
         "$src"/{shell.qml,GreeterSurface.qml,qmldir,components,config,ui} "$dest/"
     install -Dm644 "$src/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
     install -Dm644 shell/packaging/arch/greeter.json "$pkgdir/etc/greetd/greeter.json"
+    install -Dm644 shell/packaging/arch/hyprland-greeter.lua "$pkgdir/etc/greetd/hyprland-greeter.lua"
     install -Dm644 shell/packaging/arch/hyprland-greeter.conf "$pkgdir/etc/greetd/hyprland-greeter.conf"
     install -Dm644 shell/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

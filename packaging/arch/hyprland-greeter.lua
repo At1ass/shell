@@ -1,0 +1,15 @@
+-- Generic output selection; override locally when a fixed layout is needed.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+
+-- The optional regreet fallback is started only if Quickshell fails.
+hl.on("hyprland.start", function()
+    hl.exec_cmd("qs -p /usr/share/at1ass-shell/greeter || regreet; hyprctl dispatch 'hl.dsp.exit()'")
+end)
+
+hl.config({
+    misc = {
+        disable_hyprland_logo = true,
+        disable_splash_rendering = true,
+        disable_hyprland_guiutils_check = true,
+    },
+})

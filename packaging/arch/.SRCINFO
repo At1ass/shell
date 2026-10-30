@@ -123,4 +123,5 @@ pkgname = at1ass-shell-greeter-git
 	provides = at1ass-shell-greeter=0.1.0
 	conflicts = at1ass-shell-greeter
 	backup = etc/greetd/greeter.json
+	backup = etc/greetd/hyprland-greeter.lua
 	backup = etc/greetd/hyprland-greeter.conf
