@@ -3,6 +3,28 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Discoverable launcher actions — 2026-10-31
+
+The explicit `:` catalogue now includes Overview, screenshot copy/edit, recording
+start/stop and pause/resume, night light and gaming mode alongside existing panels,
+DND and caffeine. Toggle names describe the next operation; descriptions show
+current state. Aliases improve discovery without mixing shell actions into the
+normal application search. Each prefix has its own search-field accessible name
+and placeholder, with the active scope still visible in the footer.
+
+Recorder startup and missing recorder/night-light dependencies produce inactive
+results with explanations, also shown unelided in the footer for the selected
+result. State changes invalidate only a visible action search, without polling.
+Invocation resolves the command again, checks module/dependency availability and
+rejects stale toggle labels. Arbitrary temporary durations remain supported.
+Isolated tests exercise state changes, stale callbacks, unavailable results,
+module disablement, prefix isolation and mock capture/recording handoffs; no real
+recording or system toggles are performed. Publication/installation remain deferred.
+
+Next: retain actionable operation errors next to their owning service/panel,
+then improve notification/event search. User-defined commands and an explicit
+window-search provider remain separate extensions of the launcher.
+
 ## Calendar correctness and shared input accessibility — 2026-10-31
 
 EventDialog strictly round-trips local dates (including leap years and years below

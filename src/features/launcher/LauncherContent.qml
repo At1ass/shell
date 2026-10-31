@@ -15,6 +15,9 @@ Item {
     property bool _searchReady: false
     readonly property string mode: LauncherService.modeFor(searchField.text)
     readonly property bool searchPending: searchDebounce.running || LauncherService.busy
+    readonly property string unavailableReason: mode === "actions" && !searchPending
+        && LauncherService.filteredApps[appListView.currentIndex]?.action === null
+        ? LauncherService.filteredApps[appListView.currentIndex].description : ""
     readonly property real chromeHeight: searchField.implicitHeight + footer.implicitHeight
         + Tokens.panelPadding * 2 + Tokens.spacing.small * 2 + Tokens.focusRing.offset * 2
     // Fixed rows provide an exact preferred height without relying on the
@@ -66,7 +69,10 @@ Item {
                 leadingIcon: root.mode === "calculator" ? "calculate" : root.mode === "clipboard" ? "content_paste"
                     : root.mode === "actions" ? "bolt" : "search"
                 trailingIcon: text.length > 0 ? "close" : ""
-                placeholderText: "Search applications"
+                placeholderText: root.mode === "calculator" ? "Calculate an expression"
+                    : root.mode === "clipboard" ? "Search clipboard history"
+                    : root.mode === "actions" ? "Search shell actions" : "Search applications"
+                Accessible.name: placeholderText
                 onTrailingClicked: { text = ""; inputItem.forceActiveFocus() }
                 onAccepted: root.activateCurrent()
                 onTextChanged: { appListView.currentIndex = 0; searchDebounce.restart() }
@@ -119,7 +125,7 @@ Item {
                     delegate: LauncherComponents.AppListItem {
                         width: appListView.width
                         height: root.resultRowHeight
-                        isCurrentItem: appListView.currentIndex === index && !!modelData?.action
+                        isCurrentItem: appListView.currentIndex === index
                         enabled: !root.searchPending && !!modelData?.action
                         onClicked: {
                             if (root.searchPending) return
@@ -150,7 +156,9 @@ Item {
                 textStyle: "labelSmall"
                 colorRole: "onSurfaceVariant"
                 wrapMode: Text.Wrap
-                text: searchField.text.trim() === "" ? "= Calculator · > Clipboard · : Shell actions"
+                textFormat: Text.PlainText
+                text: root.unavailableReason !== "" ? root.unavailableReason
+                    : searchField.text.trim() === "" ? "= Calculator · > Clipboard · : Shell actions"
                     : (root.mode === "calculator" ? "Calculator · Enter: Copy"
                         : root.mode === "clipboard" ? "Clipboard · Enter: Copy"
                         : root.mode === "actions" ? "Shell actions · Enter: Run" : "Applications · Enter: Open")

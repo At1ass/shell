@@ -43,6 +43,7 @@ Singleton {
     // them.
     readonly property bool active: _socketPresent && _pid > 0 && !_awaitingOutput
     readonly property bool available: _toolPresent
+    readonly property bool starting: !active && (_pid > 0 || startProc.running)
 
     property bool paused: false
     readonly property int elapsedSeconds: _elapsedSeconds

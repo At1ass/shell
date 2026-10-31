@@ -579,6 +579,15 @@ Letter shortcuts use physical key positions across keyboard layouts.
 Tab/Shift+Tab select launcher results while keeping the search field focused;
 Enter activates the result. The launcher resets its query when reopened.
 
+The `:` catalogue includes panels, workspace overview, screenshot copy/edit,
+screen recording (start/stop and pause/resume), night light, gaming mode, DND
+and caffeine. Search aliases include `: windows`, `: nightlight` and `: awake`.
+Toggle names describe the next action and update while the launcher is open.
+Missing recorder/night-light dependencies leave a readable unavailable result;
+selecting it shows the full reason below the list. Disabled modules are excluded.
+Each action rechecks its state and availability before execution. Applications
+remain the default search scope; shell action text is never executed as a command.
+
 ### Calendar editing
 
 Dates use strict local `yyyy-MM-dd` input: impossible days/months are rejected

@@ -304,10 +304,10 @@ QtObject {
         'BluetoothService': 'property bool enabled:true; property string icon:"bluetooth"; function toggle() {enabled=!enabled}',
         'VPNService': 'property bool connected:false; property string icon:"vpn_lock"; function toggle() {}',
         'IdleInhibitorService': 'property bool inhibit:false;property bool temporary:false;property string statusText:"";property real expiresAt:0;property int lastDuration:0;function toggleInhibit() {inhibit=!inhibit} function setForMinutes(minutes) {lastDuration=minutes;return true}',
-        'NightLightService': 'property bool enabled:false; function toggle() {}',
+        'NightLightService': 'property bool enabled:false; function toggle() {enabled=!enabled}',
         'NotificationService': 'property int unreadCount:0;property bool doNotDisturb:false; function toggleDoNotDisturb() {}',
-        'GamingModeService': 'property bool gamingModeActive:false; function toggleGamingMode() {}',
-        'ScreenshotService': 'function takeScreenshotSwappy() {}',
+        'GamingModeService': 'property bool gamingModeActive:false; function toggleGamingMode() {gamingModeActive=!gamingModeActive}',
+        'ScreenshotService': 'property int copies:0;property int edits:0;function takeScreenshot() {copies++} function takeScreenshotSwappy() {edits++}',
         'SystemMonitorService': 'property real cpuUsage:12; property real gpuUsage:7; property real ramUsage:38; property real diskUsage:42; property bool hasCpuTemp:true; property bool hasGpuStats:true; property int cpuTemp:49; property int gpuTemp:45; property string ramUsed:"6.2"; property string diskUsed:"84G"; property var cpuHistory:[]; property var gpuHistory:[]; property var ramHistory:[]; property string cpuModel:"CPU"; property string gpuModel:"GPU"; property string ramTotal:"16"; property string diskTotal:"200G"',
         'MprisController': 'property QtObject activePlayer:QtObject {}; property var activeTrack:({title:"Focus session",artist:"Instrumental",artUrl:""}); property var availablePlayers:[]; property real length:240; property bool lengthSupported:true; property bool positionSupported:true; property real position:50; property bool canTogglePlaying:true; property bool canGoNext:true; property bool canGoPrevious:true; property bool canSeek:true; property bool loopEnabled:false; property bool loopSupported:true; property bool loopingTrack:false; property bool shuffle:false; property bool shuffleSupported:true; property real volume:0.5; property bool volumeSupported:true; property bool isPlaying:false; property string identity:"Player"; signal trackChanged(); function togglePlaying() {toggles++;isPlaying=!isPlaying}; function next() {}; function previous() {}; function setPosition(value) {}; function setVolume(value) {}; function toggleLoop() {}; function toggleShuffle() {}; function switchToPlayer(value) {}'
     }
@@ -322,6 +322,7 @@ QtObject {
     mocks['AudioService'] += '; property real micVolume:0.5;property bool micMuted:false;function setMicVolume(value) {micVolume=value} function toggleMicMute() {micMuted=!micMuted} function setStreamVolume(node,value) {node.audio.volume=value} function toggleStreamMute(node) {node.audio.muted=!node.audio.muted}'
     mocks['Weather'] += '; property var data:({current:{temperature_2m:8}});property bool isFresh:true;property date lastSuccessAt:new Date(2026,9,25,12)'
     mocks['NightLightService'] += '; property bool available:true'
+    mocks['RecorderService'] = 'property bool active:false;property bool available:true;property bool starting:false;property bool paused:false;property int toggles:0;function toggle() {toggles++;active=!active} function togglePause() {paused=!paused}'
     mocks['MprisController'] += '; property int toggles:0'
     mocks['GlobalStates'] += '; property string lastAction:""; property int actionCount:0; function handleClickAction(action) {actionCount++;lastAction=action}'
     mocks['GlobalStates'] += '; property bool connectionsOpen:true; property string connectionsSection:"bluetooth"; function openConnections(section,source) {connectionsSection=section}'
@@ -894,7 +895,9 @@ Item {
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
-   GlobalStates.launcherOpen=false;LauncherService.search("")
+   GlobalStates.launcherOpen=false;NightLightService.enabled=false;GamingModeService.gamingModeActive=false
+   RecorderService.active=false;RecorderService.available=true;RecorderService.starting=false;RecorderService.paused=false;RecorderService.toggles=0
+   LauncherService.search("")
    AppConfig.weatherEnabled=true
    Weather.data=({current:{temperature_2m:8}});Weather.isFresh=true;Weather.errorString=""
    CalendarBackend.dayEvents=[]
@@ -2911,12 +2914,72 @@ Item {
    compare(loader.item,null,"non-retained launcher unloads")
    compare(GlobalStates.lastAction,"audio","service completes the action after UI destruction")
   }
+  function test_launcher_action_state_and_availability() {
+   controls.visible=false;GlobalStates.launcherOpen=true
+   const launcher=createTemporaryObject(launcherFixture,scene)
+   const input=byProperty(launcher,"placeholderText","Search applications")
+   input.text=": nightlight";wait(150)
+   compare(input.placeholderText,"Search shell actions")
+   compare(LauncherService.filteredApps.length,1)
+   compare(LauncherService.filteredApps[0].text,"Turn on night light")
+   const stale=LauncherService.filteredApps[0].action
+   NightLightService.enabled=true
+   compare(LauncherService.filteredApps[0].text,"Turn off night light")
+   stale();verify(NightLightService.enabled,"stale Enable cannot disable the mode")
+   NightLightService.available=false
+   compare(LauncherService.filteredApps[0].action,null)
+   verify(LauncherService.filteredApps[0].description.includes("hyprsunset"))
+   compare(launcher.unavailableReason,LauncherService.filteredApps[0].description)
+   input.inputItem.forceActiveFocus();keyClick(Qt.Key_Return)
+   verify(GlobalStates.launcherOpen,"unavailable command keeps the launcher open")
+   NightLightService.available=true
+   keyClick(Qt.Key_Return);verify(!NightLightService.enabled)
+  }
+  function test_launcher_recorder_commands() {
+   GlobalStates.launcherOpen=true;LauncherService.search(": record")
+   compare(LauncherService.filteredApps.length,1)
+   const stale=LauncherService.filteredApps[0].action
+   RecorderService.available=false
+   compare(LauncherService.filteredApps[0].action,null)
+   stale();compare(RecorderService.toggles,0,"dependency is checked again at invocation")
+   RecorderService.available=true;RecorderService.starting=true
+   verify(LauncherService.filteredApps[0].description.includes("Waiting"))
+   compare(LauncherService.filteredApps[0].action,null)
+   RecorderService.starting=false;RecorderService.active=true
+   compare(LauncherService.filteredApps.length,2)
+   compare(LauncherService.filteredApps[0].text,"Stop screen recording")
+   LauncherService.filteredApps[1].action();verify(RecorderService.paused)
+   compare(LauncherService.filteredApps[1].text,"Resume screen recording")
+   const stop=LauncherService.filteredApps[0].action
+   AppConfig.disabledModules=["recorder"];stop()
+   compare(RecorderService.toggles,0,"disabled module cannot execute a cached action")
+   LauncherService.search(": record");compare(LauncherService.filteredApps.length,0)
+  }
+  function test_launcher_explicit_actions_and_modes() {
+   GlobalStates.launcherOpen=true
+   LauncherService.search("nightlight")
+   verify(LauncherService.filteredApps.every(result=>result.type==="application"))
+   LauncherService.search(": windows")
+   compare(LauncherService.filteredApps[0].resultId,"action:overview")
+   LauncherService.launch(LauncherService.filteredApps[0]);verify(GlobalStates.overviewOpen)
+   GlobalStates.overviewOpen=false;GlobalStates.launcherOpen=true
+   LauncherService.search(": gaming");LauncherService.filteredApps[0].action()
+   verify(GamingModeService.gamingModeActive)
+   compare(LauncherService.filteredApps[0].text,"Turn off gaming mode")
+   LauncherService.search(": caffeine 23");LauncherService.filteredApps[0].action()
+   compare(IdleInhibitorService.lastDuration,23,"custom duration still executes")
+   LauncherService.search(": dnd 0");compare(LauncherService.filteredApps.length,0)
+   const before=ScreenshotService.copies
+   LauncherService.search(": copy screenshot");LauncherService.filteredApps[0].action()
+   compare(ScreenshotService.copies,before+1,"capture is handed to the mock service")
+  }
   function test_launcher_modes_and_calculator() {
    controls.visible=false;GlobalStates.launcherOpen=true
    const launcher=createTemporaryObject(launcherFixture,scene)
    verify(launcher!==null);wait(30)
    const input=byProperty(launcher,"placeholderText","Search applications")
    input.text="= 1+1";wait(300)
+   compare(input.placeholderText,"Calculate an expression")
    verify(LauncherService.busy);compare(LauncherService.filteredApps.length,0)
    QalculateWrapper.evaluated("1+1","2");wait(30)
    compare(LauncherService.filteredApps[0].text,"2")
@@ -2928,6 +2991,7 @@ Item {
    compare(LauncherService.filteredApps[0].action,null)
    keyClick(Qt.Key_Return);verify(GlobalStates.launcherOpen,"error is not an action")
    input.text=">";wait(150);compare(launcher.mode,"clipboard")
+   compare(input.placeholderText,"Search clipboard history")
    verify(byProperty(launcher,"headline","No clipboard entries").visible)
    input.text="none";wait(150)
    verify(byProperty(launcher,"headline","No applications found").visible)
