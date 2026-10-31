@@ -54,12 +54,24 @@ ScrollableList {
             Layout.fillWidth: true
             visible: !root.hasConditions || Weather.errorString !== ""
             clickable: false
-            leadingIcon: Weather.errorString !== "" ? "cloud_off" : "cloud_sync"
-            headline: !AppConfig.weatherEnabled ? "Weather disabled" : Weather.errorString !== ""
+            leadingIcon: Weather.busy ? "cloud_sync" : Weather.errorString !== "" ? "cloud_off" : "cloud_sync"
+            headline: !AppConfig.weatherEnabled ? "Weather disabled" : !Weather.updatesAllowed ? "Weather updates paused"
+                : Weather.busy ? "Updating weather…" : Weather.errorString !== ""
                 ? (root.hasConditions ? "Showing last available weather" : "Weather unavailable")
                 : "Waiting for weather data"
-            supportingText: !AppConfig.weatherEnabled ? "Enable weather in config.json." : Weather.errorString
+            supportingText: !AppConfig.weatherEnabled ? "Enable weather in config.json."
+                : !Weather.updatesAllowed ? "Updates will resume when gaming mode ends." : Weather.errorString
             supportingTextFormat: Text.PlainText
+        }
+        MaterialButton {
+            objectName: "weatherRetry"
+            Layout.maximumWidth: column.width
+            Layout.minimumWidth: 0
+            visible: AppConfig.weatherEnabled && Weather.errorString !== ""
+            text: Weather.busy ? "Retrying…" : "Retry"
+            Accessible.name: "Retry weather update"
+            enabled: Weather.canRetry
+            onClicked: Weather.retry()
         }
         MaterialCard {
             Layout.fillWidth: true

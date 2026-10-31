@@ -3,6 +3,31 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Retained operation errors and explicit recovery — 2026-10-31
+
+Weather preserves the previous sample and error across automatic/manual attempts,
+exposes busy/allowed/retry state and provides an accessible Retry action in its
+tab. A failure episode produces one toast; the explanation remains in the panel.
+Malformed/missing-temperature responses cannot replace the last sample. A config
+change cancels the in-flight request, discards the old coordinate/unit dataset
+and starts the new request; ordinary refresh attempts remain single-flight.
+Gaming mode cancels the request and resumes failed/stale updates on exit.
+
+VPN no longer clears failures when Connections opens. Errors identify the profile;
+Retry resolves its UUID and original direction again, rejects stale/busy/deleted
+targets and explains unavailability. Errors remain during the next attempt and
+clear on success or an observed completed state. Native model errors remain owned
+by the model. Existing connection/editor actions are retained.
+
+`weather` and `vpn` IPC handlers expose JSON status and guarded retry. Raw weather
+details and VPN UUID/exit code remain in service diagnostics, without adding a
+global operation log or callbacks retained by transient UI. Isolated service tests
+use inert transports/processes; real system operations are not exercised. UI tests
+cover keyboard recovery controls. Publication and runtime installation are deferred.
+
+Next: review recovery/state reporting for recording and night light, then search
+in notifications/calendar. This stage covers weather/VPN, not every service.
+
 ## Discoverable launcher actions — 2026-10-31
 
 The explicit `:` catalogue now includes Overview, screenshot copy/edit, recording
@@ -30,9 +55,8 @@ removed/disabled actions and changed launch targets cannot execute stale callbac
 Both targets use AppLaunchService. Schema tests reject malformed and ambiguous
 targets; isolated launch mocks check argument boundaries, reload and entry lifetime.
 
-Next: retain actionable operation errors next to their owning service/panel,
-then improve notification/event search. An explicit window-search provider remains
-a separate extension of the launcher.
+Recovery work is tracked in the section above; notification/event search follows
+it. An explicit window-search provider remains a separate launcher extension.
 
 ## Calendar correctness and shared input accessibility — 2026-10-31
 

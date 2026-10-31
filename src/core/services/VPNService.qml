@@ -35,9 +35,30 @@ Singleton {
     property int _generation: 0
     property int _operationGeneration: 0
     property bool _disconnecting: false
+    property string _operationUuid: ""
+    property string _operationName: ""
+    property string _failedUuid: ""
+    property bool _failedDisconnecting: false
+    property int _lastExitCode: 0
+    readonly property string retryUnavailableReason: {
+        const profile = profiles.find(item => item.uuid === root._failedUuid)
+        if (!enabled || !ready) return "VPN information is not available yet."
+        if (busy || actionProc.running || profile?.busy) return "Wait for the current VPN operation."
+        if (!profile) return "Profile no longer available. Open the connection editor."
+        if (root._failedDisconnecting ? !profile.connected : profile.connected)
+            return root._failedDisconnecting ? "VPN is already disconnected." : "VPN is already connected."
+        return ""
+    }
+    readonly property bool canRetry: root._failedUuid !== "" && retryUnavailableReason === ""
+    onProfilesChanged: {
+        const profile = profiles.find(item => item.uuid === root._failedUuid)
+        if (!busy && profile && !profile.busy && root._actionError !== ""
+            && (root._failedDisconnecting ? !profile.connected : profile.connected)) root.clearError()
+    }
 
     onEnabledChanged: { ++root._generation; root.clearError() }
-    function clearError() { root._actionError = "" }
+    function clearError() { root._actionError = ""; root._failedUuid = ""; root._lastExitCode = 0 }
+    function retry() { return root.canRetry ? root._run(root._failedUuid, root._failedDisconnecting) : false }
     // A generic action opens the choice; it never guesses a primary profile.
     function toggle() {
         if (!root.enabled) { ToastService.info("VPN tracking is off — set services.vpn.enabled in config.json"); return }
@@ -52,8 +73,9 @@ Singleton {
                 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) return false
         const profile = root.invoke("profile", [uuid])
         if (!profile?.uuid || profile.busy || (down ? !profile.connected : profile.connected)) return false
-        root.clearError()
         root.busyVPN = profile.uuid
+        root._operationUuid = profile.uuid
+        root._operationName = profile.name
         root._disconnecting = down
         root._operationGeneration = root._generation
         actionProc.command = ["nmcli", "--wait", String(AppConfig.networkAuthenticationTimeout + 30),
@@ -69,18 +91,28 @@ Singleton {
             root.refresh()
             if (!root.enabled || root._operationGeneration !== root._generation) return
             if (exitCode === 0) {
+                root.clearError()
                 if (!GlobalStates.connectionsOpen) ToastService.success(root._disconnecting ? "VPN disconnected" : "VPN connected")
             } else {
-                root._actionError = exitCode === 3 ? "VPN operation timed out."
+                root._failedUuid = root._operationUuid
+                root._failedDisconnecting = root._disconnecting
+                root._lastExitCode = exitCode
+                const message = exitCode === 3 ? "VPN operation timed out."
                     : exitCode === 10 ? "VPN connection is no longer available."
                     : root._disconnecting ? "Could not disconnect VPN."
                     : "VPN connection failed. Check credentials or edit the profile."
+                root._actionError = root._operationName + ": " + message
                 if (!GlobalStates.connectionsOpen) ToastService.error(root._actionError)
             }
         }
     }
-    Connections {
-        target: GlobalStates
-        function onConnectionsOpenChanged() { if (GlobalStates.connectionsOpen) root.clearError() }
+    IpcHandler {
+        target: "vpn"
+        function retry(): bool { return root.retry() }
+        function status(): string {
+            return JSON.stringify({ready:root.ready,busy:root.busy,error:root.errorMessage,
+                failedUuid:root._failedUuid,disconnecting:root._failedDisconnecting,
+                exitCode:root._lastExitCode,canRetry:root.canRetry})
+        }
     }
 }

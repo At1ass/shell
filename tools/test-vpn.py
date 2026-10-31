@@ -17,7 +17,8 @@ with tempfile.TemporaryDirectory(prefix='shell-vpn-') as directory:
         path.write_text(text)
     write('Quickshell/qmldir', 'module Quickshell\nSingleton 1.0 Singleton.qml\n')
     write('Quickshell/Singleton.qml', 'import QtQml\nQtObject {default property list<QtObject> children}\n')
-    write('Quickshell/Io/qmldir', 'module Quickshell.Io\nProcess 1.0 Process.qml\n')
+    write('Quickshell/Io/qmldir', 'module Quickshell.Io\nProcess 1.0 Process.qml\nIpcHandler 1.0 IpcHandler.qml\n')
+    write('Quickshell/Io/IpcHandler.qml', 'import QtQml\nQtObject {property string target:""}\n')
     write('Quickshell/Io/Process.qml', 'import QtQml\nQtObject {property bool running:false;property var command:[];signal exited(int code)}\n')
     write('qs/src/core/config/qmldir', 'module qs.src.core.config\nsingleton AppConfig 1.0 AppConfig.qml\n')
     write('qs/src/core/config/AppConfig.qml', 'pragma Singleton\nimport QtQml\nQtObject {property bool ready:true;property bool vpnEnabled:true;property int networkAuthenticationTimeout:120}\n')
@@ -87,8 +88,28 @@ TestCase {
   verify(VPNService.connect(first));finish(3)
   verify(!VPNService.busy);verify(VPNService.errorMessage.includes("timed out"))
   compare(VPNService.profiles.length,2)
-  verify(VPNService.connect(second));compare(VPNService.errorMessage,"");finish(10)
+  verify(VPNService.connect(second));verify(VPNService.errorMessage!=="","failure remains visible during the next operation");finish(10)
   verify(VPNService.errorMessage.includes("no longer available"))
+ }
+ function test_error_survives_reopen_and_retry() {
+  GlobalStates.connectionsOpen=false;verify(VPNService.connect(second));finish(3)
+  compare(ToastService.failures,1);verify(VPNService.canRetry)
+  const message=VPNService.errorMessage
+  GlobalStates.connectionsOpen=true;compare(VPNService.errorMessage,message)
+  verify(VPNService.retry());compare(process.command[6],second)
+  verify(!VPNService.retry(),"duplicate retry is blocked")
+  compare(VPNService.errorMessage,message);finish(0)
+  compare(VPNService.errorMessage,"");verify(!VPNService.canRetry)
+ }
+ function test_retry_revalidates_deleted_profile_and_disconnect() {
+  verify(VPNService.connect(first));finish(4)
+  model.profiles=[];verify(!VPNService.canRetry);verify(!VPNService.retry())
+  verify(VPNService.retryUnavailableReason.includes("Profile no longer available"))
+  model.profiles=[{uuid:second,name:"Second",connected:true,busy:false,state:2}]
+  verify(VPNService.disconnect(second));finish(4);verify(VPNService.canRetry)
+  verify(VPNService.retry());compare(process.command[4],"down");finish(4)
+  model.profiles=[{uuid:second,name:"Second",connected:false,busy:false,state:0}]
+  compare(VPNService.errorMessage,"","observed completion clears obsolete failure")
  }
  function test_disabled_snapshot_and_late_result() {
   GlobalStates.connectionsOpen=false

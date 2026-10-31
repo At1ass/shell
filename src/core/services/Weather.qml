@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.src.core.config
 import qs.src.core.services
 
@@ -17,6 +18,10 @@ Singleton {
     // --- State ---
     property var data: null
     property string errorString: ""
+    property string errorDetails: ""
+    readonly property bool busy: request.running
+    readonly property bool updatesAllowed: _fetchAllowed
+    readonly property bool canRetry: updatesAllowed && !busy && errorString !== ""
     property date lastSuccessAt: new Date(0)
     property date lastAttemptAt: new Date(0)
     property int _retryMs: 0
@@ -26,11 +31,10 @@ Singleton {
     readonly property string tempUnit: isImperial ? "°F" : "°C"
     readonly property string windUnit: isImperial ? "mph" : "km/h"
 
-    // Bypass the fetchNow rate limit: after a unit switch the displayed
-    // numbers are in the WRONG unit until refetched.
-    onIsImperialChanged: Qt.callLater(store._doFetch)
-    onLatitudeChanged: Qt.callLater(store._doFetch)
-    onLongitudeChanged: Qt.callLater(store._doFetch)
+    // Coordinate/unit changes replace the request and its displayed dataset.
+    onIsImperialChanged: Qt.callLater(store._restartForConfig)
+    onLatitudeChanged: Qt.callLater(store._restartForConfig)
+    onLongitudeChanged: Qt.callLater(store._restartForConfig)
 
     readonly property bool _fetchAllowed: AppConfig.ready && AppConfig.weatherEnabled
         && !(GamingModeService.gamingModeActive && AppConfig.gmDisableWeather)
@@ -146,56 +150,93 @@ Singleton {
 
     // Public methods
     function fetchIfStale() {
-        if ((Date.now() - lastSuccessAt.getTime()) >= (refreshMinutes * 60 * 1000))
+        if (errorString !== "" || (Date.now() - lastSuccessAt.getTime()) >= (refreshMinutes * 60 * 1000))
             _doFetch();
     }
 
     function fetchNow() {
         if ((Date.now() - lastAttemptAt.getTime()) < (minIntervalSeconds * 1000))
-            return;
-        _doFetch();
+            return false
+        return _doFetch()
+    }
+
+    function retry() {
+        return canRetry ? _doFetch() : false
     }
 
     HttpRequest {
         id: request
         onSucceeded: body => {
             try {
-                store.data = JSON.parse(body)
+                const response = JSON.parse(body)
+                if (!response?.current || !Number.isFinite(response.current.temperature_2m))
+                    throw new Error("Missing current temperature")
+                store.data = response
                 store.lastSuccessAt = new Date()
+                store.errorString = ""
+                store.errorDetails = ""
                 store._retryMs = 0
                 retryTimer.stop()
                 store.updated()
             } catch (e) {
-                store._scheduleRetry("JSON parse error: " + e.message)
+                store._scheduleRetry("Weather provider returned invalid data. Try again later.", e.message)
             }
         }
         onFailed: (message, status) => {
             if (status === 401 || status === 403) {
-                store.errorString = message
-                store.failed(message)
+                store._setError("Weather provider refused the request. Try again later.", message)
             } else {
-                store._scheduleRetry(message)
+                store._scheduleRetry(status === 429 ? "Too many weather requests. Try again later."
+                    : "Could not update weather. Check your connection and retry.", message)
             }
         }
     }
 
     function _doFetch() {
-        if (!store._fetchAllowed) return
+        if (!store._fetchAllowed || request.running) return false
         retryTimer.stop()
         lastAttemptAt = new Date()
-        errorString = ""
         request.get(_url())
+        return true
     }
 
-    function _scheduleRetry(msg) {
-        errorString = msg;
+    function _restartForConfig() {
+        request.cancel()
+        retryTimer.stop()
+        // Old coordinates/units are a different dataset, not a stale sample.
+        data = null
+        lastSuccessAt = new Date(0)
+        errorString = ""
+        errorDetails = ""
+        _retryMs = 0
+        _doFetch()
+    }
+
+    function _setError(msg, details) {
+        const firstFailure = errorString === ""
+        errorString = msg
+        errorDetails = details
         failed(msg);
-        if (_retryMs === 0) ToastService.warning("Weather unavailable: " + msg)
+        if (firstFailure) ToastService.warning(msg)
+    }
+
+    function _scheduleRetry(msg, details) {
+        _setError(msg, details)
         // 5s → 10s → 20s → … up to 5 minutes
         _retryMs = Math.min(_retryMs > 0 ? _retryMs * 2 : 5000, 5 * 60 * 1000);
         // No retry churn during gaming mode (the periodic poll is already
         // gated on it).
         if (store._fetchAllowed)
             retryTimer.start();
+    }
+
+    IpcHandler {
+        target: "weather"
+        function retry(): bool { return store.retry() }
+        function status(): string {
+            return JSON.stringify({busy:store.busy,updatesAllowed:store.updatesAllowed,
+                error:store.errorString,details:store.errorDetails,
+                lastSuccess:store.lastSuccessAt.toISOString(),retryScheduled:retryTimer.running})
+        }
     }
 }

@@ -324,7 +324,7 @@ QtObject {
     mocks['GlobalStates'] += '; property bool powerMenuOpen:false; function executePowerAction(action) {lastAction=action;actionCount++}; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
     mocks['PopoutsState'] = 'property bool open:false; property string name:""; property QtObject data:null;property Item sourceItem:null;property int epoch:0; function openPopout(name,data,source) {this.name=name;this.data=data;sourceItem=source;open=true;epoch++} function closePopout() {open=false;name="";data=null;epoch++}'
     mocks['AudioService'] += '; property real micVolume:0.5;property bool micMuted:false;function setMicVolume(value) {micVolume=value} function toggleMicMute() {micMuted=!micMuted} function setStreamVolume(node,value) {node.audio.volume=value} function toggleStreamMute(node) {node.audio.muted=!node.audio.muted}'
-    mocks['Weather'] += '; property var data:({current:{temperature_2m:8}});property bool isFresh:true;property date lastSuccessAt:new Date(2026,9,25,12)'
+    mocks['Weather'] += ';property bool busy:false;property bool updatesAllowed:true;property bool canRetry:true;property int retries:0;function retry() {retries++;busy=true}; property var data:({current:{temperature_2m:8}});property bool isFresh:true;property date lastSuccessAt:new Date(2026,9,25,12)'
     mocks['NightLightService'] += '; property bool available:true'
     mocks['RecorderService'] = 'property bool active:false;property bool available:true;property bool starting:false;property bool paused:false;property int toggles:0;function toggle() {toggles++;active=!active} function togglePause() {paused=!paused}'
     mocks['MprisController'] += '; property int toggles:0'
@@ -337,7 +337,7 @@ QtObject {
     mocks['AudioService'] += '; property var sinkNodes:[]; property var sourceNodes:[]; property var defaultSource:null; property var streamNodes:[]; function getAppIcon(node) {return \"\"} function formatVolume(value) {return \"0\"} function setDefaultSink(node) {defaultSink=node} function setDefaultSource(node) {defaultSource=node}'
     mocks['NetworkService'] += '; property string currentNetwork:""; property var networks:[]; readonly property var displayNetworks:networks; property bool scanning:false; function stopScan() {scanning=false} function startScan() {scanning=true} function securityText(value) {return "Open"} function signalIcon(value) {return "wifi"} property int disconnections:0; function disconnectNetwork(value) {disconnections++} function connectToNetwork(value) {connections++} property int connections:0; property QtObject passwordTarget:null; function connectToNewNetwork(network,password) {passwordTarget=network;connections++;return true}'
     mocks['BluetoothService'] += '; property int connectedDeviceCount:0; property var pairedDevices:[]; property var discoveredDevices:[]; property string busyDeviceAddress:""; property int connections:0; property int pairs:0; function connectDevice(device) {connections++} function disconnectDevice(device) {connections++} function pairDevice(device) {pairs++} function stopScan() {scanning=false} function startScan() {scanning=true} property bool scanning:false'
-    mocks['VPNService'] += '; property var profiles:[];property bool ready:true;property string errorMessage:"";property bool busy:false;property string busyVPN:"";property string activeVPN:"";property int connections:0;property string lastUuid:"";function connect(uuid) {lastUuid=uuid;connections++} function disconnect(uuid) {lastUuid=uuid;connections++}'
+    mocks['VPNService'] += ';property bool canRetry:false;property string retryUnavailableReason:"";property int retries:0;function retry() {retries++}; property var profiles:[];property bool ready:true;property string errorMessage:"";property bool busy:false;property string busyVPN:"";property string activeVPN:"";property int connections:0;property string lastUuid:"";function connect(uuid) {lastUuid=uuid;connections++} function disconnect(uuid) {lastUuid=uuid;connections++}'
     mocks['NetworkAuthService'] = 'property bool busy:false;property string requestToken:"";property string connectionName:"";property string message:"";property var fields:[];property bool requestNew:false;property string validationError:"";function submit(token,answers) {requestToken="";return true} function reject(token) {requestToken="";return true}'
     mocks['EthernetService'] = 'property string icon:"lan"; property bool connected:false; property string interfaceName:""; property var ipv4Addresses:[];property var ipv6Addresses:[];property string ipv4Gateway:"";property string ipv6Gateway:""'
     mocks['SystemMonitorService'] += '; property bool hasNet:false; property string netRxFormatted:""; property string netTxFormatted:""; property var netRxHistory:[]; property var netTxHistory:[]'
@@ -905,6 +905,7 @@ Item {
    RecorderService.active=false;RecorderService.available=true;RecorderService.starting=false;RecorderService.paused=false;RecorderService.toggles=0
    LauncherService.search("")
    AppConfig.weatherEnabled=true
+   Weather.busy=false;Weather.updatesAllowed=true;Weather.canRetry=true;Weather.retries=0
    Weather.data=({current:{temperature_2m:8}});Weather.isFresh=true;Weather.errorString=""
    CalendarBackend.dayEvents=[]
    SystemMonitorService.storageVolumes=[];SystemMonitorService.storageDrives=[];SystemMonitorService.storageSummary=({available:true,name:"System",availableFormatted:"100 GiB",severity:0})
@@ -916,6 +917,7 @@ Item {
    AudioService.streamNodes=[];AudioService.defaultSink=Pipewire.defaultAudioSink;AudioService.defaultSource=null;AudioService.masterVolume=0.45;AudioService.masterMuted=false;AudioService.micVolume=0.5;AudioService.micMuted=false
    GlobalStates.connectionsOpen=true;GlobalStates.connectionsSection=""
    NetworkService.wifiEnabled=true;NetworkService.deviceReady=true;NetworkService.errorMessage="";NetworkService.connectionPending=false;BluetoothService.enabled=true
+   VPNService.canRetry=false;VPNService.retryUnavailableReason="";VPNService.retries=0
    VPNService.profiles=[];VPNService.errorMessage="";VPNService.lastUuid="";VPNService.connections=0
    NetworkService.networks=[];NetworkService.scanning=false;NetworkService.connections=0;NetworkService.disconnections=0
    BluetoothService.pairedDevices=[];BluetoothService.discoveredDevices=[];BluetoothService.scanning=false;BluetoothService.connections=0;BluetoothService.pairs=0
@@ -2457,6 +2459,28 @@ Item {
     if(width===480 && scale===1.3) grabImage(scene).save("RENDERS/calendar-"+data.pack+".png")
     cal.destroy()
    }
+  }
+  function test_operation_recovery_keyboard() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=1
+   Weather.errorString="Could not update weather. Check your connection and retry.";wait(40)
+   const retry=findChild(dashboard,"weatherRetry")
+   verify(retry!==null && retry.visible);retry.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(Weather.retries,1);compare(retry.text,"Retrying…")
+   Weather.canRetry=false;verify(!retry.enabled)
+   verify(byProperty(dashboard,"headline","Updating weather…").visible)
+   Weather.busy=false;Weather.updatesAllowed=false;wait(20)
+   verify(byProperty(dashboard,"headline","Weather updates paused").visible)
+   dashboard.visible=false;GlobalStates.connectionsOpen=true
+   VPNService.errorMessage="Example VPN: operation timed out.";VPNService.canRetry=true
+   GlobalStates.connectionsSection="vpn"
+   const panel=createTemporaryObject(connectionsPanel,scene)
+   verify(panel!==null);wait(30)
+   const vpnRetry=findChild(panel,"vpnRetry")
+   verify(vpnRetry!==null && vpnRetry.visible);vpnRetry.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(VPNService.retries,1)
+   VPNService.canRetry=false;VPNService.retryUnavailableReason="Profile no longer available. Open the connection editor."
+   wait(20);verify(!vpnRetry.enabled)
+   verify(byProperty(panel,"text",VPNService.errorMessage+"\\n"+VPNService.retryUnavailableReason)!==null)
   }
   function test_weather_availability_and_details() {
    controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=1;wait(40)

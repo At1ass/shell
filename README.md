@@ -627,6 +627,32 @@ explanation and become available when installed. Both launch paths use
 (or named by its absolute path); command execution errors are not preflighted by
 spawning probes during search.
 
+### Recovering failed operations
+
+Weather keeps the last successful readings and the failure explanation while
+retrying. Use **Retry** in the weather tab; it is disabled during
+a request or while updates are paused by gaming mode. Successful updates clear
+the error. Changes to coordinates/units cancel the old request and discard its
+dataset, so old values cannot appear under new labels.
+
+VPN failures remain visible when reopening Connections, with the profile name.
+**Retry** in the VPN section repeats the original profile UUID and connect/disconnect
+direction. It rechecks that the profile exists, its state still needs the action
+and no operation is running. Deleted profiles explain why retry is unavailable;
+the connection editor remains accessible from **More connection actions**.
+Success, including a later observed completion, clears the failure.
+
+Technical details are available as JSON through IPC:
+
+```bash
+at1ass-shell ipc call weather status
+at1ass-shell ipc call vpn status
+```
+
+Both handlers also expose `retry`; it returns false when the operation cannot
+be repeated. Weather diagnostics include the transport/response error, and VPN
+diagnostics include the failed UUID and nmcli exit code.
+
 ### Calendar editing
 
 Dates use strict local `yyyy-MM-dd` input: impossible days/months are rejected

@@ -344,6 +344,10 @@ if (Keycodes.letter(event) === action.key) activate()
 - Системный stdout — `Process` + `SplitParser`/`StdioCollector`, обработка построчно.
 - Списки/модели внутри `Process.onStdout` менять только через `Qt.callLater()`.
 - Всегда безопасный fallback (`available: device !== null`).
+- Ошибка операции принадлежит сервису и не стирается при открытии панели или начале
+  повтора. Повтор заново проверяет цель, её текущее состояние и занятость; подтверждённый
+  успех снимает ошибку. Технические подробности доступны через IPC, краткое объяснение
+  и действие восстановления — рядом с объектом. Эталоны: Weather и VPNService.
 - **Запуск приложений — только через `AppLaunchService`** (`launchEntry(entry)` / `launchCommand(argv)` → `app2unit`, отдельный systemd scope на приложение). Прямые `DesktopEntry.execute()` и `Quickshell.execDetached` для приложений запрещены: запущенное попадает в cgroup шелла — общий учёт ресурсов и общая судьба при остановке scope или OOM-kill любого процесса в нём (`OOMPolicy=stop`).
 
 ---

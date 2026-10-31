@@ -438,11 +438,22 @@ MaterialCard {
             MaterialText {
                 Layout.fillWidth: true
                 visible: root.section === "vpn" && VPNService.enabled && VPNService.errorMessage !== ""
-                text: VPNService.errorMessage
+                text: VPNService.errorMessage + (!VPNService.busy && VPNService.retryUnavailableReason
+                    ? "\n" + VPNService.retryUnavailableReason : "")
                 textFormat: Text.PlainText
                 textStyle: "bodySmall"
                 colorRole: "error"
                 wrapMode: Text.Wrap
+            }
+            MaterialButton {
+                objectName: "vpnRetry"
+                Layout.maximumWidth: column.width
+                Layout.minimumWidth: 0
+                visible: root.section === "vpn" && VPNService.enabled && VPNService.errorMessage !== ""
+                text: VPNService.busy ? "Working…" : "Retry"
+                Accessible.name: "Retry VPN operation"
+                enabled: VPNService.canRetry
+                onClicked: VPNService.retry()
             }
             MaterialText {
                 Layout.fillWidth: true
