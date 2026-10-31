@@ -9,6 +9,7 @@ import qs.src.core.config
 
 Dialog {
     id: root
+    objectName: "calendarEventDialog"
 
     dialogWidth: 440
     dialogHeight: 640
@@ -34,6 +35,7 @@ Dialog {
 
     // Override Dialog.requestClose so scrim click prompts when dirty.
     function requestClose() {
+        if (saving) return
         if (dirty) discardConfirm.visible = true
         else close()
     }
@@ -42,31 +44,62 @@ Dialog {
     readonly property var _timeRe: /^([01]\d|2[0-3]):[0-5]\d$/
     readonly property var _dateRe: /^\d{4}-\d{2}-\d{2}$/
 
-    readonly property string _validationError: {
-        if (titleField.text.trim() === "") return "Title is required"
-        if (!_dateRe.test(startDateField.text)) return "Start date: yyyy-MM-dd"
-        if (!_dateRe.test(endDateField.text))   return "End date: yyyy-MM-dd"
+    property string pendingSaveId: ""
+    readonly property bool saving: pendingSaveId !== ""
+    property string saveError: ""
+    property bool _completed: false
+    function beginSave(requestId) {
+        if (!requestId) { saveError = "Could not start saving. Try again."; return }
+        if (!visible || opacity < 1) open()
+        pendingSaveId = requestId
+        saveError = ""
+    }
+    function _focusSaveError() { if (visible && saveError !== "" && !saving) saveButton.forceActiveFocus(Qt.OtherFocusReason) }
+    function finishSave(requestId, success, message) {
+        if (!pendingSaveId || requestId !== pendingSaveId) return
+        pendingSaveId = ""
+        if (success) { _completed = true; dirty = false; close() }
+        else {
+            saveError = message || "The event could not be saved. Try again."
+            dirty = true
+            Qt.callLater(root._focusSaveError)
+        }
+    }
+    function _dateError(text) {
+        if (!_dateRe.test(text)) return "Use yyyy-MM-dd"
+        return _parseLocalDate(text) ? "" : "This date does not exist"
+    }
+    function _timeError(text, date) {
+        if (!_timeRe.test(text)) return "Use HH:MM (00:00–23:59)"
+        if (!date) return ""
+        const parts = text.split(":").map(Number)
+        const value = new Date(date)
+        value.setHours(parts[0], parts[1], 0, 0)
+        return value.getHours() === parts[0] && value.getMinutes() === parts[1]
+            ? "" : "This local time does not exist on this date"
+    }
+    readonly property var _fieldErrors: {
         const sd = _parseLocalDate(startDateField.text)
         const ed = _parseLocalDate(endDateField.text)
-        if (!sd) return "Invalid start date"
-        if (!ed) return "Invalid end date"
-        if (ed.getTime() < sd.getTime()) return "End date must not precede start"
-        if (!allDayMode) {
-            if (!_timeRe.test(startTimeField.text)) return "Invalid start time (HH:MM)"
-            if (!_timeRe.test(endTimeField.text))   return "Invalid end time (HH:MM)"
-            const sParts = startTimeField.text.split(":")
-            const eParts = endTimeField.text.split(":")
-            const sMin = parseInt(sParts[0])*60 + parseInt(sParts[1])
-            const eMin = parseInt(eParts[0])*60 + parseInt(eParts[1])
-            // Only compare times when both ends land on the SAME day — with a
-            // real end date, 23:00 → 01:00 across midnight is now expressible.
-            if (sd.getTime() === ed.getTime() && eMin <= sMin)
-                return "End must be after start"
+        const errors = {
+            title: titleField.text.trim() ? "" : "A title is required",
+            startDate: _dateError(startDateField.text), endDate: _dateError(endDateField.text),
+            startTime: allDayMode ? "" : _timeError(startTimeField.text, sd),
+            endTime: allDayMode ? "" : _timeError(endTimeField.text, ed),
+            until: recurrenceCombo.currentIndex !== 0 && untilField.text ? _dateError(untilField.text) : "",
+            calendar: calendarCombo.currentText ? "" : "No calendar is available"
         }
-        if (recurrenceCombo.currentIndex !== 0 && untilField.text.length > 0) {
-            if (!_dateRe.test(untilField.text)) return "Until: yyyy-MM-dd"
-            if (!_parseLocalDate(untilField.text)) return "Invalid until date"
-        }
+        if (allDayMode && ed && _storageEnd(ed).getFullYear() > 9999) errors.endDate = "Choose an all-day end date before 9999-12-31"
+        if (sd && ed && ed.getTime() < sd.getTime()) errors.endDate = "End date must not precede start date"
+        if ((!isEditMode || _timesEdited) && !allDayMode && sd && ed && sd.getTime() === ed.getTime() && !errors.startTime && !errors.endTime
+                && endTimeField.text <= startTimeField.text) errors.endTime = "End time must be after start time"
+        const until = _parseLocalDate(untilField.text)
+        if (recurrenceCombo.currentIndex !== 0 && until && sd && until.getTime() < sd.getTime()) errors.until = "Repeat-until date must not precede start date"
+        return errors
+    }
+    readonly property string _validationError: {
+        const labels = {title:"Title",startDate:"Start date",endDate:"End date",startTime:"Start time",endTime:"End time",until:"Repeat until",calendar:"Calendar"}
+        for (const key of Object.keys(labels)) if (_fieldErrors[key]) return labels[key] + ": " + _fieldErrors[key]
         return ""
     }
 
@@ -115,9 +148,14 @@ Dialog {
     }
 
     function _parseLocalDate(text) {
-        const p = text.split("-")
-        const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]))
-        return isNaN(d.getTime()) ? null : d
+        if (!_dateRe.test(text)) return null
+        const parts = text.split("-").map(Number)
+        if (parts[0] < 1 || parts[1] < 1 || parts[1] > 12 || parts[2] < 1 || parts[2] > 31) return null
+        // setFullYear avoids the Date constructor's 1900 offset for years 0–99.
+        const date = new Date(0)
+        date.setFullYear(parts[0], parts[1] - 1, parts[2])
+        date.setHours(0, 0, 0, 0)
+        return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2] ? date : null
     }
     readonly property bool _isValid: _validationError === ""
 
@@ -125,6 +163,9 @@ Dialog {
     // in RecurrenceEditChoice. Without it, answering "cancel" to the
     // this-occurrence-or-series question threw the user's typing away.
     function openDialog(editMode, data, date, pending) {
+        if (saving) return
+        _completed = false
+        saveError = ""
         isEditMode = editMode
         eventData = data
         selectedDate = date || new Date()
@@ -167,7 +208,9 @@ Dialog {
             endTimeField.text = Qt.formatTime(endDate, "HH:mm")
             const d = Qt.formatDate(selectedDate, "yyyy-MM-dd")
             startDateField.text = d
-            endDateField.text = d
+            const lastDay = new Date(selectedDate)
+            lastDay.setDate(lastDay.getDate() + (endDate.getDate() !== now.getDate() ? 1 : 0))
+            endDateField.text = Qt.formatDate(lastDay, "yyyy-MM-dd")
             calendarCombo.currentIndex = 0
         }
 
@@ -177,8 +220,8 @@ Dialog {
         titleField.inputItem.forceActiveFocus()
         // Reset AFTER field assignments — those fired onTextChanged and
         // would have flipped dirty=true otherwise.
-        dirty = false
-        _timesEdited = false
+        dirty = !!pending
+        _timesEdited = !!pending && (pending.start !== undefined || pending.end !== undefined || pending.allDay !== undefined)
     }
 
     // Build a QVariantMap for CalendarBackend.addEvent / editEvent.
@@ -240,6 +283,7 @@ Dialog {
 
         ColumnLayout {
             id: formLayout
+            enabled: !root.saving && !root._completed
             Layout.fillWidth: true
 
             spacing: Tokens.spacing.medium
@@ -257,6 +301,7 @@ Dialog {
                 spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
+                    id: titleFieldLabel
                     text: "Title"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
@@ -264,6 +309,8 @@ Dialog {
 
                 MaterialTextField {
                     id: titleField
+                    errorText: root.dirty ? root._fieldErrors.title : ""
+                    labelItem: titleFieldLabel
                     Layout.fillWidth: true
                     placeholderText: "Event title"
                     onTextEdited: root.dirty = true
@@ -283,6 +330,7 @@ Dialog {
                 }
 
                 MaterialSwitch {
+                    Accessible.name: "All-day event"
                     checked: root.allDayMode
                     onToggled: (state) => {
                         root.allDayMode = state
@@ -307,9 +355,11 @@ Dialog {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
                     spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
+                        id: startDateFieldLabel
                         text: "Start date"
                         textStyle: "labelMedium"
                         colorRole: "onSurfaceVariant"
@@ -317,6 +367,8 @@ Dialog {
 
                     MaterialTextField {
                         id: startDateField
+                        errorText: root.dirty ? root._fieldErrors.startDate : ""
+                        labelItem: startDateFieldLabel
                         Layout.fillWidth: true
                         placeholderText: "yyyy-MM-dd"
                         onTextEdited: root.dirty = true
@@ -326,9 +378,11 @@ Dialog {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
                     spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
+                        id: endDateFieldLabel
                         text: root.allDayMode ? "End date (inclusive)" : "End date"
                         textStyle: "labelMedium"
                         colorRole: "onSurfaceVariant"
@@ -336,6 +390,8 @@ Dialog {
 
                     MaterialTextField {
                         id: endDateField
+                        errorText: root.dirty ? root._fieldErrors.endDate : ""
+                        labelItem: endDateFieldLabel
                         Layout.fillWidth: true
                         placeholderText: "yyyy-MM-dd"
                         onTextEdited: root.dirty = true
@@ -352,9 +408,11 @@ Dialog {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
                     spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
+                        id: startTimeFieldLabel
                         text: "Start"
                         textStyle: "labelMedium"
                         colorRole: "onSurfaceVariant"
@@ -362,6 +420,8 @@ Dialog {
 
                     MaterialTextField {
                         id: startTimeField
+                        errorText: root.dirty ? root._fieldErrors.startTime : ""
+                        labelItem: startTimeFieldLabel
                         Layout.fillWidth: true
                         placeholderText: "HH:MM"
                         validator: RegularExpressionValidator { regularExpression: root._timeRe }
@@ -372,9 +432,11 @@ Dialog {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
                     spacing: Tokens.spacing.extraSmall
 
                     MaterialText {
+                        id: endTimeFieldLabel
                         text: "End"
                         textStyle: "labelMedium"
                         colorRole: "onSurfaceVariant"
@@ -382,6 +444,8 @@ Dialog {
 
                     MaterialTextField {
                         id: endTimeField
+                        errorText: root.dirty ? root._fieldErrors.endTime : ""
+                        labelItem: endTimeFieldLabel
                         Layout.fillWidth: true
                         placeholderText: "HH:MM"
                         validator: RegularExpressionValidator { regularExpression: root._timeRe }
@@ -397,6 +461,7 @@ Dialog {
                 spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
+                    id: locationFieldLabel
                     text: "Location"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
@@ -404,6 +469,7 @@ Dialog {
 
                 MaterialTextField {
                     id: locationField
+                    labelItem: locationFieldLabel
                     Layout.fillWidth: true
                     placeholderText: "Add location"
                     onTextEdited: root.dirty = true
@@ -416,6 +482,7 @@ Dialog {
                 spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
+                    id: descriptionFieldLabel
                     text: "Description"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
@@ -423,6 +490,7 @@ Dialog {
 
                 MaterialTextArea {
                     id: descriptionField
+                    labelItem: descriptionFieldLabel
                     Layout.fillWidth: true
                     placeholderText: "Add description"
                     onTextEdited: root.dirty = true
@@ -487,6 +555,7 @@ Dialog {
                 visible: recurrenceCombo.currentIndex !== 0
 
                 MaterialText {
+                    id: untilFieldLabel
                     text: "Repeat until"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
@@ -497,6 +566,8 @@ Dialog {
                 // and recurring events could never be saved without a date.
                 MaterialTextField {
                     id: untilField
+                    labelItem: untilFieldLabel
+                    errorText: root.dirty ? root._fieldErrors.until : ""
                     Layout.fillWidth: true
                     placeholderText: "yyyy-MM-dd (optional)"
                     validator: RegularExpressionValidator { regularExpression: root._dateRe }
@@ -510,6 +581,7 @@ Dialog {
                 spacing: Tokens.spacing.extraSmall
 
                 MaterialText {
+                    id: categoriesFieldLabel
                     text: "Categories"
                     textStyle: "labelMedium"
                     colorRole: "onSurfaceVariant"
@@ -517,6 +589,7 @@ Dialog {
 
                 MaterialTextField {
                     id: categoriesField
+                    labelItem: categoriesFieldLabel
                     Layout.fillWidth: true
                     placeholderText: "work, personal, ..."
                     onTextEdited: root.dirty = true
@@ -528,12 +601,24 @@ Dialog {
                 Layout.fillWidth: true
                 text: root._validationError
                 textStyle: "labelSmall"
-                color: Theme.error
-                visible: !root._isValid && titleField.text.length > 0
+                colorRole: root.dirty ? "error" : "onSurfaceVariant"
+                visible: !root._isValid
                 wrapMode: Text.WordWrap
             }
 
             Item { Layout.preferredHeight: Tokens.spacing.small }
+
+            MaterialText {
+                objectName: "eventSaveError"
+                Layout.fillWidth: true
+                visible: root.saveError !== ""
+                text: root.saveError
+                textFormat: Text.PlainText
+                textStyle: "bodySmall"
+                colorRole: "error"
+                wrapMode: Text.Wrap
+                Accessible.role: Accessible.AlertMessage
+            }
 
             // Action buttons
             RowLayout {
@@ -543,6 +628,7 @@ Dialog {
                 IconButton {
                     visible: root.isEditMode
                     variant: "standard"
+                    Accessible.name: "Delete event"
                     iconName: "delete"
                     iconSize: Tokens.iconSize.large
                     iconColor: Theme.error
@@ -564,12 +650,13 @@ Dialog {
                 }
 
                 MaterialButton {
-                    text: root.isEditMode ? "Save" : "Add"
+                    id: saveButton
+                    text: root.saving ? "Saving…" : root.saveError ? "Retry" : root.isEditMode ? "Save" : "Add"
                     variant: "filled"
-                    enabled: root._isValid
+                    enabled: root._isValid && !root.saving && !root._completed
                     onClicked: {
+                        root.saveError = ""
                         root.eventSaved(root._buildFields())
-                        root.close()
                     }
                 }
             }

@@ -579,6 +579,20 @@ Letter shortcuts use physical key positions across keyboard layouts.
 Tab/Shift+Tab select launcher results while keeping the search field focused;
 Enter activates the result. The launcher resets its query when reopened.
 
+### Calendar editing
+
+Dates use strict local `yyyy-MM-dd` input: impossible days/months are rejected
+rather than silently moved to another date. Field errors explain invalid dates,
+times, ordering and repeat-until limits; all-day end dates remain inclusive in the
+form and exclusive in calendar storage. The initial one-hour event can cross
+midnight without producing an invalid end date.
+
+Saving keeps the editor open until the calendar backend confirms the write.
+While saving, editing and duplicate submissions are disabled. On failure, the
+draft remains in the form with an error and Retry action. A failed unrelated or
+previous operation cannot close the current editor. Cancelling the recurrence
+scope question also retains the pending field/time changes.
+
 ### Workspace overview
 
 Search windows by title, application or workspace. Click a live preview or press

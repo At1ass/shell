@@ -1,7 +1,5 @@
-// Unit tests for the calendar plugin's pure-C++ layer (IcalParser).
-// CalendarStore is excluded — it touches QFileSystemWatcher and disk,
-// which would require a temp-dir harness; the parser/expander layer
-// is where all the subtle logic lives.
+// Calendar parser, store and asynchronous facade regressions. Store/facade
+// filesystem operations are isolated under CALENDAR_QML_TEST_ROOT temporary dirs.
 
 #include <QtTest>
 #include <QtCore/QTemporaryFile>
@@ -12,6 +10,7 @@
 #include "../IcalParser.h"
 #include "../EventTypes.h"
 #include "../CalendarStore.h"
+#include "../CalendarBackend.h"
 #include "Fixtures.h"
 
 #include <QtCore/QTemporaryDir>
@@ -48,6 +47,62 @@ private:
     }
 
 private slots:
+
+    void rejectInvalidEventDates() {
+        const QDateTime start(QDate(2026, 3, 1), QTime(12, 0), QTimeZone::UTC);
+        QVariantMap fields{{"title", "Invalid"}, {"start", QDateTime()}, {"end", start}};
+        QVERIFY(IcalParser::buildIcsString(fields).isEmpty());
+        fields["start"] = start;
+        fields["end"] = start.addSecs(-60);
+        QVERIFY(IcalParser::buildIcsString(fields).isEmpty());
+        fields["end"] = start;
+        QVERIFY(IcalParser::buildIcsString(fields).isEmpty());
+        fields["allDay"] = true;
+        fields["end"] = start.addSecs(60);
+        QVERIFY(IcalParser::buildIcsString(fields).isEmpty());
+        fields["end"] = start.addDays(1);
+        QVERIFY(!IcalParser::buildIcsString(fields).isEmpty());
+        fields["start"] = QDateTime(QDate(10000, 1, 1), QTime(0, 0), QTimeZone::UTC);
+        fields["end"] = QDateTime(QDate(10000, 1, 2), QTime(0, 0), QTimeZone::UTC);
+        QVERIFY(IcalParser::buildIcsString(fields).isEmpty());
+    }
+
+    void facadeMutationResultsKeepRequestIdentity() {
+        QTemporaryDir root;
+        QVERIFY(root.isValid());
+        QVERIFY(QDir(root.path()).mkdir(QStringLiteral("test")));
+        qputenv("CALENDAR_QML_TEST_ROOT", root.path().toUtf8());
+        {
+            CalendarBackend backend;
+            backend.setRemindersEnabled(false);
+            QTRY_VERIFY(backend.calendars().contains(QStringLiteral("test")));
+            QSignalSpy done(&backend, &CalendarBackend::mutationFinished);
+            QSignalSpy errors(&backend, &CalendarBackend::errorOccurred);
+            const QDateTime start(QDate(2030, 1, 1), QTime(12, 0), QTimeZone::UTC);
+            QVariantMap fields{{"calendar", "test"}, {"uid", "request@test"},
+                               {"title", "Draft"}, {"start", start}, {"end", start.addSecs(3600)}};
+            const auto created = backend.addEvent(fields);
+            fields["calendar"] = "missing";
+            const auto rejected = backend.addEvent(fields);
+            backend.refresh(); // Read-only completions must not consume mutation IDs.
+            const auto edited = backend.editEvent("request@test", {{"title", "Revised"}});
+            const auto removed = backend.deleteEvent("request@test");
+            QVERIFY(!created.isEmpty() && created != rejected && rejected != edited && edited != removed);
+            QTRY_COMPARE(done.count(), 4);
+            QCOMPARE(done.at(0).at(0).toString(), created);
+            QCOMPARE(done.at(1).at(0).toString(), rejected);
+            QCOMPARE(done.at(2).at(0).toString(), edited);
+            QCOMPARE(done.at(3).at(0).toString(), removed);
+            QVERIFY(done.at(0).at(1).toBool());
+            QVERIFY(!done.at(1).at(1).toBool());
+            QVERIFY(done.at(2).at(1).toBool());
+            QVERIFY(done.at(3).at(1).toBool());
+            QVERIFY(!done.at(1).at(2).toString().isEmpty());
+            QCOMPARE(errors.count(), 1);
+            QVERIFY(backend.lastError().isEmpty());
+        }
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+    }
 
     // ── IcalParser ─────────────────────────────────────────────────
 
@@ -320,6 +375,7 @@ private slots:
         // An all-day series keeps a DATE-valued UNTIL.
         QVariantMap allday = timed;
         allday.insert(QStringLiteral("allDay"), true);
+        allday.insert(QStringLiteral("end"), QDateTime(QDate(2026, 8, 2), QTime(0, 0)));
         const QString a = IcalParser::buildIcsString(allday);
         QVERIFY2(a.contains(QRegularExpression(
             QStringLiteral("UNTIL=[0-9]{8}(;|$|\\r)"))),

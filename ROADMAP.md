@@ -3,6 +3,38 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Calendar correctness and shared input accessibility — 2026-10-31
+
+EventDialog strictly round-trips local dates (including leap years and years below
+100), rejects normalized invalid dates and nonexistent local times, and attaches
+validation messages to the corresponding fields. Missing title/calendar and
+invalid end/repeat-until limits explain disabled saving. New one-hour events carry
+the end date across midnight. Untouched existing times remain omitted on edits;
+cancelling the recurrence-scope choice preserves both the draft and edited-times
+flag. All-day display/storage inclusive/exclusive conversion remains intact.
+
+CalendarBackend returns unique request IDs for add/edit/delete. Its serial worker
+and queued results preserve FIFO request identity; read-only refreshes do not consume
+mutation IDs. EventDialog waits for its matching completion before closing, ignores
+unrelated/late results, blocks duplicate submissions and preserves the draft with
+Retry on error. Recurrence edits use the same completion path. Native serialization
+rejects missing/reversed timestamps and zero-day all-day ranges before allocating
+libical components; a missing all-day end uses a calendar day rather than 86400s.
+The corresponding old UNTIL test fixture now supplies a valid exclusive all-day end.
+
+IconButton has explicit button semantics and a shared guarded activation path for
+pointer, keyboard and accessibility actions. MaterialTextField/MaterialTextArea
+expose stable labelItem/label, supportingText and errorText; the actual editor owns
+its accessible name/relationship/description. Qt rejects null labelledBy, so the
+relationship is installed only for a supplied label. Feedback reserves space below
+the editor and uses PlainText. ScrollableList observes the editor's focusContext
+height so error text is revealed with the field when it fits; oversized text
+editors continue following their caret. Date/time columns stay aligned at the top. Password fields explicitly expose passwordEdit and
+trailing clear/show/hide controls have accessible names. The greeter kit is
+regenerated from canonical components. These are semantic/automated checks, not
+screen-reader acceptance. Updated QML requires the matching rebuilt Calendar plugin;
+no files in the installed runtime were replaced and publication remains deferred.
+
 ## Numbered workspace groups and contextual overview — 2026-10-31
 
 The bar now groups windows behind persistent workspace numbers, with separate

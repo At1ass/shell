@@ -259,6 +259,24 @@ defaultAccessibleName как fallback и не перезаписывает би�
 своим действием. Наведение не меняет геометрию бара. IPC-справка обнаруживает
 сигнатуры через `at1ass-shell ipc show`; таблица описаний не создаёт команды.
 
+### Семантика полей и сохранение календаря
+
+IconButton.activate() — общий путь мыши, клавиатуры и Accessible.pressAction;
+он проверяет enabled/visible. MaterialTextField/MaterialTextArea связывают подпись
+через labelItem с реальным редактором. QObject подписи живёт вместе с полем;
+динамически меняется её text, а не объект. Для полей без подписи Qt labelledBy
+не устанавливается (null запрещён). supportingText/errorText занимают место ниже
+редактора и передаются в accessible description; текст ошибок всегда PlainText.
+focusContext позволяет ScrollableList раскрывать ошибку вместе с полем, если она
+помещается во viewport; для большого TextEdit сохраняется приоритет каретки.
+
+CalendarBackend.add/edit/delete возвращают request ID; mutationFinished относится
+только к этому ID. Последовательный worker даёт FIFO для очереди ID фасада;
+refresh/range/day callbacks эту очередь не меняют. loading не является подтверждением
+записи. Форма закрывается только при matching success, failure сохраняет ввод.
+Отмена выбора recurrence scope сохраняет изменённые времена, а не только текст.
+Native date guards проверяются до выделения не принадлежащего cal VEVENT.
+
 ### Обход фокуса
 
 Tab/Shift+Tab обходят контролы; вкладки переключаются Ctrl+Tab либо стрелками внутри

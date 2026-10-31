@@ -234,6 +234,12 @@ Dialog {
  MaterialButton {text:"Close test editor";onClicked:close()}
 }
 ''')
+    real_components = dashboard / 'real_components'
+    real_components.mkdir()
+    (real_components / 'qmldir').write_text('module qs.src.features.dashboard.real_components\nEventDialog 1.0 EventDialog.qml\nRecurrenceEditChoice 1.0 RecurrenceEditChoice.qml\n')
+    for name in ('EventDialog','RecurrenceEditChoice'):
+        shutil.copy2(ROOT / ('src/features/dashboard/components/'+name+'.qml'),real_components / (name+'.qml'))
+    (temp / 'TestRealCalendar.qml').write_text((ROOT / 'src/features/dashboard/tabs/CalendarTab.qml').read_text().replace('import qs.src.features.dashboard.components','import qs.src.features.dashboard.real_components'))
     calendar = temp / 'imports/Calendar'
     calendar.mkdir()
     (calendar / 'qmldir').write_text('module Calendar\nsingleton CalendarBackend 1.0 CalendarBackend.qml\n')
@@ -245,9 +251,11 @@ QtObject {
  property var eventsByDate:({})
  function loadEventsForDate(date) {}
  function loadEventsForRange(start,end) {}
- function addEvent(fields) {}
- function editEvent(uid,fields,scope,start,id) {}
- function deleteEvent(uid,scope,start,id) {}
+ property int requestSequence:0
+ signal mutationFinished(string requestId,bool success,string message)
+ function addEvent(fields) {return "add-"+(++requestSequence)}
+ function editEvent(uid,fields,scope,start,id) {return "edit-"+(++requestSequence)}
+ function deleteEvent(uid,scope,start,id) {return "delete-"+(++requestSequence)}
 }
 ''')
     audio_module = tree / 'src/features/audio'
@@ -526,6 +534,19 @@ Item {
  Component {id:clockFixture;ClockWidget {height:40}}
  Component {id:mediaFixture;MPRISWidget {height:40}}
  Component {id:weatherFixture;WeatherWidget {height:40}}
+ Component {id:feedbackScrollFixture;ScrollableList {
+  width:300;height:180
+  ColumnLayout {
+   Layout.fillWidth:true
+   Item {Layout.preferredHeight:200;Layout.fillWidth:true}
+   MaterialTextField {objectName:"fieldWithContext";Layout.fillWidth:true;placeholderText:"Name"}
+  }
+ }}
+ Component {id:fieldFeedbackFixture;Column {
+  width:260
+  MaterialText {id:fieldLabel;objectName:"fieldLabel";text:"Account name"}
+  MaterialTextField {objectName:"namedField";width:260;labelItem:fieldLabel;supportingText:"Use your account name";trailingIcon:"close"}
+ }}
  Component {id:iconRepeatFixture;IconButton {property int activations:0;onClicked:activations++}}
  Component {id:chipRepeatFixture;Chip {label:"Action";property int activations:0;onClicked:activations++}}
  Component {id:switchRepeatFixture;MaterialSwitch {property int activations:0;onToggled:value=>{activations++;checked=value}}}
@@ -549,6 +570,7 @@ Item {
  Component {id:profileFixture;UserInfoElement {width:320}}
  Component {id:dashboardFieldFixture;MaterialTextField {width:240}}
  Component {id:dashboardSliderFixture;MaterialSlider {width:240}}
+ Component {id:realCalendarFixture;TestRealCalendar {width:640;height:600}}
  Component {id:eventFormFixture;TestEventDialog {}}
  Component {id:eventFormHost;Item {width:600;height:420}}
  Component {id:testButtonFixture;MaterialButton {text:"Test action";checkable:true}}
@@ -2194,6 +2216,100 @@ Item {
    GlobalStates.connectionsSection="bluetooth";wait(30)
    grabImage(panel).save("RENDERS/connections-bluetooth-"+data.tag+".png")
 
+  }
+  function test_field_error_is_revealed_with_editor() {
+   controls.visible=false
+   const scroll=createTemporaryObject(feedbackScrollFixture,scene)
+   const field=findChild(scroll,"fieldWithContext")
+   field.inputItem.forceActiveFocus();wait(20)
+   field.errorText="That name is unavailable. Please choose another account name."
+   tryVerify(()=>{const y=field.mapToItem(scroll,0,0).y;return y>=-1 && y+field.height<=scroll.height+1},1000,"error stays visible with the focused editor")
+  }
+  function test_field_accessibility_and_feedback() {
+   controls.visible=false
+   const fixture=createTemporaryObject(fieldFeedbackFixture,scene)
+   const label=findChild(fixture,"fieldLabel")
+   const field=findChild(fixture,"namedField")
+   compare(field.inputItem.Accessible.role,Accessible.EditableText)
+   compare(field.inputItem.Accessible.name,"Account name")
+   compare(field.inputItem.Accessible.labelledBy,label)
+   const original=field.implicitHeight;const editorHeight=field.inputItem.height
+   field.errorText="That name is not available. Choose another account name."
+   wait(20)
+   verify(field.implicitHeight>original);compare(field.inputItem.height,editorHeight,"error does not stretch editor")
+   verify(field.inputItem.Accessible.description.includes(field.errorText))
+   const clear=byProperty(field,"iconName","close")
+   compare(clear.Accessible.name,"Clear text");compare(clear.Accessible.role,Accessible.Button)
+  }
+  function test_icon_accessibility_activation() {
+   controls.visible=false
+   const icon=createTemporaryObject(iconRepeatFixture,scene)
+   compare(icon.Accessible.role,Accessible.Button)
+   icon.Accessible.pressAction();compare(icon.activations,1)
+   icon.enabled=false;icon.Accessible.pressAction();compare(icon.activations,1)
+   icon.enabled=true;icon.visible=false;icon.Accessible.pressAction();compare(icon.activations,1)
+  }
+  function test_calendar_save_result_routes_to_its_form() {
+   controls.visible=false;CalendarBackend.calendars=["Test"]
+   const view=createTemporaryObject(realCalendarFixture,scene)
+   const form=findChild(view,"calendarEventDialog")
+   form.openDialog(false,null,new Date(2026,9,25))
+   const title=byProperty(form,"placeholderText","Event title");title.text="Keep this draft"
+   const submit=byProperty(form,"text","Add");verify(submit!==null);submit.forceActiveFocus();keyClick(Qt.Key_Return)
+   verify(form.saving);const first=form.pendingSaveId;verify(first.startsWith("add-"))
+   CalendarBackend.mutationFinished("unrelated",true,"");verify(form.saving)
+   CalendarBackend.mutationFinished(first,false,"Storage unavailable");wait(20)
+   verify(form.visible);compare(title.text,"Keep this draft");compare(form.saveError,"Storage unavailable")
+   const retry=byProperty(form,"text","Retry");retry.forceActiveFocus();keyClick(Qt.Key_Return)
+   verify(form.saving);verify(form.pendingSaveId!==first)
+   CalendarBackend.mutationFinished(form.pendingSaveId,true,"");wait(20);verify(!form.visible)
+  }
+  function test_event_scope_cancel_preserves_changed_times() {
+   controls.visible=false;CalendarBackend.calendars=["Test"]
+   const host=createTemporaryObject(eventFormHost,scene)
+   const form=createTemporaryObject(eventFormFixture,host)
+   const event={uid:"series",title:"Series",calendar:"Test",start:new Date(2026,9,25,9),end:new Date(2026,9,25,10),recurrence:"weekly",isRecurringMaster:true}
+   const pending={title:"Revised",start:new Date(2026,9,25,11),end:new Date(2026,9,25,12),allDay:false,recurrence:"weekly"}
+   form.openDialog(true,event,event.start,pending)
+   verify(form.dirty);verify(form._timesEdited)
+   const fields=form._buildFields();compare(fields.start.getHours(),11);compare(fields.end.getHours(),12)
+  }
+  function test_event_dates_are_strict() {
+   controls.visible=false;CalendarBackend.calendars=["Test"]
+   const host=createTemporaryObject(eventFormHost,scene)
+   const form=createTemporaryObject(eventFormFixture,host)
+   form.openDialog(false,null,new Date(2026,1,1))
+   for(const text of ["2026-02-31","2026-02-29","2026-13-01","2026-00-01","2026-01-00","2026-04-31","0000-01-01","2026-1-01","2026-01-01junk"])compare(form._parseLocalDate(text),null,text)
+   for(const text of ["2024-02-29","2026-12-31","0099-01-01"]){const date=form._parseLocalDate(text);verify(date!==null,text);compare(date.getFullYear(),Number(text.slice(0,4)))}
+   const title=byProperty(form,"placeholderText","Event title")
+   const start=byProperty(form,"label","Start date")
+   const end=byProperty(form,"label","End date")
+   title.text="Draft";start.text="2026-02-31";form.dirty=true
+   verify(start.errorText!=="");verify(!form._isValid)
+   start.inputItem.forceActiveFocus();wait(20);grabImage(form).save("RENDERS/event-validation.png")
+   start.text="2026-02-28";end.text="2026-02-27"
+   verify(end.errorText.includes("precede"));verify(!form._isValid)
+   form.allDayMode=true;end.text="2026-02-28";verify(form._isValid)
+   const stored=form._buildFields();compare(stored.end.getDate(),1);compare(stored.end.getMonth(),2,"all-day exclusive end is retained")
+   end.text="9999-12-31";verify(!form._isValid,"exclusive end must stay inside the iCalendar year range")
+  }
+  function test_event_save_failure_preserves_draft() {
+   controls.visible=false;CalendarBackend.calendars=["Test"]
+   const host=createTemporaryObject(eventFormHost,scene)
+   const form=createTemporaryObject(eventFormFixture,host)
+   form.openDialog(false,null,new Date(2026,9,25))
+   const title=byProperty(form,"placeholderText","Event title")
+   const description=byProperty(form,"placeholderText","Add description")
+   title.text="Important draft";description.text="Must survive write failure";form.dirty=true
+   form.beginSave("request-a");verify(form.saving);verify(form.visible)
+   form.finishSave("unrelated",true,"");verify(form.saving,"unrelated result is ignored")
+   form.finishSave("request-a",false,"Storage is read-only");wait(20)
+   verify(!form.saving);verify(form.visible);compare(title.text,"Important draft");compare(description.text,"Must survive write failure")
+   compare(form.saveError,"Storage is read-only");verify(byProperty(form,"text","Retry")!==null)
+   compare(findChild(form,"eventSaveError").textFormat,Text.PlainText)
+   grabImage(form).save("RENDERS/event-save-failure.png")
+   form.beginSave("request-b");form.finishSave("request-a",true,"");verify(form.saving,"late prior completion cannot close retry")
+   form.finishSave("request-b",true,"");wait(20);verify(!form.visible);verify(!form.dirty)
   }
   function test_event_form_keyboard_scroll_data() {
    const rows=[]

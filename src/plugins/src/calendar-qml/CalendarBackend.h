@@ -6,6 +6,7 @@
 #include <QtCore/QDate>
 #include <QtCore/QDateTime>
 #include <QtCore/QThread>
+#include <QtCore/QQueue>
 #include <QtCore/QVariantList>
 #include <QtCore/QVariantMap>
 #include <QtQml/QQmlEngine>
@@ -59,15 +60,15 @@ public:
 
     Q_INVOKABLE void loadEventsForRange(const QDate& start, const QDate& end);
     Q_INVOKABLE void loadEventsForDate(const QDate& date);
-    Q_INVOKABLE void addEvent(const QVariantMap& fields);
+    Q_INVOKABLE QString addEvent(const QVariantMap& fields);
     // recurrenceId addresses an OVERRIDE (moved occurrence) — pass the
     // value the event map exposes as `recurrenceId` when `isOverride` is
     // true. Without it, uid alone resolves to the master series.
-    Q_INVOKABLE void editEvent(const QString& uid, const QVariantMap& fields,
+    Q_INVOKABLE QString editEvent(const QString& uid, const QVariantMap& fields,
                                const QString& scope = QStringLiteral("all"),
                                const QDateTime& occurrenceStart = QDateTime(),
                                const QDateTime& recurrenceId = QDateTime());
-    Q_INVOKABLE void deleteEvent(const QString& uid,
+    Q_INVOKABLE QString deleteEvent(const QString& uid,
                                  const QString& scope = QStringLiteral("all"),
                                  const QDateTime& occurrenceStart = QDateTime(),
                                  const QDateTime& recurrenceId = QDateTime());
@@ -81,6 +82,7 @@ signals:
     void loadingChanged();
     void lastErrorChanged();
     void errorOccurred(QString message);
+    void mutationFinished(QString requestId, bool success, QString message);
     void remindersEnabledChanged();
     void reminderMinutesChanged();
     void reminderLookaheadDaysChanged();
@@ -109,6 +111,7 @@ private:
     QStringList  m_calendars;
     QVariantMap  m_eventsByDate;
 
+    QQueue<QString> m_mutations; // Worker commands and completions are FIFO.
     QString m_lastError;
     bool    m_loading = false;
 

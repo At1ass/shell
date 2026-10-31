@@ -24,10 +24,13 @@ Item {
         const edit = root._focusedItem as TextEdit
         return edit ? edit.cursorRectangle : Qt.rect(0, 0, 0, 0)
     }
-    readonly property real _focusHeight: _focusedItem?.height ?? 0
+    function contextFor(item) { return item?.focusContext ?? item }
+    readonly property Item _focusContext: contextFor(_focusedItem)
+    readonly property real _focusHeight: _focusContext?.height ?? 0
     on_FocusCursorChanged: Qt.callLater(root._revealFocus)
     on_FocusHeightChanged: Qt.callLater(root._revealFocus)
     on_FocusedItemChanged: Qt.callLater(root._revealFocus)
+    on_FocusContextChanged: Qt.callLater(root._revealFocus)
     // Font scaling and panel clamping can move the same focused control
     // outside the viewport without producing another focus event.
     onHeightChanged: Qt.callLater(root._revealFocus)
@@ -42,9 +45,12 @@ Item {
         // An expanding editor may be taller than the viewport. Reveal its
         // caret rather than repeatedly scrolling to the bottom of the editor.
         const caret = root._focusCursor
-        const useCaret = caret.height > 0 && root._focusHeight > view.height - margin * 2
-        const top = root._focusedItem.mapToItem(contentLayout, 0, useCaret ? caret.y : 0).y + root.contentPadding
-        const bottom = top + (useCaret ? caret.height : root._focusHeight)
+        const useCaret = caret.height > 0 && root._focusedItem.height > view.height - margin * 2
+        // Include supporting/error text when it fits. Large editors still
+        // reveal their caret, rather than jumping to the end of the field.
+        const target = !useCaret && root._focusHeight <= view.height - margin * 2 ? root._focusContext : root._focusedItem
+        const top = target.mapToItem(contentLayout, 0, useCaret ? caret.y : 0).y + root.contentPadding
+        const bottom = top + (useCaret ? caret.height : target.height)
         const maximum = Math.max(0, view.contentHeight - view.height)
         if (top < view.contentY + margin)
             view.contentY = Math.max(0, top - margin)

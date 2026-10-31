@@ -9,6 +9,8 @@ qt_add_executable(calendar_test
     ../IcalParser.cpp
     ../EventTypes.cpp
     ../CalendarStore.cpp
+    ../CalendarBackend.cpp
+    ../ReminderEngine.cpp
     ../Atomic.cpp
 )
 
@@ -19,6 +21,9 @@ target_include_directories(calendar_test PRIVATE
 target_link_libraries(calendar_test PRIVATE
     Qt6::Core
     Qt6::Test
+    Qt6::Qml
+    Qt6::DBus
+    Qt6::Gui
     PkgConfig::LIBICAL
 )
 

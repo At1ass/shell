@@ -862,15 +862,16 @@ Item {
             if (isEdit && eventData.isOverride) {
                 // A moved occurrence edits ITS OWN override VEVENT —
                 // addressing by uid alone would rewrite the whole series.
-                CalendarBackend.editEvent(eventData.uid, fields, "all",
-                                          eventData.start, eventData.recurrenceId)
+                eventDialog.beginSave(CalendarBackend.editEvent(eventData.uid, fields, "all",
+                                          eventData.start, eventData.recurrenceId))
             } else if (isEdit && eventData.isRecurringMaster) {
                 // Ask user: this occurrence or whole series
+                eventDialog.close()
                 recurrenceChoice.askEdit(eventData, fields)
             } else if (isEdit) {
-                CalendarBackend.editEvent(eventData.uid, fields, "all")
+                eventDialog.beginSave(CalendarBackend.editEvent(eventData.uid, fields, "all"))
             } else {
-                CalendarBackend.addEvent(fields)
+                eventDialog.beginSave(CalendarBackend.addEvent(fields))
             }
         }
 
@@ -888,6 +889,11 @@ Item {
         }
     }
 
+    Connections {
+        target: CalendarBackend
+        function onMutationFinished(requestId, success, message) { eventDialog.finishSave(requestId, success, message) }
+    }
+
     RecurrenceEditChoice {
         id: recurrenceChoice
         anchors.fill: parent
@@ -895,7 +901,7 @@ Item {
         onChoiceMade: (mode, intent, ev, fields) => {
             // mode: "this" | "all"; intent: "edit" | "delete"
             if (intent === "edit") {
-                CalendarBackend.editEvent(ev.uid, fields, mode, ev.start)
+                eventDialog.beginSave(CalendarBackend.editEvent(ev.uid, fields, mode, ev.start))
             } else {
                 CalendarBackend.deleteEvent(ev.uid, mode, ev.start)
             }

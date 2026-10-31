@@ -2,6 +2,7 @@
 #include "CalendarStore.h"
 #include "ReminderEngine.h"
 #include "../common/WorkerLifetime.h"
+#include <QtCore/QUuid>
 
 CalendarBackend::CalendarBackend(QObject* parent)
     : QObject(parent)
@@ -81,19 +82,24 @@ void CalendarBackend::loadEventsForDate(const QDate& date) {
                               Q_ARG(QDate, date));
 }
 
-void CalendarBackend::addEvent(const QVariantMap& fields) {
+QString CalendarBackend::addEvent(const QVariantMap& fields) {
+    const auto requestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_mutations.enqueue(requestId);
     setLoading(true);
     QString cal = fields.value(QStringLiteral("calendar")).toString();
     if (cal.isEmpty() && !m_calendars.isEmpty()) cal = m_calendars.first();
     QMetaObject::invokeMethod(m_store, "addEventCmd", Qt::QueuedConnection,
                               Q_ARG(QString, cal),
                               Q_ARG(QVariantMap, fields));
+    return requestId;
 }
 
-void CalendarBackend::editEvent(const QString& uid, const QVariantMap& fields,
+QString CalendarBackend::editEvent(const QString& uid, const QVariantMap& fields,
                                 const QString& scope, const QDateTime& occurrenceStart,
                                 const QDateTime& recurrenceId)
 {
+    const auto requestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_mutations.enqueue(requestId);
     setLoading(true);
     QMetaObject::invokeMethod(m_store, "editEventCmd", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
@@ -101,18 +107,22 @@ void CalendarBackend::editEvent(const QString& uid, const QVariantMap& fields,
                               Q_ARG(QString, scope),
                               Q_ARG(QDateTime, occurrenceStart),
                               Q_ARG(QDateTime, recurrenceId));
+    return requestId;
 }
 
-void CalendarBackend::deleteEvent(const QString& uid, const QString& scope,
+QString CalendarBackend::deleteEvent(const QString& uid, const QString& scope,
                                   const QDateTime& occurrenceStart,
                                   const QDateTime& recurrenceId)
 {
+    const auto requestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_mutations.enqueue(requestId);
     setLoading(true);
     QMetaObject::invokeMethod(m_store, "deleteEventCmd", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
                               Q_ARG(QString, scope),
                               Q_ARG(QDateTime, occurrenceStart),
                               Q_ARG(QDateTime, recurrenceId));
+    return requestId;
 }
 
 void CalendarBackend::refresh() {
@@ -152,12 +162,12 @@ void CalendarBackend::handleReminderWindowReady(QVariantList window) {
 }
 
 void CalendarBackend::handleMutationDone(bool success, QString error) {
-    if (!success) {
-        setLastError(error);
-        emit errorOccurred(error);
-    }
+    const QString requestId = m_mutations.isEmpty() ? QString() : m_mutations.dequeue();
+    setLastError(success ? QString() : error);
+    if (!success) emit errorOccurred(error);
     // setLoading(false) happens via storeRefreshed after rescan
     if (!success) setLoading(false);
+    emit mutationFinished(requestId, success, error);
 }
 
 void CalendarBackend::handleReminderWindowRefreshNeeded() {

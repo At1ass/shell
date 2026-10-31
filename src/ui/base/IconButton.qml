@@ -36,6 +36,10 @@ Item {
     signal pressed()
     signal released()
 
+    Accessible.role: Accessible.Button
+    Accessible.onPressAction: root.activate()
+    function activate() { if (root.enabled && root.visible) root.clicked() }
+
     // Dimensions
     implicitWidth: Math.max(touchTargetSize, containerSize)
     implicitHeight: Math.max(touchTargetSize, containerSize)
@@ -88,7 +92,7 @@ Item {
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
             || event.key === Qt.Key_Enter) {
-            if (root.enabled && !event.isAutoRepeat) root.clicked()
+            if (!event.isAutoRepeat) root.activate()
             event.accepted = true
         }
     }
@@ -101,7 +105,7 @@ Item {
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         enabled: root.enabled
 
-        onClicked: root.clicked()
+        onClicked: root.activate()
 
         onPressed: {
             root.pressed()

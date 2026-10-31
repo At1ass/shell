@@ -16,9 +16,14 @@ Item {
     // emptiness/placeholder check downstream.
     property alias validator: input.validator
     property string placeholderText: ""
+    property string label: (labelItem as Text)?.text ?? ""
+    property Item labelItem: null
+    property string supportingText: ""
+    property string errorText: ""
     property string variant: "outlined" // "outlined" | "filled"
     property string leadingIcon: ""
     property string trailingIcon: ""
+    property string trailingAccessibleName: trailingIcon === "close" ? "Clear text" : trailingIcon === "visibility" ? "Show password" : trailingIcon === "visibility_off" ? "Hide password" : "Field action"
     property bool password: false
     property alias trailingContent: accessories.data
 
@@ -26,7 +31,8 @@ Item {
     signal textEdited()
     signal trailingClicked()
 
-    implicitHeight: Math.max(Tokens.size.field, input.implicitHeight + Tokens.spacing.small * 2, accessories.implicitHeight)
+    readonly property real controlHeight: Math.max(Tokens.size.field, input.implicitHeight + Tokens.spacing.small * 2, accessories.implicitHeight)
+    implicitHeight: controlHeight + (feedback.visible ? feedback.implicitHeight + Tokens.spacing.extraSmall : 0)
     implicitWidth: Tokens.size.fieldWidth
 
     // Only the actual editor is in the focus chain. Making its wrapper a
@@ -36,13 +42,14 @@ Item {
     onActiveFocusChanged: if (activeFocus) input.forceActiveFocus()
 
     readonly property bool _filled: variant === "filled"
-    readonly property color _accent: input.activeFocus ? Theme.primary : Theme.outline
+    readonly property color _accent: errorText !== "" ? Theme.error : input.activeFocus ? Theme.primary : Theme.outline
 
     opacity: enabled ? 1.0 : Tokens.state.disabledContentOpacity
 
     Rectangle {
         id: box
-        anchors.fill: parent
+        height: Math.max(0, root.height - (feedback.visible ? feedback.implicitHeight + Tokens.spacing.extraSmall : 0))
+        anchors { top: parent.top; left: parent.left; right: parent.right }
         radius: root._filled ? Tokens.shape.extraSmall : Tokens.shape.small
         color: root._filled ? Theme.surfaceContainerHighest : "transparent"
         border.width: root._filled ? 0 : (input.activeFocus ? 2 : 1)
@@ -69,7 +76,7 @@ Item {
         visible: root.leadingIcon !== ""
         anchors.left: parent.left
         anchors.leftMargin: Tokens.spacing.medium
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenter: box.verticalCenter
         iconName: root.leadingIcon
         fontSize: Tokens.iconSize.large
         iconColor: Theme.onSurfaceVariant
@@ -78,8 +85,22 @@ Item {
 
     TextInput {
         id: input
+        property Item focusContext: root
+        Accessible.passwordEdit: root.password
+        Accessible.role: Accessible.EditableText
+        Accessible.name: root.Accessible.name || root.label || root.placeholderText
+        // Qt rejects a null labelledBy; leave the relationship unset for
+        // placeholder-only fields. Visual labels share the field lifetime.
+        Binding {
+            target: input
+            property: "Accessible.labelledBy"
+            when: root.labelItem !== null
+            value: root.labelItem
+            restoreMode: Binding.RestoreNone
+        }
+        Accessible.description: [root.supportingText, root.errorText].filter(text => text !== "").join(". ")
         Keys.forwardTo: root.keyForwardTargets
-        anchors.fill: parent
+        anchors.fill: box
         anchors.leftMargin: root.leadingIcon !== "" ? leading.x + leading.width + Tokens.spacing.small : Tokens.spacing.medium
         anchors.rightMargin: accessories.width + (root.trailingIcon !== "" ? trailing.width + Tokens.spacing.small : Tokens.spacing.medium)
         verticalAlignment: TextInput.AlignVCenter
@@ -99,6 +120,7 @@ Item {
 
         MaterialText {
             visible: input.text.length === 0
+            Accessible.ignored: true
             text: root.placeholderText
             textStyle: "bodyLarge"
             color: Theme.onSurfaceVariant
@@ -111,12 +133,13 @@ Item {
         visible: root.trailingIcon !== ""
         anchors.right: parent.right
         anchors.rightMargin: Tokens.spacing.small + accessories.width
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenter: box.verticalCenter
         variant: "standard"
         iconName: root.trailingIcon
         iconSize: Tokens.iconSize.large
         containerSize: Tokens.size.iconButton
         touchTargetSize: Tokens.touchTarget.minimum
+        Accessible.name: root.trailingAccessibleName
         onClicked: root.trailingClicked()
     }
 
@@ -124,7 +147,18 @@ Item {
         id: accessories
         anchors.right: parent.right
         anchors.rightMargin: Tokens.spacing.small
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenter: box.verticalCenter
         spacing: Tokens.spacing.extraSmall
+    }
+    MaterialText {
+        id: feedback
+        anchors { top: box.bottom; topMargin: Tokens.spacing.extraSmall; left: parent.left; right: parent.right; leftMargin: Tokens.spacing.medium; rightMargin: Tokens.spacing.medium }
+        text: root.errorText || root.supportingText
+        textFormat: Text.PlainText
+        visible: text !== ""
+        textStyle: "bodySmall"
+        colorRole: root.errorText !== "" ? "error" : "onSurfaceVariant"
+        wrapMode: Text.Wrap
+        Accessible.ignored: true
     }
 }

@@ -512,6 +512,14 @@ QVariantList expandRange(const std::vector<Event>& events,
 }
 
 QString buildIcsString(const QVariantMap& fields) {
+    const bool allDay = fields.value(QStringLiteral("allDay")).toBool();
+    QDateTime start = fields.value(QStringLiteral("start")).toDateTime();
+    QDateTime end   = fields.value(QStringLiteral("end")).toDateTime();
+    if (!start.isValid()) return QString();
+    if (!end.isValid()) end = allDay ? start.addDays(1) : start.addSecs(3600);
+    if (start.date().year() < 1 || start.date().year() > 9999 || end.date().year() < 1 || end.date().year() > 9999) return QString();
+    if (allDay ? end.date() <= start.date() : end <= start) return QString();
+
     ical::ComponentPtr cal = ical::wrapComponent(icalcomponent_new_vcalendar());
     if (!cal) return QString();
     icalcomponent_add_property(cal.get(), icalproperty_new_version("2.0"));
@@ -519,6 +527,7 @@ QString buildIcsString(const QVariantMap& fields) {
         icalproperty_new_prodid("-//quickshell//calendar-qml//EN"));
 
     icalcomponent* ev = icalcomponent_new_vevent();   // ownership transferred at add_component below
+    if (!ev) return QString();
 
     QString uid = fields.value(QStringLiteral("uid")).toString();
     if (uid.isEmpty()) {
@@ -544,10 +553,6 @@ QString buildIcsString(const QVariantMap& fields) {
     if (!loc.isEmpty())
         icalcomponent_set_location(ev, loc.toUtf8().constData());
 
-    const bool allDay = fields.value(QStringLiteral("allDay")).toBool();
-    QDateTime start = fields.value(QStringLiteral("start")).toDateTime();
-    QDateTime end   = fields.value(QStringLiteral("end")).toDateTime();
-    if (!end.isValid()) end = start.addSecs(allDay ? 86400 : 3600);
 
     icalcomponent_set_dtstart(ev, qDateTimeToIcalTime(start, allDay));
     icalcomponent_set_dtend(ev,   qDateTimeToIcalTime(end,   allDay));
