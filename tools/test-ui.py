@@ -139,7 +139,7 @@ QtObject {
     (temp / 'TestPanelState.qml').write_text((ROOT / 'src/core/services/GlobalStates.qml').read_text().replace('pragma Singleton\n','').replace('import qs.src.core.config', 'import qs.src.core.services\nimport qs.src.core.config'))
     hypr = qs / 'Hyprland'
     with (hypr / 'qmldir').open('a') as module: module.write('HyprlandToplevel 1.0 HyprlandToplevel.qml\n')
-    (hypr / 'HyprlandToplevel.qml').write_text('import QtQml\nQtObject {property string address:"abc";property string title:"Editor";property bool activated:false;property QtObject workspace:null;property QtObject handle:null;property QtObject wayland:null;property var lastIpcObject:({at:[0,0],size:[800,600],class:"editor"})}\n')
+    (hypr / 'HyprlandToplevel.qml').write_text('import QtQml\nQtObject {property string address:"abc";property string title:"Editor";property bool activated:false;property QtObject monitor:null;property QtObject workspace:null;property QtObject handle:null;property QtObject wayland:null;property var lastIpcObject:({at:[0,0],size:[800,600],class:"editor"})}\n')
     hp=hypr / 'Hyprland.qml'
     hp.write_text(hp.read_text().replace('import QtQml','import QtQml\nimport Quickshell').replace('property var toplevels:({values:[]})','property var toplevels:ObjectModel {};property var workspaces:ObjectModel {};property var monitors:ObjectModel {};function refreshToplevels() {} function refreshWorkspaces() {}'))
     overview = tree / 'src/features/overview'
@@ -929,7 +929,8 @@ Item {
    Hyprland.focusedWorkspace.id=1
    GlobalStates.overviewOpen=false;Hyprland.monitors.values=[];Hyprland.workspaces.values=[];Hyprland.toplevels=createTemporaryObject(workspaceModelFixture,scene)
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
-   Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{title:"A very long editor window title",lastIpcObject:{class:"editor"}})
+   Hyprland.focusedMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-2"})
+   Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{monitor:Hyprland.focusedMonitor,title:"A very long editor window title",lastIpcObject:{class:"editor"}})
    Hyprland.rawEvent({name:"activewindowv2",data:"abc"})
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
@@ -1044,9 +1045,32 @@ Item {
    Hyprland.focusedMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"empty-monitor"})
    Hyprland.rawEvent({name:"activewindowv2",data:""});wait(20)
    verify(!widget.shown,"empty monitor focus clears the title without mutating native state")
+   Hyprland.focusedMonitor=window.monitor
    Hyprland.rawEvent({name:"activewindowv2",data:"abc"});wait(20);verify(widget.shown)
    Hyprland.rawEvent({name:"activewindowv2",data:"0x0"});wait(20);verify(!widget.shown)
    Hyprland.rawEvent({name:"activewindowv2",data:"abc"});wait(20);verify(widget.shown)
+  }
+  function test_active_window_empty_monitor_without_window_event() {
+   controls.visible=false
+   const window=Hyprland.activeToplevel
+   const first=Hyprland.focusedMonitor
+   const empty=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-3"})
+   const bar=createTemporaryObject(barFixture,scene,{width:1080,leftWidgets:[{type:"activewindow"}],centerWidgets:[],rightWidgets:[]})
+   wait(20)
+   const widget=bar.entries[0].widget.item
+   verify(widget.shown)
+   Hyprland.focusedMonitor=empty;wait(20)
+   compare(Hyprland.activeToplevel,window,"pointer motion keeps native window focus")
+   verify(!ActiveWindowService._focusCleared,"no empty activewindowv2 was sent")
+   verify(!widget.shown);compare(ActiveWindowService.windowTitle,"");compare(ActiveWindowService.windowClass,"")
+   window.title="Changed on the other monitor";verify(!widget.shown)
+   Hyprland.focusedMonitor=first;wait(20)
+   verify(widget.shown,"returning the pointer restores the title without a new window event")
+   compare(ActiveWindowService.windowTitle,"Changed on the other monitor")
+   const replacement=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-2"})
+   Hyprland.focusedMonitor=replacement;wait(20)
+   verify(widget.shown,"monitor identity uses the stable name, not QObject identity")
+   Hyprland.focusedMonitor=null;wait(20);verify(!widget.shown)
   }
   function test_workspace_metrics_independent_of_compaction() {
    controls.visible=false

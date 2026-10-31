@@ -9,13 +9,18 @@ The native-title binding alone did not clear stale focus: Quickshell 0.3.2 ignor
 an empty activewindowv2 address and retains activeToplevel. ActiveWindowService now
 honors an explicit empty/zero address while keeping native title/class bindings.
 A later valid focus event restores the same QObject, without relying on a native
-pointer-change signal. Unrelated/malformed events do not change the focus override.
+pointer-change signal. Cursor motion onto an empty monitor can instead emit only
+focusedmon while the previous window remains focused on its own monitor. Eligibility
+therefore also requires the native window monitor to match focusedMonitor by name.
+Returning to the original monitor restores the title without a window-focus event.
+Unrelated/malformed events do not change the focus override.
 ServiceBootstrap starts the observer before lazy bar widgets can be recreated.
 
 The Qt UI fixture deliberately retains the previous native pointer. A separate
 real-Quickshell probe supplies private fake Hyprland request/event sockets and
-checks empty-workspace/monitor transitions and restoration. The previous committed
-service fails this probe; the corrected service passes. No real window dispatches,
+checks empty-workspace transitions and monitor-only cursor focus/restoration
+without injecting extra activewindowv2 events for the monitor case. The previous
+committed service fails this probe; the corrected service passes. No real window dispatches,
 focus changes or compositor sockets are used by that test.
 
 ## Installed-session UX follow-up — 2026-10-31

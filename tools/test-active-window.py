@@ -92,7 +92,8 @@ Scope {
     console.warn("FOCUS CLEAR MONITOR");root.step=4
    }else if(root.step===4){
     if(Hyprland.focusedMonitor?.name!=="DP-3")return
-    root.check(service.windowTitle==="" && service.windowClass==="","empty monitor title")
+    root.check(service.windowTitle==="" && service.windowClass==="","empty monitor without window-focus event")
+    root.check(Hyprland.activeToplevel===root.initialWindow,"native window focus stays on the other monitor")
     console.warn("FOCUS RESTORE MONITOR");root.step=5
    }else if(root.step===5){
     if(service.windowTitle!=="Editor")return
@@ -114,8 +115,8 @@ Scope {
         'FOCUS READY': 'activewindowv2>>abc\n',
         'FOCUS CLEAR WORKSPACE': 'workspacev2>>2,2\nactivewindowv2>>\n',
         'FOCUS RESTORE WORKSPACE': 'workspacev2>>1,1\nactivewindowv2>>abc\n',
-        'FOCUS CLEAR MONITOR': 'focusedmon>>DP-3,3\nactivewindowv2>>\n',
-        'FOCUS RESTORE MONITOR': 'focusedmon>>DP-2,1\nactivewindowv2>>abc\n',
+        'FOCUS CLEAR MONITOR': 'focusedmon>>DP-3,3\n',
+        'FOCUS RESTORE MONITOR': 'focusedmon>>DP-2,1\n',
     }
     reader = None
     try:

@@ -10,7 +10,12 @@ Singleton {
     // QS 0.3.2 ignores an empty activewindowv2 address instead of clearing its
     // activeToplevel. Keep titles reactive, but honor explicit loss of focus.
     property bool _focusCleared: false
-    readonly property HyprlandToplevel activeWindow: _focusCleared ? null : Hyprland.activeToplevel
+    // Moving the pointer to an empty monitor can emit focusedmon alone while
+    // Hyprland keeps the last window focused on the previous monitor.
+    readonly property string _windowMonitor: Hyprland.activeToplevel?.monitor?.name ?? ""
+    readonly property string _focusedMonitor: Hyprland.focusedMonitor?.name ?? ""
+    readonly property HyprlandToplevel activeWindow: !_focusCleared && _focusedMonitor !== ""
+        && _windowMonitor === _focusedMonitor ? Hyprland.activeToplevel : null
     readonly property string windowTitle: activeWindow?.title ?? ""
     readonly property string windowClass: activeWindow?.lastIpcObject.class ?? ""
 
