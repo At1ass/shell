@@ -811,6 +811,10 @@ monitor keeps the workspace number/layout. Transferring to another number moves
 all its windows, merging into an occupied target; Hyprland determines placement
 and the original tiling tree is not preserved.
 
+The active-window title follows compositor window focus and clears when focus
+moves to an empty workspace or monitor. Returning to the same window restores
+its current title.
+
 ### Workspaces in the bar
 
 Each workspace has a persistent number. Occupied workspaces group their application

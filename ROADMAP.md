@@ -3,6 +3,21 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Empty-window focus events — 2026-10-31
+
+The native-title binding alone did not clear stale focus: Quickshell 0.3.2 ignores
+an empty activewindowv2 address and retains activeToplevel. ActiveWindowService now
+honors an explicit empty/zero address while keeping native title/class bindings.
+A later valid focus event restores the same QObject, without relying on a native
+pointer-change signal. Unrelated/malformed events do not change the focus override.
+ServiceBootstrap starts the observer before lazy bar widgets can be recreated.
+
+The Qt UI fixture deliberately retains the previous native pointer. A separate
+real-Quickshell probe supplies private fake Hyprland request/event sockets and
+checks empty-workspace/monitor transitions and restoration. The previous committed
+service fails this probe; the corrected service passes. No real window dispatches,
+focus changes or compositor sockets are used by that test.
+
 ## Installed-session UX follow-up — 2026-10-31
 
 Workspace numbers and window icons keep full-height targets but no longer reserve

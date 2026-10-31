@@ -129,7 +129,7 @@ QtObject {
     (qs / 'Quickshell.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property string shellDir:"/tmp";property var screens:[];function env(name) {return "Test User"} function iconPath(name,fallback) {return ""}}\n')
     for module_name, types in {
         'Io': {'Process':'import QtQml\nQtObject {property bool running:false;property var command:[];property QtObject stdout:null;signal exited(int exitCode)}', 'StdioCollector':'import QtQml\nQtObject {property string text:"";signal streamFinished()}', 'IpcHandler':'import QtQml\nQtObject {property string target:""}'},
-        'Hyprland': {'GlobalShortcut':'import QtQml\nQtObject {property string name:"";property string description:"";signal pressed()}', 'Hyprland':'pragma Singleton\nimport QtQml\nQtObject {property var activeToplevel:null;property QtObject focusedMonitor:null;property QtObject focusedWorkspace:QtObject {property int id:1};property var toplevels:({values:[]})}'}
+        'Hyprland': {'GlobalShortcut':'import QtQml\nQtObject {property string name:"";property string description:"";signal pressed()}', 'Hyprland':'pragma Singleton\nimport QtQml\nQtObject {signal rawEvent(var event);property var activeToplevel:null;property QtObject focusedMonitor:null;property QtObject focusedWorkspace:QtObject {property int id:1};property var toplevels:({values:[]})}'}
     }.items():
         module_dir = qs / module_name
         module_dir.mkdir()
@@ -930,6 +930,7 @@ Item {
    GlobalStates.overviewOpen=false;Hyprland.monitors.values=[];Hyprland.workspaces.values=[];Hyprland.toplevels=createTemporaryObject(workspaceModelFixture,scene)
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
    Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{title:"A very long editor window title",lastIpcObject:{class:"editor"}})
+   Hyprland.rawEvent({name:"activewindowv2",data:"abc"})
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.backendActive=true;IdleInhibitorService.inhibit=false;IdleInhibitorService.errorMessage="";IdleInhibitorService.pending=false;IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
@@ -1020,6 +1021,32 @@ Item {
    verify(widget.shown);compare(ActiveWindowService.windowClass,"editor")
    Hyprland.activeToplevel=null;wait(30)
    verify(!widget.shown,"closing the final window also clears the widget")
+  }
+  function test_active_window_empty_event_retains_native_pointer() {
+   controls.visible=false
+   const window=Hyprland.activeToplevel
+   const bar=createTemporaryObject(barFixture,scene,{width:1080,leftWidgets:[{type:"activewindow"}],centerWidgets:[],rightWidgets:[]})
+   wait(20)
+   const widget=bar.entries[0].widget.item
+   verify(widget.shown)
+   Hyprland.focusedWorkspace.id=7
+   Hyprland.rawEvent({name:"activewindowv2",data:""});wait(20)
+   compare(Hyprland.activeToplevel,window,"QS 0.3.2 retains the previous QObject")
+   compare(ActiveWindowService.windowTitle,"");compare(ActiveWindowService.windowClass,"")
+   verify(!widget.shown)
+   window.title="Changed while unfocused";verify(!widget.shown)
+   Hyprland.focusedWorkspace.id=1
+   Hyprland.rawEvent({name:"activewindowv2",data:"0xabc"});wait(20)
+   verify(widget.shown,"returning to the same native pointer restores the title")
+   compare(ActiveWindowService.windowTitle,"Changed while unfocused")
+   Hyprland.rawEvent({name:"windowtitlev2",data:""});verify(widget.shown,"unrelated events do not clear focus")
+   Hyprland.rawEvent({name:"activewindowv2",data:"invalid"});verify(widget.shown)
+   Hyprland.focusedMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"empty-monitor"})
+   Hyprland.rawEvent({name:"activewindowv2",data:""});wait(20)
+   verify(!widget.shown,"empty monitor focus clears the title without mutating native state")
+   Hyprland.rawEvent({name:"activewindowv2",data:"abc"});wait(20);verify(widget.shown)
+   Hyprland.rawEvent({name:"activewindowv2",data:"0x0"});wait(20);verify(!widget.shown)
+   Hyprland.rawEvent({name:"activewindowv2",data:"abc"});wait(20);verify(widget.shown)
   }
   function test_workspace_metrics_independent_of_compaction() {
    controls.visible=false

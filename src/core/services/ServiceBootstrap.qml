@@ -7,6 +7,7 @@ Singleton {
     function init() {
         AudioService.init()
         MprisController.init()
+        ActiveWindowService.init()
         NetworkAuthService.init()
         VPNService.init()
         SystemMonitorService.init()
