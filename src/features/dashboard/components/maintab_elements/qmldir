@@ -6,3 +6,4 @@ UserInfoElement 1.0 UserInfoElement.qml
 WeatherElement 1.0 WeatherElement.qml
 QuickMediaRow 1.0 QuickMediaRow.qml
 StorageSection 1.0 StorageSection.qml
+TimerSection 1.0 TimerSection.qml

@@ -94,6 +94,8 @@ ScrollableList {
 
         }
 
+        TimerSection { Layout.fillWidth: true }
+
         // Destinations and one-shot commands are separate from mode toggles.
         GridLayout {
             Layout.fillWidth: true

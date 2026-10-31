@@ -374,5 +374,22 @@
     "columns": 3,
     "includeSpecial": true,
     "showPreviews": true
+  },
+  "timers": {
+    "enabled": true,
+    "defaultMinutes": 10,
+    "presetsMinutes": [
+      5,
+      10,
+      25
+    ],
+    "notify": true,
+    "pomodoro": {
+      "workMinutes": 25,
+      "shortBreakMinutes": 5,
+      "longBreakMinutes": 15,
+      "cyclesBeforeLongBreak": 4
+    },
+    "showInDashboard": true
   }
 }

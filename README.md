@@ -627,6 +627,58 @@ explanation and become available when installed. Both launch paths use
 (or named by its absolute path); command execution errors are not preflighted by
 spawning probes during search.
 
+### Timer and Pomodoro
+
+Dashboard **Quick** contains a compact timer block. Start the default countdown
+or Pomodoro, then pause/resume or stop it in the same place. The launcher offers
+configured countdown presets, `: timer 23` for an arbitrary whole-minute duration,
+`: pomodoro`, `: pause timer`, `: resume timer` and `: stop timer`.
+
+Configure defaults in `config.json`:
+
+```json
+{
+  "timers": {
+    "enabled": true,
+    "showInDashboard": true,
+    "defaultMinutes": 10,
+    "presetsMinutes": [5, 10, 25],
+    "notify": true,
+    "pomodoro": {
+      "workMinutes": 25,
+      "shortBreakMinutes": 5,
+      "longBreakMinutes": 15,
+      "cyclesBeforeLongBreak": 4
+    }
+  }
+}
+```
+
+One countdown or Pomodoro cycle runs at a time. Pomodoro automatically alternates
+work and short breaks, uses a long break after four work intervals by default,
+then repeats until stopped. Each duration accepts 1–1440 minutes. Duration
+changes apply to the next run; active runs retain their duration snapshot.
+
+Runtime state is saved in `state.json`. Pause freezes elapsed time; sleep and
+shell downtime count toward a running timer. After resume/restart, Pomodoro
+calculates the current phase and sends at most one catch-up notification. An
+expired countdown stays finished. Notifications use normal urgency and follow
+the existing DND/history policy. Second-by-second display updates run only while
+the Dashboard block is visible. `showInDashboard: false` hides the block while
+keeping IPC/launcher control; `enabled: false` pauses a run until manually resumed.
+
+```bash
+at1ass-shell ipc call timer start 10
+at1ass-shell ipc call timer pomodoro
+at1ass-shell ipc call timer pause
+at1ass-shell ipc call timer resume
+at1ass-shell ipc call timer stop
+at1ass-shell ipc call timer status
+```
+
+Mutating calls return a boolean; starting another run while one is active returns
+false. `status` returns JSON with the current phase, remaining time and state.
+
 ### Recovering failed operations
 
 Weather keeps the last successful readings and the failure explanation while

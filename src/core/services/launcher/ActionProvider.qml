@@ -47,10 +47,18 @@ BaseProvider {
         function onInhibitChanged() { root.invalidateVisible() }
         function onStatusTextChanged() { root.invalidateVisible() }
     }
+    readonly property Connections timerWatch: Connections {
+        target: TimerService
+        function onStatusChanged() { root.invalidateVisible() }
+    }
     function invalidateVisible() {
         if (GlobalStates.launcherOpen && LauncherService.mode === "actions") resultsInvalidated()
     }
     function timedCommand(mode, minutes) {
+        if (mode === "timer") return {id:"timer-"+minutes+"m",text:"Timer · "+minutes+" min",
+            description:"Start a countdown",aliases:"countdown",icon:"appointment-soon",
+            unavailable:!AppConfig.timersEnabled ? "Enable timers in config.json" : TimerService.active ? "Stop the current timer before starting another" : "",
+            run:()=>TimerService.start(minutes)}
         const dnd = mode === "dnd"
         return {id:mode+"-"+minutes+"m",module:dnd ? "notifications" : "",
             text:(dnd ? "Do not disturb" : "Caffeine")+" · "+minutes+" min",
@@ -114,11 +122,24 @@ BaseProvider {
         for (const minutes of Array.from(AppConfig.temporaryModeDurations)) {
             commands.push(timedCommand("dnd",minutes),timedCommand("caffeine",minutes))
         }
+        if (AppConfig.timersEnabled) {
+            commands.push({id:"timer",text:"Timer controls",description:"Countdown and automatic Pomodoro cycle",
+                aliases:"focus work break",icon:"appointment-soon",run:()=>GlobalStates.openDashboardTab(0)})
+            for (const minutes of Array.from(AppConfig.timerPresetsMinutes)) commands.push(timedCommand("timer",minutes))
+            if (!TimerService.active) commands.push({id:"pomodoro",text:"Start Pomodoro",description:"Automatic work and break intervals",
+                aliases:"timer focus work break",icon:"appointment-soon",run:()=>TimerService.pomodoro()})
+            else {
+                commands.push({id:"timer-pause",text:TimerService.paused ? "Resume timer" : "Pause timer",
+                    description:TimerService.phaseLabel,icon:"media-playback-pause",run:()=>{if(TimerService.paused) TimerService.resume();else TimerService.pause()}})
+                commands.push({id:"timer-stop",text:"Stop timer",description:"End the current countdown or Pomodoro cycle",
+                    icon:"media-playback-stop",run:()=>TimerService.stop()})
+            }
+        }
         return commands.concat(customCommands())
     }
     function execute(id, expectedText, expectedRevision) {
         let command = catalogue().find(item => item.id === id)
-        const timed = id.match(/^(dnd|caffeine)-(\d+)m$/)
+        const timed = id.match(/^(dnd|caffeine|timer)-(\d+)m$/)
         if (!command && timed && Number(timed[2]) >= 1 && Number(timed[2]) <= 1440)
             command = timedCommand(timed[1],Number(timed[2]))
         // The query can outlive its state snapshot. Never turn a stale Start
@@ -130,16 +151,19 @@ BaseProvider {
     function search(query) {
         let terms = removePrefix(query).toLowerCase().split(/\s+/).filter(term => term !== "")
         let commands = catalogue()
-        const explicit = removePrefix(query).toLowerCase().match(/^(dnd|caffeine)\s+(\d+)$/)
+        const explicit = removePrefix(query).toLowerCase().match(/^(dnd|caffeine|timer)\s+(\d+)$/)
         if (explicit) {
             const minutes = Number(explicit[2])
-            commands = Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440 ? [timedCommand(explicit[1],minutes)] : []
+            commands = Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440
+                && (explicit[1] !== "timer" || AppConfig.timersEnabled) ? [timedCommand(explicit[1],minutes)] : []
             terms = []
         }
         return commands.filter(command => (!command.module || AppConfig.moduleEnabled(command.module))
             && terms.every(term => (command.id+" "+command.text+" "+command.description+" "+(command.aliases || "")).toLowerCase().includes(term)))
             .map(command => ({id:"action:"+command.id,type:"action",text:command.text,
-                description:command.unavailable || command.description,icon:command.icon,score:0,
+                description:command.unavailable || command.description,icon:command.icon,
+                score:terms.length && terms.every(term => (command.id+" "+command.text).toLowerCase().includes(term)) ? 2 : 0,
                 action:command.unavailable ? null : () => root.execute(command.id,command.text,command.revision)}))
+            .sort((a,b) => b.score-a.score)
     }
 }

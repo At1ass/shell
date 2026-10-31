@@ -47,3 +47,4 @@ singleton NetworkAuthService 1.0 NetworkAuthService.qml
 NetworkInfo 1.0 NetworkInfo.qml
 singleton OverviewService 1.0 OverviewService.qml
 singleton AccountService 1.0 AccountService.qml
+singleton TimerService 1.0 TimerService.qml

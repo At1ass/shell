@@ -3,6 +3,39 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Dashboard timer and automatic Pomodoro — 2026-10-31
+
+Quick now contains a compact optional timer section with countdown/Pomodoro start,
+remaining time, phase/round, pause/resume and stop. Presets and arbitrary minute
+countdowns are available through launcher actions; timer IPC exposes the same
+commands and JSON status. Name matches rank ahead of description-only matches so
+`: pomodoro` starts Pomodoro rather than opening a loosely matching destination.
+
+TimerService is bootstrapped independently of the Dashboard. All run parameters
+and elapsed/start state derive from the timer section of state.json; setters only
+write through AppConfig. A pure constant-time timeline computes work/short/long
+break transitions and catches up directly after sleep or shell downtime. A
+single-shot timer owns the next boundary; the shared minute clock and resume
+signal resynchronize it. A second display clock exists only with visible watchers.
+Disabling the feature pauses; hiding the Dashboard section leaves the run active.
+
+Normal notifications use one asynchronous gdbus call per transition with literal
+GVariant argv. No additional package dependency is required. Completion markers
+are written before delivery, so saved state prevents replay on restart; notification
+delivery itself is best effort. Paused runs stay paused across restart. Durations
+are frozen for a run, even when config hot-reloads. A second run cannot replace
+an active countdown/cycle accidentally.
+
+Tests cover boundaries, large catch-up, pause/resume, corrupt/loading state,
+disabled expiry, restart, background completion without UI watchers, keyboard
+controls and compact layouts in both packs. A private D-Bus server verifies real
+Notify serialization. Separate Quickshell engines verify real state-file writes
+and restoration in disposable XDG directories. Live user timers/notifications
+are not created during checks. Publication/installation remain deferred.
+
+Pending recovery work for recording/night light and notification/calendar search
+remains tracked below.
+
 ## Retained operation errors and explicit recovery — 2026-10-31
 
 Weather preserves the previous sample and error across automatic/manual attempts,

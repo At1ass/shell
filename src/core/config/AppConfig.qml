@@ -255,6 +255,17 @@ Singleton {
     readonly property var launcherHiddenApps: data.launcher?.hiddenApps ?? []
     readonly property var launcherActions: data.launcher?.actions ?? ({})
 
+    // Persistent countdown and automatic Pomodoro cycle.
+    readonly property bool timerShowInDashboard: data.timers?.showInDashboard ?? true
+    readonly property bool timersEnabled: data.timers?.enabled ?? true
+    readonly property int timerDefaultMinutes: data.timers?.defaultMinutes ?? 10
+    readonly property var timerPresetsMinutes: data.timers?.presetsMinutes ?? [5, 10, 25]
+    readonly property bool timerNotify: data.timers?.notify ?? true
+    readonly property int pomodoroWorkMinutes: data.timers?.pomodoro?.workMinutes ?? 25
+    readonly property int pomodoroShortBreakMinutes: data.timers?.pomodoro?.shortBreakMinutes ?? 5
+    readonly property int pomodoroLongBreakMinutes: data.timers?.pomodoro?.longBreakMinutes ?? 15
+    readonly property int pomodoroLongEvery: data.timers?.pomodoro?.cyclesBeforeLongBreak ?? 4
+
     // Services
     readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
     readonly property string weatherLocation: data.services?.weather?.location ?? "London"

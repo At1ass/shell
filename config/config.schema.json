@@ -1504,6 +1504,85 @@
           "description": "Show live window contents using ScreencopyView, like dock previews. Disable to release all capture sources and show icons/titles instead."
         }
       }
+    },
+    "timers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One persistent countdown or automatic Pomodoro cycle, controlled through Dashboard, launcher and IPC. Active runs retain their duration snapshot across config changes. Disabling pauses a run.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable background timer service, launcher actions and Dashboard controls."
+        },
+        "defaultMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440,
+          "default": 10,
+          "description": "Duration of the Dashboard countdown action."
+        },
+        "presetsMinutes": {
+          "type": "array",
+          "uniqueItems": true,
+          "default": [
+            5,
+            10,
+            25
+          ],
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "description": "Countdown durations offered in launcher actions; arbitrary durations remain available through : timer N and IPC."
+        },
+        "notify": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send normal notifications on completion and Pomodoro phase transitions. DND policy still applies. Missed transitions during sleep are coalesced to the current phase."
+        },
+        "pomodoro": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Automatic work/short-break cycle with a long break after the configured number of work intervals. Repeats until stopped.",
+          "properties": {
+            "workMinutes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1440,
+              "default": 25,
+              "description": "Work interval."
+            },
+            "shortBreakMinutes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1440,
+              "default": 5,
+              "description": "Break between work intervals."
+            },
+            "longBreakMinutes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1440,
+              "default": 15,
+              "description": "Break after a complete cycle."
+            },
+            "cyclesBeforeLongBreak": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "default": 4,
+              "description": "Number of work intervals before a long break."
+            }
+          }
+        },
+        "showInDashboard": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show compact timer controls in Dashboard Quick. Hiding the controls does not stop an active timer."
+        }
+      }
     }
   },
   "definitions": {

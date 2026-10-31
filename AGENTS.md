@@ -350,6 +350,14 @@ if (Keycodes.letter(event) === action.key) activate()
   и действие восстановления — рядом с объектом. Эталоны: Weather и VPNService.
 - **Запуск приложений — только через `AppLaunchService`** (`launchEntry(entry)` / `launchCommand(argv)` → `app2unit`, отдельный systemd scope на приложение). Прямые `DesktopEntry.execute()` и `Quickshell.execDetached` для приложений запрещены: запущенное попадает в cgroup шелла — общий учёт ресурсов и общая судьба при остановке scope или OOM-kill любого процесса в нём (`OOMPolicy=stop`).
 
+TimerService владеет одним countdown/Pomodoro в `state.json.timer`; параметры
+активного запуска фиксируются при старте. TimerTimeline вычисляет текущую фазу
+арифметически, без перебора пропущенных циклов. Граница фазы — одноразовый Timer,
+секундный дисплей — только с видимыми watcher-ами. `timers.showInDashboard` скрывает
+контролы без остановки; `timers.enabled=false` ставит на паузу. Уведомления обычной
+срочности, без изменения DND. Проверки `tools/test-timers.py` используют отдельную
+D-Bus-сессию и временные XDG-пути; не запускать реальные таймеры пользователя в тестах.
+
 ---
 
 ## 8. Состояние, конфиг, IPC

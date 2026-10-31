@@ -54,6 +54,16 @@ QtObject {
  readonly property var launcherActions:data.launcher?.actions ?? ({})
  property var data:({})
  property var stateData:({})
+ property bool timerShowInDashboard:true
+ property bool timersEnabled:true
+ property int timerDefaultMinutes:10
+ property var timerPresetsMinutes:[5,10,25]
+ property bool timerNotify:false
+ property int pomodoroWorkMinutes:25
+ property int pomodoroShortBreakMinutes:5
+ property int pomodoroLongBreakMinutes:15
+ property int pomodoroLongEvery:4
+ function updateState(section,fields) {const next=Object.assign({},stateData);next[section]=Object.assign({},next[section],fields);stateData=next}
  property var temporaryModeDurations:[15,30,60,120]
  property bool lockscreenBlurWallpaper:true
  property bool lockscreenShowClock:true
@@ -319,7 +329,7 @@ QtObject {
     mocks['SystemMonitorService'] += ';property bool hasGpuTemp:true;property var cpuTempHistory:[0.4,0.6,0.5];property var gpuTempHistory:[0.4,0.6,0.5];property real loadAvg1:1.2;property real loadAvg5:0.8;property real loadAvg15:0.5;property real cpuFreqGHz:4.2;property bool hasDiskIo:true;property string diskReadFormatted:"12 KiB/s";property string diskWriteFormatted:"6 KiB/s"'
     mocks['SystemMonitorService'] += ';property bool storageAvailable:true;property var storageVolumes:[];property var storageDrives:[];property var storageSummary:({available:true,name:"System",availableFormatted:"100 GiB",severity:0});property int storageSeverity:storageSummary.severity ?? 0;property string storageFreeText:(storageSummary.availableFormatted ?? "—")+" free";property string storageAlertText:storageSeverity>0 ? "Low space · Games: 2 GiB free" : ""'
     mocks['DockService'] = 'signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
-    mocks['SessionMonitor'] = 'signal lockRequested(); signal unlockRequested()'
+    mocks['SessionMonitor'] = 'signal lockRequested(); signal unlockRequested(); signal resumed()'
     mocks['HyprlandDispatch'] = 'function exitCompositor() {}'
     mocks['GlobalStates'] += '; property bool powerMenuOpen:false; function executePowerAction(action) {lastAction=action;actionCount++}; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
     mocks['PopoutsState'] = 'property bool open:false; property string name:""; property QtObject data:null;property Item sourceItem:null;property int epoch:0; function openPopout(name,data,source) {this.name=name;this.data=data;sourceItem=source;open=true;epoch++} function closePopout() {open=false;name="";data=null;epoch++}'
@@ -357,6 +367,7 @@ QtObject {
     mocks['BrightnessService'] += ';signal brightnessAdjusted(real value)'
     mocks['ToastService'] = 'readonly property int levelInfo:0;readonly property int levelSuccess:1;readonly property int levelWarning:2;readonly property int levelError:3;signal toastRequested(string message,string icon,int level,int duration)'
     mocks['AppLaunchService'] = 'property var lastArgv:[];property string lastEntry:"";property int launches:0;function launchCommand(argv) {lastArgv=argv;launches++} function launchEntry(entry) {lastEntry=entry.id;launches++}'
+    mocks['TimerService'] = ''
     mocks['LauncherService'] = ''
     mocks['ClipboardService'] = 'property bool debug:false;property int _thumbnailVersion:0;property int refreshes:0;signal entriesChanged();function refresh() {refreshes++} function fuzzySearch(query,limit) {return []} function requestThumbnail(entry) {} function thumbnailFor(entry) {return ""}'
     mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false;if(name==="overview") overviewOpen=false}')
@@ -365,6 +376,8 @@ QtObject {
         ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\n')
     for name, body in mocks.items():
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject {'+body.replace('};', '}')+'}\n')
+    shutil.copy2(ROOT / 'src/core/services/TimerService.qml', services / 'TimerService.qml')
+    shutil.copy2(ROOT / 'src/core/services/TimerTimeline.js', services / 'TimerTimeline.js')
     shutil.copy2(ROOT / 'src/core/services/OverviewService.qml',services / 'OverviewService.qml')
     with (services / 'qmldir').open('a') as module: module.write('singleton OverviewService 1.0 OverviewService.qml\n')
     dispatch=services / 'HyprlandDispatch.qml'
@@ -583,6 +596,7 @@ Item {
  Component {id:controlledComboFixture;Item {width:260;height:64;property int selection:0;property alias control:control;MaterialComboBox {id:control;width:240;model:["One","Two","Three"];controlled:true;currentIndex:parent.selection;onActivated:index=>parent.selection=index}}}
  Component {id:comboFixture;MaterialComboBox {width:240}}
  Component {id:statsServiceFixture;TestStatsService {}}
+ Component {id:timerSectionFixture;TimerSection {width:scene.width;height:implicitHeight}}
  Component {id:storageFixture;StorageSection {width:600}}
  Component {id:statsViewFixture;SystemMonitoringElement {width:600}}
  Component {id:hintFixture;MaterialTooltip {}}
@@ -901,6 +915,7 @@ Item {
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
    AppConfig.data=({});DesktopEntries.applications.values=[];AppLaunchService.lastArgv=[];AppLaunchService.lastEntry="";AppLaunchService.launches=0
+   AppConfig.timerShowInDashboard=true;AppConfig.timersEnabled=true;AppConfig.timerNotify=false;AppConfig.stateReady=true;AppConfig.stateData=({})
    GlobalStates.launcherOpen=false;NightLightService.enabled=false;GamingModeService.gamingModeActive=false
    RecorderService.active=false;RecorderService.available=true;RecorderService.starting=false;RecorderService.paused=false;RecorderService.toggles=0
    LauncherService.search("")
@@ -2459,6 +2474,52 @@ Item {
     if(width===480 && scale===1.3) grabImage(scene).save("RENDERS/calendar-"+data.pack+".png")
     cal.destroy()
    }
+  }
+  function test_timer_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_timer_layout(data) {
+   controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
+   for(const width of [240,480]) for(const scale of [1,2]) {
+    scene.width=width;AppConfig.fontScale=scale
+    const section=createTemporaryObject(timerSectionFixture,scene)
+    verify(section!==null);wait(20)
+    const start=byProperty(section,"text","10 min")
+    const pomo=byProperty(section,"text","Pomodoro")
+    for(const button of [start,pomo]) {
+     verify(button!==null)
+     const point=button.mapToItem(section,0,0)
+     verify(point.x>=0 && point.x+button.width<=section.width+1,"timer controls stay within the available width")
+    }
+    verify(TimerService.pomodoro());wait(20)
+    const pause=byProperty(section,"text","Pause")
+    verify(pause!==null && pause.visible)
+    if(width===480 && scale===1) grabImage(section).save("RENDERS/timer-"+data.pack+".png")
+    TimerService.stop();section.destroy();wait(1)
+   }
+  }
+  function test_timer_dashboard_and_launcher() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
+   const countdown=byProperty(dashboard,"text","10 min")
+   verify(countdown!==null);countdown.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(TimerService.status,"running");compare(TimerService.stored.durationMs,600000)
+   const pause=byProperty(dashboard,"text","Pause")
+   verify(pause!==null);pause.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(TimerService.status,"paused")
+   const resume=byProperty(dashboard,"text","Resume");resume.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(TimerService.status,"running")
+   GlobalStates.launcherOpen=true;LauncherService.search(": timer 23")
+   compare(LauncherService.filteredApps[0].action,null,"active run cannot be accidentally replaced")
+   LauncherService.search(": stop timer");LauncherService.launch(LauncherService.filteredApps[0])
+   compare(TimerService.status,"idle")
+   GlobalStates.launcherOpen=true;LauncherService.search(": timer 23");LauncherService.launch(LauncherService.filteredApps[0])
+   compare(TimerService.stored.durationMs,23*60000)
+   verify(TimerService.displayWatchers>0)
+   AppConfig.timerShowInDashboard=false;wait(20);compare(TimerService.displayWatchers,0);verify(TimerService.running)
+   AppConfig.timerShowInDashboard=true
+   dashboard.visible=false;wait(20);compare(TimerService.displayWatchers,0)
+   TimerService.stop();GlobalStates.launcherOpen=true;LauncherService.search(": pomodoro")
+   LauncherService.launch(LauncherService.filteredApps[0]);compare(TimerService.stored.mode,"pomodoro")
+   AppConfig.timersEnabled=false;compare(TimerService.status,"paused")
+   LauncherService.search(": timer 5");compare(LauncherService.filteredApps.length,0)
   }
   function test_operation_recovery_keyboard() {
    controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=1

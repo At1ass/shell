@@ -14,6 +14,7 @@ Singleton {
         NightLightService.init()
         IdleInhibitorService.init()
         NotificationDND.init()
+        TimerService.init()
         GamingModeService.init()
     }
 }
