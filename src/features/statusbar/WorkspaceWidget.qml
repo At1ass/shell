@@ -29,8 +29,10 @@ BarElement {
     property int scrollAccumulator: 0
     readonly property int currentIndex: Hyprland.focusedWorkspace?.id ?? wsBaseIndex
     readonly property int controlHeight: Math.ceil(Math.max(Tokens.touchTarget.minimum, Tokens.typography.labelLarge.lineHeight))
-    readonly property int chipSize: Math.ceil(Math.max(controlHeight, numberMetrics.width + Tokens.spacing.small * 2))
-    readonly property int iconFontSize: Math.min(Tokens.iconSize.large, controlHeight - Tokens.spacing.small)
+    readonly property int chipSize: Math.ceil(Math.max(Tokens.iconSize.small + Tokens.spacing.extraSmall * 2, numberMetrics.width + Tokens.spacing.small * 2))
+    readonly property int iconFontSize: Tokens.iconSize.small
+    // Keep full-height pointer targets without making every slot square.
+    readonly property int windowSlotWidth: iconFontSize + Tokens.spacing.small * 2
     readonly property var windowsByWorkspace: WindowWorkspace.group(Hyprland.toplevels?.values ?? [])
     readonly property var keyboardWindows: windowsByWorkspace[keyboardWorkspaceId] ?? []
     readonly property var keyboardWindow: keyboardWindows.find(window => window.address === keyboardWindowAddress) ?? null
@@ -160,7 +162,7 @@ BarElement {
         readonly property bool showIcons: workspaceWidget.showWindows && hasWindows && !workspaceWidget.compactPresentation
         readonly property bool keySelected: workspaceWidget.activeFocus && workspaceWidget.keyboardWorkspaceId === wsIndex
         readonly property bool keyWindowShown: showIcons && shownWindows.some(window => window.address === workspaceWidget.keyboardWindowAddress)
-        readonly property real fullWidth: workspaceWidget.chipSize + (workspaceWidget.showWindows && hasWindows ? shownWindows.length * workspaceWidget.controlHeight + (wsItem.overflow > 0 ? workspaceWidget.chipSize : 0) + Tokens.spacing.extraSmall : 0)
+        readonly property real fullWidth: workspaceWidget.chipSize + (workspaceWidget.showWindows && hasWindows ? shownWindows.length * workspaceWidget.windowSlotWidth + (wsItem.overflow > 0 ? workspaceWidget.chipSize : 0) + Tokens.spacing.extraSmall : 0)
         function focusTarget() {
             if (!keyWindowShown) return header
             return windowRepeater.itemAt(shownWindows.findIndex(window => window.address === workspaceWidget.keyboardWindowAddress)) ?? header
@@ -242,7 +244,7 @@ BarElement {
                     readonly property bool hasAppIcon: appIcon.status === Image.Ready
                     readonly property bool windowActive: modelData.activated ?? (Hyprland.activeToplevel?.address === modelData.address)
                     readonly property bool keySelected: wsItem.keySelected && workspaceWidget.keyboardWindowAddress === modelData.address
-                    implicitWidth: workspaceWidget.controlHeight
+                    implicitWidth: workspaceWidget.windowSlotWidth
                     implicitHeight: workspaceWidget.controlHeight
                     Accessible.role: Accessible.Button
                     Accessible.name: workspaceWidget.windowDescription(modelData, wsItem.wsIndex) + (windowActive ? " · Active window" : "")

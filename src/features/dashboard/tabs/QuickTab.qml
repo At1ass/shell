@@ -95,9 +95,6 @@ ScrollableList {
 
         }
 
-        ServiceRecoverySection { Layout.fillWidth: true }
-        TimerSection { Layout.fillWidth: true }
-
         // Destinations and one-shot commands are separate from mode toggles.
         GridLayout {
             Layout.fillWidth: true
@@ -144,6 +141,8 @@ ScrollableList {
             }
         }
 
+        ServiceRecoverySection { Layout.fillWidth: true }
+
         // Brightness remains local; all audio controls live in the Audio panel.
         ColumnLayout {
             Layout.fillWidth: true
@@ -172,6 +171,8 @@ ScrollableList {
                 onMoved: BrightnessService.setBrightness(value)
             }
         }
+
+        TimerSection { Layout.fillWidth: true }
 
         ListItem {
             Layout.fillWidth: true

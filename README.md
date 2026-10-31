@@ -638,8 +638,11 @@ spawning probes during search.
 
 ### Timer and Pomodoro
 
-Dashboard **Quick** contains a compact timer block. Start the default countdown
-or Pomodoro, then pause/resume or stop it in the same place. The launcher offers
+Dashboard **Quick** contains a timer block below the quick actions and brightness.
+Choose a configured duration preset or **Custom…** to enter 1–1440 whole minutes,
+then select **Start timer**. Pomodoro has its own start button. Pause/resume and
+stop remain in the same block. This selection does not rewrite configuration.
+The launcher offers
 configured countdown presets, `: timer 23` for an arbitrary whole-minute duration,
 `: pomodoro`, `: pause timer`, `: resume timer` and `: stop timer`.
 
@@ -814,7 +817,9 @@ Each workspace has a persistent number. Occupied workspaces group their applicat
 icons beside that number; the active workspace has the configured pill/dot marker,
 and the active window has its own highlight/underline. Hover an icon for the app,
 window title and workspace. Hit areas remain larger than the icon drawing; hover
-never changes the bar width. Compact presentation retains workspace numbers.
+never changes the bar width. Numbers and icons use narrow, full-height pointer
+targets rather than square buttons to preserve space on portrait monitors.
+Compact presentation retains workspace numbers.
 
 Click a number to switch workspace, or an icon to focus its window. Right-click a
 group/window opens Overview at that workspace (unless a custom clickAction is

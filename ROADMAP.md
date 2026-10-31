@@ -3,6 +3,19 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Installed-session UX follow-up — 2026-10-31
+
+Workspace numbers and window icons keep full-height targets but no longer reserve
+square-button widths. A nine-workspace portrait-width fixture checks the denser
+geometry while preserving titles, active state and keyboard commands in both packs.
+Quick keeps the two action groups contiguous; recovery follows them and the timer
+sits below brightness. Timer duration is selectable from config-defined presets
+or a validated custom 1–1440-minute input. Enter starts a valid custom duration
+and transfers focus to Pause; active runs retain pause/resume/stop controls.
+Duration selection is transient content entry, with no config writes.
+ActiveWindowService now binds to native activeToplevel/title instead of retaining
+legacy raw-event strings; moving to an empty workspace clears both title and class.
+
 ## UX review implementation completed — 2026-10-31
 
 The remaining agreed implementation is now present:

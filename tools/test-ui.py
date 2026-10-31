@@ -389,6 +389,7 @@ QtObject {
         ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\nDesktopNotification 1.0 DesktopNotification.qml\n')
     for name, body in mocks.items():
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject {'+body.replace('};', '}')+'}\n')
+    shutil.copy2(ROOT / 'src/core/services/ActiveWindowService.qml', services / 'ActiveWindowService.qml')
     shutil.copy2(ROOT / 'src/core/services/PowerService.qml', services / 'PowerService.qml')
     shutil.copy2(ROOT / 'src/core/services/DesktopNotification.qml', services / 'DesktopNotification.qml')
     shutil.copy2(ROOT / 'src/core/services/TimerService.qml', services / 'TimerService.qml')
@@ -925,8 +926,10 @@ Item {
    verify(!view.mediaShown)
   }
   function init() {
+   Hyprland.focusedWorkspace.id=1
    GlobalStates.overviewOpen=false;Hyprland.monitors.values=[];Hyprland.workspaces.values=[];Hyprland.toplevels=createTemporaryObject(workspaceModelFixture,scene)
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
+   Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{title:"A very long editor window title",lastIpcObject:{class:"editor"}})
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.backendActive=true;IdleInhibitorService.inhibit=false;IdleInhibitorService.errorMessage="";IdleInhibitorService.pending=false;IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
@@ -1001,6 +1004,23 @@ Item {
     bar.destroy()
    }
   }
+  function test_active_window_clears_without_legacy_event() {
+   controls.visible=false
+   const window=Hyprland.activeToplevel
+   const bar=createTemporaryObject(barFixture,scene,{width:1080,leftWidgets:[{type:"activewindow"}],centerWidgets:[],rightWidgets:[]})
+   wait(30)
+   const widget=bar.entries[0].widget.item
+   verify(widget.shown);compare(ActiveWindowService.windowTitle,window.title)
+   window.title="Renamed document"
+   compare(ActiveWindowService.windowTitle,"Renamed document","native title updates without raw events")
+   Hyprland.focusedWorkspace.id=7;Hyprland.activeToplevel=null;wait(30)
+   compare(ActiveWindowService.windowTitle,"");compare(ActiveWindowService.windowClass,"")
+   verify(!widget.shown,"empty workspace removes the previous title")
+   Hyprland.activeToplevel=window;wait(30)
+   verify(widget.shown);compare(ActiveWindowService.windowClass,"editor")
+   Hyprland.activeToplevel=null;wait(30)
+   verify(!widget.shown,"closing the final window also clears the widget")
+  }
   function test_workspace_metrics_independent_of_compaction() {
    controls.visible=false
    const nodes=[]
@@ -1025,16 +1045,17 @@ Item {
    const third=createTemporaryObject(overviewWindowFixture,scene,{address:"third",title:"Terminal",workspace:second,lastIpcObject:{class:"terminal",workspace:{id:2}}})
    Hyprland.toplevels=createTemporaryObject(workspaceModelFixture,scene,{values:[one,two,third]})
    Hyprland.workspaces.values=[first,second]
-   const bar=createTemporaryObject(barFixture,scene,{width:1200,leftWidgets:[{type:"workspaces",settings:{count:4,maxWindowsPerWorkspace:1}}],centerWidgets:[],rightWidgets:[{type:"volume",clickAction:"audio"}]})
+   const bar=createTemporaryObject(barFixture,scene,{width:1080,leftWidgets:[{type:"workspaces",settings:{count:9,maxWindowsPerWorkspace:1}}],centerWidgets:[],rightWidgets:[{type:"volume",clickAction:"audio"}]})
    verify(bar!==null);wait(50)
    const widget=bar.entries[0].widget.item
-   for(let id=1;id<=4;id++)verify(byProperty(widget,"text",String(id))!==null,"number remains visible")
+   for(let id=1;id<=9;id++)verify(byProperty(widget,"text",String(id))!==null,"number remains visible")
    const icon=byProperty(widget,"modelData",one)
-   verify(icon!==null);verify(icon.width>=Tokens.touchTarget.minimum);verify(icon.height>=Tokens.touchTarget.minimum)
+   verify(icon!==null);verify(icon.width>=Tokens.iconSize.small+Tokens.spacing.small*2);verify(icon.height>=Tokens.touchTarget.minimum)
    verify(icon.windowActive);verify(byProperty(widget,"modelData",third)!==null)
    compare(widget.windowDescription(one,1),"browser"+String.fromCharCode(10)+"First document"+String.fromCharCode(10)+"Workspace 1")
    compare(findChild(widget,"workspaceOverflow1").Accessible.name,"Show 1 more windows on workspace 1")
    grabImage(widget).save("RENDERS/workspaces-"+data.pack+".png")
+   verify(widget.preferredWidth<widget.controlHeight*12*0.75,"nine workspace groups do not reserve square-button widths")
    const preferred=widget.preferredWidth;const allocated=widget.width
    mouseMove(icon,icon.width/2,icon.height/2);wait(20)
    compare(widget.preferredWidth,preferred);compare(widget.width,allocated)
@@ -1052,7 +1073,7 @@ Item {
    verify(next.activeFocus,"one Tab leaves the whole workspace group")
    keyClick(Qt.Key_Backtab);verify(widget.activeFocus)
    widget.compactPresentation=true;wait(20)
-   for(let id=1;id<=4;id++)verify(byProperty(widget,"text",String(id))!==null)
+   for(let id=1;id<=9;id++)verify(byProperty(widget,"text",String(id))!==null)
    compare(widget.preferredWidth,preferred,"compaction keeps normal metrics")
    scene.width=bar.width;scene.height=bar.height;grabImage(widget).save("RENDERS/workspaces-compact-"+data.pack+".png")
   }
@@ -2598,7 +2619,7 @@ Item {
     scene.width=width;AppConfig.fontScale=scale
     const section=createTemporaryObject(timerSectionFixture,scene)
     verify(section!==null);wait(20)
-    const start=byProperty(section,"text","10 min")
+    const start=byProperty(section,"text","Start timer")
     const pomo=byProperty(section,"text","Pomodoro")
     for(const button of [start,pomo]) {
      verify(button!==null)
@@ -2612,9 +2633,40 @@ Item {
     TimerService.stop();section.destroy();wait(1)
    }
   }
+  function test_timer_duration_keyboard() {
+   controls.visible=false;dashboard.visible=false
+   const section=createTemporaryObject(timerSectionFixture,scene)
+   const preset=findChild(section,"timerDurationPreset")
+   preset.forceActiveFocus();keyClick(Qt.Key_Home)
+   compare(preset.currentText,"5 min")
+   const start=byProperty(section,"text","Start timer")
+   start.forceActiveFocus();keyClick(Qt.Key_Return)
+   compare(TimerService.stored.durationMs,5*60000)
+   TimerService.stop();wait(20)
+   preset.forceActiveFocus();keyClick(Qt.Key_End);wait(20)
+   const custom=findChild(section,"timerCustomMinutes")
+   verify(custom.visible);verify(custom.inputItem.activeFocus)
+   custom.text="0";verify(!start.enabled)
+   keyClick(Qt.Key_Return);compare(TimerService.status,"idle")
+   custom.text="1441";verify(!start.enabled)
+   custom.text="23";verify(start.enabled)
+   keyClick(Qt.Key_Return);wait(20)
+   compare(TimerService.stored.durationMs,23*60000)
+   compare(TimerService.status,"running")
+   verify(byProperty(section,"text","Pause").activeFocus,"editor hands focus to the running timer")
+   TimerService.stop()
+  }
+  function test_quick_actions_precede_timer() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(30)
+   const caffeine=byProperty(dashboard,"label","Caffeine")
+   const audio=byProperty(dashboard,"label","Audio")
+   const timer=findChild(dashboard,"timerDurationPreset")
+   verify(caffeine.mapToItem(dashboard,0,0).y<audio.mapToItem(dashboard,0,0).y)
+   verify(audio.mapToItem(dashboard,0,audio.height).y<=timer.mapToItem(dashboard,0,0).y,"timer follows both quick action groups")
+  }
   function test_timer_dashboard_and_launcher() {
    controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0;wait(40)
-   const countdown=byProperty(dashboard,"text","10 min")
+   const countdown=byProperty(dashboard,"text","Start timer")
    verify(countdown!==null);countdown.forceActiveFocus();keyClick(Qt.Key_Return)
    compare(TimerService.status,"running");compare(TimerService.stored.durationMs,600000)
    const pause=byProperty(dashboard,"text","Pause")
