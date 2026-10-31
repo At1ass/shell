@@ -51,7 +51,9 @@ BarElement {
         const map = {};
         const toplevels = Hyprland.toplevels?.values ?? [];
         for (let i = 0; i < toplevels.length; i++) {
-            const id = toplevels[i].workspace?.id;
+            // Client snapshots carry current membership even while the native
+            // workspace QObject still reflects its previous association.
+            const id = toplevels[i].lastIpcObject?.workspace?.id ?? toplevels[i].workspace?.id;
             if (id === undefined || id === null)
                 continue;
             if (!map[id])
@@ -201,9 +203,9 @@ BarElement {
                     }
 
                     Repeater {
-                        // ScriptModel diffs by element identity against the stable toplevel
-                        // pool, so delegates are reused across window events.
-                        model: ScriptModel { values: wsItem.shownWindows }
+                        // Key by compositor address so replacing a native wrapper does
+                        // not leave a second delegate for the same window.
+                        model: ScriptModel { values: wsItem.shownWindows; objectProp: "address" }
 
                         // The real application icon, with the category glyph as
                         // the fallback. Two ways to have no icon and both must

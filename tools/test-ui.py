@@ -947,6 +947,32 @@ Item {
    compare(workspace.preferredWidth,full,"normal measurement stays independent")
    Hyprland.toplevels=({values:[]})
   }
+  function test_workspace_membership_uses_current_window_snapshot() {
+   controls.visible=false
+   const first=createTemporaryObject(overviewWorkspaceFixture,scene,{id:1})
+   const second=createTemporaryObject(overviewWorkspaceFixture,scene,{id:2})
+   const nodes=[]
+   for(let i=0;i<4;i++) nodes.push(createTemporaryObject(overviewWindowFixture,scene,{address:String(i),workspace:first,lastIpcObject:{class:"editor",workspace:{id:1}}}))
+   Hyprland.toplevels=({values:nodes})
+   const bar=createTemporaryObject(barFixture,scene,{leftWidgets:[{type:"workspaces",settings:{count:2}}],centerWidgets:[],rightWidgets:[]})
+   verify(bar!==null);wait(30)
+   const widget=bar.entries[0].widget.item
+   compare(widget.windowsByWorkspace[1].length,4)
+   // Latest client snapshot has moved two windows; cached workspace QObjects lag.
+   nodes[1].lastIpcObject={class:"editor",workspace:{id:2}}
+   nodes[2].lastIpcObject={class:"editor",workspace:{id:2}}
+   wait(30)
+   compare(widget.windowsByWorkspace[1].length,2)
+   compare(widget.windowsByWorkspace[2].length,2)
+   nodes[1].workspace=second;nodes[2].workspace=second;wait(30)
+   compare(widget.windowsByWorkspace[1].length,2)
+   // Deletion and legacy snapshots without workspace metadata still react.
+   Hyprland.toplevels=({values:[nodes[0],nodes[1],nodes[3]]});wait(20)
+   compare(widget.windowsByWorkspace[2].length,1)
+   nodes[0].lastIpcObject={class:"editor"};nodes[0].workspace=second;wait(20)
+   compare(widget.windowsByWorkspace[1].length,1)
+   compare(widget.windowsByWorkspace[2].length,2)
+  }
   function test_bar_monitor_filter_and_no_popouts() {
    controls.visible=false
    AppConfig.disabledModules=["popouts"]
@@ -2880,6 +2906,69 @@ Window {
     native_output = native_result.stdout + native_result.stderr
     print(native_output)
     if native_result.returncode or 'NATIVE PASS' not in native_output or 'NATIVE FAIL' in native_output or 'Unable to assign' in native_output:
+        raise SystemExit(1)
+    # Real ScriptModel + Repeater lifecycle, with compositor input isolated.
+    workspace_fixture = temp / 'imports/TestWorkspace'
+    workspace_fixture.mkdir()
+    (workspace_fixture / 'qmldir').write_text('module TestWorkspace\nsingleton Hyprland 1.0 Hyprland.qml\n')
+    (workspace_fixture / 'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var focusedWorkspace:({id:1});property var toplevels:({values:[]})}\n')
+    workspace_source = (ROOT / 'src/features/statusbar/WorkspaceWidget.qml').read_text().replace('import Quickshell.Hyprland', 'import TestWorkspace')
+    (tree / 'NativeWorkspaceWidget.qml').write_text(workspace_source)
+    workspace_probe = tree / 'workspace-probe.qml'
+    workspace_probe.write_text("""import QtQuick
+import Quickshell
+import TestWorkspace
+ShellRoot {
+ id:root
+ property int step:0
+ property var saved:null
+ property QtObject a:QtObject {property string address:"a";property var workspace:({id:1});property var lastIpcObject:({workspace:{id:1}})}
+ property QtObject b:QtObject {property string address:"b";property var workspace:({id:1});property var lastIpcObject:({workspace:{id:1}})}
+ property QtObject c:QtObject {property string address:"c";property var workspace:({id:1});property var lastIpcObject:({workspace:{id:1}})}
+ property QtObject d:QtObject {property string address:"d";property var workspace:({id:1});property var lastIpcObject:({workspace:{id:1}})}
+ property QtObject replacement:QtObject {property string address:"b";property var workspace:({id:2});property var lastIpcObject:({workspace:{id:2}})}
+ NativeWorkspaceWidget {id:widget;width:600;height:40;widgetConfig:({settings:{count:2}})}
+ function check(ok,message) {if(!ok){console.warn("WORKSPACE FAIL: "+message);Qt.exit(1);throw new Error(message)}}
+ function group(item,id) {
+  if(item.wsIndex===id)return item
+  for(const child of item.children ?? []) {const found=group(child,id);if(found)return found}
+  return null
+ }
+ function icons(item) {
+  let result=[]
+  if(item.windowClass!==undefined && item.modelData?.address)result.push(item)
+  for(const child of item.children ?? [])result=result.concat(icons(child))
+  return result
+ }
+ function addresses(id) {return icons(group(widget,id)).map(item=>item.modelData.address).sort().join(",")}
+ Component.onCompleted: Hyprland.toplevels=({values:[a,b,c,d]})
+ Timer {
+  interval:60;running:true;repeat:true
+  onTriggered: {
+   if(root.step===0) {
+    root.check(root.addresses(1)==="a,b,c,d","initial delegates")
+    root.b.lastIpcObject={workspace:{id:2}};root.c.lastIpcObject={workspace:{id:2}}
+   } else if(root.step===1) {
+    root.check(root.addresses(1)==="a,d" && root.addresses(2)==="b,c","moved windows leave no stale icons")
+    root.saved=root.icons(root.group(widget,2)).find(item=>item.modelData.address==="b")
+    Hyprland.toplevels=({values:[root.a,root.replacement,root.c]})
+   } else if(root.step===2) {
+    root.check(root.addresses(1)==="a" && root.addresses(2)==="b,c","removal and wrapper replacement")
+    const updated=root.icons(root.group(widget,2)).find(item=>item.modelData.address==="b")
+    root.check(updated===root.saved && updated.modelData===root.replacement,"stable address updates existing delegate")
+    console.warn("WORKSPACE NATIVE PASS");Qt.quit()
+   }
+   root.step++
+  }
+ }
+}
+""")
+    workspace_env = {**env, 'QML_IMPORT_PATH': str(temp / 'imports') + os.pathsep + env.get('QML_IMPORT_PATH', '')}
+    workspace_result = subprocess.run(['qs', '-p', str(workspace_probe)], env=workspace_env,
+                                      capture_output=True, text=True, timeout=10)
+    workspace_output = workspace_result.stdout + workspace_result.stderr
+    print(workspace_output)
+    if workspace_result.returncode or 'WORKSPACE NATIVE PASS' not in workspace_output or any(marker in workspace_output for marker in ['WORKSPACE FAIL', 'TypeError', 'ReferenceError', 'Binding loop', 'Unable to assign']):
         raise SystemExit(1)
     runtime = env.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
     display = env.get('WAYLAND_DISPLAY', '')

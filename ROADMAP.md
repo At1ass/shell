@@ -3,6 +3,30 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Workspace bar membership and icon identity — 2026-10-31
+
+The live bar retained four icons for workspace 1 while Hyprland's client/workspace
+snapshots contained two windows there and two on workspace 2. A fresh, normally
+initialized Quickshell model agreed with the compositor; an earlier diagnostic
+with an immediate manual refresh produced incomplete workspace IDs and must not
+be treated as evidence of a general Hyprland 0.57 compatibility defect.
+
+WorkspaceWidget now groups windows using `lastIpcObject.workspace.id`, falling
+back to the native workspace object before a client snapshot is available.
+Thus a lagging cached workspace association cannot override newer client data.
+Its ScriptModel uses the window address as objectProp, preserving one delegate
+identity when a native wrapper is replaced. Grouping remains a single O(windows)
+pass, with no polling, new process, focus change or optimistic window mutation.
+
+An isolated regression starts with four windows on workspace 1, updates two
+client snapshots to workspace 2 while native objects lag, then removes/moves
+windows. It fails before the fix (4 instead of 2). A separate real Quickshell
+ScriptModel/Repeater fixture verifies visible delegate membership, deletion and
+same-address wrapper replacement without stale/duplicate icons or lost identity.
+Compositor input and dispatchers are fake; no user windows are moved or closed.
+The original event sequence is unknown; acceptance in the already-running
+packaged shell still requires installing the updated package.
+
 ## Explicit Lua greeter entry point — 2026-10-30
 
 The main packaged compositor configuration is now `hyprland-greeter.lua`.
