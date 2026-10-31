@@ -19,7 +19,7 @@ import QtQuick
 QtObject {
  property var historyList: NotificationHistory.historyList
  function isLive(i) {return false}
- function removeFromHistory(i) {NotificationHistory.remove(i)}
+ function removeFromHistory(i) {NotificationHistory.removeUndoable(i)}
  function removeGroupFromHistory(n) {NotificationHistory.removeGroup(n)}
  function invokeActionFromHistory(i,a) {}
  function isGroupExpanded(n) {return NotificationHistory.isGroupExpanded(n)}
@@ -38,10 +38,11 @@ QtObject {
  function toggleDoNotDisturb() {doNotDisturb=!doNotDisturb}
 }''')
 s=(stage/'src/features/notifications/NotificationCenter.qml').read_text();block=s[s.index('                        ListView {'):s.index('\n\n                        EmptyState')]
-nav=s[s.index('            property string _selectedEntryId:'):s.index('\n\n            Keys.onPressed:')]
+nav=s[s.index('            property string _selectedEntryId:'):s.index('\n\n            Shortcut {')]
 qml='''pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import FuzzySearch
 import Quickshell
 import qs.src.core.config
 import qs.src.core.services
@@ -166,12 +167,31 @@ Window {
   }
   if(win.step===17) {
    check(m.count===0,"TTL prevents resurrection")
+
+  }
+  if(win.step===18) {
+   NotificationHistory.commitClear();NotificationHistory.add(makeRow(2100));NotificationHistory.add(makeRow(2101))
+   panelSlide.filterQuery="headline 2100"
+   check(historyFilter.count===1 && historyFilter.get(0).notificationId==="2100","search preserves exact identity")
+   check(NotificationHistory.removeUndoable(historyFilter.get(0).notificationId),"single deletion accepted")
+   check(historyFilter.count===0 && NotificationHistory.undoCount===1,"single removal is undoable")
+   NotificationHistory.undoClear()
+  }
+  if(win.step===19) {
+   check(historyFilter.count===1 && historyFilter.get(0).notificationId==="2100","Undo restores filtered message")
+   panelSlide.filterQuery="";panelSlide.timeFilter=2
+   check(historyFilter.count===2,"time filter uses retained rows")
+   panelSlide._selectIndex(0,false)
+   check(historyFilter.sourceRow(0)>=0,"actions map back to the source row")
+  }
+  if(win.step===20) {
+   NotificationHistory.clear()
    NotificationHistory.add(makeRow(2001));NotificationHistory.add(makeRow(2002));NotificationHistory.clearUndoable()
    NotificationHistory._undoEntries[0].image="image://qsimage/test-only"
    NotificationHistory._undoEntries[0].notifId=123
    NotificationHistory._persist()
   }
-  if(win.step===18) {console.warn("RESULT errors="+errors);Qt.quit()}
+  if(win.step===21) {console.warn("RESULT errors="+errors);Qt.quit()}
   win.step++
  }}
  property string testImage: "file://IMAGE_PATH"

@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import FuzzySearch
+import qs.src.ui.inputs
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -139,32 +141,56 @@ Scope {
             // walk right off the viewport, and Delete then removed a card the
             // user could not see.
             property string _selectedEntryId: ""
+            property string filterQuery: ""
+            property int timeFilter: 0
+            readonly property real filterSince: timeFilter === 1
+                ? new Date(DateTime.clock.date.getFullYear(),DateTime.clock.date.getMonth(),DateTime.clock.date.getDate()).getTime()
+                : timeFilter === 2 ? DateTime.clock.date.getTime()-7*86400000 : 0
+            readonly property bool filtering: filterQuery !== "" || timeFilter !== 0
+            property var _filterGroups: ({})
+            onFilterQueryChanged: _filterGroups = ({})
+            HistoryFilterModel {
+                id: historyFilter
+                sourceModel: centerWindow.visible ? NotificationService.historyList : null
+                query: panelSlide.filterQuery
+                since: panelSlide.filterSince
+            }
+            function groupExpanded(name) {
+                return filtering ? (_filterGroups[name] ?? true) : NotificationService.isGroupExpanded(name)
+            }
+            function toggleGroup(name) {
+                if (!filtering) { NotificationService.toggleGroupExpanded(name); return }
+                const next = Object.assign({},_filterGroups)
+                next[name] = !groupExpanded(name)
+                _filterGroups = next
+            }
+
 
             // A collapsed group is one navigable header, represented by its
             // first model row. Hidden notifications are never selected.
             function _isGroupHeader(index) {
                 if (!AppConfig.notificationGroupByApp || index < 0) return false
-                const entry = NotificationService.historyList.get(index)
-                return entry && !NotificationService.isGroupExpanded(entry.appName)
+                const entry = historyFilter.get(index)
+                return entry && !panelSlide.groupExpanded(entry.appName)
             }
 
             function _isNavigable(index) {
                 if (!_isGroupHeader(index)) return true
-                return index === 0 || NotificationService.historyList.get(index - 1).appName
-                    !== NotificationService.historyList.get(index).appName
+                return index === 0 || historyFilter.get(index - 1).appName
+                    !== historyFilter.get(index).appName
             }
 
             function _selectIndex(index, scroll) {
                 notifList.currentIndex = index
                 _selectedEntryId = index >= 0
-                    ? NotificationService.historyList.get(index).notificationId : ""
+                    ? historyFilter.get(index).notificationId : ""
                 if (scroll && index >= 0)
                     notifList.positionViewAtIndex(index, ListView.Contain)
             }
 
             function _syncCursor() {
                 if (!_selectedEntryId) return
-                const model = NotificationService.historyList
+                const model = historyFilter
                 let next = Math.min(notifList.currentIndex, model.count - 1)
                 for (let i = 0; i < model.count; i++) {
                     if (model.get(i).notificationId === _selectedEntryId) { next = i; break }
@@ -182,6 +208,11 @@ Scope {
                 if (next >= 0 && next < notifList.count) _selectIndex(next, true)
             }
 
+            Shortcut {
+                sequence: "Ctrl+F"
+                enabled: GlobalStates.notificationCenterOpen
+                onActivated: historySearch.inputItem.forceActiveFocus()
+            }
             Keys.onPressed: (event) => {
                 // Keycodes.key(), NOT event.key: the latter carries the symbol
                 // the active layout produces, so every vi binding below was
@@ -189,6 +220,13 @@ Scope {
                 // Qt.Key_O there. Escape/arrows/Return/Delete pass through
                 // unchanged; they are layout-independent already.
                 const key = Keycodes.key(event)
+                if (historySearch.inputItem.activeFocus) {
+                    if (key !== Qt.Key_Escape) return
+                    if (historySearch.text !== "") historySearch.text = ""
+                    else panelSlide.forceActiveFocus()
+                    event.accepted = true
+                    return
+                }
 
                 if (key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)) {
                     NotificationService.undoClearHistory()
@@ -204,7 +242,7 @@ Scope {
                     event.accepted = true
                 } else if (key === Qt.Key_Delete || key === Qt.Key_X) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
-                        const item = NotificationService.historyList.get(notifList.currentIndex)
+                        const item = historyFilter.get(notifList.currentIndex)
                         if (item && panelSlide._isGroupHeader(notifList.currentIndex))
                             NotificationService.removeGroupFromHistory(item.appName)
                         else if (item && item.notificationId)
@@ -213,9 +251,9 @@ Scope {
                     event.accepted = true
                 } else if (key === Qt.Key_Return || key === Qt.Key_Enter) {
                     if (notifList.currentIndex >= 0 && notifList.currentIndex < notifList.count) {
-                        const item = NotificationService.historyList.get(notifList.currentIndex)
+                        const item = historyFilter.get(notifList.currentIndex)
                         if (item && AppConfig.notificationGroupByApp)
-                            NotificationService.toggleGroupExpanded(item.appName)
+                            panelSlide.toggleGroup(item.appName)
                     }
                     event.accepted = true
                 } else if (key === Qt.Key_G) {
@@ -303,7 +341,7 @@ Scope {
                             const count = NotificationService.historyList.count
                             const suffix = count >= AppConfig.notificationMaxHistory ? " · History limit reached" : ""
                             const dnd = NotificationDND.active ? (NotificationDND.enabled ? " · DND on" : " · Fullscreen: popups silenced") : ""
-                            return count + (count === 1 ? " notification" : " notifications") + suffix + dnd
+                            return (panelSlide.filtering ? historyFilter.count + " / " : "") + count + (count === 1 ? " notification" : " notifications") + suffix + dnd
                         }
                         textStyle: "labelMedium"
                         colorRole: "onSurfaceVariant"
@@ -312,6 +350,26 @@ Scope {
 
                     Divider {
                         Layout.fillWidth: true
+                    }
+
+                    MaterialTextField {
+                        id: historySearch
+                        Layout.fillWidth: true
+                        placeholderText: "Search notifications"
+                        Accessible.name: placeholderText
+                        leadingIcon: "search"
+                        trailingIcon: text ? "close" : ""
+                        onTrailingClicked: { text=""; inputItem.forceActiveFocus() }
+                        onTextChanged: filterDebounce.restart()
+                        Timer { id: filterDebounce; interval:120; onTriggered: panelSlide.filterQuery=historySearch.text.trim() }
+                    }
+                    MaterialComboBox {
+                        Layout.fillWidth: true
+                        Accessible.name: "Notification time range"
+                        model: ["All time","Today","Last 7 days"]
+                        controlled: true
+                        currentIndex: panelSlide.timeFilter
+                        onActivated: index => panelSlide.timeFilter=index
                     }
 
                     // Notification list
@@ -336,7 +394,7 @@ Scope {
                             onCountChanged: scheduleLayout()
 
                             Connections {
-                                target: NotificationService.historyList
+                                target: historyFilter
                                 function onRowsMoved() { notifList.scheduleLayout() }
                                 function onDataChanged() { notifList.scheduleLayout() }
                             }
@@ -353,7 +411,7 @@ Scope {
                             // anyway, because no highlight was ever defined.
                             currentIndex: -1
 
-                            model: NotificationService.historyList
+                            model: historyFilter
 
                             // NO reuseItems, and NO cacheBuffer.
                             //
@@ -383,12 +441,12 @@ Scope {
                                 // index — an O(1) lookup that is rebuilt once
                                 // per mutation. They used to be linear scans of
                                 // the whole model, run per group, on every add.
-                                groupCount: NotificationHistory.getGroupCount(section)
+                                groupCount: { const version = historyFilter.revision; return historyFilter.groupCount(section) }
                                 groupAppIcon: NotificationHistory.getGroupIcon(section)
-                                expanded: NotificationService.isGroupExpanded(section)
+                                expanded: panelSlide.groupExpanded(section)
                                 selected: !expanded && notifList.currentIndex >= 0
-                                    && NotificationService.historyList.get(notifList.currentIndex)?.appName === section
-                                onToggleExpanded: NotificationService.toggleGroupExpanded(section)
+                                    && historyFilter.get(notifList.currentIndex).appName === section
+                                onToggleExpanded: panelSlide.toggleGroup(section)
                             }
 
                             // Typed pass-through. The delegate used to build a
@@ -412,7 +470,7 @@ Scope {
                                 required property bool unread
 
                                 readonly property bool itemVisible: !AppConfig.notificationGroupByApp
-                                                                    || NotificationService.isGroupExpanded(row.appName)
+                                                                    || panelSlide.groupExpanded(row.appName)
 
                                 width: notifList.width
                                 height: itemVisible ? implicitHeight : 0
@@ -423,7 +481,7 @@ Scope {
                                     id: historyItem
                                     width: parent.width
                                     onImplicitHeightChanged: notifList.scheduleLayout()
-                                    rowIndex: row.index
+                                    rowIndex: historyFilter.sourceRow(row.index)
                                     entryId: row.notificationId
                                     notifId: row.notifId
                                     summary: row.summary
@@ -485,10 +543,10 @@ Scope {
 
                         EmptyState {
                             anchors.fill: parent
-                            visible: NotificationService.historyList.count === 0
+                            visible: historyFilter.count === 0
                             iconName: "notifications_none"
-                            title: "No notifications"
-                            subtitle: "New notifications will appear here"
+                            title: panelSlide.filtering ? "No matching notifications" : "No notifications"
+                            subtitle: panelSlide.filtering ? "Try another search or time range" : "New notifications will appear here"
                         }
                     }
                     Snackbar {

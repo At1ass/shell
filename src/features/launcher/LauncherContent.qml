@@ -67,11 +67,12 @@ Item {
                 Layout.fillWidth: true
                 variant: "filled"
                 leadingIcon: root.mode === "calculator" ? "calculate" : root.mode === "clipboard" ? "content_paste"
-                    : root.mode === "actions" ? "bolt" : "search"
+                    : root.mode === "actions" ? "bolt" : root.mode === "windows" ? "window" : "search"
                 trailingIcon: text.length > 0 ? "close" : ""
                 placeholderText: root.mode === "calculator" ? "Calculate an expression"
                     : root.mode === "clipboard" ? "Search clipboard history"
-                    : root.mode === "actions" ? "Search shell actions" : "Search applications"
+                    : root.mode === "actions" ? "Search shell actions"
+                    : root.mode === "windows" ? "Search open windows" : "Search applications"
                 Accessible.name: placeholderText
                 onTrailingClicked: { text = ""; inputItem.forceActiveFocus() }
                 onAccepted: root.activateCurrent()
@@ -144,10 +145,12 @@ Item {
                     headline: root.searchPending ? "Searching…"
                         : root.mode === "calculator" ? "Enter an expression"
                         : root.mode === "clipboard" ? "No clipboard entries"
-                        : root.mode === "actions" ? "No matching actions" : "No applications found"
+                        : root.mode === "actions" ? "No matching actions"
+                        : root.mode === "windows" ? "No matching windows" : "No applications found"
                     supportingText: root.mode === "calculator" ? "= 2 + 2"
                         : root.mode === "clipboard" ? "Use > followed by text to search history"
-                        : root.mode === "actions" ? "Try : audio or : calendar" : "Try a different name"
+                        : root.mode === "actions" ? "Try : audio or : calendar"
+                        : root.mode === "windows" ? "Search by title, application or workspace" : "Try a different name"
                 }
             }
             MaterialText {
@@ -158,10 +161,11 @@ Item {
                 wrapMode: Text.Wrap
                 textFormat: Text.PlainText
                 text: root.unavailableReason !== "" ? root.unavailableReason
-                    : searchField.text.trim() === "" ? "= Calculator · > Clipboard · : Shell actions"
+                    : searchField.text.trim() === "" ? "= Calculator · > Clipboard · : Actions · @ Windows"
                     : (root.mode === "calculator" ? "Calculator · Enter: Copy"
                         : root.mode === "clipboard" ? "Clipboard · Enter: Copy"
-                        : root.mode === "actions" ? "Shell actions · Enter: Run" : "Applications · Enter: Open")
+                        : root.mode === "actions" ? "Shell actions · Enter: Run"
+                        : root.mode === "windows" ? "Open windows · Enter: Switch" : "Applications · Enter: Open")
                         + " · ↑↓ / Tab: Select · Esc: Close"
             }
         }

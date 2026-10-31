@@ -5,3 +5,4 @@ CalculatorProvider 1.0 CalculatorProvider.qml
 ClipboardProvider 1.0 ClipboardProvider.qml
 ApplicationProvider 1.0 ApplicationProvider.qml
 ActionProvider 1.0 ActionProvider.qml
+WindowProvider 1.0 WindowProvider.qml

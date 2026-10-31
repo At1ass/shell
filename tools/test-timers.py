@@ -40,9 +40,10 @@ if len(sys.argv) > 1 and sys.argv[1] == '--notification-probe':
     assert processes, 'notification client not started'
     stdout,stderr = processes[0].communicate(timeout=2)
     assert processes[0].returncode == 0, stderr
-    assert len(received) == 1 and received[0][0] == 'Timer', received
-    assert received[0][3:5] == ('Timer finished','The countdown is complete.'), received
-    assert received[0][5:] == ([],{},-1), received
+    args=command[command.index('--')+1:]
+    assert len(received)==1 and received[0][0]==json.loads(args[0]),received
+    assert received[0][3:5]==(json.loads(args[3]),json.loads(args[4])),received
+    assert received[0][5:]==([],{"urgency":2} if args[6]!="{}" else {},-1),received
     print('PASS: real gdbus Notify argument serialization on a private bus')
     raise SystemExit(0)
 
@@ -75,10 +76,11 @@ QtObject {
  }
 }
 ''')
-    write('qs/src/core/services/qmldir','module qs.src.core.services\n'+''.join(f'singleton {name} 1.0 {name}.qml\n' for name in ['SessionMonitor','DateTime','ToastService']))
+    write('qs/src/core/services/qmldir','module qs.src.core.services\nDesktopNotification 1.0 DesktopNotification.qml\n'+''.join(f'singleton {name} 1.0 {name}.qml\n' for name in ['SessionMonitor','DateTime','ToastService']))
     write('qs/src/core/services/SessionMonitor.qml','pragma Singleton\nimport QtQml\nQtObject {signal resumed()}\n')
     write('qs/src/core/services/DateTime.qml','pragma Singleton\nimport QtQml\nQtObject {property QtObject clock:QtObject {property date date:new Date()}}\n')
     write('qs/src/core/services/ToastService.qml','pragma Singleton\nimport QtQml\nQtObject {function warning(message){}}\n')
+    shutil.copy2(ROOT/'src/core/services/DesktopNotification.qml', imports/'qs/src/core/services/DesktopNotification.qml')
     shutil.copy2(ROOT/'src/core/services/TimerTimeline.js',directory/'TimerTimeline.js')
     source=(ROOT/'src/core/services/TimerService.qml').read_text().replace('pragma Singleton\n','',1).replace('import qs.src.core.config','import qs.src.core.config\nimport qs.src.core.services')
     (directory/'TestTimer.qml').write_text(source)
@@ -180,11 +182,11 @@ TestCase {
     shutil.copytree(ROOT/'src/core/config',tree/'src/core/config')
     shutil.copytree(ROOT/'config',tree/'config')
     services=tree/'src/core/services';services.mkdir()
-    for name in ['TimerService.qml','TimerTimeline.js']:
+    for name in ['TimerService.qml','TimerTimeline.js','DesktopNotification.qml']:
         shutil.copy2(ROOT/'src/core/services'/name,services/name)
     for name in ['SessionMonitor','DateTime','ToastService']:
         shutil.copy2(imports/f'qs/src/core/services/{name}.qml',services/f'{name}.qml')
-    (services/'qmldir').write_text('module qs.src.core.services\n'+''.join(
+    (services/'qmldir').write_text('module qs.src.core.services\nDesktopNotification 1.0 DesktopNotification.qml\n'+''.join(
         f'singleton {name} 1.0 {name}.qml\n' for name in ['TimerService','SessionMonitor','DateTime','ToastService']))
     home=directory/'xdg/quickshell';home.mkdir(parents=True)
     config=json.loads((ROOT/'config/default.json').read_text());config['timers']['notify']=False

@@ -1583,6 +1583,45 @@
           "description": "Show compact timer controls in Dashboard Quick. Hiding the controls does not stop an active timer."
         }
       }
+    },
+    "battery": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Shared battery state and background warnings, independent of bar widget visibility.",
+      "properties": {
+        "warnings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Warn while discharging even if no battery widget is displayed. Ordinary low warnings follow DND; critical warnings use critical urgency."
+            },
+            "lowPercent": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "default": 15,
+              "description": "Low battery warning threshold, inclusive."
+            },
+            "criticalPercent": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 5,
+              "description": "Critical threshold, inclusive; capped to lowPercent when configured higher."
+            },
+            "hysteresisPercent": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 3,
+              "description": "Charge must recover by this many percentage points above a threshold before its warning is rearmed. Charging rearms both warnings."
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {

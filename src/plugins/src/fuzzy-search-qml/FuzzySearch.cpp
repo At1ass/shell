@@ -1,4 +1,9 @@
 #include "FuzzySearch.h"
+#include <QTextDocumentFragment>
+
+QString FuzzySearch::plainText(const QString& html) const {
+    return QTextDocumentFragment::fromHtml(html).toPlainText();
+}
 
 #include <algorithm>
 #include <vector>

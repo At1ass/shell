@@ -117,7 +117,7 @@ startup. Installing a package is separate from starting its system/user service.
 | `hyprsunset` | Night-light temperature changes |
 | `curl` | Remote wallpaper downloads; local wallpapers do not require curl |
 | `qt6-imageformats` | Additional image codecs beyond the base Qt image readers |
-| `hypridle` | Idle lock/suspend policy; explicitly connect it to the packaged IPC command |
+| `hypridle` | Caffeine idle inhibition and idle lock/suspend policy; explicitly connect locking to the packaged IPC command |
 | `vdirsyncer` | External CalDAV synchronization into local calendar stores |
 | `uwsm` | Optional graphical-session environment/lifetime management; a correctly imported systemd user environment works without it |
 
@@ -560,6 +560,14 @@ at1ass-shell ipc call globalstates toggleOverview
 at1ass-shell ipc show
 ```
 
+Caffeine inhibits automatic idle actions through the session D-Bus
+`org.freedesktop.ScreenSaver` service provided by hypridle. Keep
+`ignore_dbus_inhibit = false` in hypridle. The dashboard marks Caffeine active only
+after the service confirms the request; failures remain visible with a Retry action.
+The requested mode and its deadline survive shell restarts. Manual locking and
+locking before suspend remain available. Inspect requested and confirmed state with
+`at1ass-shell ipc call caffeine status`; use `caffeine retry` after a failure.
+
 `shell-ctl help` discovers available handlers and signatures from the running
 instance. `shell-ctl <handler> <function> [argument]` can call them directly.
 `at1ass-shell` always addresses `/usr/share/at1ass-shell`, including for IPC.
@@ -575,6 +583,7 @@ Letter shortcuts use physical key positions across keyboard layouts.
 | `= expression` | Calculate with Qalculate |
 | `> text` | Search clipboard history |
 | `: action` | Search shell actions |
+| `@ text` | Find an open window by title, application or workspace and switch to it |
 
 Tab/Shift+Tab select launcher results while keeping the search field focused;
 Enter activates the result. The launcher resets its query when reopened.
@@ -705,6 +714,53 @@ Both handlers also expose `retry`; it returns false when the operation cannot
 be repeated. Weather diagnostics include the transport/response error, and VPN
 diagnostics include the failed UUID and nmcli exit code.
 
+Recording and night-light failures remain available in Dashboard Quick, with
+Retry where the target is still valid. Launcher actions also expose recovery.
+Recording pause/resume is confirmed after the control command succeeds; replies
+for an old recording cannot change a newer recording's state. Night light keeps
+its failure explanation through automatic restarts until the process has stayed
+healthy; the enabled mode remains switchable even if its executable disappears.
+Use `nightlight status`, `nightlight retry`, `recorder diagnostics` and
+`recorder retry` through `at1ass-shell ipc call` for diagnostics/recovery.
+
+### Notification history
+
+Search the application name, title and body in the notification centre. Ctrl+F
+focuses search; **All time / Today / Last 7 days** restrict the current view.
+Filtered groups initially expand to reveal matches; these expansion choices stay
+local to the search. Retention and grouping policy remain in `config.json`.
+
+Use the copy icon to copy the title and plain text body. Removing one message
+offers Undo, just like **Clear all**; Ctrl+Z works when focus is outside the search
+editor. Clear all still clears the entire history, including rows hidden by a
+filter. Undo restores history content; it does not recreate expired application
+notifications or make their old actions live again.
+
+### Battery warnings
+
+Battery state and warnings work independently of the bar widget. The widget's
+tooltip includes UPower's remaining-time estimate when available. Configure:
+
+```json
+{
+  "battery": {
+    "warnings": {
+      "enabled": true,
+      "lowPercent": 15,
+      "criticalPercent": 5,
+      "hysteresisPercent": 3
+    }
+  }
+}
+```
+
+The critical threshold is capped to the low threshold. A warning is rearmed after
+the charge rises by the configured hysteresis above its threshold, or charging
+starts. Saved warning markers prevent repeated alerts after shell restarts.
+Low warnings follow DND; critical warnings use critical urgency. Obsolete queued
+warnings are cancelled after recovery. `at1ass-shell ipc call power status`
+reports battery state, remaining time and notification delivery diagnostics.
+
 ### Calendar editing
 
 Dates use strict local `yyyy-MM-dd` input: impossible days/months are rejected
@@ -718,6 +774,18 @@ While saving, editing and duplicate submissions are disabled. On failure, the
 draft remains in the form with an error and Retry action. A failed unrelated or
 previous operation cannot close the current editor. Cancelling the recurrence
 scope question also retains the pending field/time changes.
+
+Calendar icons next to the date fields open a keyboard-accessible picker while
+preserving manual input. Arrows or physical H/J/K/L move between days; Enter/Space
+selects a date. Cancelling leaves the field unchanged and returns focus to it.
+
+The calendar tab also provides event search (Ctrl+F) across the displayed one-year
+range around the viewed month. It searches title, description, location and
+calendar name, including recurring occurrences. Select a result to jump to its
+date. Results are chronological and bounded; refine the query if the first 20
+results do not include the desired event. **Upcoming events** expands a short
+agenda for the next 14 days. Search and agenda use a separate asynchronous request
+and do not replace the month/day data.
 
 ### Workspace overview
 
@@ -997,6 +1065,10 @@ python3 tools/test-package-migration.py
 ```
 
 Native unit tests and feature-specific probes are documented in AGENTS.md.
+The private D-Bus notification probes in `tools/test-timers.py` and
+`tools/test-power.py` additionally need `python-gobject` (Gio) and the D-Bus
+daemon/tools. These are development dependencies. `session_idle_test` starts its
+own private bus; it never contacts the user's real idle service.
 On slower test hardware, use `SHELL_UI_TEST_TIMEOUT=300 python3 tools/test-ui.py`
 to extend the total QtTest-suite deadline. Individual control assertions keep
 their own deadlines. QtTest arguments can be passed through for focused runs,

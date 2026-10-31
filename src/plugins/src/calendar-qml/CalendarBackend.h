@@ -60,6 +60,7 @@ public:
 
     Q_INVOKABLE void loadEventsForRange(const QDate& start, const QDate& end);
     Q_INVOKABLE void loadEventsForDate(const QDate& date);
+    Q_INVOKABLE QString searchEvents(const QString& query, const QDate& from, const QDate& to);
     Q_INVOKABLE QString addEvent(const QVariantMap& fields);
     // recurrenceId addresses an OVERRIDE (moved occurrence) — pass the
     // value the event map exposes as `recurrenceId` when `isOverride` is
@@ -83,6 +84,7 @@ signals:
     void lastErrorChanged();
     void errorOccurred(QString message);
     void mutationFinished(QString requestId, bool success, QString message);
+    void searchFinished(QString requestId, QVariantList events, bool truncated, QString error);
     void remindersEnabledChanged();
     void reminderMinutesChanged();
     void reminderLookaheadDaysChanged();

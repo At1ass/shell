@@ -14,6 +14,7 @@
 #include <libical/ical.h>
 
 #include <functional>
+#include <algorithm>
 
 namespace {
 
@@ -158,6 +159,50 @@ void CalendarStore::requestRange(QDate from, QDate to) {
 
 void CalendarStore::requestDay(QDate date) {
     emit dayReady(date, eventsOnDate(date));
+}
+
+void CalendarStore::requestSearch(QString requestId, QString query, QDate from, QDate to) {
+    if(!from.isValid() || !to.isValid() || from>to || from.daysTo(to)>365) {emit searchReady(requestId,{},false);return;}
+    const auto terms=query.toCaseFolded().split(QRegularExpression(QStringLiteral("\\s+")),Qt::SkipEmptyParts);
+    QVariantList matches;
+    // Expansion stays on this serial libical worker; requests are bounded by
+    // the facade to one year and replies to 100 occurrences.
+    QSet<QString> matchingUids;
+    for(const auto& event:m_events) {
+        const auto text=(event.title+QLatin1Char(' ')+event.description+QLatin1Char(' ')+event.location+QLatin1Char(' ')+event.calendar).toCaseFolded();
+        bool match=true;
+        for(const auto& term:terms)if(!text.contains(term)){match=false;break;}
+        if(match)matchingUids.insert(event.uid);
+    }
+    std::vector<Event> candidates;
+    for(const auto& event:m_events)if(matchingUids.contains(event.uid))candidates.push_back(event);
+    QSet<QString> seen;
+    // Weekly chunks bound transient occurrence memory and allow stopping after
+    // the first 101 matches instead of expanding an entire busy year.
+    for(QDate begin=from;begin<=to;begin=begin.addDays(7)) {
+        if(QThread::currentThread()->isInterruptionRequested())return;
+        auto events=IcalParser::expandRange(candidates,begin,std::min(begin.addDays(6),to));
+        std::stable_sort(events.begin(),events.end(),[](const QVariant& left,const QVariant& right){
+            return left.toMap().value(QStringLiteral("start")).toDateTime()<right.toMap().value(QStringLiteral("start")).toDateTime();
+        });
+        for(const auto& value:events) {
+            const auto event=value.toMap();
+            QString text;
+            for(const auto& key:{"title","description","location","calendar"})text+=event.value(QLatin1String(key)).toString()+QLatin1Char(' ');
+            text=text.toCaseFolded();
+            bool match=true;
+            for(const auto& term:terms)if(!text.contains(term)){match=false;break;}
+            if(!match)continue;
+            const auto key=event.value("calendar").toString()+QLatin1Char('|')+event.value("uid").toString()
+                +QLatin1Char('|')+event.value("start").toDateTime().toString(Qt::ISODateWithMs)
+                +QLatin1Char('|')+event.value("recurrenceId").toDateTime().toString(Qt::ISODateWithMs);
+            if(seen.contains(key))continue;
+            seen.insert(key);
+            if(matches.size()==100){emit searchReady(requestId,matches,true);return;}
+            matches.append(value);
+        }
+    }
+    emit searchReady(requestId,matches,false);
 }
 
 void CalendarStore::requestReminderWindow(int days) {

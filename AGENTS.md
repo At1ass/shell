@@ -121,11 +121,19 @@ tools/lint.sh <files...>      # обёртка qmllint с import-путями qs
 # Инварианты запретов §10 + ratchet-базлайн (tools/check-baseline.txt)
 tools/check.sh                # exit 1 = регресс; после снижения долга: --update-baseline
 
-# Юнит-тесты календарного плагина (единственные тесты в проекте — ЗАПУСКАЙ их,
+# Юнит-тесты календарного плагина (ЗАПУСКАЙ их,
 # трогая src/plugins/src/calendar-qml: они ловят то, что не видно глазом)
 cd src/plugins && cmake -B build-test -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON \
   && cmake --build build-test --target calendar_test \
   && QT_QPA_PLATFORM=offscreen ./build-test/src/calendar-qml/test/calendar_test
+
+# Нативный proxy поиска истории (при изменении HistoryFilterModel)
+cmake --build build-test --target history_filter_test
+QT_QPA_PLATFORM=offscreen ./build-test/src/fuzzy-search-qml/history_filter_test
+
+# Нативный Caffeine: тест создаёт собственную private D-Bus шину
+cmake --build build-test --target session_idle_test
+./build-test/src/system-monitor-qml/session_idle_test
 
 # Сборка каждого компонента настоящим движком Quickshell (не создаёт окон)
 tools/compile-check.sh        # exit 1 = что-то не компилируется
@@ -357,6 +365,33 @@ TimerService владеет одним countdown/Pomodoro в `state.json.timer`;
 контролы без остановки; `timers.enabled=false` ставит на паузу. Уведомления обычной
 срочности, без изменения DND. Проверки `tools/test-timers.py` используют отдельную
 D-Bus-сессию и временные XDG-пути; не запускать реальные таймеры пользователя в тестах.
+
+PowerService также инициализируется независимо от виджетов; UPower — единственный
+источник заряда/состояния/оценки времени. В `state.json.powerWarnings` живут только
+отметки показанных порогов, а не копия системного состояния. Гистерезис и подтверждённая
+зарядка переармляют предупреждения; Unknown/unready не переармляют. DesktopNotification
+отправляет обычные/критические сообщения через один Process и одну очередь последнего
+сообщения; устаревшую очередь нужно отменять. Проверки: tools/test-power.py.
+
+Caffeine: TimedMode хранит намерение, SessionIdleInhibitor (SystemMonitor) —
+асинхронный org.freedesktop.ScreenSaver cookie. UI показывает active только после
+подтверждения; IPC caffeine.status различает requested/active/pending/error.
+Не возвращать прозрачное окно Wayland: enabled не подтверждает действие inhibitor.
+Поздний cookie освобождается даже после уничтожения фасада; release адресуется
+unique owner, чтобы не затронуть cookie нового hypridle. Проверка session_idle_test
+создаёт собственную private bus; реальный idle daemon в тестах не трогать.
+
+HistoryFilterModel — read-only proxy; индекс отфильтрованной строки не является
+индексом истории. Для действий нужен стабильный notificationId, для actionsAt —
+sourceRow(). Пользовательское удаление идёт через removeUndoable; remove остаётся
+для окончательного удаления/очистки. Фильтры — состояние просмотра, не config/state.
+
+CalendarBackend.searchEvents возвращает request ID и отдельный searchFinished;
+он не трогает events/dayEvents/loading. Раскрытие повторов выполняет CalendarStore
+в worker, с ограниченным диапазоном/результатом. UI игнорирует старые ID и не меняет
+фокус при фоновой выдаче. MaterialDatePicker зависит только от UI/config; редактирование
+дат — содержимое календаря. Вложенный picker владеет ближайшей модальностью и возвращает
+фокус в редактор; при закрытии EventDialog он тоже должен закрываться.
 
 ---
 

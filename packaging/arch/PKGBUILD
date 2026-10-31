@@ -75,7 +75,7 @@ package_at1ass-shell-git() {
         'hyprsunset: night-light temperature control'
         'curl: remote wallpaper downloads'
         'qt6-imageformats: additional wallpaper and image codecs'
-        'hypridle: idle locking and suspend integration'
+        'hypridle: Caffeine idle inhibition, idle locking and suspend integration'
         'vdirsyncer: external CalDAV synchronization'
         'uwsm: optional graphical-session and environment management'
     )

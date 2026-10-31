@@ -49,6 +49,7 @@ public slots:
 
     // Compute the reminder lookahead window. Emits reminderWindowReady.
     void requestReminderWindow(int days);
+    void requestSearch(QString requestId, QString query, QDate from, QDate to);
 
     // Mutations. Each emits mutationDone(success, error) and, on
     // success, also storeRefreshed (after the FSW debounce window).
@@ -65,6 +66,7 @@ signals:
                     QVariantList events, QVariantMap eventsByDate);
     void dayReady(QDate date, QVariantList dayEvents);
     void reminderWindowReady(QVariantList window);
+    void searchReady(QString requestId, QVariantList events, bool truncated);
     void mutationDone(bool success, QString error);
 
 private slots:

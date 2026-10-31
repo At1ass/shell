@@ -44,6 +44,44 @@ Singleton {
     readonly property bool active: _socketPresent && _pid > 0 && !_awaitingOutput
     readonly property bool available: _toolPresent
     readonly property bool starting: !active && (_pid > 0 || startProc.running)
+    property string errorMessage: ""
+    property string errorDetails: ""
+    property string _failedAction: ""
+    property int _failedPid: 0
+    property int _recordGeneration: 0
+    property int _failedGeneration: 0
+    property bool _failedPause: false
+    property bool _lastForcePicker: false
+    property var _controlRequest: null
+    readonly property bool controlBusy: controlProc.running
+    readonly property bool canRetry: errorMessage !== "" && !controlBusy
+        && (["start","config"].includes(_failedAction) ? !starting && (_toolPresent || !detectProc.running)
+            : _toolPresent && _pid > 0 && _pid === _failedPid && _failedGeneration === _recordGeneration && ["pause","stop"].includes(_failedAction))
+    readonly property string retryUnavailableReason: errorMessage === "" || canRetry ? ""
+        : controlBusy ? "Wait for the current recording command."
+        : starting ? "Wait for the current recording to finish."
+        : !_toolPresent ? "Recording tools are being checked."
+        : "The original recording is no longer active."
+    function reportError(message, details, action, pid, pausedValue) {
+        errorMessage = message; errorDetails = details; _failedAction = action
+        _failedPid = pid; _failedPause = pausedValue
+        _failedGeneration = _recordGeneration
+        ToastService.error(message)
+    }
+    function clearError() { errorMessage = ""; errorDetails = ""; _failedAction = "" }
+    function retry() {
+        if (!canRetry) return false
+        if (!_toolPresent) { detectProc.running = true; return true }
+        if (["start","config"].includes(_failedAction)) { start(_lastForcePicker); return true }
+        if (_failedAction === "pause") return setPaused(_failedPause)
+        if (_failedAction === "stop") return stop()
+        return false
+    }
+    onActiveChanged: if (active && ["start","config"].includes(_failedAction)) clearError()
+    on_PidChanged: {
+        _recordGeneration=(_recordGeneration+1)%2147483647
+        if ((_pid===0 && _failedAction==="stop") || (_pid>0 && _failedPid>0 && _failedGeneration!==_recordGeneration)) clearError()
+    }
 
     property bool paused: false
     readonly property int elapsedSeconds: _elapsedSeconds
@@ -124,7 +162,7 @@ Singleton {
             return
         }
         if (!root._toolPresent) {
-            ToastService.error("gpu-screen-recorder is not installed")
+            root.reportError("Recording tools are unavailable. Install gpu-screen-recorder.", "gsr-cli not found", "start", 0, false)
             return
         }
         if (startProc.running)
@@ -134,7 +172,7 @@ Singleton {
         // Config is not hostile input, but this value reaches a command line and
         // the check costs nothing.
         if (!/^[A-Za-z0-9_.:-]+$/.test(target)) {
-            ToastService.error("recorder.capture.target is not a valid capture source")
+            root.reportError("Check recorder.capture.target in config.json.", "Invalid capture target", "config", 0, false)
             return
         }
 
@@ -183,6 +221,7 @@ Singleton {
         root._awaitingOutput = target === "portal"
         root._baselineWritten = -1
         root._timedFromOutput = false
+        root._lastForcePicker = !!forcePicker
         startProc.running = true
     }
 
@@ -197,28 +236,23 @@ Singleton {
         // portal answer is one the shell started and must still be able to
         // control -- otherwise it can neither be paused nor stopped.
         if (root._pid <= 0 || on === root.paused)
-            return
-        // Answer immediately rather than waiting for the sampler below to
-        // notice: a command we issued ourselves needs no evidence. Dropping the
-        // samples with it matters -- without that the sampler still holds a
-        // window full of pre-command evidence and overwrites this on its very
-        // next tick, which is exactly what it did.
-        root.paused = on
-        root._samples = []
-        _runCommand(["set-paused", on ? "true" : "false"])
+            return false
+        return _runCommand(["set-paused", on ? "true" : "false"], "pause", on)
     }
 
     function stop() {
         if (root._pid <= 0)
-            return
-        _runCommand(["stop"])
+            return false
+        return _runCommand(["stop"], "stop", false)
     }
 
-    function _runCommand(args) {
+    function _runCommand(args, action, pausedValue) {
         if (!root._toolPresent || controlProc.running)
-            return
+            return false
+        root._controlRequest = {pid:root._pid,generation:root._recordGeneration,action:action,pausedValue:pausedValue}
         controlProc.command = ["gsr-cli", "-ipc", root.socketPath].concat(args)
         controlProc.running = true
+        return true
     }
 
     // The recorder outlives this object: a Quickshell child survives the shell
@@ -228,27 +262,38 @@ Singleton {
     // shell never started.
     Process {
         id: startProc
+        objectName: "recorderStart"
         onExited: (exitCode) => {
             // A normal stop exits 0 here, and so does one triggered from
             // somewhere else entirely. Only a real failure is worth a toast --
             // most often a portal picker that was dismissed.
             if (exitCode !== 0)
-                ToastService.error("Recording failed to start (exit " + exitCode + ") - see " + root.logPath)
+                root.reportError("Recording ended with an error. Check diagnostics and try again.",
+                    "Recorder exit " + exitCode + "; log: " + root.logPath, "start", 0, false)
         }
     }
 
     Process {
         id: controlProc
+        objectName: "recorderControl"
         stdout: StdioCollector {
             onStreamFinished: {
                 const out = text.trim()
-                if (out !== "")
+                if (out !== "" && root._controlRequest?.action === "stop")
                     ToastService.success("Recording saved: " + out.split("/").pop())
             }
         }
         onExited: (exitCode) => {
-            if (exitCode !== 0)
-                ToastService.error("gsr-cli failed (exit " + exitCode + ")")
+            const pending = root._controlRequest
+            root._controlRequest = null
+            if (!pending || pending.pid !== root._pid || pending.generation !== root._recordGeneration) return
+            if (exitCode !== 0) {
+                root.reportError("Could not control the recording. Try again.", "gsr-cli exit " + exitCode,
+                    pending.action, pending.pid, pending.pausedValue)
+            } else {
+                if (pending.action === "pause") { root.paused = pending.pausedValue; root._samples = [] }
+                root.clearError()
+            }
         }
     }
 
@@ -530,6 +575,7 @@ Singleton {
     // control, so the poll timer above never starts.
     Process {
         id: detectProc
+        objectName: "recorderDetect"
         command: ["which", "gsr-cli"]
         onExited: (exitCode) => root._toolPresent = exitCode === 0
     }
@@ -593,6 +639,13 @@ Singleton {
 
         function elapsed(): int {
             return root.elapsedSeconds
+        }
+        function retry(): bool { return root.retry() }
+        function diagnostics(): string {
+            return JSON.stringify({active:root.active,starting:root.starting,controlBusy:root.controlBusy,
+                error:root.errorMessage,details:root.errorDetails,canRetry:root.canRetry,
+                retryUnavailableReason:root.retryUnavailableReason,failedAction:root._failedAction,
+                pid:root._pid,failedPid:root._failedPid,log:root.logPath})
         }
 
         function pause(): void {

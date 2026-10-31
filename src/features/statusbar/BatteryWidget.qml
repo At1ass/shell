@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Services.UPower
 import qs.src.ui.containers
+import qs.src.ui.feedback
 import qs.src.ui.base
 import qs.src.core.config
 import qs.src.core.services
@@ -23,14 +23,19 @@ BarElement {
     property bool showPercentage: widgetSettings.showPercentage ?? true
     property bool showIcon: widgetSettings.showIcon ?? true
 
-    readonly property var device: UPower.displayDevice
-    readonly property bool deviceReady: device && (device.ready === undefined || device.ready)
-    // UPowerDevice.percentage is 0.0-1.0 (upstream scales the wire value
-    // by 0.01) — rounding it raw pinned the widget at "0%/1%" forever.
-    readonly property int percentage: device && device.percentage !== undefined ? Math.round(device.percentage * 100) : 0
-    readonly property bool needsAttention: deviceReady && percentage <= 15 && !charging
-    readonly property bool charging: device && (device.state === UPowerDeviceState.Charging ||
-                                               device.state === UPowerDeviceState.PendingCharge)
+    property var tooltipManager: null
+    readonly property var device: PowerService.device
+    readonly property bool deviceReady: PowerService.available
+    readonly property int percentage: PowerService.percentage
+    readonly property bool needsAttention: PowerService.lowBattery
+    readonly property bool charging: PowerService.charging
+    accessibleName: PowerService.statusText
+    nonVisualChildren: [TooltipItem {
+        tooltip: root.tooltipManager
+        owner: root
+        show: root.hovered && root.barRevealed
+        text: PowerService.statusText
+    }]
 
     clickHandler: function(mouse) {
         if (mouse.button === Qt.LeftButton && widgetConfig?.clickAction) {

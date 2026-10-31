@@ -114,20 +114,13 @@ Singleton {
         boundary.interval = Math.min(2147483647,Math.max(1,view.remainingMs))
         boundary.start()
     }
-    // One argv-based D-Bus call per transition, never a polling subprocess.
-    // Normal urgency follows the existing DND/history policy.
     function notify(summary, body) {
-        if (!AppConfig.timerNotify || notification.running) return
-        notification.command = ["gdbus","call","--session","--timeout","5",
-            "--dest","org.freedesktop.Notifications","--object-path","/org/freedesktop/Notifications",
-            "--method","org.freedesktop.Notifications.Notify","--",JSON.stringify("Timer"),"0",
-            JSON.stringify("appointment-soon"),JSON.stringify(summary),JSON.stringify(body),"[]","{}","-1"]
-        notification.running = true
+        if (AppConfig.timerNotify) notification.send(summary,body,1)
     }
-    Process {
+    DesktopNotification {
         id: notification
         objectName: "timerNotification"
-        onExited: exitCode => { if (exitCode !== 0) ToastService.warning("Timer notification could not be delivered. Check the dashboard.") }
+        onDelivered: exitCode => { if (exitCode !== 0) ToastService.warning("Timer notification could not be delivered. Check the dashboard.") }
     }
     IpcHandler {
         target: "timer"

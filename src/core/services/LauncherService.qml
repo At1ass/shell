@@ -15,7 +15,7 @@ Singleton {
     function modeFor(query) {
         const prefix = (query ?? "").trim().charAt(0)
         return prefix === "=" ? "calculator" : prefix === ">" ? "clipboard"
-            : prefix === ":" ? "actions" : "applications"
+            : prefix === ":" ? "actions" : prefix === "@" ? "windows" : "applications"
     }
     readonly property string mode: modeFor(searchQuery)
     readonly property bool busy: mode === "calculator" && calculatorProvider.busy
@@ -33,6 +33,7 @@ Singleton {
         CalculatorProvider { id: calculatorProvider },
         ClipboardProvider { id: clipboardProvider },
         ActionProvider {},
+        WindowProvider {},
         ApplicationProvider { id: applicationProvider }
     ]
 

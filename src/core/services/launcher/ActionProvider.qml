@@ -22,16 +22,20 @@ BaseProvider {
         function onDataChanged() { root.invalidateVisible() }
     }
     readonly property Connections recorderWatch: Connections {
-        target: RecorderService
+        target: AppConfig.moduleEnabled("recorder") ? RecorderService : null
         function onActiveChanged() { root.invalidateVisible() }
         function onAvailableChanged() { root.invalidateVisible() }
         function onStartingChanged() { root.invalidateVisible() }
         function onPausedChanged() { root.invalidateVisible() }
+        function onErrorMessageChanged() { root.invalidateVisible() }
+        function onCanRetryChanged() { root.invalidateVisible() }
     }
     readonly property Connections nightLightWatch: Connections {
         target: NightLightService
         function onAvailableChanged() { root.invalidateVisible() }
         function onEnabledChanged() { root.invalidateVisible() }
+        function onErrorMessageChanged() { root.invalidateVisible() }
+        function onCanRetryChanged() { root.invalidateVisible() }
     }
     readonly property Connections gamingWatch: Connections {
         target: GamingModeService
@@ -45,6 +49,8 @@ BaseProvider {
     readonly property Connections caffeineWatch: Connections {
         target: IdleInhibitorService
         function onInhibitChanged() { root.invalidateVisible() }
+        function onActiveChanged() { root.invalidateVisible() }
+        function onErrorMessageChanged() { root.invalidateVisible() }
         function onStatusTextChanged() { root.invalidateVisible() }
     }
     readonly property Connections timerWatch: Connections {
@@ -108,17 +114,25 @@ BaseProvider {
             {id:"screenshot-edit",module:"screenshot",text:"Edit screenshot",description:"Select a region and open it in Swappy",aliases:"capture image screen region annotate",icon:"camera-photo",run:()=>ScreenshotService.takeScreenshotSwappy()},
             {id:"night-light",module:"",text:NightLightService.enabled ? "Turn off night light" : "Turn on night light",
                 description:NightLightService.enabled ? "Warm display colours enabled" : "Warm display colours disabled",aliases:"nightlight blue light temperature sunset",icon:"weather-clear-night",
-                unavailable:NightLightService.available ? "" : "Install hyprsunset to use night light",run:()=>NightLightService.toggle()},
+                unavailable:NightLightService.available || NightLightService.enabled ? "" : "Install hyprsunset to use night light",run:()=>NightLightService.toggle()},
             {id:"gaming",module:"",text:GamingModeService.gamingModeActive ? "Turn off gaming mode" : "Turn on gaming mode",
-                description:GamingModeService.gamingModeActive ? "Gaming mode enabled" : "Gaming mode disabled",aliases:"game performance",icon:"applications-games",run:()=>GamingModeService.toggleGamingMode()},
+                description:GamingModeService.gamingModeActive ? "Gaming mode enabled" : "Gaming mode disabled",aliases:"game performance",icon:"applications-games",run:()=>GamingModeService.toggleGamingMode()})
+        if(AppConfig.moduleEnabled("recorder")) commands.push(
             {id:"record",module:"recorder",text:RecorderService.active ? "Stop screen recording" : "Start screen recording",
                 description:RecorderService.active ? (RecorderService.paused ? "Recording paused" : "Recording in progress") : "Use the configured capture target",
                 aliases:"recorder video capture screen",icon:"media-record",unavailable:RecorderService.starting ? "Waiting for the recorder to start" : !RecorderService.active && !RecorderService.available ? "Install gpu-screen-recorder to record the screen" : "",run:()=>RecorderService.toggle()})
-        if (RecorderService.active) commands.push({id:"record-pause",module:"recorder",text:RecorderService.paused ? "Resume screen recording" : "Pause screen recording",
+        if (AppConfig.moduleEnabled("recorder") && RecorderService.active) commands.push({id:"record-pause",module:"recorder",text:RecorderService.paused ? "Resume screen recording" : "Pause screen recording",
             description:"Keep the current recording session",aliases:"recorder video capture",icon:"media-playback-pause",run:()=>RecorderService.togglePause()})
+        if(NightLightService.errorMessage) commands.push({id:"night-light-retry",text:"Retry night light",
+            description:NightLightService.errorMessage,icon:"view-refresh",unavailable:NightLightService.canRetry ? "" : "Wait for automatic recovery to finish",run:()=>NightLightService.retry()})
+        if(AppConfig.moduleEnabled("recorder") && RecorderService.errorMessage) commands.push({id:"record-retry",module:"recorder",text:"Retry recording operation",
+            description:RecorderService.errorMessage,icon:"view-refresh",unavailable:RecorderService.canRetry ? "" : "Check recorder diagnostics before retrying",run:()=>RecorderService.retry()})
         commands.push({id:"caffeine",module:"",text:IdleInhibitorService.inhibit ? "Turn off caffeine" : "Turn on caffeine",aliases:"awake sleep idle inhibit",
-            description:IdleInhibitorService.inhibit ? "Allow idle sleep"+(IdleInhibitorService.temporary ? " · "+IdleInhibitorService.statusText : "") : "Keep the session awake",
+            description:IdleInhibitorService.errorMessage || (IdleInhibitorService.pending ? "Activating idle inhibition" : IdleInhibitorService.inhibit ? "Allow idle sleep"+(IdleInhibitorService.temporary ? " · "+IdleInhibitorService.statusText : "")  : "Keep the session awake"),
             icon:"preferences-desktop-screensaver",run:()=>IdleInhibitorService.toggleInhibit()})
+        if(IdleInhibitorService.errorMessage)commands.push({id:"caffeine-retry",text:"Retry caffeine",
+            description:IdleInhibitorService.errorMessage,icon:"view-refresh",
+            unavailable:IdleInhibitorService.canRetry ? "" : "Wait for the idle service",run:()=>IdleInhibitorService.retry()})
         for (const minutes of Array.from(AppConfig.temporaryModeDurations)) {
             commands.push(timedCommand("dnd",minutes),timedCommand("caffeine",minutes))
         }

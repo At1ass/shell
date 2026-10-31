@@ -12,6 +12,8 @@ qt_add_qml_module(systemmonitorqml
         SystemMonitor.cpp
         StorageCollector.h
         StorageCollector.cpp
+        SessionIdleInhibitor.h
+        SessionIdleInhibitor.cpp
 )
 
 # libsensors is genuinely optional: referencing the *-NOTFOUND variables
@@ -38,6 +40,7 @@ target_link_libraries(systemmonitorqml
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
+        Qt6::DBus
 )
 
 include(../PluginInstall.cmake)
@@ -50,4 +53,8 @@ if (BUILD_TESTING)
     target_include_directories(storage_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(storage_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME storage_test COMMAND storage_test)
+    qt_add_executable(session_idle_test test/SessionIdleInhibitorTests.cpp SessionIdleInhibitor.cpp SessionIdleInhibitor.h)
+    set_target_properties(session_idle_test PROPERTIES AUTOMOC ON)
+    target_link_libraries(session_idle_test PRIVATE Qt6::Core Qt6::Qml Qt6::DBus Qt6::Test)
+    add_test(NAME session_idle_test COMMAND session_idle_test)
 endif()

@@ -58,7 +58,7 @@ ScrollableList {
                 iconName: "coffee"
                 label: "Caffeine"
                 supportingText: IdleInhibitorService.statusText
-                active: IdleInhibitorService.inhibit
+                active: IdleInhibitorService.active
                 onClicked: IdleInhibitorService.toggleInhibit()
             }
             ToggleTile {
@@ -77,8 +77,9 @@ ScrollableList {
                 Layout.preferredWidth: 1
                 Layout.minimumWidth: 0
                 iconName: "nightlight"
-                visible: NightLightService.available
+                visible: NightLightService.available || NightLightService.enabled
                 label: "Night light"
+                supportingText: (NightLightService.errorMessage !== "" || (NightLightService.enabled && !NightLightService.active)) ? NightLightService.statusText : ""
                 active: NightLightService.enabled
                 onClicked: NightLightService.toggle()
             }
@@ -94,6 +95,7 @@ ScrollableList {
 
         }
 
+        ServiceRecoverySection { Layout.fillWidth: true }
         TimerSection { Layout.fillWidth: true }
 
         // Destinations and one-shot commands are separate from mode toggles.

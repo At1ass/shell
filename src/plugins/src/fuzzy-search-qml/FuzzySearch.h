@@ -12,6 +12,7 @@ class FuzzySearch : public QObject {
 
 public:
     explicit FuzzySearch(QObject* parent = nullptr);
+    Q_INVOKABLE QString plainText(const QString& html) const;
 
     // Score for a query/candidate pair (0.0-100.0).
     Q_INVOKABLE double score(const QString& query, const QString& candidate) const;

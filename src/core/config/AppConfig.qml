@@ -266,6 +266,11 @@ Singleton {
     readonly property int pomodoroLongBreakMinutes: data.timers?.pomodoro?.longBreakMinutes ?? 15
     readonly property int pomodoroLongEvery: data.timers?.pomodoro?.cyclesBeforeLongBreak ?? 4
 
+    readonly property bool batteryWarningsEnabled: data.battery?.warnings?.enabled ?? true
+    readonly property int batteryLowThreshold: data.battery?.warnings?.lowPercent ?? 15
+    readonly property int batteryCriticalThreshold: data.battery?.warnings?.criticalPercent ?? 5
+    readonly property int batteryWarningHysteresis: data.battery?.warnings?.hysteresisPercent ?? 3
+
     // Services
     readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
     readonly property string weatherLocation: data.services?.weather?.location ?? "London"

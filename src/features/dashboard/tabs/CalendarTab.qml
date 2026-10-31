@@ -36,6 +36,11 @@ Item {
         else if (eventDialog.visible) eventDialog.requestClose()
     }
     property var selectedDayEvents: CalendarBackend.dayEvents
+    Shortcut {
+        sequence: "Ctrl+F"
+        enabled: GlobalStates.dashboardOpen && GlobalStates.dashboardOpenIndex === 2 && !root.modalOpen
+        onActivated: eventSearch.focusSearch()
+    }
 
     // Keep rendering comparison separate from the deferred midnight refresh:
     // evaluating today must not synchronously rewrite selectedDate.
@@ -273,6 +278,25 @@ Item {
             columns: root.stacked ? 1 : 2
             columnSpacing: Tokens.spacing.medium
             rowSpacing: Tokens.spacing.medium
+
+            CalendarSearchSection {
+                id: eventSearch
+                Layout.fillWidth: true
+                Layout.columnSpan: panels.columns
+                anchorDate: { const date=new Date(0);date.setFullYear(root.currentYear,root.currentMonth,1);return date }
+                onDateRequested: value => {
+                    root.currentYear=value.getFullYear();root.currentMonth=value.getMonth()
+                    root.updateCalendar()
+                    root.selectedDate=value
+                    for(let i=0;i<calendarDays.count;i++) {
+                        if(root.isSameDate(calendarDays.get(i).date,value)) { root.focusedCellIndex=i;break }
+                    }
+                    Qt.callLater(() => {
+                        if(root.visible && GlobalStates.dashboardOpen && GlobalStates.dashboardOpenIndex===2 && !root.modalOpen)
+                            dayRepeater.itemAt(root.focusedCellIndex)?.forceActiveFocus()
+                    })
+                }
+            }
 
             // Left panel — month grid
             MaterialCard {

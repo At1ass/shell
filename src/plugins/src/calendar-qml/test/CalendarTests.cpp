@@ -47,6 +47,57 @@ private:
     }
 
 private slots:
+    void searchCapsChronologicallyAndDeduplicatesSpanningEvents() {
+        QTemporaryDir root;
+        QVERIFY(QDir(root.path()).mkdir("test"));
+        writeFile(root.path()+"/test/events.ics",
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:busy@test\r\n"
+            "DTSTART:20300101T090000Z\r\nDTEND:20300101T100000Z\r\nRRULE:FREQ=DAILY;COUNT=365\r\n"
+            "SUMMARY:Busy\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:span@test\r\n"
+            "DTSTART;VALUE=DATE:20300101\r\nDTEND;VALUE=DATE:20300121\r\nSUMMARY:Span\r\n"
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        qputenv("CALENDAR_QML_TEST_ROOT",root.path().toUtf8());
+        {
+            CalendarStore store;store.rescanAll();
+            QSignalSpy replies(&store,&CalendarStore::searchReady);
+            store.requestSearch("cap","busy",QDate(2030,1,1),QDate(2030,12,31));
+            QCOMPARE(replies.size(),1);
+            const auto events=replies[0][1].toList();
+            QCOMPARE(events.size(),100);QVERIFY(replies[0][2].toBool());
+            QCOMPARE(events.first().toMap()["start"].toDateTime().date(),QDate(2030,1,1));
+            QCOMPARE(events.last().toMap()["start"].toDateTime().date(),QDate(2030,4,10));
+            store.requestSearch("span","span",QDate(2030,1,10),QDate(2030,1,31));
+            QCOMPARE(replies[1][1].toList().size(),1);
+            QVERIFY(!replies[1][2].toBool());
+        }
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+    }
+    void searchDoesNotReplaceGridAndKeepsRequestIdentity() {
+        QTemporaryDir root;
+        QVERIFY(QDir(root.path()).mkdir("test"));
+        writeFile(root.path()+"/test/event.ics",
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:search@test\r\n"
+            "DTSTART:20300102T090000Z\r\nDTEND:20300102T100000Z\r\nRRULE:FREQ=DAILY;COUNT=3\r\n"
+            "SUMMARY:Team Review\r\nLOCATION:Office\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        qputenv("CALENDAR_QML_TEST_ROOT",root.path().toUtf8());
+        {
+            CalendarBackend backend;backend.setRemindersEnabled(false);
+            QTRY_VERIFY(backend.calendars().contains("test"));
+            QSignalSpy done(&backend,&CalendarBackend::searchFinished);
+            const auto first=backend.searchEvents("TEAM office",QDate(2030,1,1),QDate(2030,1,31));
+            const auto none=backend.searchEvents("missing",QDate(2030,1,1),QDate(2030,1,31));
+            const auto invalid=backend.searchEvents("",QDate(2030,1,1),QDate(2032,1,1));
+            QTRY_COMPARE(done.count(),3);
+            QHash<QString,QList<QVariant>> replies;
+            for(const auto& reply:done)replies.insert(reply[0].toString(),reply);
+            QCOMPARE(replies[first][1].toList().size(),3);
+            QVERIFY(replies[none][1].toList().isEmpty());
+            QVERIFY(!replies[invalid][3].toString().isEmpty());
+            QVERIFY(backend.events().isEmpty());
+            QVERIFY(backend.dayEvents().isEmpty());
+        }
+        qunsetenv("CALENDAR_QML_TEST_ROOT");
+    }
 
     void rejectInvalidEventDates() {
         const QDateTime start(QDate(2026, 3, 1), QTime(12, 0), QTimeZone::UTC);

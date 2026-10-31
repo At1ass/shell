@@ -54,6 +54,10 @@ QtObject {
  readonly property var launcherActions:data.launcher?.actions ?? ({})
  property var data:({})
  property var stateData:({})
+ property bool batteryWarningsEnabled:false
+ property int batteryLowThreshold:15
+ property int batteryCriticalThreshold:5
+ property int batteryWarningHysteresis:3
  property bool timerShowInDashboard:true
  property bool timersEnabled:true
  property int timerDefaultMinutes:10
@@ -248,10 +252,12 @@ Dialog {
  MaterialButton {text:"Close test editor";onClicked:close()}
 }
 ''')
+    shutil.copy2(ROOT / 'src/features/dashboard/components/CalendarSearchSection.qml', dashboard / 'components/CalendarSearchSection.qml')
+    with (dashboard / 'components/qmldir').open('a') as module:module.write('CalendarSearchSection 1.0 CalendarSearchSection.qml\n')
     real_components = dashboard / 'real_components'
     real_components.mkdir()
-    (real_components / 'qmldir').write_text('module qs.src.features.dashboard.real_components\nEventDialog 1.0 EventDialog.qml\nRecurrenceEditChoice 1.0 RecurrenceEditChoice.qml\n')
-    for name in ('EventDialog','RecurrenceEditChoice'):
+    (real_components / 'qmldir').write_text('module qs.src.features.dashboard.real_components\nCalendarSearchSection 1.0 CalendarSearchSection.qml\nEventDialog 1.0 EventDialog.qml\nRecurrenceEditChoice 1.0 RecurrenceEditChoice.qml\n')
+    for name in ('EventDialog','RecurrenceEditChoice','CalendarSearchSection'):
         shutil.copy2(ROOT / ('src/features/dashboard/components/'+name+'.qml'),real_components / (name+'.qml'))
     (temp / 'TestRealCalendar.qml').write_text((ROOT / 'src/features/dashboard/tabs/CalendarTab.qml').read_text().replace('import qs.src.features.dashboard.components','import qs.src.features.dashboard.real_components'))
     calendar = temp / 'imports/Calendar'
@@ -265,6 +271,12 @@ QtObject {
  property var eventsByDate:({})
  function loadEventsForDate(date) {}
  function loadEventsForRange(start,end) {}
+ property string lastSearchId:""
+ property string lastQuery:""
+ property int searches:0
+ function searchEvents(query,from,to) {lastQuery=query;lastSearchId="search-"+(++searches);return lastSearchId}
+ signal searchFinished(string requestId,var events,bool truncated,string error)
+ signal eventsChanged()
  property int requestSequence:0
  signal mutationFinished(string requestId,bool success,string message)
  function addEvent(fields) {return "add-"+(++requestSequence)}
@@ -317,7 +329,7 @@ QtObject {
         'NetworkService': 'property bool wifiEnabled:true; property string icon:"wifi"; function toggleWifi() {wifiEnabled=!wifiEnabled}',
         'BluetoothService': 'property bool enabled:true; property string icon:"bluetooth"; function toggle() {enabled=!enabled}',
         'VPNService': 'property bool connected:false; property string icon:"vpn_lock"; function toggle() {}',
-        'IdleInhibitorService': 'property bool inhibit:false;property bool temporary:false;property string statusText:"";property real expiresAt:0;property int lastDuration:0;function toggleInhibit() {inhibit=!inhibit} function setForMinutes(minutes) {lastDuration=minutes;return true}',
+        'IdleInhibitorService': 'property bool backendActive:true;readonly property bool active:inhibit && backendActive;property bool pending:false;property string errorMessage:"";property bool canRetry:false;function retry() {return false};property bool inhibit:false;property bool temporary:false;property string statusText:"";property real expiresAt:0;property int lastDuration:0;function toggleInhibit() {inhibit=!inhibit} function setForMinutes(minutes) {lastDuration=minutes;return true}',
         'NightLightService': 'property bool enabled:false; function toggle() {enabled=!enabled}',
         'NotificationService': 'property int unreadCount:0;property bool doNotDisturb:false; function toggleDoNotDisturb() {}',
         'GamingModeService': 'property bool gamingModeActive:false; function toggleGamingMode() {gamingModeActive=!gamingModeActive}',
@@ -328,15 +340,15 @@ QtObject {
     mocks['SystemMonitorService'] += ';property string userName:"tester";property string osName:"Test Linux";property string wmName:"Hyprland"'
     mocks['SystemMonitorService'] += ';property bool hasGpuTemp:true;property var cpuTempHistory:[0.4,0.6,0.5];property var gpuTempHistory:[0.4,0.6,0.5];property real loadAvg1:1.2;property real loadAvg5:0.8;property real loadAvg15:0.5;property real cpuFreqGHz:4.2;property bool hasDiskIo:true;property string diskReadFormatted:"12 KiB/s";property string diskWriteFormatted:"6 KiB/s"'
     mocks['SystemMonitorService'] += ';property bool storageAvailable:true;property var storageVolumes:[];property var storageDrives:[];property var storageSummary:({available:true,name:"System",availableFormatted:"100 GiB",severity:0});property int storageSeverity:storageSummary.severity ?? 0;property string storageFreeText:(storageSummary.availableFormatted ?? "—")+" free";property string storageAlertText:storageSeverity>0 ? "Low space · Games: 2 GiB free" : ""'
-    mocks['DockService'] = 'signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
+    mocks['DockService'] = 'function resolveEntry(value) {return null} signal appLaunched(string key);function launch(app) {} function activateOrCycle(app) {} function isPinned(value) {return false} function pin(value) {} function unpin(value) {} function closeApp(value) {}'
     mocks['SessionMonitor'] = 'signal lockRequested(); signal unlockRequested(); signal resumed()'
     mocks['HyprlandDispatch'] = 'function exitCompositor() {}'
     mocks['GlobalStates'] += '; property bool powerMenuOpen:false; function executePowerAction(action) {lastAction=action;actionCount++}; property bool audioOpen:true; property Item audioSource:null; function openAudio(source) {audioOpen=true;lastAction="audio";actionCount++} function toggleAudio(source) {audioOpen=!audioOpen;lastAction="audio";actionCount++}'
     mocks['PopoutsState'] = 'property bool open:false; property string name:""; property QtObject data:null;property Item sourceItem:null;property int epoch:0; function openPopout(name,data,source) {this.name=name;this.data=data;sourceItem=source;open=true;epoch++} function closePopout() {open=false;name="";data=null;epoch++}'
     mocks['AudioService'] += '; property real micVolume:0.5;property bool micMuted:false;function setMicVolume(value) {micVolume=value} function toggleMicMute() {micMuted=!micMuted} function setStreamVolume(node,value) {node.audio.volume=value} function toggleStreamMute(node) {node.audio.muted=!node.audio.muted}'
     mocks['Weather'] += ';property bool busy:false;property bool updatesAllowed:true;property bool canRetry:true;property int retries:0;function retry() {retries++;busy=true}; property var data:({current:{temperature_2m:8}});property bool isFresh:true;property date lastSuccessAt:new Date(2026,9,25,12)'
-    mocks['NightLightService'] += '; property bool available:true'
-    mocks['RecorderService'] = 'property bool active:false;property bool available:true;property bool starting:false;property bool paused:false;property int toggles:0;function toggle() {toggles++;active=!active} function togglePause() {paused=!paused}'
+    mocks['NightLightService'] += ';property string errorMessage:"";property string statusText:"Off";property bool active:true;property bool canRetry:false;property int retries:0;function retry() {retries++} property bool available:true'
+    mocks['RecorderService'] = 'property string retryUnavailableReason:"";property string errorMessage:"";property bool canRetry:false;property int retries:0;function retry() {retries++} property bool active:false;property bool available:true;property bool starting:false;property bool paused:false;property int toggles:0;function toggle() {toggles++;active=!active} function togglePause() {paused=!paused}'
     mocks['MprisController'] += '; property int toggles:0'
     mocks['GlobalStates'] += '; property string lastAction:""; property int actionCount:0; function handleClickAction(action) {actionCount++;lastAction=action}'
     mocks['GlobalStates'] += '; property bool connectionsOpen:true; property string connectionsSection:"bluetooth"; function openConnections(section,source) {connectionsSection=section}'
@@ -367,15 +379,18 @@ QtObject {
     mocks['BrightnessService'] += ';signal brightnessAdjusted(real value)'
     mocks['ToastService'] = 'readonly property int levelInfo:0;readonly property int levelSuccess:1;readonly property int levelWarning:2;readonly property int levelError:3;signal toastRequested(string message,string icon,int level,int duration)'
     mocks['AppLaunchService'] = 'property var lastArgv:[];property string lastEntry:"";property int launches:0;function launchCommand(argv) {lastArgv=argv;launches++} function launchEntry(entry) {lastEntry=entry.id;launches++}'
+    mocks['PowerService'] = ''
     mocks['TimerService'] = ''
     mocks['LauncherService'] = ''
     mocks['ClipboardService'] = 'property bool debug:false;property int _thumbnailVersion:0;property int refreshes:0;signal entriesChanged();function refresh() {refreshes++} function fuzzySearch(query,limit) {return []} function requestThumbnail(entry) {} function thumbnailFor(entry) {return ""}'
     mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false;if(name==="overview") overviewOpen=false}')
     mocks['GlobalStates'] += '; property bool overviewOpen:false; signal panelOpened(string name);property bool lockscreenActive:false;property QtObject testScreen:null;function focusedScreen() {return testScreen} function screenForItem(source) {return testScreen} function openPanel(name,screen) {lastAction=name;actionCount++;if(name==="overview") overviewOpen=true} function openDashboardTab(index) {dashboardOpenIndex=index;lastAction="dashboard";actionCount++} function lockSession() {lastAction="lock";actionCount++}'
     (services / 'qmldir').write_text('module qs.src.core.services\n' +
-        ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\n')
+        ''.join(f'singleton {name} 1.0 {name}.qml\n' for name in mocks)+'NetworkInfo 1.0 NetworkInfo.qml\nDesktopNotification 1.0 DesktopNotification.qml\n')
     for name, body in mocks.items():
         (services / f'{name}.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject {'+body.replace('};', '}')+'}\n')
+    shutil.copy2(ROOT / 'src/core/services/PowerService.qml', services / 'PowerService.qml')
+    shutil.copy2(ROOT / 'src/core/services/DesktopNotification.qml', services / 'DesktopNotification.qml')
     shutil.copy2(ROOT / 'src/core/services/TimerService.qml', services / 'TimerService.qml')
     shutil.copy2(ROOT / 'src/core/services/TimerTimeline.js', services / 'TimerTimeline.js')
     shutil.copy2(ROOT / 'src/core/services/OverviewService.qml',services / 'OverviewService.qml')
@@ -388,8 +403,8 @@ QtObject {
     upower = qs / 'Services/UPower'
     upower.mkdir()
     (upower / 'qmldir').write_text('module Quickshell.Services.UPower\nsingleton UPower 1.0 UPower.qml\nUPowerDeviceState 1.0 UPowerDeviceState.qml\n')
-    (upower / 'UPower.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject displayDevice:QtObject {property bool ready:true;property bool isLaptopBattery:true;property real percentage:0.8;property int state:0}}\n')
-    (upower / 'UPowerDeviceState.qml').write_text('import QtQml\nQtObject {enum Kind {Discharging,Charging,PendingCharge}}\n')
+    (upower / 'UPower.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject displayDevice:QtObject {property bool ready:true;property bool isLaptopBattery:true;property string nativePath:"BAT0";property int timeToEmpty:7200;property int timeToFull:3600;property real percentage:0.8;property int state:0}}\n')
+    (upower / 'UPowerDeviceState.qml').write_text('import QtQml\nQtObject {enum Kind {Discharging,Charging,PendingCharge,Empty,PendingDischarge,FullyCharged,Unknown}}\n')
     test = temp / 'tst_controls.qml'
     for name, body in {
         'QsMenuHandle': 'QtObject {property var entries:[]}',
@@ -587,6 +602,7 @@ Item {
  Component {id:meterFixture;OsdMeterContent {width:300;height:implicitHeight;title:"Brightness";iconName:"brightness_high";progress:0.75}}
  Component {id:ipcFixture;TestIpcData {}}
  Component {id:profileFixture;UserInfoElement {width:320}}
+ Component {id:datePickerFixture;MaterialDatePicker {property date picked:new Date(0);onDateChosen:value=>picked=value}}
  Component {id:dashboardFieldFixture;MaterialTextField {width:240}}
  Component {id:dashboardSliderFixture;MaterialSlider {width:240}}
  Component {id:realCalendarFixture;TestRealCalendar {width:640;height:600}}
@@ -913,9 +929,11 @@ Item {
    AppConfig.overviewWorkspaceCount=3;AppConfig.overviewColumns=3;AppConfig.overviewShowPreviews=true;Quickshell.screens=[]
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
-   AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
+   AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.backendActive=true;IdleInhibitorService.inhibit=false;IdleInhibitorService.errorMessage="";IdleInhibitorService.pending=false;IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
    AppConfig.data=({});DesktopEntries.applications.values=[];AppLaunchService.lastArgv=[];AppLaunchService.lastEntry="";AppLaunchService.launches=0
    AppConfig.timerShowInDashboard=true;AppConfig.timersEnabled=true;AppConfig.timerNotify=false;AppConfig.stateReady=true;AppConfig.stateData=({})
+   NightLightService.errorMessage="";NightLightService.canRetry=false;NightLightService.retries=0
+   RecorderService.errorMessage="";RecorderService.canRetry=false;RecorderService.retries=0
    GlobalStates.launcherOpen=false;NightLightService.enabled=false;GamingModeService.gamingModeActive=false
    RecorderService.active=false;RecorderService.available=true;RecorderService.starting=false;RecorderService.paused=false;RecorderService.toggles=0
    LauncherService.search("")
@@ -2475,6 +2493,104 @@ Item {
     cal.destroy()
    }
   }
+  function test_caffeine_requires_confirmation() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0
+   IdleInhibitorService.inhibit=true;IdleInhibitorService.backendActive=false
+   IdleInhibitorService.errorMessage="Idle service unavailable";wait(30)
+   const tile=byProperty(dashboard,"label","Caffeine")
+   verify(tile!==null);verify(!tile.active,"requested mode must not imply inhibition")
+   verify(byProperty(dashboard,"headline","Caffeine").visible,"failure remains reachable")
+   IdleInhibitorService.errorMessage="";IdleInhibitorService.backendActive=true;wait(10)
+   verify(tile.active,"confirmed cookie activates the tile")
+  }
+  function test_service_recovery_keyboard() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=0
+   NightLightService.errorMessage="Night light stopped";NightLightService.available=false;NightLightService.enabled=true;NightLightService.canRetry=true
+   RecorderService.errorMessage="Recording control failed";RecorderService.canRetry=true;wait(40)
+   verify(byProperty(dashboard,"label","Night light").visible,"enabled mode remains reachable with missing tool")
+   const night=findChild(dashboard,"nightLightRetry");verify(night!==null && night.visible)
+   night.forceActiveFocus();keyClick(Qt.Key_Return);compare(NightLightService.retries,1)
+   const record=findChild(dashboard,"recorderRetry");verify(record!==null && record.visible)
+   record.forceActiveFocus();keyClick(Qt.Key_Return);compare(RecorderService.retries,1)
+  }
+  function test_date_picker_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_date_picker_layout(data) {
+   controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
+   for(const width of [240,480])for(const scale of [1,2]) {
+    scene.width=width;scene.height=600;AppConfig.fontScale=scale
+    const picker=createTemporaryObject(datePickerFixture,scene)
+    picker.openFor(new Date(2024,1,29));wait(20)
+    picker.moveMonth(12);wait(20);compare(picker.cursorDate.getDate(),28)
+    const focus=scene.Window.window.activeFocusItem
+    verify(focus!==null)
+    const point=focus.mapToItem(picker,0,0)
+    verify(point.x>=0 && point.x+focus.width<=picker.width+1,"focused day remains visible on narrow panels: "+JSON.stringify({width:width,scale:scale,x:point.x,w:focus.width,picker:picker.width}))
+    if(width===480 && scale===1)grabImage(picker).save("RENDERS/date-picker-"+data.pack+".png")
+    picker.close();picker.destroy();wait(1)
+   }
+  }
+  function test_date_picker_keyboard_and_manual_input() {
+   controls.visible=false;dashboard.visible=false
+   const editor=createTemporaryObject(dashboardFieldFixture,scene)
+   editor.inputItem.forceActiveFocus()
+   const picker=createTemporaryObject(datePickerFixture,scene)
+   picker.openFor(new Date(2026,1,28));wait(20)
+   const day=byProperty(picker,"text","28");verify(day!==null)
+   day.forceActiveFocus();keyClick(Qt.Key_Right);wait(20)
+   compare(picker.cursorDate.getMonth(),2);compare(picker.cursorDate.getDate(),1)
+   keyClick(Qt.Key_Return);wait(20)
+   compare(picker.picked.getMonth(),2);compare(picker.picked.getDate(),1)
+   verify(editor.inputItem.activeFocus,"closing date picker restores editor focus")
+   CalendarBackend.calendars=["Test"]
+   const dialog=createTemporaryObject(eventFormFixture,scene)
+   dialog.openDialog(false,null,new Date(2026,1,20));wait(20)
+   const field=byProperty(dialog,"label","Start date")
+   verify(field!==null);field.text="2026-02-31"
+   const calendar=byProperty(field,"iconName","calendar_month")
+   verify(calendar!==null);mouseClick(calendar,calendar.width/2,calendar.height/2);wait(20)
+   const nested=findChild(dialog,"materialDatePicker");verify(nested!==null && nested.visible)
+   nested.choose(new Date(2026,1,21));wait(20)
+   compare(field.text,"2026-02-21");verify(dialog.dirty)
+  }
+  function test_launcher_open_windows() {
+   controls.visible=false;GlobalStates.launcherOpen=true
+   const workspace=createTemporaryObject(overviewWorkspaceFixture,scene,{id:7,name:"7"})
+   const window=createTemporaryObject(overviewWindowFixture,scene,{address:"fixture-window",title:"Quarterly report",workspace:workspace,lastIpcObject:{class:"editor",workspace:{id:1}}})
+   Hyprland.toplevels=createTemporaryObject(workspaceModelFixture,scene,{values:[window]})
+   LauncherService.search("@ report")
+   compare(LauncherService.mode,"windows");compare(LauncherService.filteredApps.length,1)
+   verify(LauncherService.filteredApps[0].description.includes("Workspace 1"),"current IPC membership wins")
+   LauncherService.launch(LauncherService.filteredApps[0]);compare(HyprlandDispatch.lastWindow,"fixture-window")
+   GlobalStates.launcherOpen=true;LauncherService.search("@")
+   const stale=LauncherService.filteredApps[0].action
+   Hyprland.toplevels.values=[];HyprlandDispatch.lastWindow=""
+   stale();compare(HyprlandDispatch.lastWindow,"","closed windows cannot be activated through stale results")
+   LauncherService.search("report");verify(LauncherService.filteredApps.every(result=>result.type==="application"))
+  }
+  function test_calendar_search_latest_result_and_date_jump() {
+   controls.visible=false;dashboard.visible=true;GlobalStates.dashboardOpenIndex=2;wait(40)
+   const search=byProperty(dashboard,"placeholderText","Search events")
+   verify(search!==null);search.text="meeting";wait(220)
+   const first=CalendarBackend.lastSearchId;verify(first!=="")
+   search.text="review";wait(220);const second=CalendarBackend.lastSearchId;verify(second!==first)
+   CalendarBackend.searchFinished(first,[{title:"Obsolete",start:new Date(2030,0,1)}],false,"")
+   compare(byProperty(dashboard,"headline","Obsolete"),null,"stale query never publishes rows")
+   CalendarBackend.searchFinished(second,[{title:"Review",start:new Date(2030,0,2,12),allDay:false,location:"Office"}],false,"")
+   wait(20);const result=byProperty(dashboard,"headline","Review");verify(result!==null)
+   result.forceActiveFocus();keyClick(Qt.Key_Return);wait(20)
+   const calendar=byProperty(dashboard,"currentYear",2030)
+   verify(calendar!==null);compare(calendar.selectedDate.getDate(),2);compare(calendar.currentMonth,0)
+   search.text="";wait(20)
+   const agenda=byProperty(dashboard,"headline","Upcoming events")
+   verify(agenda!==null);agenda.forceActiveFocus();keyClick(Qt.Key_Return);wait(220)
+   compare(CalendarBackend.lastQuery,"")
+   const searches=CalendarBackend.searches
+   const clock=DateTime.clock.date
+   const sameDay=new Date(clock);sameDay.setHours(12,1)
+   DateTime.clock.date=sameDay;wait(220)
+   compare(CalendarBackend.searches,searches,"agenda does not poll at every minute tick")
+   dashboard.visible=false;DateTime.clock.date=clock
+  }
   function test_timer_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_timer_layout(data) {
    controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
@@ -3061,13 +3177,15 @@ Item {
    compare(LauncherService.filteredApps[0].text,"Turn off night light")
    stale();verify(NightLightService.enabled,"stale Enable cannot disable the mode")
    NightLightService.available=false
+   verify(LauncherService.filteredApps[0].action!==null,"a missing tool must not trap the enabled mode")
+   LauncherService.filteredApps[0].action();verify(!NightLightService.enabled)
    compare(LauncherService.filteredApps[0].action,null)
    verify(LauncherService.filteredApps[0].description.includes("hyprsunset"))
    compare(launcher.unavailableReason,LauncherService.filteredApps[0].description)
    input.inputItem.forceActiveFocus();keyClick(Qt.Key_Return)
    verify(GlobalStates.launcherOpen,"unavailable command keeps the launcher open")
    NightLightService.available=true
-   keyClick(Qt.Key_Return);verify(!NightLightService.enabled)
+   keyClick(Qt.Key_Return);verify(NightLightService.enabled)
   }
   function test_launcher_recorder_commands() {
    GlobalStates.launcherOpen=true;LauncherService.search(": record")

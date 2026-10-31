@@ -55,8 +55,8 @@ MaterialCard {
                     },
                     {
                         icon: "coffee",
-                        active: () => IdleInhibitorService.inhibit,
-                        tooltip: () => IdleInhibitorService.inhibit ? "Caffeine Mode Active" : "Caffeine Mode Inactive",
+                        active: () => IdleInhibitorService.active,
+                        tooltip: () => IdleInhibitorService.active ? "Caffeine Mode Active" : "Caffeine Mode Inactive",
                         action: () => IdleInhibitorService.toggleInhibit()
                     },
                     // Group 2

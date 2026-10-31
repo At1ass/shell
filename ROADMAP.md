@@ -3,6 +3,49 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## UX review implementation completed — 2026-10-31
+
+The remaining agreed implementation is now present:
+
+- Recording control waits for successful gsr-cli completion and rejects replies
+  belonging to another PID. Errors retain operation/target diagnostics and guarded
+  retry. Missing tools can be re-probed; capture picker intent survives retry.
+  Night light reports actual process state, retains failure through backoff until
+  healthy, and can be disabled even with a missing executable. Quick and launcher
+  expose recovery, with IPC diagnostics for both services.
+- A native read-only HistoryFilterModel filters notification text/time without
+  rewriting history. Stable IDs and source-row mapping preserve selection/actions.
+  Filtered group expansion is local to the current view. Cards copy plain text;
+  individual removal reuses persisted Undo and cannot resurrect live actions.
+- Calendar search runs on the serial libical worker with request IDs, a bounded
+  one-year horizon and 100-occurrence replies. Candidate filtering and weekly
+  chunks avoid expanding a busy full year into one large allocation. Chronological
+  results deduplicate spanning events. The UI shows up to 20 search results or a
+  three-event 14-day agenda; stale responses cannot publish or steal typing focus.
+  Normal minute ticks do not trigger agenda refresh. Results select the target day.
+- Date fields retain manual entry and gain a shared pure-UI date picker. It has
+  roving focus, physical vi navigation, month boundaries, narrow-layout scrolling,
+  nested modal ownership and editor focus restoration. Choosing the same date
+  does not mark existing timestamps edited.
+- Launcher `@` searches open windows independently of applications/actions. It
+  reads current workspace membership and resolves a live window again after the
+  launcher unloads; stale results cannot dispatch to a closed window.
+- PowerService is bootstrapped independently of widgets. It reads UPower, exposes
+  remaining time and sends configurable low/critical warnings with persisted
+  hysteresis latches. Unknown/unready device states do not rearm warnings. Pending
+  notices are bounded/coalesced and cancelled on recovery. Timer/Power share an
+  argv-based DesktopNotification sender; delivery tests use a private D-Bus server.
+- Caffeine uses an asynchronous ScreenSaver D-Bus cookie and shows confirmed
+  activation separately from the saved request. Late replies release their cookie;
+  owner changes reacquire without releasing a restarted daemon's reused cookie.
+  Missing services and rejected requests expose recovery and IPC diagnostics.
+
+Automated validation uses isolated transports, temporary XDG/calendar roots and
+fake window dispatchers. Real installed-session acceptance (including compositor
+keyboard delivery and assistive technology) remains a manual step after updating
+the packages. Publication and installation are deferred; the running package has
+not been replaced during development.
+
 ## Dashboard timer and automatic Pomodoro — 2026-10-31
 
 Quick now contains a compact optional timer section with countdown/Pomodoro start,

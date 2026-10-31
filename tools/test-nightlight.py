@@ -16,7 +16,8 @@ with tempfile.TemporaryDirectory(prefix='shell-nightlight-test-') as directory:
         path=imports/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
     write('Quickshell/qmldir','module Quickshell\nSingleton 1.0 Singleton.qml\n')
     write('Quickshell/Singleton.qml','import QtQml\nQtObject {default property list<QtObject> children}\n')
-    write('Quickshell/Io/qmldir','module Quickshell.Io\nProcess 1.0 Process.qml\n')
+    write('Quickshell/Io/qmldir','module Quickshell.Io\nProcess 1.0 Process.qml\nIpcHandler 1.0 IpcHandler.qml\n')
+    write('Quickshell/Io/IpcHandler.qml','import QtQml\nQtObject {property string target:""}\n')
     write('Quickshell/Io/Process.qml','import QtQml\nQtObject {property bool running:false;property var command:[];property int starts:0;property int kills:0;function signal(number){if(number===9)kills++} onRunningChanged:if(running)starts++;signal exited(int code);function finish(code){running=false;exited(code)}}\n')
     write('qs/src/core/config/qmldir','module qs.src.core.config\nsingleton AppConfig 1.0 AppConfig.qml\n')
     write('qs/src/core/config/AppConfig.qml','''pragma Singleton
@@ -43,6 +44,20 @@ TestCase {
  function proc(service){return findChild(service,"nightLightProcess")}
  function retry(service){return findChild(service,"nightLightRetry")}
  function enable(service){findChild(service,"nightLightDetect").finish(0);service.setEnabled(true);verify(proc(service).running)}
+ function test_failure_is_retained_until_healthy() {
+  const service=make();enable(service);proc(service).finish(1)
+  verify(service.errorMessage!=="");verify(service.canRetry);verify(service.retry())
+  verify(service.errorMessage!=="","a restart alone is not confirmed healthy")
+  findChild(service,"nightLightHealthy").triggered()
+  compare(service.errorMessage,"");verify(service.active)
+  service.setEnabled(false);proc(service).finish(0)
+ }
+ function test_missing_tool_and_manual_disable() {
+  const service=make();service.setEnabled(true)
+  findChild(service,"nightLightDetect").finish(1)
+  verify(service.errorMessage.includes("Install"));verify(service.canRetry)
+  service.toggle();verify(!service.enabled,"missing tool must not trap persisted enabled state")
+ }
  function test_restored_state_waits_for_detection() {
   const service=make()
   service.setEnabled(true);verify(!proc(service).running)

@@ -2,18 +2,13 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
+import Quickshell.Io
+import SystemMonitor
 
-// Caffeine: holds the session awake by keeping a Wayland idle inhibitor alive.
-//
-// The flag is USER state, so it lives in state.json rather than in memory. It
-// used to be a plain `GlobalStates.inhibit` bool, which reset to false on every
-// shell restart AND on every QML hot-reload — the shell would silently stop
-// inhibiting while the toggle still read as off, so nothing looked wrong.
-//
-// Derive-from-state / write-to-state, the shape NotificationDND documents: a
-// read-write property with an onChanged persister loops through stateData and
-// severs its own binding on the first imperative write.
+// Caffeine owns a confirmed ScreenSaver D-Bus cookie, independently of any
+// surface visibility or compositor heuristics. Requested state/deadlines remain
+// persisted through TimedMode; actual activation is reported separately.
+// TimedMode reads AppConfig.stateData and writes via AppConfig.updateState.
 Singleton {
     id: root
 
@@ -21,28 +16,29 @@ Singleton {
     readonly property bool inhibit: _mode.enabled
     readonly property bool temporary: _mode.temporary
     readonly property real expiresAt: temporary ? _mode.expiresAt : 0
-    readonly property string statusText: _mode.statusText
+    readonly property bool active: backend.active
+    readonly property bool pending: backend.pending
+    readonly property string errorMessage: backend.error
+    readonly property bool canRetry: inhibit && !active && !pending
+    readonly property string statusText: !inhibit ? "" : pending ? "Activating…" : active ? _mode.statusText : "Not active"
+    onErrorMessageChanged: if (inhibit && errorMessage !== "") ToastService.warning(errorMessage)
+    function retry() { return canRetry && backend.retry() }
     function init() { _mode.refresh() }
     function setInhibit(on) { _mode.setEnabled(on) }
     function setForMinutes(minutes) { return _mode.start(minutes) }
     function toggleInhibit() { setInhibit(!inhibit) }
 
-    IdleInhibitor {
+    SessionIdleInhibitor {
+        id: backend
         enabled: root.inhibit
-
-        // The protocol wants a surface to attach the inhibitor to; it is never
-        // drawn and never takes input.
-        window: PanelWindow {
-            implicitWidth: 0
-            implicitHeight: 0
-            color: "transparent"
-            anchors {
-                right: true
-                bottom: true
-            }
-            mask: Region {
-                item: null
-            }
+    }
+    IpcHandler {
+        target: "caffeine"
+        function retry(): bool { return root.retry() }
+        function status(): string {
+            return JSON.stringify({requested:root.inhibit,active:root.active,pending:root.pending,
+                available:backend.available,error:root.errorMessage,details:backend.details,
+                expiresAt:root.expiresAt})
         }
     }
 }

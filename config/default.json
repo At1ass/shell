@@ -391,5 +391,13 @@
       "cyclesBeforeLongBreak": 4
     },
     "showInDashboard": true
+  },
+  "battery": {
+    "warnings": {
+      "enabled": true,
+      "lowPercent": 15,
+      "criticalPercent": 5,
+      "hysteresisPercent": 3
+    }
   }
 }

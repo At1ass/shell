@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import FuzzySearch
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.src.core.config
@@ -221,6 +222,7 @@ MaterialCard {
 
             IconButton {
                 iconName: root.expanded ? "expand_less" : "expand_more"
+                Accessible.name: root.expanded ? "Collapse notification" : "Expand notification"
                 iconSize: Tokens.iconSize.small
                 containerSize: 28
                 touchTargetSize: 32
@@ -231,6 +233,14 @@ MaterialCard {
             }
 
             IconButton {
+                iconName: "content_copy"
+                iconSize: Tokens.iconSize.small
+                Accessible.name: "Copy notification text"
+                onClicked: Quickshell.clipboardText = root.summary + (root.body ? "\n" + FuzzySearch.plainText(root.body) : "")
+                Layout.alignment: Qt.AlignTop
+            }
+            IconButton {
+                Accessible.name: "Remove notification"
                 iconName: "close"
                 iconSize: Tokens.iconSize.small
                 containerSize: 28

@@ -18,6 +18,28 @@ Dialog {
     property var eventData: null
     property date selectedDate: new Date()
     property bool dirty: false
+    property MaterialTextField _dateTarget: null
+    function pickDate(field) {
+        _dateTarget=field
+        datePicker.openFor(_parseLocalDate(field.text) || root.selectedDate)
+        datePicker._previousFocus=field.inputItem
+    }
+    MaterialDatePicker {
+        id: datePicker
+        parent: root
+        z: 1
+        firstDayOfWeek: AppConfig.calendarFirstDayOfWeek
+        onDateChosen: selected => {
+            if(!root._dateTarget)return
+            const text=Qt.formatDate(selected,"yyyy-MM-dd")
+            if(root._dateTarget.text===text)return
+            root._dateTarget.text=text
+            root.dirty=true
+            if(root._dateTarget!==untilField)root._timesEdited=true
+        }
+    }
+    onVisibleChanged: if(!visible && datePicker) { datePicker.close();datePicker.visible=false }
+
 
     // All-day events have no time-of-day; the time row hides and validation
     // skips time checks (they used to hard-block editing all-day events).
@@ -367,6 +389,9 @@ Dialog {
 
                     MaterialTextField {
                         id: startDateField
+                        trailingIcon: "calendar_month"
+                        trailingAccessibleName: "Choose date"
+                        onTrailingClicked: root.pickDate(startDateField)
                         errorText: root.dirty ? root._fieldErrors.startDate : ""
                         labelItem: startDateFieldLabel
                         Layout.fillWidth: true
@@ -390,6 +415,9 @@ Dialog {
 
                     MaterialTextField {
                         id: endDateField
+                        trailingIcon: "calendar_month"
+                        trailingAccessibleName: "Choose date"
+                        onTrailingClicked: root.pickDate(endDateField)
                         errorText: root.dirty ? root._fieldErrors.endDate : ""
                         labelItem: endDateFieldLabel
                         Layout.fillWidth: true
@@ -566,6 +594,9 @@ Dialog {
                 // and recurring events could never be saved without a date.
                 MaterialTextField {
                     id: untilField
+                    trailingIcon: "calendar_month"
+                    trailingAccessibleName: "Choose date"
+                    onTrailingClicked: root.pickDate(untilField)
                     labelItem: untilFieldLabel
                     errorText: root.dirty ? root._fieldErrors.until : ""
                     Layout.fillWidth: true

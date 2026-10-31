@@ -420,7 +420,7 @@ Singleton {
     }
 
     // ── History delegations (UI binds through the facade) ─────────
-    function removeFromHistory(id)  { return NotificationHistory.remove(id) }
+    function removeFromHistory(id)  { return NotificationHistory.removeUndoable(id) }
     function removeGroupFromHistory(appName) { NotificationHistory.removeGroup(appName) }
     function clearHistory()         { return NotificationHistory.clearUndoable() }
     function undoClearHistory()     { return NotificationHistory.undoClear() }

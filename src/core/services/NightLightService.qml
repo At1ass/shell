@@ -27,6 +27,11 @@ Singleton {
 
     // Whether hyprsunset is available on the system
     readonly property bool available: _detected
+    readonly property bool active: sunsetProc.running && !_awaitingExit
+    property string errorMessage: ""
+    property int lastExitCode: 0
+    readonly property bool canRetry: (enabled || errorMessage !== "") && !sunsetProc.running && !_awaitingExit && !detectProc.running
+    readonly property string statusText: errorMessage !== "" ? "Recovery needed" : enabled ? active ? "On" : "Starting…" : "Off"
     property bool _detected: false
     property int _consecutiveFailures: 0
     property bool _awaitingExit: false
@@ -39,6 +44,7 @@ Singleton {
         command: ["which", "hyprsunset"]
         onExited: (exitCode) => {
             root._detected = exitCode === 0
+            if (exitCode !== 0 && root.enabled) root.reportError("Night light is unavailable. Install hyprsunset and retry.", exitCode)
         }
     }
 
@@ -55,7 +61,7 @@ Singleton {
             if (!root.enabled) return
             if (!intentional) {
                 root._consecutiveFailures = Math.min(8, root._consecutiveFailures + 1)
-                if (exitCode !== 0) console.warn("NightLightService: hyprsunset exited with code", exitCode)
+                root.reportError("Night light stopped unexpectedly. Automatic recovery is in progress.", exitCode)
             }
             _restartTimer.restart()
         }
@@ -64,8 +70,8 @@ Singleton {
     Timer {
         objectName: "nightLightHealthy"
         interval: 30000
-        running: sunsetProc.running && root._consecutiveFailures > 0
-        onTriggered: root._consecutiveFailures = 0
+        running: sunsetProc.running && (root._consecutiveFailures > 0 || root.errorMessage !== "")
+        onTriggered: { root._consecutiveFailures = 0; root.errorMessage = ""; root.lastExitCode = 0 }
     }
 
     Timer {
@@ -82,6 +88,7 @@ Singleton {
             _startSunset()
         } else {
             _stopSunset()
+            errorMessage = ""
         }
     }
 
@@ -117,11 +124,30 @@ Singleton {
     }
 
     function toggle() {
-        if (!_detected) {
-            ToastService.warning("hyprsunset not found - night light unavailable")
+        if (!_detected && !enabled) {
+            root.reportError("Night light is unavailable. Install hyprsunset and retry.", -1)
             return
         }
         root.setEnabled(!root.enabled)
+    }
+
+    function reportError(message, code) {
+        const first = errorMessage === ""
+        errorMessage = message
+        lastExitCode = code
+        if (first) ToastService.warning(message)
+    }
+    function retry() {
+        if (!canRetry) return false
+        if (!_detected) {
+            detectProc.running = true
+            return true
+        }
+        if (!enabled) return false
+        _restartTimer.stop()
+        _consecutiveFailures = 0
+        _startSunset()
+        return sunsetProc.running
     }
 
     function setTemperature(temp) {
@@ -148,11 +174,20 @@ Singleton {
     // enable coming back from state.json hits _startSunset() while _detected is
     // still false and is dropped. Start once detection lands.
     on_DetectedChanged: {
+        if (root._detected && !root.enabled) root.errorMessage = ""
         if (root._detected && root.enabled)
             root._startSunset()
     }
 
     Component.onCompleted: {
         detectProc.running = true
+    }
+    IpcHandler {
+        target: "nightlight"
+        function retry(): bool { return root.retry() }
+        function status(): string {
+            return JSON.stringify({enabled:root.enabled,available:root.available,active:root.active,
+                error:root.errorMessage,exitCode:root.lastExitCode,retryScheduled:_restartTimer.running})
+        }
     }
 }

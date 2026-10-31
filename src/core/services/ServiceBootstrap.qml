@@ -15,6 +15,7 @@ Singleton {
         IdleInhibitorService.init()
         NotificationDND.init()
         TimerService.init()
+        PowerService.init()
         GamingModeService.init()
     }
 }

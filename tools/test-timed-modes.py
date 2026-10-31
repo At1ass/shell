@@ -14,8 +14,7 @@ with tempfile.TemporaryDirectory(prefix='shell-timed-test-') as directory:
         source=(ROOT/f'src/core/services/{name}.qml').read_text()
         if name=='NotificationDND': source=source.replace('import Quickshell.Hyprland','import TestHyprland')
         if name=='IdleInhibitorService':
-            source=source[:source.index('    IdleInhibitor {')]+'}\n'
-            source=source.replace('import Quickshell.Wayland\n','')
+            source=source.replace('import SystemMonitor','import TestIdleInhibit')
         (services/f'{name}.qml').write_text(source)
     (services/'SessionMonitor.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {signal resumed()}\n')
     (services/'DateTime.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject clock:QtObject {property date date:new Date()}}\n')
@@ -23,6 +22,9 @@ with tempfile.TemporaryDirectory(prefix='shell-timed-test-') as directory:
     hypr=tree/'imports/TestHyprland';hypr.mkdir(parents=True)
     (hypr/'qmldir').write_text('module TestHyprland\nsingleton Hyprland 1.0 Hyprland.qml\n')
     (hypr/'Hyprland.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject focusedWorkspace:QtObject {property bool hasFullscreen:false}}\n')
+    idle=tree/'imports/TestIdleInhibit';idle.mkdir(parents=True)
+    (idle/'qmldir').write_text('module TestIdleInhibit\nSessionIdleInhibitor 1.0 SessionIdleInhibitor.qml\n')
+    (idle/'SessionIdleInhibitor.qml').write_text('import QtQml\nQtObject {property bool enabled:false;readonly property bool active:enabled;readonly property bool pending:false;readonly property bool available:true;readonly property string error:"";readonly property string details:"";function retry() {return false}}\n')
     home=tree/'xdg/quickshell';home.mkdir(parents=True)
     shutil.copy2(ROOT/'config/default.json',home/'config.json')
     (home/'state.json').write_text(json.dumps({'notifications':{'doNotDisturb':True,'expiresAt':int(time.time()*1000)-1000,'marker':'keep'},'idleInhibitor':{'enabled':True},'unrelated':{'value':7}}))

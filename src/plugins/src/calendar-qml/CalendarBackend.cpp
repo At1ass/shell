@@ -3,6 +3,7 @@
 #include "ReminderEngine.h"
 #include "../common/WorkerLifetime.h"
 #include <QtCore/QUuid>
+#include <QtCore/QTimer>
 
 CalendarBackend::CalendarBackend(QObject* parent)
     : QObject(parent)
@@ -10,6 +11,9 @@ CalendarBackend::CalendarBackend(QObject* parent)
     , m_reminders(new ReminderEngine(this))
 {
     m_workerThread = WorkerLifetime::create(m_store);
+    connect(m_store,&CalendarStore::searchReady,this,[this](const QString& id,const QVariantList& events,bool truncated){
+        emit searchFinished(id,events,truncated,{});
+    },Qt::QueuedConnection);
 
     connect(m_store, &CalendarStore::storeRefreshed,
             this,    &CalendarBackend::handleStoreRefreshed,    Qt::QueuedConnection);
@@ -34,6 +38,17 @@ CalendarBackend::CalendarBackend(QObject* parent)
 CalendarBackend::~CalendarBackend() {
     WorkerLifetime::retire(m_workerThread);
     m_store = nullptr;
+}
+
+QString CalendarBackend::searchEvents(const QString& query,const QDate& from,const QDate& to) {
+    const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    if(!from.isValid()||!to.isValid()||from.year()<1||to.year()>9999||from>to||from.daysTo(to)>365||query.size()>512) {
+        QTimer::singleShot(0,this,[this,id]{emit searchFinished(id,{},false,QStringLiteral("Search needs a valid range of at most one year."));});
+        return id;
+    }
+    QMetaObject::invokeMethod(m_store,"requestSearch",Qt::QueuedConnection,Q_ARG(QString,id),
+        Q_ARG(QString,query),Q_ARG(QDate,from),Q_ARG(QDate,to));
+    return id;
 }
 
 // ── Setters ───────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 module qs.src.features.dashboard.components
+CalendarSearchSection 1.0 CalendarSearchSection.qml
 
 EventDialog 1.0 EventDialog.qml
 RecurrenceEditChoice 1.0 RecurrenceEditChoice.qml

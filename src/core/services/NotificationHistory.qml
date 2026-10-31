@@ -304,6 +304,22 @@ Singleton {
         return pendingUpdated
     }
 
+    function removeUndoable(id) {
+        if (clearing || restoring) return false
+        for (let i=0;i<historyList.count;i++) {
+            if (historyList.get(i).notificationId !== id) continue
+            const entry = _entryAt(i)
+            commitClear()
+            if (!remove(id)) return false
+            _undoEntries = [entry]
+            _undoDeadline = Date.now() + AppConfig.notificationClearUndoTimeout
+            refreshUndo()
+            save()
+            return true
+        }
+        return false
+    }
+
     function remove(id) {
         _excludeUndo(id, "")
         for (let i = 0; i < historyList.count; i++) {
