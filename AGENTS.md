@@ -639,10 +639,22 @@ codes один раз и передаёт argv. GreeterAuth копирует arg
 greeter_data_test, tools/test-greeter.py и tools/test-greeter-data.py (read-only).
 
 
+### Виджет воркспейсов
+
+Номер воркспейса виден и в компактном виде; состояние активного окна отдельно от
+активного воркспейса. Один Tab-stop на виджет, физические H/L выбирают воркспейс,
+J/K — окно. При горизонтальном overflow выбранная цель раскрывается по событию,
+без polling. TooltipItem использует менеджер своего бара и не меняет геометрию;
+превью остаются в Overview. Нормальная ширина вычисляется из токенов и числа
+слотов независимо от скрытых/compact делегатов. Ключ окна — compositor address.
+Правило принадлежности WindowWorkspace.js общее с Overview. Контекстный переход
+выбирает воркспейс в обзоре без реального focus/move dispatch. OnDemand keyboard
+focus бара не является exclusive grab и не включается от наведения.
+
 ### Обзор воркспейсов
 
 Overview — отдельная лениво создаваемая модальность activePanel. OverviewService
-читает нативные Hyprland.workspaces/toplevels; карточки используют единый windowsByWorkspace по window.workspace.id,
+читает нативные Hyprland.workspaces/toplevels; карточки используют единый windowsByWorkspace через чистый WindowWorkspace.js (актуальный lastIpcObject.workspace.id, затем native workspace.id),
 без CLI/polling. Пустые цели берутся из overview в config/schema/defaults. Поиск —
 нативный FuzzySearch, адрес окна является стабильным ключом; выбор не хранит QObject
 между командами. Перенос фиксирует адрес исходного окна и снимок ID целей до открытия
@@ -694,7 +706,7 @@ OverviewService повторно проверяет source/monitor/target. На 
 явным source. workspace.change_id не использовать: Quickshell 0.3.2 не согласует
 старый ID после этого события, refreshWorkspaces() не удаляет старые записи.
 Не брать окна карточек из workspace.toplevels: группировать единый глобальный
-список по текущему window.workspace.id, чтобы запоздавшая дочерняя модель не
+список по текущему WindowWorkspace.id(window), чтобы запоздавшая дочерняя модель не
 создавала дубликаты. Перенос на другой номер использует обычное tiling-размещение.
 Специальные и синтетические воркспейсы исключены. Modal блокирует обычные команды
 обзора; исчезновение source закрывает меню. Тестировать только fake dispatchers,

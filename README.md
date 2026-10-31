@@ -600,6 +600,26 @@ monitor keeps the workspace number/layout. Transferring to another number moves
 all its windows, merging into an occupied target; Hyprland determines placement
 and the original tiling tree is not preserved.
 
+### Workspaces in the bar
+
+Each workspace has a persistent number. Occupied workspaces group their application
+icons beside that number; the active workspace has the configured pill/dot marker,
+and the active window has its own highlight/underline. Hover an icon for the app,
+window title and workspace. Hit areas remain larger than the icon drawing; hover
+never changes the bar width. Compact presentation retains workspace numbers.
+
+Click a number to switch workspace, or an icon to focus its window. Right-click a
+group/window opens Overview at that workspace (unless a custom clickAction is
+configured); click `+N` to view additional windows in Overview. Previews are
+created by Overview according to `overview.showPreviews`, not by bar hover.
+
+The workspace widget is one Tab stop. After focusing it, physical H/L or Left/Right
+select a workspace, J/K or Down/Up select a window, Enter/Space activates selection,
+and Menu/Shift+F10 opens the workspace context action. Escape returns selection to
+the workspace number; Tab/Shift+Tab leave the widget. Letter keys follow physical
+positions across keyboard layouts. These commands operate while the bar has focus;
+they do not install global shortcuts.
+
 ### Bar, tray and lockscreen
 
 `bar.widgets` controls order, monitor visibility, `enabled`, `clickAction` and

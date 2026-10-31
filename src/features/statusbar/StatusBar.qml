@@ -93,6 +93,7 @@ PanelWindow {
     // startup whenever auto-hide was already on. Driving exclusionMode directly avoids that.
     exclusionMode: autoHide ? ExclusionMode.Ignore : ExclusionMode.Auto
     WlrLayershell.namespace: "shell:bar"
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     anchors {
         left: true

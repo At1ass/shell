@@ -132,6 +132,7 @@ Item {
         WorkspaceWidget {
             widgetConfig: root.widgetConfig
             barRevealed: root.barRevealed && !root.adaptiveHidden
+            tooltipManager: root.tooltipManager
         }
     }
 

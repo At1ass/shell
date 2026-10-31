@@ -36,7 +36,7 @@ FocusScope {
         if (dragging || modalOpen || !GlobalStates.overviewOpen || !window) return false
         _dragEpoch++
         selectedAddress=address
-        dragOriginWorkspaceId=window.workspace?.id ?? 0
+        dragOriginWorkspaceId=OverviewService.workspaceId(window) ?? 0
         dragOriginScrollY=grid.contentY
         dragAddress=address
         updateDrag(address,position)
@@ -64,7 +64,7 @@ FocusScope {
         updateDrag(address,position)
         const target=dragTargetId
         const valid=!cancelled && GlobalStates.overviewOpen && dropAllowed
-            && OverviewService.windowFor(address)?.workspace?.id===dragOriginWorkspaceId
+            && OverviewService.workspaceId(OverviewService.windowFor(address))===dragOriginWorkspaceId
         cancelDrag()
         return valid ? OverviewService.moveWindow(address,target) : false
     }
@@ -76,7 +76,8 @@ FocusScope {
     onModalOpenChanged: if (modalOpen) root.cancelDrag()
     Connections {
         target: root.dragWindow
-        function onWorkspaceChanged() { if (root.dragWindow?.workspace?.id!==root.dragOriginWorkspaceId) root.cancelDrag() }
+        function onWorkspaceChanged() { if (OverviewService.workspaceId(root.dragWindow)!==root.dragOriginWorkspaceId) root.cancelDrag() }
+        function onLastIpcObjectChanged() { if (OverviewService.workspaceId(root.dragWindow)!==root.dragOriginWorkspaceId) root.cancelDrag() }
     }
     Connections { target:GlobalStates;function onOverviewOpenChanged(){if(!GlobalStates.overviewOpen)root.cancelDrag()} }
     Timer {
@@ -95,18 +96,27 @@ FocusScope {
     readonly property bool modalOpen: moveDialog.visible || workspaceDialog.visible
     property var moveDestinations: []
     readonly property var selectedWindow: OverviewService.windowFor(selectedAddress)
+    readonly property var selectedWindowWorkspaceId: OverviewService.workspaceId(selectedWindow)
     function focusInitial() { search.forceActiveFocus(Qt.TabFocusReason) }
     function reset() {
         root.cancelDrag()
         OverviewService.query=""
-        root.selectedWorkspaceId=OverviewService.workspaces.find(workspace=>workspace.native?.focused)?.id ?? AppConfig.overviewFirstWorkspace
-        root.selectedAddress=OverviewService.windows.find(window=>window?.activated)?.address ?? ""
+        const requested = OverviewService.requestedWorkspaceId
+        root.selectedAddress = requested > 0 ? OverviewService.windowsByWorkspace[requested]?.[0]?.address ?? ""
+            : OverviewService.windows.find(window=>window?.activated)?.address ?? ""
+        root.selectedWorkspaceId = requested > 0 ? requested
+            : OverviewService.workspaces.find(workspace=>workspace.native?.focused)?.id ?? AppConfig.overviewFirstWorkspace
         root.reconcileSelection()
         root.focusInitial()
+        Qt.callLater(() => {
+            const index = OverviewService.workspaces.findIndex(workspace => workspace.id === root.selectedWorkspaceId)
+            if (index >= 0 && GlobalStates.overviewOpen) grid.positionViewAtIndex(index, GridView.Contain)
+        })
     }
+    Connections { target: OverviewService; function onWorkspaceRequested() { root.reset() } }
     function reconcileSelection() {
         if (OverviewService.matches.includes(selectedAddress)) return
-        const local=OverviewService.matches.find(address=>OverviewService.windowFor(address)?.workspace?.id===selectedWorkspaceId)
+        const local=OverviewService.matches.find(address=>OverviewService.workspaceId(OverviewService.windowFor(address))===selectedWorkspaceId)
         selectedAddress=local ?? (OverviewService.query.trim() ? OverviewService.matches[0] ?? "" : "")
     }
     function step(delta) {
@@ -116,7 +126,7 @@ FocusScope {
         const current = found < 0 ? (delta > 0 ? -1 : 0) : found
         selectedAddress = matches[(current + delta + matches.length) % matches.length]
         const window = selectedWindow
-        const index = OverviewService.workspaces.findIndex(workspace => workspace.id === window?.workspace?.id)
+        const index = OverviewService.workspaces.findIndex(workspace => workspace.id === OverviewService.workspaceId(window))
         if (index >= 0) grid.positionViewAtIndex(index, GridView.Contain)
     }
     function stepWorkspace(delta) {
@@ -125,14 +135,14 @@ FocusScope {
         const current=Math.max(0,workspaces.findIndex(workspace=>workspace.id===selectedWorkspaceId))
         const next=(current+delta+workspaces.length)%workspaces.length
         selectedWorkspaceId=workspaces[next].id
-        selectedAddress=OverviewService.matches.find(address=>OverviewService.windowFor(address)?.workspace?.id===selectedWorkspaceId) ?? ""
+        selectedAddress=OverviewService.matches.find(address=>OverviewService.workspaceId(OverviewService.windowFor(address))===selectedWorkspaceId) ?? ""
         grid.positionViewAtIndex(next,GridView.Contain)
     }
     function activateSelection() {
         if (selectedWindow) OverviewService.focusWindow(selectedAddress)
         else if (!OverviewService.query.trim()) OverviewService.focusWorkspace(selectedWorkspaceId)
     }
-    onSelectedWindowChanged: if (selectedWindow?.workspace) selectedWorkspaceId=selectedWindow.workspace.id
+    onSelectedWindowWorkspaceIdChanged: if (selectedWindowWorkspaceId !== undefined && selectedWindowWorkspaceId !== null) selectedWorkspaceId = selectedWindowWorkspaceId
     function closeWindow(address) {
         if (dragging || modalOpen || !OverviewService.matches.includes(address)) return false
         if (!OverviewService.windowFor(address)) return false
@@ -174,7 +184,7 @@ FocusScope {
         if (!OverviewService.windowFor(address)) return
         root.cancelDrag()
         selectedAddress = address
-        const candidate = OverviewService.workspaces.find(workspace => workspace.id !== selectedWindow.workspace?.id)
+        const candidate = OverviewService.workspaces.find(workspace => workspace.id !== OverviewService.workspaceId(selectedWindow))
         if (!candidate) return
         moveSourceAddress = address
         moveDestinations = OverviewService.workspaces.map(workspace=>({id:workspace.id,name:workspace.name}))
@@ -329,7 +339,7 @@ FocusScope {
                     else return
                     event.accepted=true
                 }
-                model:root.moveDestinations.map(workspace=>({label:workspace.name,enabled:workspace.id!==root.moveSourceWindow?.workspace?.id}))
+                model:root.moveDestinations.map(workspace=>({label:workspace.name,enabled:workspace.id!==OverviewService.workspaceId(root.moveSourceWindow)}))
                 onTriggered: index => {
                     const target=root.moveDestinations[index]
                     if (target) OverviewService.moveWindow(root.moveSourceAddress,target.id)

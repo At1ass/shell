@@ -3,6 +3,32 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Numbered workspace groups and contextual overview — 2026-10-31
+
+The bar now groups windows behind persistent workspace numbers, with separate
+active-workspace and active-window markers. Numbered labels survive compaction;
+showWindows=false remains a number-only view. Icon hit areas use the pack's touch
+target independently of the icon drawing. One per-bar passive TooltipManager shows
+app/title/workspace on hover or keyboard selection, without capture or geometry
+changes. Normal width is calculated from bounded slot counts, independently of
+hidden/compact delegates. Compact presentation unloads icon delegates.
+
+The widget is one Tab stop, with physical H/L for workspaces and J/K for windows;
+Enter/Space activates and Menu/Shift+F10 invokes context. Accessibility actions
+are provided on workspace/window/overflow targets. The bar requests keyboard focus
+on demand, not on hover; it never takes an exclusive grab. Custom right-click
+actions are preserved. Overflow opens Overview with the relevant workspace selected.
+
+A pure WindowWorkspace helper defines current membership for bar and Overview,
+including selection, drag validation and whole-workspace transfer. Overview accepts
+a requested workspace/screen without dispatching a focus change; even empty targets
+outside its configured default range remain reachable while requested. Isolated
+keyboard/mouse tests cover both packs, focus traversal, tooltips, geometry, compact
+metrics and selected/empty overview targets. Native model lifecycle and read-only
+Hyprland probes still use no real window focus/move/close commands. Renders are
+mock-data evidence; compositor keyboard delivery and screen-reader operation need
+real-session acceptance after updating the package.
+
 ## Qt minimum supported version — 2026-10-31
 
 Qt 6.10 is now the minimum supported version by user decision, allowing labelledBy

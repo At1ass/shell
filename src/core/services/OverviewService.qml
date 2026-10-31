@@ -7,6 +7,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import FuzzySearch
 import qs.src.core.config
+import "WindowWorkspace.js" as WindowWorkspace
 
 Singleton {
     id: root
@@ -20,15 +21,17 @@ Singleton {
     readonly property var monitors: active ? Array.from(_monitors?.values ?? []).map(monitor => ({name:monitor.name})) : []
     readonly property QS.ObjectModel _workspaces: Hyprland.workspaces as QS.ObjectModel
     readonly property list<HyprlandToplevel> windows: active ? Array.from(_windows?.values ?? []) : []
-    readonly property var windowsByWorkspace: {
-        const result = Object.create(null)
-        for (const window of windows) {
-            const id = window?.workspace?.id
-            if (id === undefined) continue
-            if (!result[id]) result[id] = []
-            result[id].push(window)
-        }
-        return result
+    readonly property var windowsByWorkspace: WindowWorkspace.group(windows)
+    function workspaceId(window) { return WindowWorkspace.id(window) }
+    property int requestedWorkspaceId: 0
+    signal workspaceRequested(int id)
+    function showWorkspace(id, source) {
+        if (!Number.isInteger(id) || id < 0 || id >= 100000 || GlobalStates.lockscreenActive || !AppConfig.moduleEnabled("overview")) return false
+        requestedWorkspaceId = id
+        query = ""
+        GlobalStates.openPanel("overview", GlobalStates.screenForItem(source))
+        workspaceRequested(id)
+        return true
     }
     readonly property var byAddress: {
         const result = Object.create(null)
@@ -42,6 +45,7 @@ Singleton {
             const id = AppConfig.overviewFirstWorkspace + i
             result[id] = {id:id, name:String(id), native:null}
         }
+        if (requestedWorkspaceId > 0 && !result[requestedWorkspaceId]) result[requestedWorkspaceId] = {id:requestedWorkspaceId,name:String(requestedWorkspaceId),native:null}
         for (const workspace of Array.from(_workspaces?.values ?? [])) {
             if (!workspace || Math.abs(workspace.id) >= 100000 || workspace.id === 0) continue
             if (workspace.name.startsWith("special:") && !AppConfig.overviewIncludeSpecial) continue
@@ -55,7 +59,7 @@ Singleton {
         return ids
     }
     readonly property list<string> matches: {
-        const candidates = windows.filter(window => !!window?.address && workspaceIds[window.workspace?.id])
+        const candidates = windows.filter(window => !!window?.address && workspaceIds[workspaceId(window)])
         if (!query.trim()) return candidates.map(window => window.address)
         const labels = candidates.map(window => (window.title || "") + " " + (window.lastIpcObject.class || "") + " " + (window.workspace?.name || ""))
         return FuzzySearch.match(query.trim(), labels, candidates.length, 65).map(hit => candidates[hit.index].address)
@@ -84,7 +88,7 @@ Singleton {
     function moveWindow(address, id) {
         const window = windowFor(address)
         const target = workspaces.find(workspace => workspace.id === id)
-        if (!window || !target || window.workspace?.id === id) return false
+        if (!window || !target || workspaceId(window) === id) return false
         HyprlandDispatch.moveWindowToWorkspace(address, target.id, target.name)
         return true
     }
@@ -100,10 +104,10 @@ Singleton {
         const target = workspaceFor(targetId)
         if (!active || id <= 0 || targetId <= 0 || id === targetId || !source?.native || !target) return false
         // Transfer the complete native source, independent of search filtering.
-        const addresses = windows.filter(window => window?.workspace?.id === id).map(window => window.address)
+        const addresses = windows.filter(window => workspaceId(window) === id).map(window => window.address)
         if (!addresses.length) return false
         for (const address of addresses) {
-            if (windowFor(address)?.workspace?.id === id) HyprlandDispatch.moveWindowToWorkspace(address, target.id, target.name)
+            if (workspaceId(windowFor(address)) === id) HyprlandDispatch.moveWindowToWorkspace(address, target.id, target.name)
         }
         return true
     }
@@ -112,6 +116,6 @@ Singleton {
         Hyprland.refreshToplevels()
         Hyprland.refreshWorkspaces()
     }
-    onActiveChanged: { if (!active) query = ""; else refresh() }
+    onActiveChanged: { if (!active) { query = ""; requestedWorkspaceId = 0 } else refresh() }
     Component.onCompleted: refresh()
 }

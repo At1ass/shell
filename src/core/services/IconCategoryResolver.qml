@@ -98,6 +98,10 @@ Singleton {
      * to getAppCategoryIcon() — a themed icon can also fail to LOAD, which
      * only the Image's status can tell them.
      */
+    function appName(windowClass) {
+        return DockService.resolveEntry(windowClass)?.name || windowClass || "Application"
+    }
+
     function appIconSource(windowClass) {
         if (!windowClass) return ""
         const icon = DockService.resolveEntry(windowClass)?.icon ?? ""

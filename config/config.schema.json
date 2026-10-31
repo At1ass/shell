@@ -1773,7 +1773,7 @@
         "showWindows": {
           "type": "boolean",
           "default": true,
-          "description": "Show window-count dots inside workspace chips."
+          "description": "Show application icons beside numbered workspace labels. Compact presentation keeps only workspace numbers."
         },
         "maxWindowsPerWorkspace": {
           "type": "integer",

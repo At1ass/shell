@@ -14,6 +14,7 @@ with tempfile.TemporaryDirectory(prefix='shell-overview-test-') as directory:
     (config/'AppConfig.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int overviewFirstWorkspace:1;property int overviewWorkspaceCount:3;property bool overviewIncludeSpecial:true;property bool overviewShowPreviews:true}\n')
     (services/'qmldir').write_text('module qs.src.core.services\nsingleton OverviewService 1.0 OverviewService.qml\nsingleton GlobalStates 1.0 GlobalStates.qml\nsingleton HyprlandDispatch 1.0 HyprlandDispatch.qml\n')
     shutil.copy2(ROOT/'src/core/services/OverviewService.qml',services/'OverviewService.qml')
+    shutil.copy2(ROOT/'src/core/services/WindowWorkspace.js',services/'WindowWorkspace.js')
     (services/'GlobalStates.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property bool overviewOpen:true;function closePanel(name){overviewOpen=false}}\n')
     (services/'HyprlandDispatch.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property int commands:0;function moveWorkspaceToMonitor(id,name){commands++;return true} function closeWindow(address){commands++} function focusWindow(address){commands++} function focusWorkspace(id,name){commands++} function moveWindowToWorkspace(address,id,name){commands++}}\n')
     fake=tree/'FixtureHyprland';fake.mkdir()
@@ -28,6 +29,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import FixtureHyprland as Fixture
 import qs.src.core.services
+import "src/core/services/WindowWorkspace.js" as WindowWorkspace
 ShellRoot {
  id:root
  property QtObject dispatch:DispatchProbe {id:dispatch}
@@ -42,6 +44,7 @@ ShellRoot {
    if(root.phase===0){
     if(root.ticks<8)return
     root.check(OverviewService._windows!==null && OverviewService._workspaces!==null,"native ObjectModel bridge")
+    root.check(Object.values(WindowWorkspace.group(Hyprland.toplevels.values)).reduce((count,windows)=>count+windows.length,0)===OverviewService.windows.length,"bar and overview accept the same native window list")
     root.check(OverviewService.workspaces.length>=3,"empty workspace targets")
     root.check(OverviewService.windows.length===Hyprland.toplevels.values.length,"native window snapshot")
     for(const window of OverviewService.windows) {

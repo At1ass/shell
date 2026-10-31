@@ -44,6 +44,7 @@ Rectangle {
     // The gate every Behavior in the bar keys off, here and in the widgets.
     readonly property bool animationsActive: root.animated && root.barRevealed
     property bool clickable: false
+    property bool focusRingEnabled: true
     property bool hoverable: false
     property bool expandOnHover: false
 
@@ -101,8 +102,8 @@ Rectangle {
         layerColor: Theme.onSurface
         hovered: root.hovered && (root.clickable || root.hoverable)
         pressed: root.pressed && root.clickable
-        focused: root.activeFocus
-        showFocusRing: root.activeFocus
+        focused: root.activeFocus && root.focusRingEnabled
+        showFocusRing: root.activeFocus && root.focusRingEnabled
     }
 
     // Content container
