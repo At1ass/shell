@@ -2,6 +2,7 @@
 """Check shared controls with real Qt key events; render both design packs."""
 from pathlib import Path
 import os
+import json
 import shutil
 import subprocess
 import tempfile
@@ -21,10 +22,10 @@ with tempfile.TemporaryDirectory(prefix='shell-ui-test-') as temp:
     shutil.copytree(ROOT / 'src/ui', tree / 'src/ui')
     config = tree / 'src/core/config'
     config.mkdir(parents=True)
-    for name in ['Tokens.qml', 'Keycodes.qml', 'Theme.qml', 'BarMetrics.qml']:
+    for name in ['Tokens.qml', 'Keycodes.qml', 'Theme.qml', 'BarMetrics.qml', 'ConfigValidator.qml']:
         shutil.copy2(ROOT / 'src/core/config' / name, config / name)
     (config / 'qmldir').write_text('module qs.src.core.config\n' + '\n'.join(
-        f'singleton {name} 1.0 {name}.qml' for name in ['Tokens', 'Keycodes', 'Theme', 'BarMetrics', 'AppConfig']) + '\n')
+        f'singleton {name} 1.0 {name}.qml' for name in ['Tokens', 'Keycodes', 'Theme', 'BarMetrics', 'ConfigValidator', 'AppConfig']) + '\n')
     (config / 'AppConfig.qml').write_text('''pragma Singleton
 import QtQml
 QtObject {
@@ -50,6 +51,7 @@ QtObject {
  function barWidgetPriority(widget) {return widget?.priority ?? ({clock:100,workspaces:90,battery:85,volume:80,network:75,notifications:70,layout:60,tray:50,media:40,weather:30,activewindow:20})[widget?.type] ?? 50}
  function moduleEnabled(name) {return !disabledModules.includes(name)}
  function panelKeptLoaded(name) {return false}
+ readonly property var launcherActions:data.launcher?.actions ?? ({})
  property var data:({})
  property var stateData:({})
  property var temporaryModeDurations:[15,30,60,120]
@@ -100,6 +102,8 @@ QtObject {
     qs = temp / 'imports/Quickshell'
     qs.mkdir()
     (qs / 'qmldir').write_text('module Quickshell\nSingleton 1.0 Singleton.qml\nScriptModel 1.0 ScriptModel.qml\nsingleton Quickshell 1.0 Quickshell.qml\n')
+    with (qs / 'qmldir').open('a') as module: module.write('singleton DesktopEntries 1.0 DesktopEntries.qml\n')
+    (qs / 'DesktopEntries.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property QtObject applications:QtObject {property var values:[]}}\n')
     (qs / 'ScriptModel.qml').write_text('import QtQml.Models\nListModel {property var values:[];property string objectProp:"";dynamicRoles:true;onValuesChanged:{clear();for(const entry of values) append({modelData:entry})}}\n')
     with (qs / 'qmldir').open('a') as module: module.write('ObjectModel 1.0 ObjectModel.qml\n')
     (qs / 'ObjectModel.qml').write_text('import QtQml\nQtObject {property var values:[]}\n')
@@ -352,6 +356,7 @@ QtObject {
     mocks['AudioService'] += ';signal volumeChanged(real volume,bool muted)'
     mocks['BrightnessService'] += ';signal brightnessAdjusted(real value)'
     mocks['ToastService'] = 'readonly property int levelInfo:0;readonly property int levelSuccess:1;readonly property int levelWarning:2;readonly property int levelError:3;signal toastRequested(string message,string icon,int level,int duration)'
+    mocks['AppLaunchService'] = 'property var lastArgv:[];property string lastEntry:"";property int launches:0;function launchCommand(argv) {lastArgv=argv;launches++} function launchEntry(entry) {lastEntry=entry.id;launches++}'
     mocks['LauncherService'] = ''
     mocks['ClipboardService'] = 'property bool debug:false;property int _thumbnailVersion:0;property int refreshes:0;signal entriesChanged();function refresh() {refreshes++} function fuzzySearch(query,limit) {return []} function requestThumbnail(entry) {} function thumbnailFor(entry) {return ""}'
     mocks['GlobalStates'] = mocks['GlobalStates'].replace('function closePanel(name) {}','function closePanel(name) {if(name==="launcher") launcherOpen=false;if(name==="overview") overviewOpen=false}')
@@ -895,6 +900,7 @@ Item {
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
+   AppConfig.data=({});DesktopEntries.applications.values=[];AppLaunchService.lastArgv=[];AppLaunchService.lastEntry="";AppLaunchService.launches=0
    GlobalStates.launcherOpen=false;NightLightService.enabled=false;GamingModeService.gamingModeActive=false
    RecorderService.active=false;RecorderService.available=true;RecorderService.starting=false;RecorderService.paused=false;RecorderService.toggles=0
    LauncherService.search("")
@@ -2914,6 +2920,49 @@ Item {
    compare(loader.item,null,"non-retained launcher unloads")
    compare(GlobalStates.lastAction,"audio","service completes the action after UI destruction")
   }
+  function test_launcher_custom_action_schema() {
+   const schema=CUSTOM_ACTION_SCHEMA
+   const valid=[{name:"Terminal",command:["foot"]},{name:"Editor",desktopEntry:"org.example.Editor"},
+    {name:"Literal arguments",command:["tool","","$HOME","a b"],keywords:["work"],enabled:false}]
+   for(const action of valid) compare(ConfigValidator.validate({work:action},schema).length,0)
+   const invalid=[{command:["foot"]},{name:"Bad",command:"foot --help"},{name:"Bad",command:[]},
+    {name:"Bad"},{name:"Bad",command:["foot"],desktopEntry:"foot"},{name:"Bad",command:["tool",3]},
+    {name:"Bad",desktopEntry:"../tool.desktop"},{name:"Bad",command:["tool"],unknown:true},
+    {name:"Bad",command:["tool",String.fromCharCode(0)]}]
+   for(const action of invalid) verify(ConfigValidator.validate({work:action},schema).length>0,JSON.stringify(action))
+  }
+  function test_launcher_custom_argv_and_reload() {
+   GlobalStates.launcherOpen=true
+   const argv=["tool","a b","$HOME",String.fromCharCode(36)+"(touch /tmp/no-run)","; echo ignored",""]
+   AppConfig.data=({launcher:{actions:{audio:{name:"Work task",description:"Build project",keywords:["compile"],command:argv}}}})
+   LauncherService.search(": compile");compare(LauncherService.filteredApps.length,1)
+   compare(LauncherService.filteredApps[0].resultId,"action:custom:audio","custom ID cannot replace a built-in")
+   LauncherService.launch(LauncherService.filteredApps[0])
+   compare(JSON.stringify(AppLaunchService.lastArgv),JSON.stringify(argv),"arguments remain literal and preserve boundaries")
+   compare(AppLaunchService.launches,1)
+   GlobalStates.launcherOpen=true;LauncherService.search(": compile")
+   const stale=LauncherService.filteredApps[0].action
+   AppConfig.data=({launcher:{actions:{audio:{name:"Work task",keywords:["compile"],command:["other-tool"]}}}})
+   stale();compare(AppLaunchService.launches,1,"changed command cannot run through a stale result")
+   LauncherService.filteredApps[0].action();compare(AppLaunchService.lastArgv[0],"other-tool")
+   AppConfig.data=({});compare(LauncherService.filteredApps.length,0,"removal immediately updates visible results")
+  }
+  function test_launcher_custom_desktop_entry() {
+   GlobalStates.launcherOpen=true
+   AppConfig.data=({launcher:{actions:{editor:{name:"My editor",desktopEntry:"editor.desktop"}}}})
+   LauncherService.search(": my editor")
+   compare(LauncherService.filteredApps[0].action,null)
+   verify(LauncherService.filteredApps[0].description.includes("Desktop entry not found"))
+   DesktopEntries.applications.values=[{id:"editor.desktop",name:"Editor",icon:"",runInTerminal:true}]
+   verify(LauncherService.filteredApps[0].action!==null,"newly installed desktop entry becomes available")
+   LauncherService.filteredApps[0].action();compare(AppLaunchService.lastEntry,"editor.desktop","exact ID retains its own .desktop suffix")
+   const stale=LauncherService.filteredApps[0].action
+   DesktopEntries.applications.values=[];stale();compare(AppLaunchService.launches,1)
+   AppConfig.data=({launcher:{actions:{editor:{name:"My editor",desktopEntry:"editor.desktop",enabled:false}}}})
+   compare(LauncherService.filteredApps.length,0)
+   AppConfig.data=({launcher:{actions:{broken:{name:"Empty command",command:[""]}}}})
+   LauncherService.search(": empty command");compare(LauncherService.filteredApps[0].action,null)
+  }
   function test_launcher_action_state_and_availability() {
    controls.visible=false;GlobalStates.launcherOpen=true
    const launcher=createTemporaryObject(launcherFixture,scene)
@@ -3049,7 +3098,7 @@ Item {
   }
  }
 }
-'''.replace('RENDERS', str(RENDERS)))
+'''.replace('RENDERS', str(RENDERS)).replace('CUSTOM_ACTION_SCHEMA', json.dumps(json.loads((ROOT / 'config/config.schema.json').read_text())['properties']['launcher']['properties']['actions'])))
     native = tree / 'shell.qml'
     (tree / 'NativeAudio.qml').write_text((ROOT / 'src/features/audio/AudioContent.qml').read_text().replace('import QtQuick\n','import QtQuick\nimport qs.src.features.audio\n',1))
     (tree / 'NativeIpcData.qml').write_text((ROOT / 'src/features/cheatsheet/components/IpcReferenceData.qml').read_text().replace('pragma Singleton\n',''))

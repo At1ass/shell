@@ -21,9 +21,18 @@ Isolated tests exercise state changes, stale callbacks, unavailable results,
 module disablement, prefix isolation and mock capture/recording handoffs; no real
 recording or system toggles are performed. Publication/installation remain deferred.
 
+Custom actions are configured in `launcher.actions`, keyed by stable IDs with
+name, optional description/icon/keywords and either literal argv or an exact
+desktop entry ID. A separate namespace preserves built-in commands. Config and
+desktop-entry model changes update visible results without polling or process
+probes. Missing entries explain their state. Execution re-resolves the action;
+removed/disabled actions and changed launch targets cannot execute stale callbacks.
+Both targets use AppLaunchService. Schema tests reject malformed and ambiguous
+targets; isolated launch mocks check argument boundaries, reload and entry lifetime.
+
 Next: retain actionable operation errors next to their owning service/panel,
-then improve notification/event search. User-defined commands and an explicit
-window-search provider remain separate extensions of the launcher.
+then improve notification/event search. An explicit window-search provider remains
+a separate extension of the launcher.
 
 ## Calendar correctness and shared input accessibility — 2026-10-31
 

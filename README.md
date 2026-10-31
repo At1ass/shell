@@ -588,6 +588,45 @@ selecting it shows the full reason below the list. Disabled modules are excluded
 Each action rechecks its state and availability before execution. Applications
 remain the default search scope; shell action text is never executed as a command.
 
+Add frequently used commands under `launcher.actions` in your `config.json`:
+
+```json
+{
+  "launcher": {
+    "actions": {
+      "audio-mixer": {
+        "name": "Audio mixer",
+        "description": "Open pwvucontrol",
+        "icon": "multimedia-volume-control",
+        "keywords": ["sound", "mixer", "звук"],
+        "command": ["pwvucontrol"]
+      },
+      "files": {
+        "name": "Files",
+        "desktopEntry": "org.kde.dolphin"
+      }
+    }
+  }
+}
+```
+
+Merge this section into the existing config and use programs installed on your
+system. Search with `: mixer`, `: звук` or `: files`. The object keys are stable
+action IDs; custom actions cannot replace built-in actions. `name` and exactly
+one of `command` or `desktopEntry` are required. Description, icon and keywords
+are optional; `enabled: false` hides an action. Changes apply immediately.
+
+`command` is an argv array: the executable followed by separate literal arguments.
+Spaces inside an argument are preserved; `$HOME`, `~`, pipes and the search query
+are not expanded. For compound operations, call your own script. `desktopEntry`
+uses the exact Quickshell ID, without the final `.desktop` file extension
+(`org.kde.dolphin.desktop` becomes `org.kde.dolphin`). Terminal entries follow the
+normal application launch path. Missing desktop entries remain visible with an
+explanation and become available when installed. Both launch paths use
+`AppLaunchService` and app2unit. A command executable must be installed/on PATH
+(or named by its absolute path); command execution errors are not preflighted by
+spawning probes during search.
+
 ### Calendar editing
 
 Dates use strict local `yyyy-MM-dd` input: impossible days/months are rejected

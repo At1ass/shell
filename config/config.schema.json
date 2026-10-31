@@ -572,6 +572,72 @@
           },
           "default": [],
           "description": "Desktop file IDs to hide, e.g. ['org.kde.dolphin.desktop']."
+        },
+        "actions": {
+          "type": "object",
+          "default": {},
+          "description": "Custom actions available in the : launcher mode, keyed by a stable identifier. Each action uses either an argv command or an exact Quickshell desktop entry ID (without the final .desktop extension).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "command"
+                ]
+              },
+              {
+                "required": [
+                  "desktopEntry"
+                ]
+              }
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "Action name displayed in launcher results."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional explanation displayed below the action name."
+              },
+              "icon": {
+                "type": "string",
+                "description": "Optional icon name from the system icon theme."
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true,
+                "description": "Additional search terms; they are never passed to the command."
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Set false to hide this action without deleting it; omitted means true."
+              },
+              "command": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[^\\u0000]*$"
+                },
+                "description": "Executable followed by literal arguments. The first item must name an executable. No shell, variable, home-directory or query expansion is performed."
+              },
+              "desktopEntry": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]+$",
+                "description": "Exact Quickshell desktop entry ID; omit only the final .desktop file extension. Terminal=true entries use the normal application launch path."
+              }
+            }
+          }
         }
       }
     },

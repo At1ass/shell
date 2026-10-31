@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.src.core.config
 import qs.src.core.services
 
@@ -8,6 +9,13 @@ BaseProvider {
     name: "Shell actions"
     priority: 80
     prefixes: [":"]
+    readonly property var applications: DesktopEntries.applications.values
+    readonly property var entriesById: {
+        const entries = Object.create(null)
+        for (const entry of applications) entries[entry.id] = entry
+        return entries
+    }
+    onEntriesByIdChanged: invalidateVisible()
     readonly property Connections stateWatch: Connections {
         target: AppConfig
         function onStateDataChanged() { root.invalidateVisible() }
@@ -50,6 +58,29 @@ BaseProvider {
             icon:dnd ? "notifications-disabled" : "preferences-desktop-screensaver",
             run:()=>{if(dnd) NotificationDND.setForMinutes(minutes);else IdleInhibitorService.setForMinutes(minutes)}}
     }
+    function customCommands() {
+        const commands = []
+        const actions = AppConfig.launcherActions
+        for (const key of Object.keys(actions)) {
+            const action = actions[key]
+            if (action.enabled === false) continue
+            const entry = action.desktopEntry ? entriesById[action.desktopEntry] : null
+            const argv = action.command
+            const validCommand = Array.isArray(argv) && argv.length > 0
+                && typeof argv[0] === "string" && argv[0].trim() !== ""
+                && argv.every(arg => typeof arg === "string" && !arg.includes("\u0000"))
+            const unavailable = action.desktopEntry
+                ? (entry ? "" : "Desktop entry not found: " + action.desktopEntry)
+                : validCommand ? "" : "Command needs an executable and literal arguments"
+            commands.push({id:"custom:"+key,text:action.name,
+                description:action.description ? "Custom action · " + action.description : "Custom action",
+                aliases:[key].concat(action.keywords || []).join(" "),
+                icon:action.icon || entry?.icon || "system-run",unavailable:unavailable,
+                revision:JSON.stringify([action.command,action.desktopEntry]),
+                run:()=>{if(entry) AppLaunchService.launchEntry(entry);else AppLaunchService.launchCommand(argv)}})
+        }
+        return commands
+    }
     function catalogue() {
         let commands = [
             {id:"audio",module:"audio",text:"Audio",description:"Output, input and application volumes",icon:"audio-volume-high",run:()=>GlobalStates.openAudio(null)},
@@ -83,16 +114,16 @@ BaseProvider {
         for (const minutes of Array.from(AppConfig.temporaryModeDurations)) {
             commands.push(timedCommand("dnd",minutes),timedCommand("caffeine",minutes))
         }
-        return commands
+        return commands.concat(customCommands())
     }
-    function execute(id, expectedText) {
+    function execute(id, expectedText, expectedRevision) {
         let command = catalogue().find(item => item.id === id)
         const timed = id.match(/^(dnd|caffeine)-(\d+)m$/)
         if (!command && timed && Number(timed[2]) >= 1 && Number(timed[2]) <= 1440)
             command = timedCommand(timed[1],Number(timed[2]))
         // The query can outlive its state snapshot. Never turn a stale Start
         // into Stop, or invoke an action whose dependency/module disappeared.
-        if (!command || command.text !== expectedText || command.unavailable
+        if (!command || command.text !== expectedText || command.revision !== expectedRevision || command.unavailable
             || (command.module && !AppConfig.moduleEnabled(command.module))) return
         command.run()
     }
@@ -109,6 +140,6 @@ BaseProvider {
             && terms.every(term => (command.id+" "+command.text+" "+command.description+" "+(command.aliases || "")).toLowerCase().includes(term)))
             .map(command => ({id:"action:"+command.id,type:"action",text:command.text,
                 description:command.unavailable || command.description,icon:command.icon,score:0,
-                action:command.unavailable ? null : () => root.execute(command.id,command.text)}))
+                action:command.unavailable ? null : () => root.execute(command.id,command.text,command.revision)}))
     }
 }

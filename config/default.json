@@ -224,7 +224,8 @@
     "width": 600,
     "listMaxHeight": 400,
     "topMargin": 56,
-    "hiddenApps": []
+    "hiddenApps": [],
+    "actions": {}
   },
   "osd": {
     "monitorPolicy": "focused",

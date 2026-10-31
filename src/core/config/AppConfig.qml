@@ -253,6 +253,7 @@ Singleton {
     readonly property int launcherListMaxHeight: data.launcher?.listMaxHeight ?? 400
     readonly property int launcherTopMargin: data.launcher?.topMargin ?? 56
     readonly property var launcherHiddenApps: data.launcher?.hiddenApps ?? []
+    readonly property var launcherActions: data.launcher?.actions ?? ({})
 
     // Services
     readonly property bool weatherEnabled: data.services?.weather?.enabled ?? true
