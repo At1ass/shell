@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options(-Wall -Wextra)
 
-find_package(Qt6 6.5 COMPONENTS Core Gui Qml Concurrent DBus REQUIRED)
+find_package(Qt6 6.10 COMPONENTS Core Gui Qml Concurrent DBus REQUIRED)
 
 if (BUILD_TESTING)
     enable_testing()

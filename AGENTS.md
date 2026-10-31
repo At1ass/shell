@@ -49,7 +49,7 @@ MD3-библиотека компонентов). Это **не форк** — �
 | Нативные сервисы | `Quickshell.Services.Pipewire`, `.Mpris`, `Quickshell.Networking`, `Quickshell.Bluetooth`, `Quickshell.Services.Notifications` |
 | Композитор | `Quickshell.Hyprland`, `hyprctl`, ext-global-shortcuts |
 | Конфиг | `Quickshell.Io.FileView` (JSON) + `config/config.schema.json` |
-| Нативная логика | 7 C++ плагинов (Qt 6.5+, C++17, CMake + Ninja) |
+| Нативная логика | 7 C++ плагинов (Qt 6.10+, C++17, CMake + Ninja) |
 | Цвет | C++ плагин `Mcu` (Material Color Utilities, сабмодуль) |
 
 **Внешние CLI** (только там, где нет нативного API): `ddcutil`, `grim`, `wl-copy`, `swappy`,
@@ -499,7 +499,7 @@ diskseq, пропадании устройства и больших интер�
 
 ## 9. C++ плагины — `src/plugins/`
 
-Тяжёлое/быстрое/системное живёт здесь, не в QML. Qt 6.5+, C++17, `qt_add_qml_module(URI <Name> VERSION 1.0)`.
+Тяжёлое/быстрое/системное живёт здесь, не в QML. Qt 6.10+, C++17, `qt_add_qml_module(URI <Name> VERSION 1.0)`.
 
 | URI | Назначение |
 |---|---|

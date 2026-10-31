@@ -1,7 +1,7 @@
 # Unit tests for the calendar plugin's pure-C++ layer.
 # Built only when -DBUILD_TESTING=ON is passed at top-level configure.
 
-find_package(Qt6 6.5 COMPONENTS Test REQUIRED)
+find_package(Qt6 6.10 COMPONENTS Test REQUIRED)
 qt_standard_project_setup()
 
 qt_add_executable(calendar_test

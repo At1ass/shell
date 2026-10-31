@@ -15,7 +15,7 @@ include(../PluginInstall.cmake)
 plugin_install(greeterdataqml)
 
 if (BUILD_TESTING)
-    find_package(Qt6 6.5 COMPONENTS Test REQUIRED)
+    find_package(Qt6 6.10 COMPONENTS Test REQUIRED)
     qt_add_executable(greeter_data_test test/GreeterDataTests.cpp test/GreeterDataTests.h Catalog.cpp GreeterDataBackend.cpp GreeterDataBackend.h)
     set_target_properties(greeter_data_test PROPERTIES AUTOMOC ON)
     target_link_libraries(greeter_data_test PRIVATE Qt6::Core Qt6::Qml Qt6::Concurrent Qt6::Test PkgConfig::GLIB)

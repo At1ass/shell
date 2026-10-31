@@ -10,8 +10,8 @@ pkgbase = at1ass-shell-git
 	makedepends = ninja
 	makedepends = pkgconf
 	makedepends = python
-	makedepends = qt6-base>=6.8
-	makedepends = qt6-declarative>=6.8
+	makedepends = qt6-base>=6.10
+	makedepends = qt6-declarative>=6.10
 	makedepends = libical>=4.0
 	makedepends = libqalculate
 	makedepends = lm_sensors
@@ -29,8 +29,8 @@ pkgname = at1ass-shell-git
 	depends = at1ass-shell-plugins-git=0.1.0
 	depends = quickshell>=0.3.2
 	depends = hyprland>=0.56
-	depends = qt6-base>=6.8
-	depends = qt6-declarative>=6.8
+	depends = qt6-base>=6.10
+	depends = qt6-declarative>=6.10
 	depends = qt6-wayland
 	depends = qt6-svg
 	depends = app2unit
@@ -90,8 +90,8 @@ pkgname = at1ass-shell-plugins-git
 	depends = glibc
 	depends = libgcc
 	depends = libstdc++
-	depends = qt6-base
-	depends = qt6-declarative
+	depends = qt6-base>=6.10
+	depends = qt6-declarative>=6.10
 	depends = libical>=4.0
 	depends = libqalculate
 	depends = lm_sensors
@@ -109,8 +109,8 @@ pkgname = at1ass-shell-greeter-git
 	depends = hyprland>=0.57
 	depends = greetd
 	depends = bash
-	depends = qt6-base>=6.8
-	depends = qt6-declarative>=6.8
+	depends = qt6-base>=6.10
+	depends = qt6-declarative>=6.10
 	depends = qt6-wayland
 	depends = qt6-svg
 	depends = systemd

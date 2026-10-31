@@ -28,7 +28,7 @@ network, audio, idle policy or login manager. Those remain explicit setup steps.
 ## Install from AUR
 
 Arch Linux on x86_64 is the packaged target. Use a working Hyprland session with
-**Quickshell 0.3.2+**, **Hyprland 0.56+** and **Qt 6.8+**. The compositor integration
+**Quickshell 0.3.2+**, **Hyprland 0.56+** and **Qt 6.10+**. The compositor integration
 uses Hyprland's Lua dispatcher API; other Wayland compositors are not supported.
 
 Prepare the normal Arch build environment, then install with an AUR helper such
@@ -71,7 +71,8 @@ The authoritative dependency declarations are in `packaging/arch/PKGBUILD`.
 Dependencies below are checked against QML imports, CMake, external command call
 sites, ELF NEEDED entries and Arch file ownership; disabling a UI module does not
 remove a linked native library requirement. Supported baseline: Quickshell 0.3.2,
-Hyprland 0.56.2 Lua dispatch, Qt 6.8+. Those versions are the tested baseline,
+Hyprland 0.56+ Lua dispatch and Qt 6.10+. Current runtime checks use Qt 6.12.
+These are minimum supported versions,
 not a promise of compatibility with future breaking compositor/framework changes.
 
 | Category | Required packages | Reason |

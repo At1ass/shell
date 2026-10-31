@@ -3,6 +3,15 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Qt minimum supported version — 2026-10-31
+
+Qt 6.10 is now the minimum supported version by user decision, allowing labelledBy
+and related Qt Quick accessibility APIs without older-version fallbacks. CMake
+requirements (including native test targets), Arch build/runtime dependencies,
+SRCINFO, README and contributor conventions agree on 6.10. Current validation
+runs on installed Qt 6.12; this does not claim a separate Qt 6.10 runtime test.
+A fresh configure of all seven native modules succeeds with the raised minimum.
+
 ## Workspace bar membership and icon identity — 2026-10-31
 
 The live bar retained four icons for workspace 1 while Hyprland's client/workspace

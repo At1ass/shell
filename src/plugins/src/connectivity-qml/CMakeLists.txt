@@ -8,14 +8,14 @@ qt_add_qml_module(connectivityqml
         NetworkSecretAgent.h NetworkSecretAgent.cpp NetworkSettings.h
         NetworkCredentials.h NetworkCredentials.cpp CredentialStore.h CredentialStore.cpp VpnUiHelper.h VpnUiHelper.cpp
 )
-find_package(Qt6 6.5 COMPONENTS Network REQUIRED)
+find_package(Qt6 6.10 COMPONENTS Network REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBSECRET REQUIRED IMPORTED_TARGET libsecret-1)
 target_link_libraries(connectivityqml PRIVATE Qt6::Core Qt6::Qml Qt6::DBus Qt6::Network Qt6::Concurrent PkgConfig::LIBSECRET)
 include(../PluginInstall.cmake)
 plugin_install(connectivityqml)
 if (BUILD_TESTING)
-    find_package(Qt6 6.5 COMPONENTS Test REQUIRED)
+    find_package(Qt6 6.10 COMPONENTS Test REQUIRED)
     qt_add_executable(bluetooth_agent_test test/BluetoothAgentTests.cpp test/BluetoothAgentTests.h BluetoothPairingAgent.cpp BluetoothPairingAgent.h)
     set_target_properties(bluetooth_agent_test PROPERTIES AUTOMOC ON)
     target_link_libraries(bluetooth_agent_test PRIVATE Qt6::Core Qt6::Qml Qt6::DBus Qt6::Test)
