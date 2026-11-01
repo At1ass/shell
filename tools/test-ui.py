@@ -3090,6 +3090,34 @@ Item {
    GlobalStates.dashboardOpen=false;tryCompare(DateTime,"uptimeWatchers",0)
    profile.destroy();wait(1);compare(DateTime.uptimeWatchers,0)
   }
+  function test_dashboard_header_gap_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
+  function test_dashboard_header_gap(data) {
+   controls.visible=false;dashboard.visible=true;AppConfig.designSystem=data.pack;scene.height=700
+   let inlineSeen=false,stackedSeen=false
+   for(const width of [320,900])for(const scale of [0.8,2]) {
+    scene.width=width;AppConfig.fontScale=scale
+    for(let index=0;index<3;index++) {
+     GlobalStates.dashboardOpenIndex=index;wait(45)
+     const tabs=findChild(dashboard,"dashboardTabs")
+     const date=findChild(dashboard,"dashboardDate")
+     const first=findChild(dashboard,["dashboardIdentity","dashboardWeatherLocation","dashboardCalendarSearch"][index])
+     verify(first!==null && first.visible,"tab has a first content item")
+     const headerBottom=Math.max(tabs.mapToItem(dashboard,0,tabs.height).y,date.mapToItem(dashboard,0,date.height).y)
+     const contentTop=first.mapToItem(dashboard,0,0).y
+     verify(Math.abs(contentTop-headerBottom-Tokens.spacing.small)<=1,"single small gap below header: "+JSON.stringify({pack:data.pack,width:width,scale:scale,tab:index,gap:contentTop-headerBottom}))
+     verify(Math.abs(dashboard.chromeHeight-dashboard.headerHeight)<=1,"card measurement owns the same header extent")
+     if(dashboard._stackedHeader)stackedSeen=true
+     else {
+      inlineSeen=true
+      verify(Math.abs(date.mapToItem(dashboard,0,0).x-Tokens.panelPadding)<=1,"date stays left aligned")
+      verify(Math.abs(date.mapToItem(dashboard,0,0).y-Tokens.panelPadding)<=1,"date keeps its original top inset")
+     }
+     if(width===900 && scale===0.8 && index===0)grabImage(dashboard).save("RENDERS/dashboard-header-"+data.pack+".png")
+    }
+   }
+   verify(inlineSeen && stackedSeen,"both header arrangements exercised")
+   GlobalStates.dashboardOpenIndex=0;dashboard.visible=false
+  }
   function test_dashboard_layout_data() {
    return [{tag:"compact",width:480,height:420},{tag:"wide",width:900,height:600}]
   }

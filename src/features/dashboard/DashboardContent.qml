@@ -40,10 +40,12 @@ Item {
     readonly property int chromeHeight: root.headerHeight
     readonly property bool _stackedHeader: root.width < clockColumn.naturalWidth
         + tabBar.implicitWidth + Tokens.spacing.large + Tokens.panelPadding * 2
-    readonly property int headerHeight: Math.max(clockColumn.implicitHeight,
+    readonly property int _headerBodyHeight: Math.max(clockColumn.implicitHeight,
         root._stackedHeader ? 0 : tabBar.implicitHeight)
         + (root._stackedHeader ? tabBar.implicitHeight + Tokens.spacing.small : 0)
-        + Tokens.panelPadding * 2
+    // The active tab owns the gap below the header; only the outer top inset
+    // belongs here. Counting both made the MD3 gap two full panel gutters.
+    readonly property int headerHeight: _headerBodyHeight + Tokens.panelPadding
     readonly property bool _modalOpen: (_tabLoaders[tabView.currentIndex]?.item?.modalOpen) ?? false
     function _closeTopModal() {
         const item = _tabLoaders[tabView.currentIndex]?.item
@@ -157,6 +159,7 @@ Item {
                     spacing: Tokens.spacing.extraSmall
                     MaterialText {
                         id: dateText
+                        objectName: "dashboardDate"
                         width: clockColumn.width
                         elide: Text.ElideRight
                         text: Qt.formatDateTime(DateTime.clock.date, "dddd, d MMMM")
@@ -172,7 +175,7 @@ Item {
                     x: root._stackedHeader ? Tokens.panelPadding
                         : parent.width - Tokens.panelPadding - width
                     y: root._stackedHeader ? clockColumn.y + clockColumn.height + Tokens.spacing.small
-                        : (parent.height - height) / 2
+                        : Tokens.panelPadding + (root._headerBodyHeight - height) / 2
                     labels: ["Quick", "Weather", "Calendar"]
                     currentIndex: GlobalStates.dashboardOpenIndex
                     accessibleName: "Dashboard sections"
@@ -195,19 +198,19 @@ Item {
                     id: quickLoader
                     anchors.fill: parent
                     active: tabView.currentIndex === 0
-                    sourceComponent: Component { QuickTab {} }
+                    sourceComponent: Component { QuickTab { topPadding: Tokens.spacing.small } }
                 }
                 Loader {
                     id: weatherLoader
                     anchors.fill: parent
                     active: tabView.currentIndex === 1
-                    sourceComponent: Component { WeatherTab {} }
+                    sourceComponent: Component { WeatherTab { topPadding: Tokens.spacing.small } }
                 }
                 Loader {
                     id: calendarLoader
                     anchors.fill: parent
                     active: tabView.currentIndex === 2
-                    sourceComponent: Component { CalendarTab {objectName: "dashboardCalendar"} }
+                    sourceComponent: Component { CalendarTab {objectName: "dashboardCalendar";topPadding:Tokens.spacing.small} }
                 }
 
 

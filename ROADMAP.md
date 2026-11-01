@@ -3,6 +3,18 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Dashboard header spacing — 2026-11-01
+
+The header and tab content previously each reserved a full panel gutter at their
+shared boundary. Header measurement now owns its outer top inset and actual date/
+tab extent only; the active page owns a single small gap. The date retains its
+original left/top position. Quick, Weather and Calendar measure the real top and
+bottom insets so smaller chrome does not leave trailing empty card space.
+ScrollableList.topPadding defaults to contentPadding; other consumers keep their
+existing geometry. Dashboard overrides the top inset without narrowing side or
+bottom gutters. Checks cover all three tabs, inline/stacked headers, both design
+packs and font scales below/above one.
+
 ## Bar height and density — 2026-11-01
 
 BarMetrics derives its minimum from scaled typography and configured tray icon

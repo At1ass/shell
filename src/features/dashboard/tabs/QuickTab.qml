@@ -24,14 +24,9 @@ ScrollableList {
     readonly property int extraHeight: mediaRow.expandedDelta
         + (root.metricsExpanded ? metricsLoader.implicitHeight + Tokens.spacing.medium : 0)
 
-    // What this tab actually needs, published so the window can be sized to it
-    // rather than to a constant. The constant version broke the moment the pack
-    // changed density -- exactly the drift a measured value cannot have.
-    // The gutter is counted twice because it exists twice, and it has to be the
-    // SAME token the column is laid out with -- these drifted apart the moment
-    // the gutter changed, and the panel came up 16px short with the media strip
-    // sliced off at the bottom edge.
-    readonly property int contentHeight: column.implicitHeight + Tokens.panelPadding * 2
+    // Measure this tab's insets, including the dashboard's compact top gap.
+    // DashboardContent adds only the header above this measured extent.
+    readonly property int contentHeight: column.implicitHeight + root.topPadding + root.contentPadding
 
     ColumnLayout {
         id: column
@@ -39,6 +34,7 @@ ScrollableList {
         spacing: Tokens.spacing.medium
 
         UserInfoElement {
+            objectName: "dashboardIdentity"
             Layout.fillWidth: true
             visible: AppConfig.dashboardShowAvatar || AppConfig.dashboardShowSystemSummary
         }

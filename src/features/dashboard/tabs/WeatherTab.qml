@@ -13,7 +13,7 @@ ScrollableList {
     contentPadding: Tokens.panelPadding
     property bool detailsExpanded: false
     readonly property bool hasConditions: Weather.data?.current !== undefined && Weather.data?.current !== null
-    readonly property int contentHeight: column.implicitHeight + Tokens.panelPadding * 2
+    readonly property int contentHeight: column.implicitHeight + root.topPadding + root.contentPadding
     readonly property bool forecastOverflow: forecastViewport.contentWidth > forecastViewport.width + 1
     function scrollForecast(direction) {
         const card = forecastDays.itemAt(0)
@@ -33,6 +33,7 @@ ScrollableList {
         spacing: Tokens.spacing.small
 
         MaterialText {
+            objectName: "dashboardWeatherLocation"
             Layout.fillWidth: true
             text: Weather.location || "Weather"
             textFormat: Text.PlainText

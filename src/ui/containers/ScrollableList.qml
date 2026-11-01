@@ -9,6 +9,7 @@ Item {
 
     property int spacing: Tokens.spacing.small
     property int contentPadding: 0
+    property int topPadding: contentPadding
 
     // Reveal a keyboard-focused descendant without polling or animating a
     // hidden subtree. Focus can move below the viewport after panel clamping.
@@ -74,13 +75,14 @@ Item {
         // Content container
         Item {
             width: scrollView.availableWidth
-            implicitHeight: contentLayout.implicitHeight + root.contentPadding * 2
+            implicitHeight: contentLayout.implicitHeight + root.topPadding + root.contentPadding
 
             ColumnLayout {
                 id: contentLayout
                 onImplicitHeightChanged: Qt.callLater(root._revealFocus)
                 anchors.fill: parent
                 anchors.margins: root.contentPadding
+                anchors.topMargin: root.topPadding
                 spacing: root.spacing
             }
         }

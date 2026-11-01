@@ -636,6 +636,11 @@ explanation and become available when installed. Both launch paths use
 (or named by its absolute path); command execution errors are not preflighted by
 spawning probes during search.
 
+The dashboard date keeps its left position and outer top inset. A single compact
+gap separates the date/tab header from the active page; page content keeps its
+horizontal and bottom gutters. The same spacing applies when the tabs wrap below
+the date on narrow panels.
+
 ### Timer and Pomodoro
 
 Dashboard **Quick** contains a timer block below the quick actions and brightness.

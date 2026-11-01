@@ -266,12 +266,14 @@ Item {
 
     // What this tab needs, so the window can be sized to it instead of to a
     // constant kept in a table indexed by tab number. See Dashboard.qml.
-    readonly property int contentHeight: panels.implicitHeight + calendarScroll.contentPadding * 2
+    property int topPadding: root.stacked ? Tokens.spacing.extraSmall : Tokens.panelPadding
+    readonly property int contentHeight: panels.implicitHeight + calendarScroll.topPadding + calendarScroll.contentPadding
 
     ScrollableList {
         id: calendarScroll
         anchors.fill: parent
         contentPadding: root.stacked ? Tokens.spacing.extraSmall : Tokens.panelPadding
+        topPadding: root.topPadding
         GridLayout {
             id: panels
             Layout.fillWidth: true
@@ -281,6 +283,7 @@ Item {
 
             CalendarSearchSection {
                 id: eventSearch
+                objectName: "dashboardCalendarSearch"
                 Layout.fillWidth: true
                 Layout.columnSpan: panels.columns
                 anchorDate: { const date=new Date(0);date.setFullYear(root.currentYear,root.currentMonth,1);return date }
