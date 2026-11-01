@@ -3,6 +3,19 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Bar height and density — 2026-11-01
+
+BarMetrics derives its minimum from scaled typography and configured tray icon
+footprints, with the design pack's vertical insets. It no longer uses the global
+touch-target minimum as the strip floor. BarElement, workspace rows, media controls
+and bar/tray overflow share the available inner height. Media glyphs and workspace
+icons fit the scaled content; notification icon boxes no longer reserve a fixed
+24 px independently of font size. Explicit large tray icons can still grow the bar.
+The existing bar.height default and configuration format remain unchanged.
+
+UI checks cover both packs at font scales 0.5/0.8/1/1.3/2 and requested heights
+24/32/40/48, including tray overflow, uniform widget insets and unclipped content.
+
 ## Empty-window focus events — 2026-10-31
 
 The native-title binding alone did not clear stale focus: Quickshell 0.3.2 ignores

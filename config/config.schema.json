@@ -251,7 +251,7 @@
           "default": 48,
           "minimum": 16,
           "maximum": 200,
-          "description": "Bar height in logical pixels."
+          "description": "Requested bar height in logical pixels. Grows only as needed for typography and configured tray icons, including vertical insets. Bar controls share the available inner height; dialog touch-target sizes do not impose a bar minimum."
         },
         "margin": {
           "type": "integer",

@@ -704,6 +704,14 @@ codes один раз и передаёт argv. GreeterAuth копирует arg
 greeter_data_test, tools/test-greeter.py и tools/test-greeter-data.py (read-only).
 
 
+BarMetrics задаёт одну высоту полосы и внутреннюю widgetHeight с одинаковыми
+вертикальными отступами. Глобальный Tokens.touchTarget.minimum не является
+нижним пределом высоты бара: minimumContentHeight учитывает масштабированную
+типографику и явно настроенные размеры иконок трея. BarElement, воркспейсы,
+плеер и overflow используют эти метрики; не возвращать квадратные 36/48 px
+контролы внутрь более низкой полосы. Панели/док читают тот же BarMetrics.reservation.
+Проверять fontScale < 1 в обоих design packs, а не только 1/1.3/2.
+
 ### Виджет воркспейсов
 
 Номер воркспейса виден и в компактном виде; состояние активного окна отдельно от

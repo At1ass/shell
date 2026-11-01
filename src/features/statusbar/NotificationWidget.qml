@@ -37,8 +37,8 @@ BarElement {
         spacing: Tokens.spacing.extraSmall
 
         Item {
-            implicitWidth: Tokens.iconSize.large
-            implicitHeight: Tokens.iconSize.large
+            implicitWidth: BarMetrics.iconSize
+            implicitHeight: BarMetrics.iconSize
 
             MaterialIcon {
                 anchors.centerIn: parent

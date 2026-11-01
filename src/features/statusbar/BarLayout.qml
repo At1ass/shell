@@ -19,7 +19,7 @@ Item {
     property bool barRevealed: true
     property int _revision: 0
     readonly property real gap: Tokens.spacing.small
-    readonly property real buttonWidth: Math.max(Tokens.size.iconButton, Tokens.touchTarget.minimum)
+    readonly property real buttonWidth: BarMetrics.buttonSize
     readonly property var entries: {
         const revision = root._revision
         const result = []
@@ -162,11 +162,15 @@ Item {
                 Item {
                     visible: root.overflowWidgets.length>0
                     implicitWidth: root.buttonWidth
-                    implicitHeight: root.buttonWidth
+                    implicitHeight: BarMetrics.widgetHeight
                     IconButton {
                         id: overflowButton
+                        anchors.centerIn: parent
                         Accessible.name: "More bar widgets"
                         iconName: "more_horiz"
+                        iconSize: Math.min(Tokens.iconSize.large, BarMetrics.iconSize)
+                        containerSize: BarMetrics.buttonSize
+                        touchTargetSize: BarMetrics.buttonSize
                         onClicked: PopoutsState.openPopout("baroverflow",root,overflowButton)
                     }
                     MaterialIndicator {

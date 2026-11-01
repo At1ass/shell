@@ -815,6 +815,13 @@ The active-window title follows compositor window focus and clears when focus
 moves to an empty workspace or monitor. Returning to the same window restores
 its current title.
 
+`bar.height` is the requested strip height. The effective height grows only to fit
+text and configured tray icons with the design pack's vertical insets. Bar widgets
+share one inner height, including workspace groups, media buttons and overflow
+controls. They do not inherit the 36/48 px touch floor used by dialog controls.
+For a shorter bar, keep tray `settings.iconSize` proportionate to the requested
+height; explicitly large icons still reserve the space they need.
+
 ### Workspaces in the bar
 
 Each workspace has a persistent number. Occupied workspaces group their application

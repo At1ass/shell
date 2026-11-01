@@ -16,7 +16,7 @@ BarElement {
     property var widgetConfig: null
     property var widgetSettings: widgetConfig?.settings ?? ({})
     property var tooltipManager: null
-    property int iconSize: widgetSettings.iconSize ?? 20
+    property int iconSize: widgetSettings.iconSize ?? Tokens.iconSize.medium
     property int itemSpacing: widgetSettings.spacing ?? Tokens.spacing.small
     property int maxVisible: widgetSettings.maxVisible ?? 4
     property list<string> pinnedIds: widgetSettings.pinnedIds ?? []
@@ -57,7 +57,9 @@ BarElement {
             IconButton {
                 id: overflowButton
                 iconName: "more_horiz"
-                iconSize: Tokens.iconSize.medium
+                iconSize: Math.min(Tokens.iconSize.medium, BarMetrics.iconSize)
+                containerSize: BarMetrics.buttonSize
+                touchTargetSize: BarMetrics.buttonSize
                 Accessible.name: "Show " + root.trayModel.hiddenItems.length + " more tray icons"
                 onClicked: PopoutsState.openPopout("trayoverflow", root.trayModel, root)
             }

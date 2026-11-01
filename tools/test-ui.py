@@ -104,6 +104,7 @@ QtObject {
  property var storageExcludedMounts:["/boot","/boot/efi","/efi"]
  property var storageOrder:["/","/home"]
  property var storageLabels:({})
+ readonly property var barWidgets:data.bar?.widgets ?? []
  property int barHeight:38
  property int connectionsWidth:420
  property int connectionsMaxHeight:640
@@ -932,6 +933,7 @@ Item {
    Hyprland.focusedMonitor=createTemporaryObject(overviewScreenFixture,scene,{name:"DP-2"})
    Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{monitor:Hyprland.focusedMonitor,title:"A very long editor window title",lastIpcObject:{class:"editor"}})
    Hyprland.rawEvent({name:"activewindowv2",data:"abc"})
+   AppConfig.barHeight=38
    AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.backendActive=true;IdleInhibitorService.inhibit=false;IdleInhibitorService.errorMessage="";IdleInhibitorService.pending=false;IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
@@ -964,6 +966,42 @@ Item {
    if(innerDialog.visible) {innerDialog.close();wait(30)}
    if(dialog.visible) {dialog.close();wait(30)}
    wait(30)
+  }
+  function test_bar_height_and_uniform_insets_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const scale of [0.5,0.8,1,1.3,2])rows.push({tag:pack+"-"+scale,pack:pack,scale:scale})
+   return rows
+  }
+  function test_bar_height_and_uniform_insets(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale;scene.width=1800
+   const nodes=[];for(let i=0;i<3;i++)nodes.push(createTemporaryObject(trayNode,scene,{id:"height-"+i}))
+   SystemTray.items=({values:nodes})
+   const left=[{type:"workspaces",settings:{count:2}},{type:"activewindow"}]
+   const middle=[{type:"clock"}]
+   const right=[{type:"media",settings:{compact:false}},{type:"weather"},{type:"volume"},{type:"network"},{type:"notifications"},{type:"tray",settings:{iconSize:20,maxVisible:1}}]
+   AppConfig.data=({bar:{widgets:left.concat(middle,right)}})
+   for(const requested of [24,32,40,48]) {
+    AppConfig.barHeight=requested
+    const bar=createTemporaryObject(barFixture,scene,{width:1800,leftWidgets:left,centerWidgets:middle,rightWidgets:right})
+    wait(25)
+    if(data.scale<=0.8 && requested<=32)verify(bar.height<40,"small content permits a bar below 40 pixels")
+    for(const entry of bar.entries)if(!bar.plan.hidden.includes(entry.key)) {
+     const item=entry.widget.item
+     compare(item.height,BarMetrics.widgetHeight,"same widget height: "+entry.widget.widgetType)
+     const point=item.mapToItem(bar,0,0)
+     verify(Math.abs(point.y-BarMetrics.verticalPadding)<=1,"same top inset: "+entry.widget.widgetType)
+     verify(item.implicitHeight<=item.height+1,"content fits its uniform height: "+entry.widget.widgetType)
+    }
+    if(data.scale===0.8 && requested===32)grabImage(bar).save("RENDERS/bar-short-"+data.pack+".png")
+    bar.destroy()
+   }
+   if(data.scale===0.5) {
+    AppConfig.barHeight=24;AppConfig.data=({bar:{widgets:middle}})
+    const clockOnly=createTemporaryObject(barFixture,scene,{width:400,leftWidgets:[],centerWidgets:middle,rightWidgets:[]})
+    wait(20);compare(clockOnly.height,24,"no global touch-target floor when the content fits")
+    clockOnly.destroy()
+   }
+   AppConfig.barHeight=38
   }
   function test_bar_policy_priority_and_sections() {
    const entries=[
@@ -1101,12 +1139,12 @@ Item {
    const widget=bar.entries[0].widget.item
    for(let id=1;id<=9;id++)verify(byProperty(widget,"text",String(id))!==null,"number remains visible")
    const icon=byProperty(widget,"modelData",one)
-   verify(icon!==null);verify(icon.width>=Tokens.iconSize.small+Tokens.spacing.small*2);verify(icon.height>=Tokens.touchTarget.minimum)
+   verify(icon!==null);verify(icon.width>=widget.iconFontSize+Tokens.spacing.small*2);compare(icon.height,BarMetrics.widgetHeight)
    verify(icon.windowActive);verify(byProperty(widget,"modelData",third)!==null)
    compare(widget.windowDescription(one,1),"browser"+String.fromCharCode(10)+"First document"+String.fromCharCode(10)+"Workspace 1")
    compare(findChild(widget,"workspaceOverflow1").Accessible.name,"Show 1 more windows on workspace 1")
    grabImage(widget).save("RENDERS/workspaces-"+data.pack+".png")
-   verify(widget.preferredWidth<widget.controlHeight*12*0.75,"nine workspace groups do not reserve square-button widths")
+   verify(widget.preferredWidth<Math.max(Tokens.touchTarget.minimum,Tokens.typography.labelLarge.lineHeight)*12*0.75,"nine workspace groups do not reserve square-button widths")
    const preferred=widget.preferredWidth;const allocated=widget.width
    mouseMove(icon,icon.width/2,icon.height/2);wait(20)
    compare(widget.preferredWidth,preferred);compare(widget.width,allocated)
@@ -2511,7 +2549,8 @@ Item {
   function test_calendar_focus_and_events() {
    controls.visible=false;scene.width=900;scene.height=600
    CalendarBackend.dayEvents=[{uid:"one",title:"All day",allDay:true},{uid:"two",title:"Late meeting",start:new Date(2026,9,25,22),end:new Date(2026,9,25,23),allDay:false}]
-   const cal=createTemporaryObject(testCalendar,scene,{selectedDate:DateTime.clock.date})
+   // Match the mocked event month even when the host crosses a month boundary.
+   const cal=createTemporaryObject(testCalendar,scene,{selectedDate:DateTime.clock.date,currentMonth:DateTime.clock.date.getMonth(),currentYear:DateTime.clock.date.getFullYear()})
    verify(cal!==null);wait(40)
    const selected=byProperty(cal,"isFocused",true)
    verify(selected!==null)

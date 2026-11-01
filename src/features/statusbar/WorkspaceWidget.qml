@@ -28,9 +28,9 @@ BarElement {
     property string keyboardWindowAddress: ""
     property int scrollAccumulator: 0
     readonly property int currentIndex: Hyprland.focusedWorkspace?.id ?? wsBaseIndex
-    readonly property int controlHeight: Math.ceil(Math.max(Tokens.touchTarget.minimum, Tokens.typography.labelLarge.lineHeight))
+    readonly property int controlHeight: BarMetrics.widgetHeight
     readonly property int chipSize: Math.ceil(Math.max(Tokens.iconSize.small + Tokens.spacing.extraSmall * 2, numberMetrics.width + Tokens.spacing.small * 2))
-    readonly property int iconFontSize: Tokens.iconSize.small
+    readonly property int iconFontSize: Math.min(Tokens.iconSize.small, BarMetrics.iconSize)
     // Keep full-height pointer targets without making every slot square.
     readonly property int windowSlotWidth: iconFontSize + Tokens.spacing.small * 2
     readonly property var windowsByWorkspace: WindowWorkspace.group(Hyprland.toplevels?.values ?? [])

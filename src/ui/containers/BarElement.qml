@@ -52,7 +52,7 @@ Rectangle {
     property color backgroundColor: Theme.surfaceContainerHigh
     property color expandedColor: Theme.primaryContainer
     property real customRadius: Tokens.shape.large
-    property int customHeight: 32
+    property int customHeight: BarMetrics.widgetHeight
     property int minWidth: 48
     property int expandedWidth: 0
 
