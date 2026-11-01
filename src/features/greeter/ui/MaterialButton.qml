@@ -110,6 +110,8 @@ Button {
 
     contentItem: Base.MaterialText {
         text: control.text
+        textFormat: Text.PlainText
+        wrapMode: Text.Wrap
         textStyle: "labelLarge"
         color: control._contentColor()
         horizontalAlignment: Text.AlignHCenter

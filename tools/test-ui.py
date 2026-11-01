@@ -20,6 +20,8 @@ with tempfile.TemporaryDirectory(prefix='shell-ui-test-') as temp:
     temp = Path(temp)
     tree = temp / 'imports/qs'
     shutil.copytree(ROOT / 'src/ui', tree / 'src/ui')
+    shutil.copytree(ROOT / 'src/features/polkit', tree / 'src/features/polkit')
+    shutil.copytree(ROOT / 'src/features/cheatsheet', tree / 'src/features/cheatsheet')
     config = tree / 'src/core/config'
     config.mkdir(parents=True)
     for name in ['Tokens.qml', 'Keycodes.qml', 'Theme.qml', 'BarMetrics.qml', 'ConfigValidator.qml']:
@@ -480,6 +482,9 @@ import "imports/qs/src/features/statusbar/BarLayoutPolicy.js" as BarPolicy
 import SystemMonitor 1.0 as NativeStats
 import Qalculate 1.0
 import qs.src.features.lockscreen
+import qs.src.features.polkit
+import qs.src.features.cheatsheet
+import qs.src.features.cheatsheet.components
 import qs.src.features.dock
 import qs.src.features.launcher
 import qs.src.features.osd
@@ -583,6 +588,13 @@ Item {
   MaterialText {id:fieldLabel;objectName:"fieldLabel";text:"Account name"}
   MaterialTextField {objectName:"namedField";width:260;labelItem:fieldLabel;supportingText:"Use your account name";trailingIcon:"close"}
  }}
+ Component {id:polkitPromptFixture;PolkitPrompt {width:Math.min(implicitWidth,scene.width);height:Math.min(implicitHeight,scene.height);message:"Authentication is required to change system settings. Enter your password to continue.";prompt:"Password";responseRequired:true;failureMessage:"Authentication failed. Please try again.";identities:["Admin","Another administrator"];onIdentitySelected:index=>identityIndex=index;property int submissions:0;property int cancellations:0;onSubmitted:submissions++;onCancelled:cancellations++}}
+ Component {id:cheatsheetViewFixture;CheatsheetView {width:scene.width;height:scene.height;property int closes:0;onCloseRequested:closes++;categories:[{name:"Applications",binds:[{modifiers:["SUPER","CTRL","SHIFT","ALT"],key:"RETURN",description:"Launch a terminal application",dispatcher:"exec",arg:"terminal"}]}];handlers:[{name:"globalstates",functions:[{name:"openDashboardTab",params:"index: int",description:"Open the selected dashboard tab"}]}]}}
+ Component {id:bindRowFixture;BindRow {width:scene.width;modelData:({modifiers:["SUPER","CTRL","SHIFT","ALT"],key:"RETURN",description:"Launch terminal",dispatcher:"exec",arg:"terminal"})}}
+ Component {id:ipcRowFixture;IpcFunctionRow {width:scene.width;modelData:({name:"openDashboardTab",params:"index: int",description:"Open the dashboard at the requested tab"})}}
+ Component {id:badgeScaleFixture;Badge {inline:true;text:"99"}}
+ Component {id:chipScaleFixture;Chip {width:180;label:"A filter with a longer label"}}
+ Component {id:segmentsScaleFixture;SegmentedButton {width:scene.width;model:["Applications","Windows","Commands"];property int activations:0;onSelected:activations++}}
  Component {id:iconRepeatFixture;IconButton {property int activations:0;onClicked:activations++}}
  Component {id:chipRepeatFixture;Chip {label:"Action";property int activations:0;onClicked:activations++}}
  Component {id:switchRepeatFixture;MaterialSwitch {property int activations:0;onToggled:value=>{activations++;checked=value}}}
@@ -701,7 +713,7 @@ Item {
   }
   function test_dock_popup_bounds_data() {
    const rows=[]
-   for(const pack of ["minimal","md3"])for(const side of ["top","bottom","left","right"])for(const scale of [1,2])for(const width of [220,320])rows.push({tag:pack+"-"+side+"-"+scale+"-"+width,pack:pack,side:side,scale:scale,width:width})
+   for(const pack of ["minimal","md3"])for(const side of ["top","bottom","left","right"])for(const scale of [0.5,0.8,1,2])for(const width of [220,320])rows.push({tag:pack+"-"+side+"-"+scale+"-"+width,pack:pack,side:side,scale:scale,width:width})
    return rows
   }
   function test_dock_popup_bounds(data) {
@@ -893,7 +905,7 @@ Item {
   }
   function test_lock_layout_data() {
    const rows=[]
-   for(const pack of ["minimal","md3"]) for(const scale of [1,2]) for(const size of [[320,480],[1920,1080]]) rows.push({tag:pack+"-"+size[0]+"-"+scale,pack:pack,scale:scale,w:size[0],h:size[1]})
+   for(const pack of ["minimal","md3"]) for(const scale of [0.5,0.8,1,2]) for(const size of [[320,480],[1920,1080]]) rows.push({tag:pack+"-"+size[0]+"-"+scale,pack:pack,scale:scale,w:size[0],h:size[1]})
    return rows
   }
   function test_lock_layout(data) {
@@ -934,7 +946,7 @@ Item {
    Hyprland.activeToplevel=createTemporaryObject(overviewWindowFixture,scene,{monitor:Hyprland.focusedMonitor,title:"A very long editor window title",lastIpcObject:{class:"editor"}})
    Hyprland.rawEvent({name:"activewindowv2",data:"abc"})
    AppConfig.barHeight=38
-   AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.reduceMotion=true
+   AppConfig.designSystem="minimal";AppConfig.fontScale=1.3;AppConfig.fontFamily="";AppConfig.monoFamily="";AppConfig.reduceMotion=true
    AppConfig.disabledModules=[];AppConfig.dashboardShowAvatar=true;AppConfig.dashboardShowSystemSummary=true;GlobalStates.dashboardOpen=true
    AppConfig.temporaryModeDurations=[15,30,60,120];IdleInhibitorService.backendActive=true;IdleInhibitorService.inhibit=false;IdleInhibitorService.errorMessage="";IdleInhibitorService.pending=false;IdleInhibitorService.statusText="";NotificationDND.statusText="";NotificationDND.enabled=false;NotificationDND.temporary=false
    AppConfig.data=({});DesktopEntries.applications.values=[];AppLaunchService.lastArgv=[];AppLaunchService.lastEntry="";AppLaunchService.launches=0
@@ -1022,7 +1034,7 @@ Item {
   function test_bar_responsive_geometry_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_bar_responsive_geometry(data) {
    controls.visible=false;AppConfig.designSystem=data.pack
-   for(const scale of [1,1.3,2]) {
+   for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale
     const bar=createTemporaryObject(barFixture,scene)
     verify(bar!==null);wait(60)
@@ -1276,7 +1288,7 @@ Item {
     {id:"root",name:"System",mountPoints:["/","/home","/.snapshots"],device:"/dev/nvme1n1p2",fileSystem:"btrfs",available:true,availableFormatted:"460 GiB",totalFormatted:"930 GiB",usedFraction:0.5,severity:0},
     {id:"games",name:"Games",mountPoints:["/mnt/games"],device:"/dev/nvme0n1p1",fileSystem:"xfs",available:true,availableFormatted:"9 GiB",totalFormatted:"1.8 TiB",usedFraction:0.995,severity:2}]
    SystemMonitorService.storageDrives=[{id:"nvme0n1",name:"NVMe drive",device:"/dev/nvme0n1",hasTemperature:true,temperature:44,hasIo:true,readFormatted:"10 MiB/s",writeFormatted:"2 MiB/s"}]
-   for(const width of [280,600]) for(const scale of [1,1.3,2]) {
+   for(const width of [280,600]) for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale
     const view=createTemporaryObject(storageFixture,scene,{width:width,expanded:true})
     verify(view!==null);wait(30)
@@ -1322,7 +1334,7 @@ Item {
   function test_statistics_readings_and_layout(data) {
    controls.visible=false;AppConfig.designSystem=data.pack
    SystemMonitorService.cpuHistory=[0.1,0.95,0.05];SystemMonitorService.gpuHistory=[0.2,0.4,0.3];SystemMonitorService.ramHistory=[0.3,0.38,0.4]
-   for(const width of [280,600]) for(const scale of [1,1.3,2]) {
+   for(const width of [280,600]) for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale
     const view=createTemporaryObject(statsViewFixture,scene,{width:width})
     verify(view!==null);wait(30)
@@ -1379,7 +1391,7 @@ Item {
    const row=byProperty(menu,"headline","First action")
    const divider=byProperty(menu,"separator",true)
    verify(row!==null && divider!==null)
-   for(const scale of [1,1.3,2]) {
+   for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale;wait(20)
     compare(divider.height,Tokens.spacing.small*2+Tokens.size.outline)
     verify(row.height>=Tokens.touchTarget.minimum)
@@ -1408,7 +1420,7 @@ Item {
   function test_tooltip_geometry_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_tooltip_geometry(data) {
    controls.visible=false;AppConfig.designSystem=data.pack
-   for(const scale of [1,1.3,2]) {
+   for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale
     const tip=createTemporaryObject(hintFixture,scene,{text:"<b>Literal name</b> "+"A long network name ".repeat(20),maximumWidth:240})
     verify(tip!==null);wait(30)
@@ -1764,7 +1776,7 @@ Item {
   function test_overview_grid_fit_data() {
    const cases=[]
    for(const pack of ["minimal","md3"])
-    for(const scale of [1,1.3,2]) {
+    for(const scale of [0.5,0.8,1,1.3,2]) {
      cases.push({tag:pack+"-DP2-"+scale,pack:pack,scale:scale,width:3440,height:1440})
      cases.push({tag:pack+"-DP3-"+scale,pack:pack,scale:scale,width:1080,height:1920})
     }
@@ -2004,7 +2016,7 @@ Item {
    AudioService.defaultSink=sink;AudioService.defaultSource=mic
    const panel=createTemporaryObject(audioFixture,scene)
    verify(panel!==null)
-   for(const scale of [1,1.3,2]) {
+   for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale;wait(30)
     verify(panel.implicitHeight>0)
     const output=byProperty(panel,"title","Output")
@@ -2350,7 +2362,7 @@ Item {
    verify(panel!==null)
    for(const width of [320,420]) {
     panel.width=width
-    for(const scale of [1,1.3,2]) {
+    for(const scale of [0.5,0.8,1,1.3,2]) {
      AppConfig.fontScale=scale;wait(30)
      for(const title of ["Wi-Fi","Bluetooth"]) {
       const header=byProperty(panel,"headline",title)
@@ -2467,7 +2479,7 @@ Item {
   }
   function test_event_form_keyboard_scroll_data() {
    const rows=[]
-   for(const pack of ["minimal","md3"])for(const scale of [1,2])for(const height of [320,600])rows.push({tag:pack+"-"+scale+"-"+height,pack:pack,scale:scale,height:height})
+   for(const pack of ["minimal","md3"])for(const scale of [0.5,0.8,1,2])for(const height of [320,600])rows.push({tag:pack+"-"+scale+"-"+height,pack:pack,scale:scale,height:height})
    return rows
   }
   function test_event_form_keyboard_scroll(data) {
@@ -2574,7 +2586,7 @@ Item {
   function test_calendar_responsive_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_calendar_responsive(data) {
    controls.visible=false;AppConfig.designSystem=data.pack
-   for(const width of [320,480,900]) for(const scale of [1,1.3,2]) {
+   for(const width of [320,480,900]) for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale;scene.width=width;scene.height=600
     const cal=createTemporaryObject(testCalendar,scene,{width:width,selectedDate:DateTime.clock.date})
     verify(cal!==null);wait(30)
@@ -2627,7 +2639,7 @@ Item {
   function test_date_picker_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_date_picker_layout(data) {
    controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
-   for(const width of [240,480])for(const scale of [1,2]) {
+   for(const width of [240,480])for(const scale of [0.5,0.8,1,2]) {
     scene.width=width;scene.height=600;AppConfig.fontScale=scale
     const picker=createTemporaryObject(datePickerFixture,scene)
     picker.openFor(new Date(2024,1,29));wait(20)
@@ -2705,7 +2717,7 @@ Item {
   function test_timer_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_timer_layout(data) {
    controls.visible=false;dashboard.visible=false;AppConfig.designSystem=data.pack
-   for(const width of [240,480]) for(const scale of [1,2]) {
+   for(const width of [240,480]) for(const scale of [0.5,0.8,1,2]) {
     scene.width=width;AppConfig.fontScale=scale
     const section=createTemporaryObject(timerSectionFixture,scene)
     verify(section!==null);wait(20)
@@ -2841,7 +2853,7 @@ Item {
    verify(row!==null)
    for(const pack of ["minimal","md3"]) {
     AppConfig.designSystem=pack
-    for(const scale of [1,1.3,2]) {
+    for(const scale of [0.5,0.8,1,1.3,2]) {
      AppConfig.fontScale=scale;wait(20)
      verify(row.implicitHeight>=Tokens.typography.bodyLarge.size+Tokens.typography.bodyMedium.size+Tokens.spacing.small*2)
     }
@@ -3090,6 +3102,146 @@ Item {
    GlobalStates.dashboardOpen=false;tryCompare(DateTime,"uptimeWatchers",0)
    profile.destroy();wait(1);compare(DateTime.uptimeWatchers,0)
   }
+
+  function scaleCases() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const scale of [0.5,0.8,1,1.3,2])rows.push({tag:pack+"-"+scale,pack:pack,scale:scale})
+   return rows
+  }
+  function assertTextContained(item,owner) {
+   if(!item.visible)return
+   if(item.textStyle!==undefined && item.text!=="") {
+    const point=item.mapToItem(owner,0,0)
+    verify(point.x>=-1 && point.x+item.width<=owner.width+1,"text fits owner horizontally: "+item.text)
+    verify(point.y>=-1 && point.y+item.height<=owner.height+1,"text fits owner vertically: "+item.text)
+    verify(item.contentWidth<=item.width+1,"text content fits: "+item.text)
+   }
+   for(const child of item.children??[])assertTextContained(child,owner)
+  }
+  function test_font_override_geometry_data() {
+   const rows=[]
+   for(const pack of ["minimal","md3"])for(const font of ["serif","monospace"])rows.push({tag:pack+"-"+font,pack:pack,scale:2,font:font})
+   return rows
+  }
+  function test_font_override_geometry(data) {
+   AppConfig.fontFamily=data.font;AppConfig.monoFamily=data.font
+   test_shared_controls_font_geometry(data)
+   test_polkit_prompt_layout_and_focus(data)
+   test_calendar_timeline_font_geometry(data)
+  }
+  function test_shared_controls_font_geometry_data() {return scaleCases()}
+  function test_shared_controls_font_geometry(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   for(const component of [badgeScaleFixture,chipScaleFixture]) {
+    const item=createTemporaryObject(component,scene);verify(item!==null);wait(30)
+    assertTextContained(item,item);item.destroy()
+   }
+   for(const width of [180,320,900]) {
+    scene.width=width
+    const segments=createTemporaryObject(segmentsScaleFixture,scene);verify(segments!==null);wait(40)
+    assertTextContained(segments,segments)
+    segments.forceActiveFocus();keyClick(Qt.Key_End);compare(segments.currentIndex,2)
+    keyClick(Qt.Key_Home);compare(segments.currentIndex,0)
+    const previous=segments.activations;keyClick(Qt.Key_Return);compare(segments.activations,previous+1)
+    segments.destroy()
+   }
+  }
+  function test_cheatsheet_rows_font_geometry_data() {return scaleCases()}
+  function test_cheatsheet_rows_font_geometry(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   for(const width of [240,400,900])for(const component of [bindRowFixture,ipcRowFixture]) {
+    scene.width=width
+    const row=createTemporaryObject(component,scene);verify(row!==null);wait(30)
+    assertTextContained(row,row);row.destroy()
+   }
+  }
+  function test_polkit_prompt_layout_and_focus_data() {return scaleCases()}
+  function test_polkit_prompt_layout_and_focus(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   for(const size of [[240,240],[320,480],[700,600]]) {
+    scene.width=size[0];scene.height=size[1]
+    const prompt=createTemporaryObject(polkitPromptFixture,scene);verify(prompt!==null);wait(40)
+    verify(prompt.width<=scene.width && prompt.height<=scene.height)
+    const title=findChild(prompt,"polkitTitle");verify(title.contentWidth<=title.width+1)
+    const identity=findChild(prompt,"polkitIdentity")
+    identity.forceActiveFocus();keyClick(Qt.Key_Space);keyClick(Qt.Key_Down);keyClick(Qt.Key_Return)
+    compare(prompt.identityIndex,1,"identity choice reports intent to the adapter")
+    prompt.identityIndex=0;compare(identity.currentIndex,0,"a new flow updates the selection without a local stale index")
+    const field=findChild(prompt,"polkitPassword")
+    prompt.focusInput();field.text="secret";keyClick(Qt.Key_Return);compare(prompt.submissions,1)
+    const submit=findChild(prompt,"polkitSubmit");verify(submit.enabled)
+    submit.forceActiveFocus(Qt.TabFocusReason);wait(40)
+    const point=submit.mapToItem(prompt,0,0)
+    verify(point.y>=0 && point.y+submit.height<=prompt.height+1,"focused action scrolls into the prompt")
+    verify(submit.contentItem.contentWidth<=submit.contentItem.width+1,"authentication label wraps")
+    keyClick(Qt.Key_Escape);compare(prompt.cancellations,1)
+    prompt.submitting=true;verify(!submit.enabled)
+    if(size[0]===320 && data.scale===2)grabImage(prompt).save("RENDERS/polkit-"+data.pack+".png")
+    prompt.destroy()
+   }
+  }
+  function test_cheatsheet_view_layout_and_keyboard_data() {return scaleCases()}
+  function test_cheatsheet_view_layout_and_keyboard(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   for(const width of [320,900]) {
+    scene.width=width;scene.height=480
+    const view=createTemporaryObject(cheatsheetViewFixture,scene);verify(view!==null);wait(40)
+    const search=findChild(view,"cheatsheetSearch")
+    const tabs=findChild(view,"cheatsheetTabs")
+    const close=findChild(view,"cheatsheetClose")
+    for(const item of [search,tabs,close]) {
+     const point=item.mapToItem(view,0,0)
+     verify(point.x>=0 && point.x+item.width<=view.width+1)
+     verify(point.y>=0 && point.y+item.height<=view.height+1)
+    }
+    view.focusSearch();view.query="test";keyClick(Qt.Key_Tab)
+    verify(!search.inputItem.activeFocus,"Tab traverses controls")
+    compare(view.currentTab,0,"Tab does not change pages")
+    view.focusSearch();keyClick(Qt.Key_Tab,Qt.ControlModifier);compare(view.currentTab,1)
+    keyClick(Qt.Key_Backtab,Qt.ControlModifier|Qt.ShiftModifier);compare(view.currentTab,0)
+    tabs.forceActiveFocus();keyClick(Qt.Key_Right);compare(view.currentTab,1)
+    keyClick(Qt.Key_F,Qt.ControlModifier);verify(search.inputItem.activeFocus,"Ctrl+F returns to search")
+    view.focusSearch();keyClick(Qt.Key_Escape);compare(view.query,"")
+    keyClick(Qt.Key_Escape);compare(view.closes,1)
+    if(width===320 && data.scale===2)grabImage(view).save("RENDERS/cheatsheet-"+data.pack+".png")
+    view.destroy()
+   }
+  }
+  function test_cheatsheet_short_view_focus_data() {return scaleCases()}
+  function test_cheatsheet_short_view_focus(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   scene.width=320;scene.height=240
+   const view=createTemporaryObject(cheatsheetViewFixture,scene);verify(view!==null);wait(40)
+   for(const name of ["cheatsheetClose","cheatsheetSearch","cheatsheetTabs"]) {
+    const item=findChild(view,name)
+    if(name==="cheatsheetSearch")view.focusSearch()
+    else item.forceActiveFocus(Qt.TabFocusReason)
+    wait(40)
+    const point=item.mapToItem(view,0,0)
+    verify(point.y>=0 && point.y+item.height<=view.height+1,"short view reveals "+name)
+   }
+   keyClick(Qt.Key_Right);compare(view.currentTab,1)
+   view.destroy()
+  }
+  function test_calendar_timeline_font_geometry_data() {return scaleCases()}
+  function test_calendar_timeline_font_geometry(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale
+   CalendarBackend.calendars=["Personal"]
+   const calendar=createTemporaryObject(realCalendarFixture,scene,{width:640,height:600,
+    selectedDayEvents:[{title:"Scale meeting",allDay:false,start:new Date(2026,10,1,10),end:new Date(2026,10,1,10,30)}]})
+   verify(calendar!==null);wait(50)
+   const hour=byProperty(calendar,"text","23:00")
+   verify(hour.contentWidth<=hour.width+1,"hour labels fit their measured column")
+   const title=byProperty(calendar,"text","Scale meeting")
+   verify(title!==null)
+   let card=title.parent
+   while(card && card._colWidth===undefined)card=card.parent
+   verify(card!==null)
+   verify(card.x>=hour.width+Tokens.spacing.small,"events clear the ruler")
+   verify(card.height>=title.implicitHeight+Tokens.spacing.extraSmall*2,"a half-hour event fits its title")
+   calendar.destroy()
+  }
+
   function test_dashboard_header_gap_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_dashboard_header_gap(data) {
    controls.visible=false;dashboard.visible=true;AppConfig.designSystem=data.pack;scene.height=700
@@ -3199,7 +3351,7 @@ Item {
   function test_snackbar_layout_and_keyboard_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_snackbar_layout_and_keyboard(data) {
    controls.visible=false;AppConfig.designSystem=data.pack
-   for(const width of [240,360,600]) for(const scale of [1,1.3,2]) {
+   for(const width of [240,360,600]) for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale
     const notice=createTemporaryObject(snackbarFixture,scene,{width:width})
     verify(notice!==null);wait(30)
@@ -3423,7 +3575,7 @@ Item {
   function test_launcher_and_osd_layout_data() {return [{tag:"minimal",pack:"minimal"},{tag:"md3",pack:"md3"}]}
   function test_launcher_and_osd_layout(data) {
    controls.visible=false;GlobalStates.launcherOpen=true;AppConfig.designSystem=data.pack
-   for(const width of [240,320,600]) for(const scale of [1,1.3,2]) {
+   for(const width of [240,320,600]) for(const scale of [0.5,0.8,1,1.3,2]) {
     scene.width=width;scene.height=600;AppConfig.fontScale=scale
     const launcher=createTemporaryObject(launcherFixture,scene,{width:width})
     const meter=createTemporaryObject(meterFixture,scene,{width:width})
@@ -3448,7 +3600,7 @@ Item {
    verify(short!==null && long!==null)
    for(const pack of ["minimal","md3"]) {
     AppConfig.designSystem=pack
-    for(const scale of [1,1.3,2]) {
+    for(const scale of [0.5,0.8,1,1.3,2]) {
      AppConfig.fontScale=scale;wait(20)
      compare(short.implicitHeight,long.implicitHeight)
      verify(short.implicitHeight>=Tokens.typography.titleMedium.size+Tokens.typography.bodySmall.size)
@@ -3460,7 +3612,7 @@ Item {
   }
   function test_density(data) {
    AppConfig.designSystem=data.pack
-   for(const scale of [1,1.3,2]) {
+   for(const scale of [0.5,0.8,1,1.3,2]) {
     AppConfig.fontScale=scale;wait(30)
     verify(action.implicitHeight>=action.contentItem.implicitHeight, "button")
     verify(field.implicitHeight>=field.inputItem.implicitHeight, "field")

@@ -3,6 +3,26 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## UI scaling and keyboard consistency — 2026-11-01
+
+PolkitPrompt is presentation-only: the existing adapter keeps authentication,
+submission guards and immediate password clearing. Its card is bounded by the
+output, scrolls focused controls into view and stacks/wraps actions when needed.
+CheatsheetView similarly separates presentation from discovery/filtering. Its
+window is bounded by the output; common search/tabs replace the bespoke controls.
+Tab traverses controls, Ctrl+Tab switches sections and arrows navigate the strip.
+Keybinding/IPC rows derive height from content, wrap full text and stack columns
+on narrow layouts; count badges grow with their labels.
+
+The day timeline shares a font-measured ruler inset and hour height across labels,
+events and the current-time indicator. Half-hour slots accommodate enlarged titles.
+Badge, Chip and SegmentedButton follow text geometry; segments wrap as whole
+controls and support keyboard/accessibility activation. MaterialButton wraps long
+labels within a constrained width; the generated greeter copy is synchronized.
+UI checks cover both packs at scales 0.5/0.8/1/1.3/2, narrow views, focus reveal and
+keyboard traversal, with inert authentication/discovery data. They do not invoke
+real PAM or change the user's windows/network/session.
+
 ## Dashboard header spacing — 2026-11-01
 
 The header and tab content previously each reserved a full panel gutter at their

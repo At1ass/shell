@@ -18,20 +18,20 @@ Rectangle {
     property bool inline: false
 
     // Positioning relative to parent (overlay mode only)
-    property int offsetX: -4
-    property int offsetY: -4
+    property int offsetX: -Tokens.spacing.extraSmall
+    property int offsetY: -Tokens.spacing.extraSmall
 
     // Auto-sizing based on content
     implicitWidth: {
-        if (showDot || text === "") return 6
-        return badgeLabel.width + 8  // 4dp padding on each side
+        if (showDot || text === "") return Tokens.size.badgeDot
+        return Math.max(implicitHeight, badgeLabel.implicitWidth + Tokens.spacing.extraSmall * 2)
     }
     implicitHeight: {
-        if (showDot || text === "") return 6
-        return 16
+        if (showDot || text === "") return Tokens.size.badgeDot
+        return Math.max(Tokens.size.badgeMinimum, badgeLabel.implicitHeight + Tokens.spacing.extraSmall)
     }
 
-    radius: width / 2  // Full radius (pill shape)
+    radius: height / 2  // Full radius (pill shape)
     color: root.badgeColor
 
     // Position at top-right corner of parent (skipped when inline)

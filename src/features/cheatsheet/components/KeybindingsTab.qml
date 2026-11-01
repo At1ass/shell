@@ -29,6 +29,7 @@ Item {
     ScrollView {
         anchors.fill: parent
         contentWidth: availableWidth
+        focusPolicy: Qt.NoFocus
         clip: true
 
         ScrollBar.vertical: ScrollBar {
@@ -36,7 +37,7 @@ Item {
         }
 
         ColumnLayout {
-            width: parent.width
+            width: parent.availableWidth
             spacing: Tokens.spacing.medium
 
             // Empty state
@@ -60,7 +61,7 @@ Item {
                     required property int index
 
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: Tokens.spacing.extraSmall
 
                     // Category header
                     RowLayout {
@@ -76,6 +77,9 @@ Item {
 
                         MaterialText {
                             text: categoryDelegate.modelData.name
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
                             textStyle: "titleSmall"
                             colorRole: "onSurfaceVariant"
                         }
@@ -89,7 +93,6 @@ Item {
                             textColor: Theme.onSurfaceVariant
                         }
 
-                        Item { Layout.fillWidth: true }
                     }
 
                     // Binds list

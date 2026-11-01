@@ -173,6 +173,15 @@ primary Minimal profile, change:
 }
 ```
 
+`fontScale` supports 0.5–2.0 and changes typography independently of the
+compositor's output scale. Controls measure their text; panels use wrapping or
+scrolling within the available space. The calendar's configured hour height is a
+minimum and grows when needed to fit enlarged event titles.
+
+The cheatsheet uses Tab/Shift+Tab to traverse controls, Ctrl+Tab/Ctrl+Shift+Tab to
+switch sections, arrows within its tab strip, Ctrl+F for search and Escape to clear
+the query, then close. Keybindings and IPC signatures wrap without truncation.
+
 `contrast: 0.0` is standard Material contrast; positive values select increased
 contrast. `reduceMotion` disables animations. Theme colours follow the wallpaper.
 

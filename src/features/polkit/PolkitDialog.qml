@@ -1,16 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.src.core.config
 import qs.src.core.services
-import qs.src.ui.base
-import qs.src.ui.containers
 import qs.src.ui.feedback
-import qs.src.ui.inputs
 
 // The prompt polkit shows when something asks for privileges.
 //
@@ -48,8 +44,8 @@ Scope {
                 if (!PolkitService.responseRequired)
                     return
                 scope.submitting = false
-                field.text = ""
-                field.inputItem.forceActiveFocus()
+                prompt.password = ""
+                prompt.focusInput()
             }
         }
 
@@ -91,129 +87,27 @@ Scope {
             }
         }
 
-        // Escape lives on the field, not on the window: a PanelWindow is not an
-        // Item, so `Keys` cannot attach to it ("Could not attach Keys property
-        // ... is not an Item") and the handler silently never ran.
-        Surface {
-            id: card
-
+        PolkitPrompt {
+            id: prompt
             anchors.centerIn: parent
-            elevation: 3
-            radius: Tokens.shape.extraLarge
-            implicitWidth: 420
-            implicitHeight: layout.implicitHeight + Tokens.spacing.large * 2
-
-            // Swallow clicks so they do not reach the scrim behind.
-            MouseArea {
-                anchors.fill: parent
+            width: Math.max(1, Math.min(implicitWidth, win.width - Tokens.spacing.small * 2))
+            height: Math.max(1, Math.min(implicitHeight, win.height - Tokens.spacing.small * 2))
+            message: PolkitService.message
+            identities: PolkitService.identities.map(i => i.displayName || i.string)
+            identityIndex: {
+                const selected = PolkitService.flow?.selectedIdentity?.string ?? ""
+                return Math.max(0, PolkitService.identities.findIndex(identity => identity.string === selected))
             }
-
-            ColumnLayout {
-                id: layout
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: Tokens.spacing.large
-                spacing: Tokens.spacing.medium
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Tokens.spacing.medium
-
-                    MaterialIcon {
-                        iconName: "admin_panel_settings"
-                        fontSize: Tokens.iconSize.large
-                        colorRole: "primary"
-                    }
-
-                    MaterialText {
-                        Layout.fillWidth: true
-                        text: "Authentication required"
-                        textStyle: "titleMedium"
-                        colorRole: "onSurface"
-                    }
-                }
-
-                MaterialText {
-                    Layout.fillWidth: true
-                    text: PolkitService.message
-                    textStyle: "bodyMedium"
-                    colorRole: "onSurfaceVariant"
-                    wrapMode: Text.Wrap
-                    visible: text.length > 0
-                }
-
-                // Who to authenticate AS. polkit offers a choice for
-                // `auth_admin` actions: the list is the administrators allowed
-                // to approve this action (by default the members of `wheel`),
-                // and the password entered below is theirs, not necessarily
-                // yours. Hidden when there is only one — which is the case for
-                // `auth_self` actions and for single-admin machines — because a
-                // picker with one entry is noise.
-                //
-                // `displayName`, not `toString()`: Identity is a QObject, so
-                // toString() renders "Identity(0x...)". It exposes `id`,
-                // `string` (the account name), `displayName` (the full name,
-                // falling back to the account name) and `isGroup`.
-                MaterialComboBox {
-                    Layout.fillWidth: true
-                    visible: PolkitService.identities.length > 1
-                    model: PolkitService.identities.map(i => i.displayName || i.string)
-                    onCurrentIndexChanged: {
-                        const id = PolkitService.identities[currentIndex]
-                        if (id)
-                            PolkitService.selectIdentity(id)
-                    }
-                }
-
-                // Visible for the whole request, not only while
-                // `responseRequired` is set: polkit drops that flag between
-                // prompts, and gating on it made the field vanish and reappear
-                // mid-conversation while the submit button stayed enabled with
-                // nothing to submit.
-                MaterialTextField {
-                    id: field
-
-                    Layout.fillWidth: true
-                    placeholderText: PolkitService.prompt
-                    password: !PolkitService.responseVisible
-                    onAccepted: scope._submit()
-                    Keys.onEscapePressed: PolkitService.cancel()
-
-                }
-
-                MaterialText {
-                    Layout.fillWidth: true
-                    text: PolkitService.failureMessage
-                    textStyle: "bodySmall"
-                    colorRole: "error"
-                    wrapMode: Text.Wrap
-                    visible: text.length > 0
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Tokens.spacing.small
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    MaterialButton {
-                        text: "Cancel"
-                        variant: "text"
-                        onClicked: PolkitService.cancel()
-                    }
-
-                    MaterialButton {
-                        text: "Authenticate"
-                        variant: "filled"
-                        enabled: PolkitService.responseRequired && !scope.submitting
-                                 && field.text.length > 0
-                        onClicked: scope._submit()
-                    }
-                }
+            prompt: PolkitService.prompt
+            responseVisible: PolkitService.responseVisible
+            responseRequired: PolkitService.responseRequired
+            failureMessage: PolkitService.failureMessage
+            submitting: scope.submitting
+            onSubmitted: scope._submit()
+            onCancelled: PolkitService.cancel()
+            onIdentitySelected: index => {
+                const identity = PolkitService.identities[index]
+                if (identity) PolkitService.selectIdentity(identity)
             }
         }
 
@@ -221,11 +115,9 @@ Scope {
         // the field has to take focus without the user clicking into a prompt
         // that appeared over what they were doing.
         onVisibleChanged: {
-            if (visible) {
-                scope.submitting = false
-                field.text = ""
-                field.inputItem.forceActiveFocus()
-            }
+            scope.submitting = false
+            prompt.password = ""
+            if (visible) prompt.focusInput()
         }
 
         // Each retry after a wrong password clears the field, says so, and
@@ -234,8 +126,8 @@ Scope {
             target: PolkitService.flow
             function onAuthenticationFailed() {
                 scope.submitting = false
-                field.text = ""
-                field.inputItem.forceActiveFocus()
+                prompt.password = ""
+                prompt.focusInput()
             }
         }
     }
@@ -253,14 +145,14 @@ Scope {
         // this shell has no fingerprint stage, so it simply refuses.
         if (!PolkitService.responseRequired || scope.submitting)
             return
-        if (field.text.length === 0)
+        if (prompt.password.length === 0)
             return
         scope.submitting = true
-        const response = field.text
+        const response = prompt.password
         // Cleared BEFORE the call returns: the response is in PAM's hands from
         // here, and there is no reason for the password to keep living in a
         // visible text field.
-        field.text = ""
+        prompt.password = ""
         PolkitService.submit(response)
     }
 }

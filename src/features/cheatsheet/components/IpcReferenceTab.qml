@@ -18,6 +18,7 @@ Item {
     ScrollView {
         anchors.fill: parent
         contentWidth: availableWidth
+        focusPolicy: Qt.NoFocus
         clip: true
 
         ScrollBar.vertical: ScrollBar {
@@ -25,7 +26,7 @@ Item {
         }
 
         ColumnLayout {
-            width: parent.width
+            width: parent.availableWidth
             spacing: Tokens.spacing.medium
 
             // Usage banner
@@ -33,7 +34,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: bannerLayout.implicitHeight + Tokens.spacing.medium * 2
                 radius: Tokens.shape.medium
-                color: Qt.rgba(Theme.primaryContainer.r, Theme.primaryContainer.g, Theme.primaryContainer.b, 0.5)
+                color: Qt.alpha(Theme.primaryContainer, 0.5)
 
                 RowLayout {
                     id: bannerLayout
@@ -49,7 +50,7 @@ Item {
 
                     MaterialText {
                         Layout.fillWidth: true
-                        text: "qs ipc call <handler> <function> [args]"
+                        text: "at1ass-shell ipc call <handler> <function> [args]"
                         textStyle: "bodyMedium"
                         colorRole: "onPrimaryContainer"
                         font.family: Tokens.typography.monoFamily
@@ -95,7 +96,7 @@ Item {
                     property var handler: modelData
 
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: Tokens.spacing.extraSmall
 
                     // Handler header
                     RowLayout {
@@ -111,6 +112,9 @@ Item {
 
                         MaterialText {
                             text: handlerDelegate.handler.name
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
                             textStyle: "titleSmall"
                             colorRole: "primary"
                             font.family: Tokens.typography.monoFamily
@@ -126,7 +130,6 @@ Item {
                             textColor: Theme.onSurfaceVariant
                         }
 
-                        Item { Layout.fillWidth: true }
                     }
 
                     // Functions list

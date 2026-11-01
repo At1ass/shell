@@ -1278,7 +1278,7 @@
                   "default": 60,
                   "minimum": 30,
                   "maximum": 120,
-                  "description": "Height of one hour slot in the timeline view (pixels)."
+                  "description": "Minimum height of one hour slot in the timeline view (logical pixels). Grows as needed to fit enlarged event titles."
                 }
               }
             },

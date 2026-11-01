@@ -1,3 +1,4 @@
 module qs.src.features.polkit
 
 PolkitDialog 1.0 PolkitDialog.qml
+PolkitPrompt 1.0 PolkitPrompt.qml

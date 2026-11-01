@@ -1,3 +1,4 @@
 module qs.src.features.cheatsheet
 Cheatsheet 1.0 Cheatsheet.qml
 CheatsheetContent 1.0 CheatsheetContent.qml
+CheatsheetView 1.0 CheatsheetView.qml

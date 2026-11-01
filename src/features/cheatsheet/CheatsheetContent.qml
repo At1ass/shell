@@ -1,11 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell.Io
-import qs.src.ui.base
-import qs.src.ui.containers
-import qs.src.ui.feedback
-import qs.src.core.config
 import qs.src.core.services
 import qs.src.features.cheatsheet.components as Components
 
@@ -59,7 +53,6 @@ Item {
     property var _hyprlandBinds: []
     property var filteredBindCategories: []
     property var filteredIpcHandlers: []
-    property int currentTab: 0
 
     // ═══════════════════════════════════════════════════════════════
     // PROCESS — hyprctl -j binds
@@ -228,7 +221,7 @@ Item {
     }
 
     function _applyFilter() {
-        const query = searchField.text.toLowerCase().trim()
+        const query = view.query.toLowerCase().trim()
         const allBinds = _hyprlandBinds.concat(_shellBindsComputed)
 
         // Filter binds
@@ -283,242 +276,17 @@ Item {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // VISUAL
-    // ═══════════════════════════════════════════════════════════════
-
-    readonly property var _tabs: [
-        { icon: "keyboard", label: "Keybindings" },
-        { icon: "terminal", label: "IPC Reference" }
-    ]
-
-    MaterialCard {
-        id: card
+    CheatsheetView {
+        id: view
         anchors.fill: parent
-        color: Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g, Theme.surfaceContainer.b, 0.95)
-        radius: Tokens.shape.extraLarge
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Tokens.spacing.large
-            spacing: Tokens.spacing.medium
-
-            // ─── Header ─────────────────────────────────────────
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.small
-
-                MaterialIcon {
-                    iconName: "help"
-                    fontSize: Tokens.typography.titleLarge.size
-                    iconColor: Theme.primary
-                }
-
-                MaterialText {
-                    text: "Cheatsheet"
-                    textStyle: "titleLarge"
-                    colorRole: "onSurface"
-                    Layout.fillWidth: true
-                }
-
-                IconButton {
-                    iconName: "close"
-                    iconSize: Tokens.iconSize.large
-                    onClicked: GlobalStates.closePanel("cheatsheet")
-                }
-            }
-
-            // ─── Search field ───────────────────────────────────
-            MaterialShape {
-                id: searchContainer
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                radius: Tokens.shape.pill
-                color: Theme.surfaceContainerHighest
-                border.width: searchField.activeFocus ? 2 : 0
-                border.color: searchField.activeFocus ? Theme.primary : "transparent"
-
-                Behavior on border.width {
-                    MotionAnimation {
-                        duration: Tokens.motion.duration.short4
-                        curve: "standard"
-                    }
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.spacing.small
-                    spacing: Tokens.spacing.small
-
-                    MaterialIcon {
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
-                        iconName: "search"
-                        iconColor: Theme.onSurfaceVariant
-                    }
-
-                    TextField {
-                        id: searchField
-                        Layout.fillWidth: true
-                        placeholderText: "Search keybindings, commands..."
-                        color: Theme.onSurface
-                        font.pixelSize: Tokens.typography.bodyLarge.size
-                        background: Item {}
-
-                        onTextChanged: root._applyFilter()
-
-                        Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_Escape) {
-                                if (searchField.text.length > 0) {
-                                    searchField.text = ""
-                                } else {
-                                    GlobalStates.closePanel("cheatsheet")
-                                }
-                                event.accepted = true
-                            } else if (Keycodes.key(event) === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
-                                searchField.forceActiveFocus()
-                                event.accepted = true
-                            }
-                        }
-
-                        Keys.onTabPressed: (event) => {
-                            if (event.modifiers & Qt.ShiftModifier) {
-                                root.currentTab = root.currentTab === 0 ? 1 : 0
-                            } else {
-                                root.currentTab = root.currentTab === 0 ? 1 : 0
-                            }
-                            event.accepted = true
-                        }
-
-                        Keys.onBacktabPressed: (event) => {
-                            root.currentTab = root.currentTab === 0 ? 1 : 0
-                            event.accepted = true
-                        }
-
-                        Component.onCompleted: searchField.forceActiveFocus()
-                    }
-
-                    IconButton {
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
-                        iconName: "close"
-                        visible: searchField.text.length > 0
-                        iconSize: Tokens.iconSize.medium
-                        onClicked: {
-                            searchField.text = ""
-                            searchField.forceActiveFocus()
-                        }
-                    }
-                }
-            }
-
-            // ─── Tab bar ────────────────────────────────────────
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                Repeater {
-                    model: root._tabs
-
-                    Item {
-                        id: tabDelegate
-                        required property var modelData
-                        required property int index
-
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 48
-
-                        readonly property bool isActive: root.currentTab === index
-
-                        MaterialShape {
-                            anchors.fill: parent
-                            radius: Tokens.shape.small
-                            color: "transparent"
-
-                            StateLayer {
-                                target: parent
-                                hovered: tabMouseArea.containsMouse
-                                pressed: tabMouseArea.pressed
-                                layerColor: Theme.primary
-                            }
-
-                            MouseArea {
-                                id: tabMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: root.currentTab = tabDelegate.index
-                            }
-
-                            RowLayout {
-                                anchors.centerIn: parent
-                                spacing: Tokens.spacing.small
-
-                                MaterialIcon {
-                                    iconName: tabDelegate.modelData.icon
-                                    fontSize: Tokens.typography.bodyMedium.size
-                                    iconColor: tabDelegate.isActive ? Theme.primary : Theme.onSurfaceVariant
-                                }
-
-                                MaterialText {
-                                    text: tabDelegate.modelData.label
-                                    textStyle: "labelLarge"
-                                    color: tabDelegate.isActive ? Theme.primary : Theme.onSurfaceVariant
-                                }
-                            }
-
-                            // Active indicator (bottom line)
-                            MaterialShape {
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: parent.width * 0.6
-                                height: 2
-                                radius: Tokens.shape.full
-                                color: Theme.primary
-                                visible: tabDelegate.isActive
-
-                                Behavior on width {
-                                    MotionAnimation {
-                                        duration: Tokens.motion.duration.short4
-                                        curve: "standard"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Divider { Layout.fillWidth: true }
-
-            // ─── Tab content — only the active tab exists (§10.14) ───
-            Loader {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                sourceComponent: root.currentTab === 0 ? bindingsComponent : ipcComponent
-                Component {
-                    id: bindingsComponent
-                    Components.KeybindingsTab { categories: root.filteredBindCategories }
-                }
-                Component {
-                    id: ipcComponent
-                    Components.IpcReferenceTab {
-                        handlers: root.filteredIpcHandlers
-                        loading: Components.IpcReferenceData.busy
-                        errorMessage: Components.IpcReferenceData.errorMessage
-                        onRetryRequested: Components.IpcReferenceData.refresh()
-                    }
-                }
-            }
-        }
-    }
-
-    // Keyboard shortcut for Ctrl+F. Physical key — on a Cyrillic layout
-    // Ctrl+F reports Qt.Key_A, so this never fired. See Keycodes.
-    Keys.onPressed: (event) => {
-        if (Keycodes.key(event) === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
-            searchField.forceActiveFocus()
-            event.accepted = true
-        }
+        active: GlobalStates.cheatsheetOpen
+        categories: root.filteredBindCategories
+        handlers: root.filteredIpcHandlers
+        loading: Components.IpcReferenceData.busy
+        errorMessage: Components.IpcReferenceData.errorMessage
+        onQueryChanged: root._applyFilter()
+        onCloseRequested: GlobalStates.closePanel("cheatsheet")
+        onRetryRequested: Components.IpcReferenceData.refresh()
     }
 
     Connections {
@@ -529,12 +297,12 @@ Item {
     // Reset and fetch on visibility change
     onVisibleChanged: {
         if (visible) {
-            searchField.text = ""
-            currentTab = 0
+            view.query = ""
+            view.currentTab = 0
             if (!hyprBindsProc.running) hyprBindsProc.running = true
             Components.IpcReferenceData.refresh()
             Qt.callLater(function() {
-                searchField.forceActiveFocus()
+                view.focusSearch()
             })
         }
     }
@@ -552,10 +320,10 @@ Item {
         function onPanelOpened(name) {
             if (name !== "cheatsheet")
                 return
-            searchField.text = ""
+            view.query = ""
             Components.IpcReferenceData.refresh()
             if (!hyprBindsProc.running) hyprBindsProc.running = true
-            searchField.forceActiveFocus()
+            view.focusSearch()
         }
     }
 }

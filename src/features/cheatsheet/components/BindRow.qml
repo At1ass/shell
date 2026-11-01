@@ -3,147 +3,73 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import qs.src.ui.base
-import qs.src.ui.feedback
 import qs.src.core.config
 
 Item {
     id: root
-
     required property var modelData
-
-    implicitHeight: 44
-    implicitWidth: parent ? parent.width : 400
-
-    // Type detection
     readonly property bool isShellBind: modelData.type === "shell"
+    readonly property bool stacked: width < Tokens.size.fieldWidth * 2 + Tokens.typography.bodyMedium.lineHeight * 12
+    implicitHeight: Math.max(Tokens.size.control, layout.implicitHeight + Tokens.spacing.small * 2)
 
-    MaterialShape {
-        id: bg
-        anchors.fill: parent
-        radius: Tokens.shape.small
-        color: "transparent"
-
-        StateLayer {
-            target: bg
-            hovered: hoverArea.containsMouse
-            layerColor: Theme.onSurface
-        }
-
-        MouseArea {
-            id: hoverArea
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.NoButton
-        }
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: Tokens.spacing.small
-            anchors.rightMargin: Tokens.spacing.small
-            spacing: Tokens.spacing.medium
-
-            // Key combo zone (220px) or Shell action chip
-            Item {
-                Layout.preferredWidth: 220
-                Layout.fillHeight: true
-                visible: !root.isShellBind
-
-                Flow {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    spacing: 4
-
-                    Repeater {
-                        model: root.modelData.modifiers || []
-
-                        MaterialShape {
-                            id: modifierChip
-                            required property string modelData
-                            width: modLabel.implicitWidth + 12
-                            height: 24
-                            radius: Tokens.shape.small
-                            color: Theme.primaryContainer
-
-                            MaterialText {
-                                id: modLabel
-                                anchors.centerIn: parent
-                                text: modifierChip.modelData
-                                textStyle: "labelSmall"
-                                colorRole: "onPrimaryContainer"
-                            }
-                        }
-                    }
-
+    GridLayout {
+        id: layout
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: Tokens.spacing.small
+        columns: root.stacked ? 1 : 3
+        columnSpacing: Tokens.spacing.medium
+        rowSpacing: Tokens.spacing.extraSmall
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredWidth: root.stacked ? -1 : Tokens.size.fieldWidth
+            implicitHeight: combo.height
+            Flow {
+                id: combo
+                objectName: "keyCombo"
+                width: parent.width
+                spacing: Tokens.spacing.extraSmall
+                Repeater {
+                    model: root.isShellBind ? [root.modelData.action || ""] : (root.modelData.modifiers || []).concat([root.modelData.key || ""])
                     MaterialShape {
-                        width: keyLabel.implicitWidth + 12
-                        height: 24
+                        id: keyChip
+                        required property string modelData
+                        width: Math.min(combo.width, label.implicitWidth + Tokens.spacing.small * 2)
+                        height: label.implicitHeight + Tokens.spacing.extraSmall * 2
                         radius: Tokens.shape.small
-                        color: Theme.secondaryContainer
-
+                        color: root.isShellBind ? Theme.tertiaryContainer : Theme.primaryContainer
                         MaterialText {
-                            id: keyLabel
+                            id: label
                             anchors.centerIn: parent
-                            text: root.modelData.key || ""
+                            width: Math.max(0, parent.width - Tokens.spacing.small * 2)
+                            text: keyChip.modelData
+                            textFormat: Text.PlainText
+                            wrapMode: Text.Wrap
                             textStyle: "labelSmall"
-                            colorRole: "onSecondaryContainer"
+                            colorRole: root.isShellBind ? "onTertiaryContainer" : "onPrimaryContainer"
                         }
                     }
                 }
             }
-
-            // Shell bind: action chip
-            MaterialShape {
-                Layout.preferredWidth: 220
-                Layout.fillHeight: true
-                visible: root.isShellBind
-                color: "transparent"
-
-                MaterialShape {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: actionLabel.implicitWidth + 16
-                    height: 24
-                    radius: Tokens.shape.small
-                    color: Theme.tertiaryContainer
-
-                    MaterialText {
-                        id: actionLabel
-                        anchors.centerIn: parent
-                        text: root.isShellBind ? root.modelData.action : ""
-                        textStyle: "labelSmall"
-                        colorRole: "onTertiaryContainer"
-                        font.family: Tokens.typography.monoFamily
-                    }
-                }
-            }
-
-            // Description (fill width)
-            MaterialText {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                text: root.modelData.description || ""
-                textStyle: "bodyMedium"
-                colorRole: "onSurface"
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            // Dispatcher+arg trailing (only for Hyprland binds)
-            MaterialText {
-                Layout.preferredWidth: 180
-                Layout.fillHeight: true
-                visible: !root.isShellBind
-                text: {
-                    const d = root.modelData.dispatcher || ""
-                    const a = root.modelData.arg || ""
-                    return a ? d + " " + a : d
-                }
-                textStyle: "bodySmall"
-                colorRole: "onSurfaceVariant"
-                elide: Text.ElideRight
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-            }
+        }
+        MaterialText {
+            Layout.fillWidth: true
+            text: root.modelData.description || ""
+            textFormat: Text.PlainText
+            textStyle: "bodyMedium"
+            wrapMode: Text.Wrap
+        }
+        MaterialText {
+            Layout.fillWidth: true
+            Layout.preferredWidth: root.stacked ? -1 : Tokens.size.fieldWidth
+            visible: !root.isShellBind
+            text: [root.modelData.dispatcher || "", root.modelData.arg || ""].filter(Boolean).join(" ")
+            textFormat: Text.PlainText
+            textStyle: "bodySmall"
+            colorRole: "onSurfaceVariant"
+            font.family: Tokens.typography.monoFamily
+            wrapMode: Text.Wrap
         }
     }
 }

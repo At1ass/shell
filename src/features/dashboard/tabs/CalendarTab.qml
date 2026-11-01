@@ -15,6 +15,25 @@ import qs.src.features.dashboard.components
 Item {
     id: root
 
+    // Share text-derived geometry between the ruler, events and current time.
+    TextMetrics {
+        id: hourMetrics
+        font.family: Tokens.typography.fontFamily
+        font.pixelSize: Tokens.typography.labelSmall.size
+        font.weight: Tokens.typography.labelSmall.weight
+        font.letterSpacing: Tokens.typography.labelSmall.letterSpacing
+        text: "23:59"
+    }
+    FontMetrics {
+        id: eventMetrics
+        font.family: Tokens.typography.fontFamily
+        font.pixelSize: Tokens.typography.labelMedium.size
+    }
+    readonly property real timelineGutter: Math.ceil(Math.max(hourMetrics.width, hourMetrics.advanceWidth)) + Tokens.spacing.small
+    readonly property real timelineEventInset: timelineGutter + Tokens.spacing.extraSmall
+    readonly property real timelineHourHeight: Math.max(AppConfig.calendarDayViewHourHeight,
+                                                       (Math.ceil(eventMetrics.height) + Tokens.spacing.extraSmall * 2 + Tokens.size.outline * 2) * 2)
+
     property int currentMonth: new Date().getMonth()
     property int currentYear: new Date().getFullYear()
     property date selectedDate: new Date()
@@ -635,7 +654,7 @@ Item {
                                     return
                                 }
                                 const hour = new Date().getHours()
-                                const targetY = Math.max(0, (hour - 1) * AppConfig.calendarDayViewHourHeight)
+                                const targetY = Math.max(0, (hour - 1) * root.timelineHourHeight)
                                 contentY = Math.min(targetY, Math.max(0, contentHeight - height))
                                 _didAutoScroll = true
                             }
@@ -643,7 +662,7 @@ Item {
                             Item {
                                 id: timelineColumn
                                 width: timelineFlickable.width
-                                height: 24 * AppConfig.calendarDayViewHourHeight
+                                height: 24 * root.timelineHourHeight
 
                                 // Hour lines and labels
                                 Repeater {
@@ -654,23 +673,23 @@ Item {
                                         required property int index
 
                                         x: 0
-                                        y: hourRow.index * AppConfig.calendarDayViewHourHeight
+                                        y: hourRow.index * root.timelineHourHeight
                                         width: timelineColumn.width
-                                        height: AppConfig.calendarDayViewHourHeight
+                                        height: root.timelineHourHeight
 
                                         MaterialText {
                                             anchors.left: parent.left
                                             anchors.top: parent.top
-                                            anchors.topMargin: -6
+                                            anchors.topMargin: hourRow.index === 0 ? 0 : -height / 2
                                             text: (hourRow.index < 10 ? "0" : "") + hourRow.index + ":00"
                                             textStyle: "labelSmall"
                                             colorRole: "onSurfaceVariant"
-                                            width: 36
+                                            width: Math.ceil(Math.max(hourMetrics.width, hourMetrics.advanceWidth))
                                         }
 
                                         Surface {
                                             anchors.left: parent.left
-                                            anchors.leftMargin: 40
+                                            anchors.leftMargin: root.timelineGutter
                                             anchors.right: parent.right
                                             anchors.top: parent.top
                                             height: 1
@@ -687,14 +706,14 @@ Item {
                                 // `running: visible` bound to the TAB's).
                                 MaterialShape {
                                     visible: root.todayIsSelected
-                                    x: 38
-                                    width: timelineColumn.width - 38
+                                    x: root.timelineGutter - Tokens.size.outline
+                                    width: Math.max(0, timelineColumn.width - x)
                                     height: 2
                                     radius: Tokens.shape.full
                                     color: Theme.error
                                     y: (DateTime.clock.date.getHours()
                                         + DateTime.clock.date.getMinutes() / 60)
-                                       * AppConfig.calendarDayViewHourHeight
+                                       * root.timelineHourHeight
 
                                     MaterialShape {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -763,7 +782,7 @@ Item {
                                         readonly property real startHour: modelData.s
                                         readonly property real endHour: modelData.e
                                         readonly property real durationHours: Math.max(0.5, endHour - startHour)
-                                        readonly property real _colWidth: (timelineColumn.width - 48) / modelData.cols
+                                        readonly property real _colWidth: Math.max(0, timelineColumn.width - root.timelineEventInset - Tokens.spacing.extraSmall) / modelData.cols
 
                                         activeFocusOnTab: true
                                         Accessible.role: Accessible.Button
@@ -783,10 +802,10 @@ Item {
                                             if (!event.isAutoRepeat) eventCard._edit()
                                             event.accepted = true
                                         }
-                                        x: 44 + modelData.col * _colWidth
-                                        y: startHour * AppConfig.calendarDayViewHourHeight
+                                        x: root.timelineEventInset + modelData.col * _colWidth
+                                        y: startHour * root.timelineHourHeight
                                         width: _colWidth - (modelData.cols > 1 ? 2 : 0)
-                                        height: Math.max(30, durationHours * AppConfig.calendarDayViewHourHeight - 2)
+                                        height: Math.max(Tokens.size.control, durationHours * root.timelineHourHeight - Tokens.size.outline * 2)
                                         radius: Tokens.shape.small
                                         color: Theme.primaryContainer
 
@@ -818,6 +837,7 @@ Item {
                                             clip: true
 
                                             MaterialText {
+                                                id: eventTitle
                                                 text: ev.title
                                                 textStyle: "labelMedium"
                                                 colorRole: "onPrimaryContainer"
@@ -827,12 +847,13 @@ Item {
                                             }
 
                                             MaterialText {
+                                                id: eventTime
                                                 text: Qt.formatTime(ev.start, "HH:mm")
                                                     + (ev.end ? " – " + Qt.formatTime(ev.end, "HH:mm") : "")
                                                 textStyle: "labelSmall"
                                                 colorRole: "onPrimaryContainer"
                                                 opacity: 0.8
-                                                visible: parent.height > 28
+                                                visible: parent.height >= eventTitle.implicitHeight + implicitHeight + parent.spacing
                                             }
 
                                             MaterialText {
@@ -840,7 +861,8 @@ Item {
                                                 textStyle: "labelSmall"
                                                 colorRole: "onPrimaryContainer"
                                                 opacity: 0.6
-                                                visible: text.length > 0 && parent.height > 44
+                                                visible: text.length > 0 && eventTime.visible
+                                                         && parent.height >= eventTitle.implicitHeight + eventTime.implicitHeight + implicitHeight + parent.spacing * 2
                                                 elide: Text.ElideRight
                                                 width: parent.width
                                             }

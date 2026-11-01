@@ -68,8 +68,8 @@ Scope {
 
             sourceComponent: Item {
                 id: contentWrapper
-                implicitWidth: 920
-                implicitHeight: Math.min(cheatsheetWindow.height - 80, 720)
+                implicitWidth: Math.max(1, Math.min(Tokens.size.fieldWidth * 4, cheatsheetWindow.width - Tokens.spacing.small * 2))
+                implicitHeight: Math.max(1, Math.min(cheatsheetWindow.height - Tokens.spacing.small * 2, Tokens.size.fieldWidth * 3))
 
                 // Created by a Loader with the open flag ALREADY true, so a
                 // Behavior never saw a change and this animation was dead — see

@@ -16,8 +16,13 @@ Item {
     property bool selected: false
 
     signal clicked()
+    Accessible.role: root.selectable ? Accessible.CheckBox : Accessible.Button
+    Accessible.name: root.label
+    Accessible.checked: root.selected
+    Accessible.onPressAction: root.activate()
+    function activate() { if (root.enabled && root.visible) root.clicked() }
 
-    implicitHeight: 32
+    implicitHeight: Math.max(Tokens.size.control, row.implicitHeight + Tokens.spacing.extraSmall * 2)
     implicitWidth: row.implicitWidth + Tokens.spacing.medium * 2
 
     opacity: enabled ? 1.0 : Tokens.state.disabledContentOpacity
@@ -51,7 +56,11 @@ Item {
 
     RowLayout {
         id: row
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Tokens.spacing.medium
+        anchors.rightMargin: Tokens.spacing.medium
+        anchors.verticalCenter: parent.verticalCenter
         spacing: Tokens.spacing.small
 
         MaterialIcon {
@@ -63,7 +72,11 @@ Item {
         }
 
         MaterialText {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
             text: root.label
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
             textStyle: "labelLarge"
             color: root._contentColor
             Layout.alignment: Qt.AlignVCenter
@@ -76,7 +89,7 @@ Item {
         hoverEnabled: true
         enabled: root.enabled
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
+        onClicked: root.activate()
     }
 
     // Keyboard operation. The kit shipped focus-ring tokens (Tokens.focusRing)
@@ -87,7 +100,7 @@ Item {
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
             || event.key === Qt.Key_Enter) {
-            if (root.enabled && !event.isAutoRepeat) root.clicked()
+            if (!event.isAutoRepeat) root.activate()
             event.accepted = true
         }
     }

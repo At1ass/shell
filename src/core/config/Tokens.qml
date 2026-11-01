@@ -260,6 +260,8 @@ Singleton {
         readonly property int outline: 1
         readonly property int activeOutline: 2
         readonly property int tabIndicator: 2
+        readonly property int badgeMinimum: 16
+        readonly property int badgeDot: 6
     }
 
     component FocusRingTokens: QtObject {

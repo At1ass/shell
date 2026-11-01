@@ -238,7 +238,7 @@ Item {
    keyClick(Qt.Key_Backtab);verify(field.inputItem.activeFocus)
   }
   function test_sessions_and_layout_data() {
-   return [{tag:"minimal",pack:"minimal",scale:1.3,w:360},{tag:"md3",pack:"md3",scale:1.3,w:360},{tag:"small-large",pack:"minimal",scale:2,w:280}]
+   const rows=[];for(const pack of ["minimal","md3"])for(const scale of [0.5,0.8,1,1.3,2])for(const w of [280,360])rows.push({tag:pack+"-"+scale+"-"+w,pack:pack,scale:scale,w:w});return rows
   }
   function test_sessions_and_layout(data) {
    GreeterConfig.designSystem=data.pack;GreeterConfig.fontScale=data.scale
