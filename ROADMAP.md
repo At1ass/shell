@@ -3,6 +3,18 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Cheatsheet Lua bindings and Shell shortcut labels — 2026-11-02
+
+Shell rows display modifiers/key independently of whether an action name is
+available. The adapter recognizes HL.Dispatcher(name), older __lua and raw Lua
+function references; internal handles and addresses never become execution text
+or searchable arguments. Descriptions explain indirect actions, while native
+binds retain exact dispatcher/arguments. Lua factory names provide category
+fallbacks, with descriptions taking precedence for e.g. media exec callbacks.
+Only native quickshell globals/IPC commands are classified as Shell directly;
+unrelated global shortcuts are not shell actions. Tests exercise the real adapter
+with inert discovery and render Shell rows across both packs and font scales.
+
 ## UI scaling and keyboard consistency — 2026-11-01
 
 PolkitPrompt is presentation-only: the existing adapter keeps authentication,

@@ -322,7 +322,7 @@ QtObject {
     services = tree / 'src/core/services'
     services.mkdir(exist_ok=True)
     mocks = {
-        'GlobalStates': 'property int dashboardOpenIndex:0; property bool dashboardOpen:true; property bool launcherOpen:false; function closePanel(name) {}',
+        'GlobalStates': 'property bool cheatsheetOpen:false;property int dashboardOpenIndex:0; property bool dashboardOpen:true; property bool launcherOpen:false; function closePanel(name) {}',
         'Weather': 'property string location:"Helsinki"; property string errorString:""; property real tempC:8; property real feelsLikeC:6; property int humidity:70; property real pressure:1009; property real windSpeed:12; property string windUnit:"km/h"; property string tempUnit:"°C"; property string icon:"cloud"; property string weatherDesc:"Cloudy"; property var dailySunrise:["2026-10-25T08:15"]; property var dailySunset:["2026-10-25T17:40"]; property var dailyTime:["2026-10-25","2026-10-26","2026-10-27","2026-10-28","2026-10-29","2026-10-30","2026-10-31"]; property var dailyTempMax:[8,9,7,8,6,5,7]; property var dailyTempMin:[2,3,1,2,1,-2,-1]; property var dailyWeatherCode:[0,0,0,0,0,0,0]; property var dailyPrecipProbMax:[0,10,30,10,0,10,0]',
         'WeatherIcons': 'property var codeToName:({0:"sunny"})',
         'AccountService': 'property string displayName:"Test User";property url iconSource:""',
@@ -467,6 +467,14 @@ QtObject {
  function finish(code) {running=false;exited(code)}
 }
 ''')
+    # Exercise the real cheatsheet adapter with inert discovery transports.
+    (io / 'StdioCollector.qml').write_text('import QtQml\nQtObject {property string text:"";signal streamFinished()}\n')
+    with (io / 'qmldir').open('a') as module: module.write('StdioCollector 1.0 StdioCollector.qml\n')
+    process_mock = io / 'Process.qml'
+    process_mock.write_text(process_mock.read_text().replace(' property QtObject stderr:null', ' property QtObject stdout:null\n property QtObject stderr:null'))
+    (tree / 'src/features/cheatsheet/components/IpcReferenceData.qml').write_text('pragma Singleton\nimport QtQml\nQtObject {property var handlers:[];property bool busy:false;property string errorMessage:"";function refresh() {}}\n')
+    cheatsheet_adapter = (ROOT / 'src/features/cheatsheet/CheatsheetContent.qml').read_text().replace('import Quickshell.Io', 'import TestIo\nimport qs.src.features.cheatsheet').replace('"components/BindFormatting.js"', '"imports/qs/src/features/cheatsheet/components/BindFormatting.js"')
+    (temp / 'TestCheatsheetContent.qml').write_text(cheatsheet_adapter)
     surface = (ROOT / 'src/features/lockscreen/LockSurface.qml').read_text().replace('import Quickshell.Services.Pam','import TestPam').replace('import Quickshell.Io','import TestIo')
     surface = surface.replace('required property ShellScreen screen','property QtObject screen:null')
     surface = re.sub(r'property bool formActive:.*', 'property bool formActive: true', surface)
@@ -589,6 +597,8 @@ Item {
   MaterialTextField {objectName:"namedField";width:260;labelItem:fieldLabel;supportingText:"Use your account name";trailingIcon:"close"}
  }}
  Component {id:polkitPromptFixture;PolkitPrompt {width:Math.min(implicitWidth,scene.width);height:Math.min(implicitHeight,scene.height);message:"Authentication is required to change system settings. Enter your password to continue.";prompt:"Password";responseRequired:true;failureMessage:"Authentication failed. Please try again.";identities:["Admin","Another administrator"];onIdentitySelected:index=>identityIndex=index;property int submissions:0;property int cancellations:0;onSubmitted:submissions++;onCancelled:cancellations++}}
+ Component {id:cheatsheetAdapterFixture;TestCheatsheetContent {width:scene.width;height:scene.height}}
+ Component {id:shellBindRowFixture;BindRow {width:scene.width;modelData:({type:"shell",modifiers:["Super","Shift"],key:"P",action:"",execution:"",description:"Screenshot"})}}
  Component {id:cheatsheetViewFixture;CheatsheetView {width:scene.width;height:scene.height;property int closes:0;onCloseRequested:closes++;categories:[{name:"Applications",binds:[{modifiers:["SUPER","CTRL","SHIFT","ALT"],key:"RETURN",description:"Launch a terminal application",dispatcher:"exec",arg:"terminal"}]}];handlers:[{name:"globalstates",functions:[{name:"openDashboardTab",params:"index: int",description:"Open the selected dashboard tab"}]}]}}
  Component {id:bindRowFixture;BindRow {width:scene.width;modelData:({modifiers:["SUPER","CTRL","SHIFT","ALT"],key:"RETURN",description:"Launch terminal",dispatcher:"exec",arg:"terminal"})}}
  Component {id:ipcRowFixture;IpcFunctionRow {width:scene.width;modelData:({name:"openDashboardTab",params:"index: int",description:"Open the dashboard at the requested tab"})}}
@@ -3146,6 +3156,60 @@ Item {
     segments.destroy()
    }
   }
+
+  function test_cheatsheet_shell_shortcut_keys_data() {return scaleCases()}
+  function test_cheatsheet_shell_shortcut_keys(data) {
+   controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale;scene.width=320
+   const row=createTemporaryObject(shellBindRowFixture,scene);verify(row!==null);wait(30)
+   for(const text of ["Super","Shift","P"])verify(byProperty(row,"text",text)!==null,"shell row displays shortcut: "+text)
+   assertTextContained(row,row)
+  }
+  function test_cheatsheet_lua_bind_normalization() {
+   controls.visible=false
+   const adapter=createTemporaryObject(cheatsheetAdapterFixture,scene);verify(adapter!==null)
+   const binds=[
+    {modmask:64,key:"R",dispatcher:"global",arg:"quickshell:launcherToggle"},
+    {modmask:65,key:"Z",dispatcher:"HL.Dispatcher(global)",arg:"40",description:"Record screen"},
+    {modmask:64,key:"O",dispatcher:"HL.Dispatcher(exec_cmd)",arg:"61",description:"Overview"},
+    {modmask:65,key:"N",dispatcher:"function: 0x123",arg:"68",description:"Next wallpaper (focused monitor)"},
+    {modmask:64,key:"D",dispatcher:"__lua",arg:"64",description:"Dashboard"},
+    {modmask:64,key:"Return",dispatcher:"HL.Dispatcher(exec_cmd)",arg:"7",description:"Open terminal"},
+    {modmask:0,key:"XF86AudioMute",dispatcher:"HL.Dispatcher(exec_cmd)",arg:"83",description:"Mute microphone"},
+    {modmask:64,key:"H",dispatcher:"HL.Dispatcher(focus)",arg:"90",description:"Move focus left"},
+    {modmask:65,key:"A",dispatcher:"HL.Dispatcher(global)",arg:"39",description:"Autotype (KeePassXC)"},
+    {modmask:65,key:"B",dispatcher:"global",arg:"org.keepassxc.KeePassXC:autotype",description:"Autotype"},
+    {modmask:64,key:"F",dispatcher:"exec",arg:"firefox --new-window",description:"Open browser"},
+    {modmask:64,key:"N",dispatcher:"exec",arg:"/usr/bin/at1ass-shell ipc call globalstates toggleNotificationCenter",description:"Notifications"},
+    {modmask:64,key:"",keycode:42,dispatcher:"HL.Dispatcher",arg:"105"},
+    {modmask:64,key:"Q",dispatcher:"__lua",arg:"106"}
+   ]
+   adapter._processBinds(JSON.stringify(binds));wait(30)
+   compare(adapter._shellBindsComputed.length,6)
+   const shell=adapter.filteredBindCategories.find(category=>category.name==="Shell")
+   verify(shell!==undefined);compare(shell.binds.length,6)
+   for(const bind of shell.binds)verify(bind.key!=="","the key is retained independently of action availability")
+   compare(shell.binds[0].action,"launcherToggle")
+   compare(shell.binds[0].execution,"global quickshell:launcherToggle")
+   compare(shell.binds[1].action,"");compare(shell.binds[1].execution,"")
+   compare(adapter._hyprlandBinds.find(bind=>bind.key==="XF86AudioMute").category,"Media")
+   compare(adapter._hyprlandBinds.find(bind=>bind.key==="H").category,"Focus and Movement")
+   const unknown=adapter._hyprlandBinds.find(bind=>bind.key==="keycode:42")
+   compare(unknown.description,"Lua action (no description)");compare(unknown.arg,"")
+   const all=adapter._shellBindsComputed.concat(adapter._hyprlandBinds)
+   for(const bind of all) {
+    verify(!bind.execution.includes("HL.Dispatcher") && !bind.execution.includes("0x123"))
+    if(bind.description==="Open terminal") {compare(bind.execution,"");compare(bind.arg,"")}
+   }
+   const search=findChild(adapter,"cheatsheetSearch")
+   search.text="firefox --new-window";wait(30)
+   compare(adapter.filteredBindCategories.length,1)
+   compare(adapter.filteredBindCategories[0].binds[0].execution,"exec firefox --new-window")
+   search.text="overview";wait(30)
+   compare(adapter.filteredBindCategories[0].name,"Shell")
+   compare(adapter.filteredBindCategories[0].binds[0].description,"Overview")
+   search.text="61";wait(30);compare(adapter.filteredBindCategories.length,0,"registry IDs are not searchable commands")
+  }
+
   function test_cheatsheet_rows_font_geometry_data() {return scaleCases()}
   function test_cheatsheet_rows_font_geometry(data) {
    controls.visible=false;AppConfig.designSystem=data.pack;AppConfig.fontScale=data.scale

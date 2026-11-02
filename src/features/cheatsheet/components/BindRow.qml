@@ -9,6 +9,8 @@ Item {
     id: root
     required property var modelData
     readonly property bool isShellBind: modelData.type === "shell"
+    readonly property string executionText: modelData.execution
+        ?? (root.isShellBind ? (modelData.action || "") : [modelData.dispatcher || "", modelData.arg || ""].filter(Boolean).join(" "))
     readonly property bool stacked: width < Tokens.size.fieldWidth * 2 + Tokens.typography.bodyMedium.lineHeight * 12
     implicitHeight: Math.max(Tokens.size.control, layout.implicitHeight + Tokens.spacing.small * 2)
 
@@ -31,7 +33,7 @@ Item {
                 width: parent.width
                 spacing: Tokens.spacing.extraSmall
                 Repeater {
-                    model: root.isShellBind ? [root.modelData.action || ""] : (root.modelData.modifiers || []).concat([root.modelData.key || ""])
+                    model: (root.modelData.modifiers || []).concat([root.modelData.key || ""])
                     MaterialShape {
                         id: keyChip
                         required property string modelData
@@ -63,8 +65,8 @@ Item {
         MaterialText {
             Layout.fillWidth: true
             Layout.preferredWidth: root.stacked ? -1 : Tokens.size.fieldWidth
-            visible: !root.isShellBind
-            text: [root.modelData.dispatcher || "", root.modelData.arg || ""].filter(Boolean).join(" ")
+            visible: root.executionText !== ""
+            text: root.executionText
             textFormat: Text.PlainText
             textStyle: "bodySmall"
             colorRole: "onSurfaceVariant"

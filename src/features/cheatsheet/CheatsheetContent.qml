@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import qs.src.core.services
 import qs.src.features.cheatsheet.components as Components
+import "components/BindFormatting.js" as BindFormatting
 
 pragma ComponentBehavior: Bound
 
@@ -69,7 +70,7 @@ Item {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                root._processBinds(text)
+                Qt.callLater(root._processBinds, text)
             }
         }
     }
@@ -124,12 +125,9 @@ Item {
 
     // Categorise by DESCRIPTION when the dispatcher says nothing.
     //
-    // Hyprland reports the dispatcher a bind was declared with, and a config
-    // driven by the Lua plugin declares every single one as `__lua` with `arg`
-    // reduced to an opaque handle ("5"). On this machine that is 91 binds out
-    // of 91: the dispatcher map matched none of them, so the entire cheatsheet
-    // collapsed into "Other" and the Shell section was empty — the widget
-    // stopped doing its one job.
+    // Lua binds can expose __lua, HL.Dispatcher(name), or a function address.
+    // Their argument is a registry reference, not the original command. Use
+    // descriptions for meaning and the factory name only for categorization.
     //
     // The descriptions survive that indirection and are what the user actually
     // reads, so they are the honest key. Rules are ordered: the first match
@@ -138,7 +136,7 @@ Item {
     readonly property var _descriptionRules: [
         // Shell-owned features first — these would otherwise look like plain
         // application launches or media keys.
-        { re: /cheat ?sheet|dashboard|notification|clipboard|logout|power menu|gaming mode|wallpaper|launcher|screenshot|night ?light/, cat: "Shell" },
+        { re: /cheat ?sheet|dashboard|notification|clipboard|logout|power menu|gaming mode|wallpaper|launcher|screenshot|night ?light|overview|record.*screen|screen.*record|connections|caffeine/, cat: "Shell" },
 
         { re: /workspace/,                                cat: "Workspaces" },
         { re: /move focus|swap window|move window (left|right|up|down)/, cat: "Focus and Movement" },
@@ -161,12 +159,16 @@ Item {
         return "Other"
     }
 
-    // A bind belongs to the shell when the dispatcher says so (`global`, the
-    // direct form) or when its description names a shell feature (the Lua
-    // form, where the dispatcher is opaque).
+    // Direct binds identify the shell by its global-shortcut namespace or IPC
+    // executable. Lua binds retain only a description, so ownership there is
+    // best-effort; unrelated native global shortcuts stay outside Shell.
     function isShellBind(b) {
-        return b.dispatcher === "global"
-            || categorizeDescription(b.description) === "Shell"
+        const info = BindFormatting.dispatcherInfo(b.dispatcher)
+        if (!info.indirect) {
+            if (info.name === "global") return (b.arg || "").startsWith("quickshell:")
+            return /(?:^|[\s/])(?:at1ass-shell|shell-ctl)\s+ipc\s+call\s/.test(b.arg || "")
+        }
+        return categorizeDescription(b.description) === "Shell"
     }
 
     function _processBinds(jsonText) {
@@ -175,12 +177,14 @@ Item {
             const binds = []
             const shellBinds = []
             for (const b of parsed) {
+                const info = BindFormatting.dispatcherInfo(b.dispatcher)
+                const execution = BindFormatting.executionText(b)
                 if (root.isShellBind(b)) {
                     // Direct form: arg is "quickshell:actionName". Lua form:
                     // arg is an opaque handle, so the action name is unknown
                     // and the description carries the meaning.
-                    const parts = (b.arg || "").split(":")
-                    const action = parts.length > 1 ? parts[1] : ""
+                    const action = !info.indirect && info.name === "global"
+                        ? (b.arg || "").slice("quickshell:".length) : ""
                     shellBinds.push({
                         type: "shell",
                         modifiers: decodeModmask(b.modmask),
@@ -190,23 +194,26 @@ Item {
                             || action
                             || "(no description)",
                         action: action,
+                        execution: execution,
+                        submap: b.submap || "",
                         category: "Shell"
                     })
                     continue
                 }
-                // Dispatcher first (it is exact when present), description
-                // second (it is all that survives a Lua-declared bind).
-                const byDispatcher = categorizeDispatcher(b.dispatcher)
+                // Native dispatchers are exact. Lua descriptions carry more
+                // meaning than the factory name (exec_cmd can control media).
+                const byDispatcher = categorizeDispatcher(BindFormatting.categoryDispatcher(info.name))
+                const byDescription = root.categorizeDescription(b.description)
                 binds.push({
                     type: "hyprland",
                     modifiers: decodeModmask(b.modmask),
                     key: b.key || ("keycode:" + b.keycode),
-                    description: b.description || "",
-                    dispatcher: b.dispatcher,
-                    arg: b.arg || "",
-                    category: byDispatcher !== ""
-                        ? byDispatcher
-                        : root.categorizeDescription(b.description),
+                    description: b.description || BindFormatting.fallbackDescription(b),
+                    dispatcher: info.indirect ? info.name : b.dispatcher,
+                    arg: info.indirect ? "" : (b.arg || ""),
+                    execution: execution,
+                    category: info.indirect && byDescription !== "Other" ? byDescription
+                        : (byDispatcher || byDescription),
                     submap: b.submap || ""
                 })
             }
@@ -231,10 +238,11 @@ Item {
             const dispatcher = (b.dispatcher || "").toLowerCase()
             const arg = (b.arg || "").toLowerCase()
             const action = (b.action || "").toLowerCase()
+            const execution = (b.execution || "").toLowerCase()
             const mods = (b.modifiers || []).join(" ").toLowerCase()
             return desc.includes(query) || key.includes(query) ||
                    dispatcher.includes(query) || arg.includes(query) ||
-                   action.includes(query) || mods.includes(query)
+                   action.includes(query) || execution.includes(query) || mods.includes(query)
         })
 
         // Group by category in order

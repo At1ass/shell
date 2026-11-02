@@ -181,6 +181,11 @@ minimum and grows when needed to fit enlarged event titles.
 The cheatsheet uses Tab/Shift+Tab to traverse controls, Ctrl+Tab/Ctrl+Shift+Tab to
 switch sections, arrows within its tab strip, Ctrl+F for search and Escape to clear
 the query, then close. Keybindings and IPC signatures wrap without truncation.
+Shell rows show their actual key combinations. Native bindings retain their
+command and arguments; Lua bindings show the `description` from `hl.bind` because
+Hyprland reports an internal reference instead of their original arguments.
+Descriptions should explain the action; unnamed Lua callbacks receive a fallback
+label without exposing registry IDs or memory addresses.
 
 `contrast: 0.0` is standard Material contrast; positive values select increased
 contrast. `reduceMotion` disables animations. Theme colours follow the wallpaper.
