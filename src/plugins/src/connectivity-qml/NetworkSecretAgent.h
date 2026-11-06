@@ -31,6 +31,7 @@ class NetworkSecretAgent : public QObject {
     Q_PROPERTY(int timeoutMs READ timeoutMs WRITE setTimeoutMs NOTIFY controlChanged)
     Q_PROPERTY(bool requestNew READ requestNew NOTIFY requestChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorOccurred)
+    Q_PROPERTY(QVariantMap lastFailure READ lastFailure NOTIFY failureChanged)
 public:
     explicit NetworkSecretAgent(QObject* parent = nullptr);
     using Executor = std::function<CredentialStore::Result(const CredentialStore::Job&, const CredentialStore::Cancellation&)>;
@@ -50,6 +51,7 @@ public:
     void setTimeoutMs(int value);
     bool requestNew() const { return m_requestNew; }
     QString errorString() const { return m_error; }
+    QVariantMap lastFailure() const { return m_lastFailure; }
     void setEnabled(bool value);
     void setBlocked(bool value);
     Q_INVOKABLE bool submit(const QString& token, const QVariantMap& answers);
@@ -60,6 +62,7 @@ signals:
     void availabilityChanged();
     void requestChanged();
     void errorOccurred(const QString& message);
+    void failureChanged();
 private slots:
     void ownerChanged(const QString&, const QString&, const QString& owner);
 private:
@@ -84,6 +87,7 @@ private:
     void updateDeadline();
     void replyError(const QDBusMessage& message, const QString& kind, const QString& text) const;
     void setError(const QString& text);
+    QString recordFailure(const QString& phase, const CredentialStore::Result& result);
     void disposeWatcher(QPointer<QDBusPendingCallWatcher>& watcher);
     QDBusConnection m_bus;
     QString m_connectionId;
@@ -104,5 +108,6 @@ private:
     QPointer<QFutureWatcher<CredentialStore::Result>> m_jobWatcher;
     CredentialStore::Cancellation m_jobCancel;
     QVariantList m_fields;
+    QVariantMap m_lastFailure;
 
 };

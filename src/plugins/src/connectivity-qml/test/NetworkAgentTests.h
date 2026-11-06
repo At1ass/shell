@@ -22,10 +22,12 @@ private slots:
     void lockedAndUntrusted();
     void saveAndDelete();
     void storeFailureAndTimeout();
+    void backgroundFailureDiagnostics();
     void daemonRestart();
     void lateRegistration();
     void destructionDuringJob();
     void credentialShapes();
+    void credentialFailureClassification();
     void vpnDescriptionProtocol();
     void vpnRequests();
     void installedVpnHelper();

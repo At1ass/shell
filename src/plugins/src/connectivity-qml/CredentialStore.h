@@ -25,6 +25,7 @@ struct Result {
     QVariantMap values;
     QString error;
     NetworkCredentials::Description description;
+    QString errorCode = {};
 };
 Cancellation cancellation();
 void cancel(const Cancellation& token);

@@ -435,6 +435,12 @@ at1ass-shell ipc call networkauth registered
 It should report `true`. Agent-owned saved credentials require a running,
 unlocked Secret Service provider such as gnome-keyring; `libsecret` alone is not
 a keyring daemon. Configure its startup/PAM unlocking for your login method.
+For intermittent credential-storage failures, use
+`at1ass-shell ipc call networkauth status`. Its `lastFailure` records the operation,
+connection name/UUID, time and a provider error code without credential values.
+The record remains available after subsequent requests; it is not a live lock
+indicator. The journal records the phase/UUID/code without connection labels or
+provider error text.
 OpenVPN prompts additionally need `networkmanager-openvpn`. Other VPN plugins and
 WireGuard-specific credential prompts do not have full parity with nm-applet.
 

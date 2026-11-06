@@ -16,6 +16,7 @@ Singleton {
         function registered(): bool { return root.registered }
         function busy(): bool { return root.busy }
         function cancel(): void { root.cancel() }
+        function status(): string { return root.status() }
     }
     Loader {
         id: agentLoader
@@ -23,6 +24,10 @@ Singleton {
         source: active ? "connectivity/NativeNetworkAgent.qml" : ""
     }
     readonly property QtObject agent: agentLoader.item
+    function status() {
+        return JSON.stringify({registered: root.registered, busy: root.busy,
+            error: root.error, lastFailure: root.value("lastFailure", {})})
+    }
     function value(name, fallback) { return agent ? (agent[name] ?? fallback) : fallback }
     function invoke(name, args) { return agent && typeof agent[name] === "function" ? agent[name](...args) : false }
     readonly property bool registered: value("registered", false)

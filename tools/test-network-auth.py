@@ -34,6 +34,7 @@ QtObject {
  property bool requestNew:false
  property var fields:[]
  property string errorString:""
+ property var lastFailure:({})
  property int cancellations:0
  function prompt(token,kind) {section=kind;busy=true;fields=[{key:"password",label:"Password",secret:true}];connectionName="Test";requestToken=token}
  function submit(token,answers) {if(token!==requestToken)return false;requestToken="";return true}
@@ -117,6 +118,14 @@ TestCase {
   tryCompare(GlobalStates,"connectionsSection","vpn")
   NetworkAuthService.reject("two");wait(1)
   compare(GlobalStates.activePanel,"connections")
+ }
+ function test_diagnostics_remain_after_request_finishes() {
+  NetworkAuthService.agent.lastFailure=({operation:"save",connectionName:"Test VPN",code:"test:1",time:"2026-11-06T12:00:00Z"})
+  const state=JSON.parse(NetworkAuthService.status())
+  compare(state.lastFailure.operation,"save");compare(state.lastFailure.connectionName,"Test VPN")
+  compare(state.lastFailure.code,"test:1");verify(!state.busy)
+  AppConfig.networkAgentEnabled=false;tryCompare(NetworkAuthService,"agent",null)
+  compare(Object.keys(JSON.parse(NetworkAuthService.status()).lastFailure).length,0)
  }
  function test_lock_resume_and_disable() {
   NetworkAuthService.agent.prompt("one","wifi")

@@ -7,6 +7,8 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QDateTime>
 #include <QDBusConnectionInterface>
 #include <QUuid>
 #include <atomic>
@@ -41,7 +43,7 @@ struct Store {
     std::mutex mutex;
     QVariantMap values;
     int lookups = 0, saves = 0, deletes = 0;
-    bool failSave = false;
+    bool failSave = false, failDelete = false;
     QByteArray vpnUi;
     std::atomic_bool waitForCancel{false}, entered{false};
     CredentialStore::Result execute(const CredentialStore::Job& job, const CredentialStore::Cancellation& token) {
@@ -58,9 +60,13 @@ struct Store {
         if (job.operation == CredentialStore::Operation::Lookup) { ++lookups; return {true, false, values, {}, {}}; }
         if (job.operation == CredentialStore::Operation::Save) {
             ++saves;
-            if (failSave) return {false, false, {}, "Password store unavailable", {}};
+            if (failSave) return {false, false, {}, "Password store unavailable", {}, "test-store:1"};
             for (auto it = job.values.cbegin(); it != job.values.cend(); ++it) values.insert(it.key(), it.value());
-        } else if (job.operation == CredentialStore::Operation::Delete) { ++deletes; values.clear(); }
+        } else if (job.operation == CredentialStore::Operation::Delete) {
+            ++deletes;
+            if (failDelete) return {false, false, {}, "Password store unavailable", {}, "test-store:2"};
+            values.clear();
+        }
         return {true, false, {}, {}, {}};
     }
 };
@@ -169,9 +175,43 @@ void NetworkAgentTests::storeFailureAndTimeout() {
     auto request = f.get(connection(1)); QTRY_VERIFY(!f.agent->requestToken().isEmpty());
     QVERIFY(f.agent->submit(f.agent->requestToken(), {{"psk", "password-to-save"}}));
     QTRY_VERIFY(request.isFinished()); QCOMPARE(errorName(request), Agent + ".Failed");
-    QVERIFY(!f.agent->errorString().isEmpty());
+    QVERIFY(f.agent->errorString().contains("Test network"));
+    QCOMPARE(f.agent->lastFailure().value("operation").toString(), "save");
+    QCOMPARE(f.agent->lastFailure().value("phase").toString(), "save-answer");
+    QCOMPARE(f.agent->lastFailure().value("code").toString(), "test-store:1");
+    QVERIFY(!QJsonDocument::fromVariant(f.agent->lastFailure()).toJson().contains("password-to-save"));
     f.agent->setTimeoutMs(50); auto expired = f.get(); QTRY_VERIFY(expired.isFinished());
     QCOMPARE(errorName(expired), Agent + ".UserCanceled"); QVERIFY(f.agent->requestToken().isEmpty());
+}
+void NetworkAgentTests::backgroundFailureDiagnostics() {
+    Fixture f; QTRY_VERIFY(f.agent->registered()); f.store->failSave = true;
+    QSignalSpy failureSpy(f.agent.get(), &NetworkSecretAgent::failureChanged);
+    bool contextReady = false;
+    connect(f.agent.get(), &NetworkSecretAgent::errorOccurred, f.agent.get(), [&] {
+        if (!f.agent->errorString().isEmpty()) contextReady = !f.agent->lastFailure().isEmpty();
+    });
+    const auto settings = connection(1, "secret-must-not-be-diagnosed");
+    auto save = f.call("SaveSecrets", {QVariant::fromValue(settings), QVariant::fromValue(QDBusObjectPath(ConnectionPath))});
+    QTRY_VERIFY(save.isFinished()); QVERIFY(save.isError());
+    QCOMPARE(failureSpy.size(), 1); QVERIFY(contextReady);
+    const auto failure = f.agent->lastFailure();
+    QCOMPARE(failure.value("phase").toString(), "save-external");
+    QCOMPARE(failure.value("connectionName").toString(), "Test network");
+    QCOMPARE(failure.value("connectionUuid").toString(), Uuid);
+    QCOMPARE(failure.value("setting").toString(), Setting);
+    QVERIFY(QDateTime::fromString(failure.value("time").toString(), Qt::ISODateWithMs).isValid());
+    QVERIFY(!QJsonDocument::fromVariant(failure).toJson().contains("secret-must-not-be-diagnosed"));
+    QVERIFY(f.agent->requestToken().isEmpty());
+    f.store->failSave = false;
+    auto retry = f.call("SaveSecrets", {QVariant::fromValue(settings), QVariant::fromValue(QDBusObjectPath(ConnectionPath))});
+    QTRY_VERIFY(retry.isFinished()); QVERIFY(!retry.isError());
+    QCOMPARE(f.agent->lastFailure(), failure); // Preserve evidence after the transient error clears.
+    f.store->failDelete = true;
+    auto remove = f.call("DeleteSecrets", {QVariant::fromValue(settings), QVariant::fromValue(QDBusObjectPath(ConnectionPath))});
+    QTRY_VERIFY(remove.isFinished()); QVERIFY(remove.isError());
+    QCOMPARE(f.agent->lastFailure().value("operation").toString(), "delete");
+    QCOMPARE(f.agent->lastFailure().value("code").toString(), "test-store:2");
+    QVERIFY(f.agent->errorString().contains("remove saved credentials"));
 }
 void NetworkAgentTests::daemonRestart() {
     Fixture f; QTRY_VERIFY(f.agent->registered());
@@ -199,6 +239,15 @@ void NetworkAgentTests::destructionDuringJob() {
     QSignalSpy stateSpy(f.agent.get(), &NetworkSecretAgent::requestChanged);
     QElapsedTimer timer; timer.start(); f.agent.reset(); QVERIFY(timer.elapsed() < 100);
     QCOMPARE(stateSpy.size(), 0); QTRY_VERIFY(request.isFinished());
+}
+void NetworkAgentTests::credentialFailureClassification() {
+    // Invalid metadata must not claim the user's keyring is locked.
+    CredentialStore::Job invalid;
+    const auto result = CredentialStore::execute(invalid, CredentialStore::cancellation());
+    QVERIFY(!result.success); QVERIFY(!result.cancelled);
+    QCOMPARE(result.errorCode, "unknown");
+    QVERIFY(!result.error.contains("locked"));
+    QVERIFY(!result.error.contains("unavailable"));
 }
 void NetworkAgentTests::credentialShapes() {
     auto settings = connection();
@@ -301,5 +350,6 @@ void NetworkAgentTests::privateKeyringRoundTrip() {
     response = CredentialStore::execute(job, token); QVERIFY(response.success); QVERIFY(response.values.isEmpty());
     CredentialStore::cancel(token);
     response = CredentialStore::execute(job, token); QVERIFY(!response.success); QVERIFY(response.cancelled);
+    QVERIFY(!response.errorCode.isEmpty());
 }
 QTEST_GUILESS_MAIN(NetworkAgentTests)

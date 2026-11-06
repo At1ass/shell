@@ -30,8 +30,19 @@ Result failure(GError* error) {
     Result result;
     result.cancelled = error && g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
     // Provider errors can contain sensitive context; expose only a fixed message.
-    result.error = result.cancelled ? "Credential storage request cancelled"
-                                   : "The system password store is unavailable or locked";
+    result.errorCode = error
+        ? QString::fromLatin1(g_quark_to_string(error->domain)) + ":" + QString::number(error->code)
+        : "unknown";
+    if (result.cancelled) result.error = "Credential storage request cancelled";
+    else if (error && g_error_matches(error, SECRET_ERROR, SECRET_ERROR_IS_LOCKED))
+        result.error = "The system password store is locked. Unlock the login keyring and retry";
+    else if (error && (g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN)
+                      || g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER)))
+        result.error = "The system password store is unavailable. Check the Secret Service provider";
+    else if (error && (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED)
+                      || g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED)))
+        result.error = "The system password store denied access";
+    else result.error = "The system password store could not complete the request";
     if (error) g_error_free(error);
     return result;
 }

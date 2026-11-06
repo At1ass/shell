@@ -7,6 +7,8 @@
 #include <QtConcurrent>
 #include <QUuid>
 #include <algorithm>
+#include <QDateTime>
+#include <QDebug>
 
 namespace {
 const QString Service = "org.freedesktop.NetworkManager";
@@ -84,6 +86,26 @@ void NetworkSecretAgent::setError(const QString& text) {
     if (m_error == text) return;
     m_error = text;
     if (!m_destroying) emit errorOccurred(m_error);
+}
+QString NetworkSecretAgent::recordFailure(const QString& phase, const CredentialStore::Result& result) {
+    const auto metadata = m_current->connection.value("connection");
+    const auto uuid = metadata.value("uuid").toString();
+    const auto name = metadata.value("id").toString();
+    const QString operation = phase.startsWith("save-") ? "save" : phase == "delete" ? "delete" : "vpn-helper";
+    const auto reason = result.error.isEmpty() ? QString("Credential operation failed") : result.error;
+    m_lastFailure = {{"time", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
+                    {"operation", operation}, {"phase", phase}, {"connectionName", name},
+                    {"connectionUuid", uuid}, {"setting", m_current->description.setting.isEmpty() ? m_current->setting : m_current->description.setting},
+                    {"code", result.errorCode.isEmpty() ? QString("unknown") : result.errorCode},
+                    {"reason", reason}};
+    emit failureChanged();
+    // Facade thread only. Never log credentials, provider text or connection labels.
+    qWarning().noquote() << "Network credential request failed: phase=" + phase
+                         << "uuid=" + uuid << "code=" + m_lastFailure.value("code").toString();
+    const QString action = operation == "save" ? "save credentials"
+                         : operation == "delete" ? "remove saved credentials" : "prepare VPN authentication";
+    return name.isEmpty() ? QString("Network: could not %1. %2").arg(action, reason)
+                         : QString("Network: could not %1 for %2. %3").arg(action, name, reason);
 }
 void NetworkSecretAgent::setTimeoutMs(int value) {
     value = std::clamp(value, 1, 300000);
@@ -365,7 +387,7 @@ void NetworkSecretAgent::jobFinished(const QString&, const QString& phase, Crede
     if (m_current->deadline.hasExpired()) { expireRequests(); return; }
     if (!result.success) {
         if (phase == "lookup") { showPrompt(); return; }
-        setError(result.error.isEmpty() ? "Credential operation failed" : result.error);
+        setError(recordFailure(phase, result));
         finishCurrent("Failed", m_error); return;
     }
     if (phase == "lookup") {

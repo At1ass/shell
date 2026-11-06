@@ -3,6 +3,19 @@
 Current priorities are summarized below. Dated sections preserve implementation
 history; older plans and acceptance notes can be superseded by later entries.
 
+## Network credential error context — 2026-11-06
+
+Credential-store failures no longer assert a locked keyring for every error.
+Messages distinguish confirmed lock/access/provider failures from unclassified
+errors. The agent adds operation/connection context to the notification and keeps
+lastFailure metadata (time, phase, connection UUID/name, setting, safe domain/code)
+for networkauth.status after transient requests finish. Facade-thread journal
+messages contain phase/UUID/code only; worker/provider text and credential values
+are never logged. Private-bus tests cover background SaveSecrets/DeleteSecrets,
+metadata publication before notification, retention and credential redaction.
+Historical generic notifications cannot be attributed retrospectively to a
+specific provider error; the new diagnostics apply after updating the package.
+
 ## Cheatsheet Lua bindings and Shell shortcut labels — 2026-11-02
 
 Shell rows display modifiers/key independently of whether an action name is
